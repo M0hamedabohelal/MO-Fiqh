@@ -1,0 +1,33 @@
+.cardContainer {
+  border-right: 6px solid var(--accent-color);
+  background-color: var(--card-bg);
+}
+
+.copyButton {
+  background-color: transparent;
+  border: none;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+
+.copyButton:hover {
+  color: var(--primary-color);
+}
+
+.textContent {
+  text-align: right;
+  direction: rtl;
+  word-wrap: break-word;
+}
+
+.paragraph {
+  line-height: 1.9;
+  font-size: 1.15rem;
+  color: var(--text-main);
+}
+
+.titlePart {
+  color: var(--primary-color);
+  margin-left: 6px;
+  font-weight: 700;
+}
