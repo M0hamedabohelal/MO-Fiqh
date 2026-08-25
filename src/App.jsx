@@ -523,6 +523,7 @@ function App() {
         <MobileBottomNav
           currentView={currentView}
           user={user}
+          isAdminUser={isAdminUser}
           onNavigate={setCurrentView}
           onOpenLogin={() => setIsLoginOpen(true)}
         />
