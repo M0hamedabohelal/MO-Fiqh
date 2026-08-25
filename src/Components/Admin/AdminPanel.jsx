@@ -1,13 +1,13 @@
 // لوحة الإدارة — إضافة وتعديل وحذف المسائل ومصطلحات القاموس مباشرة على السحابة
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   FiPlus, FiEdit2, FiTrash2, FiSave, FiX, FiBook,
-  FiAlertTriangle, FiCheckCircle, FiRefreshCw, FiUpload, FiChevronDown, FiChevronLeft,
+  FiAlertTriangle, FiCheckCircle, FiRefreshCw,
   FiSearch, FiEye, FiEyeOff, FiBarChart2
 } from 'react-icons/fi';
 import {
-  createLesson, bulkCreateLessons, updateLesson, deleteLessonById,
+  createLesson, updateLesson, deleteLessonById,
   saveTerm, deleteTerm, fetchLessonViews,
 } from '../../firebase/services';
 
@@ -57,10 +57,6 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
   const [editingTermKey, setEditingTermKey] = useState(null);
   const [editingTermDef, setEditingTermDef] = useState('');
 
-  // حالة الاستيراد بالجملة
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkText, setBulkText] = useState('');
-  const fileInputRef = useRef(null);
 
   const flash = (type, text) => {
     setStatusMessage({ type, text });
@@ -146,53 +142,6 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
       await onDataChanged();
     } catch (err) {
       flash('error', `فشل الحذف: ${err.message}`);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  /* ==================== الاستيراد بالجملة ==================== */
-
-  const handleBulkFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setBulkText(String(reader.result || ''));
-      flash('success', `تم تحميل الملف "${file.name}" — راجع المحتوى ثم اضغط استيراد.`);
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  };
-
-  const handleBulkImport = async () => {
-    let parsed;
-    try {
-      parsed = JSON.parse(bulkText);
-    } catch {
-      flash('error', 'الملف ليس JSON صالحًا — راجع الصيغة (مصفوفة كائنات).');
-      return;
-    }
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      flash('error', 'المحتوى يجب أن يكون مصفوفة غير فارغة من المسائل.');
-      return;
-    }
-    const invalid = parsed.filter((item) => !item || typeof item !== 'object' || !String(item.title || '').trim() || !String(item.bookName || '').trim());
-    if (invalid.length > 0) {
-      flash('error', `${invalid.length} عنصر ناقص — كل مسألة تحتاج على الأقل "title" و"bookName".`);
-      return;
-    }
-    if (!window.confirm(`سيتم إضافة ${parsed.length} مسألة جديدة بترقيم تلقائي. متابعة؟`)) return;
-
-    setBusy(true);
-    try {
-      const count = await bulkCreateLessons(parsed);
-      setBulkText('');
-      setBulkOpen(false);
-      flash('success', `تم استيراد ${count} مسألة بنجاح.`);
-      await onDataChanged();
-    } catch (err) {
-      flash('error', `فشل الاستيراد: ${err.message}`);
     } finally {
       setBusy(false);
     }
@@ -405,67 +354,6 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
             </button>
           )}
 
-          {/* الاستيراد بالجملة */}
-          <div className="custom-card p-3 mb-4">
-            <button
-              type="button"
-              className="btn w-100 d-flex justify-content-between align-items-center border-0"
-              style={{ color: 'var(--primary-color)', fontWeight: 'bold', background: 'transparent' }}
-              onClick={() => setBulkOpen((prev) => !prev)}
-            >
-              <span className="d-flex align-items-center gap-2"><FiUpload size={18} /> استيراد بالجملة (JSON)</span>
-              {bulkOpen ? <FiChevronDown size={20} /> : <FiChevronLeft size={20} />}
-            </button>
-
-            {bulkOpen && (
-              <div className="mt-3 border-top pt-3">
-                <p className="small text-muted mb-2">
-                  الصق مصفوفة JSON أو اختر ملفًا. كل مسألة تحتاج على الأقل:
-                  <code className="mx-1" dir="ltr">title</code>و
-                  <code dir="ltr">bookName</code> — والباقي اختياري (chapterName, pageNumber, videoNumber, videoTimestamp, mainText, sheikhExplanation, videoUrl, startTime). الترقيم تلقائي.
-                </p>
-                <textarea
-                  rows="7"
-                  className="form-control mb-2 font-monospace small"
-                  dir="ltr"
-                  placeholder={'[\n  {\n    "title": "حكم الوضوء",\n    "bookName": "كتاب الطهارة",\n    "chapterName": "باب الوضوء",\n    "pageNumber": "10",\n    "mainText": "..."\n  }\n]'}
-                  value={bulkText}
-                  onChange={(e) => setBulkText(e.target.value)}
-                  style={{ ...inputStyle, resize: 'vertical' }}
-                />
-                <div className="d-flex gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    className="btn d-flex align-items-center gap-2 flex-grow-1"
-                    disabled={busy || !bulkText.trim()}
-                    onClick={handleBulkImport}
-                    style={{ backgroundColor: 'var(--accent-color)', color: 'var(--primary-color)', fontWeight: 'bold', borderRadius: '10px' }}
-                  >
-                    {busy ? <span className="spinner-border spinner-border-sm" /> : <><FiUpload size={16} /> استيراد {bulkText.trim() ? `(${(() => { try { const p = JSON.parse(bulkText); return Array.isArray(p) ? `${p.length} مسألة` : ''; } catch { return ''; } })()})` : ''}</>}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-light d-flex align-items-center gap-2"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    📄 اختيار ملف .json
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".json,application/json"
-                    style={{ display: 'none' }}
-                    onChange={handleBulkFileSelect}
-                  />
-                  {bulkText && (
-                    <button type="button" className="btn btn-outline-secondary" onClick={() => setBulkText('')}>
-                      تفريغ
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* نموذج الإضافة / التعديل */}
           {formOpen && (
