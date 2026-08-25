@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FiChevronLeft, FiChevronRight, FiDownload } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { FiChevronLeft, FiChevronRight, FiDownload, FiUser, FiYoutube } from 'react-icons/fi';
 import logo from '../../assets/logo.png';
 import './HeroSection.css';
 
@@ -18,7 +18,7 @@ const slides = [
   },
 ];
 
-const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading }) => {
+const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpenLogin, user }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [slideVisible, setSlideVisible] = useState(true);
@@ -74,6 +74,12 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading }) => {
       {/* Decorative elements */}
       <div className="hero-glow hero-glow-1" aria-hidden="true"></div>
       <div className="hero-glow hero-glow-2" aria-hidden="true"></div>
+
+      {/* زر تسجيل الدخول */}
+      <button className="hero-login-btn" onClick={onOpenLogin} title={user ? `حساب: ${user.displayName || user.email}` : 'تسجيل الدخول'}>
+        <FiUser size={17} />
+        <span>{user ? (user.displayName || user.email || 'حسابي') : 'تسجيل الدخول'}</span>
+      </button>
 
       <div className="hero-content">
         {/* Logo */}
@@ -147,14 +153,26 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading }) => {
           </svg>
         </button>
 
-        <a
-          className="hero-download"
-          href="/fiqh-book.pdf"
-          download="الفقه.pdf"
-        >
-          <FiDownload className="hero-download-icon" size={20} />
-          <span>تحميل ملف الكتاب</span>
-        </a>
+        <div className="hero-links-wrapper d-flex justify-content-center gap-3 flex-wrap mt-3">
+          <a
+            className="hero-download"
+            href="/fiqh-book.pdf"
+            download="الفقه.pdf"
+          >
+            <FiDownload className="hero-download-icon" size={20} />
+            <span>تحميل ملف الكتاب</span>
+          </a>
+
+          <a
+            className="hero-download"
+            href="https://www.youtube.com/playlist?list=PL1i_D1Vw3d5P5Q6IHHW22JHrnLCwm60Bn"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <FiYoutube className="hero-download-icon" size={20} />
+            <span>سلسلة الفقه كاملة</span>
+          </a>
+        </div>
 
         {/* Continue Reading Button */}
         {lastReadTitle && (
