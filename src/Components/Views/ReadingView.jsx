@@ -203,7 +203,14 @@ const ReadingView = ({
       <VideoCard videoUrl={lesson.videoUrl} startTime={lesson.startTime} />
 
       {/* الميزات التفاعلية */}
-      <NotesCard lessonId={lesson.id} lessonTitle={lesson.title} note={noteValue} onSave={onSaveNote} />
+      <NotesCard 
+        lessonId={lesson.id} 
+        lessonTitle={lesson.title} 
+        bookName={lesson.bookName}
+        chapterName={lesson.chapterName}
+        note={noteValue} 
+        onSave={onSaveNote} 
+      />
     </div>
   );
 };
