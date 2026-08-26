@@ -1,9 +1,8 @@
-import React from 'react';
-import { FiBook, FiList, FiFileText, FiSearch, FiSettings, FiBookmark, FiEdit3 } from 'react-icons/fi';
+import { FiBook, FiList, FiFileText, FiSearch, FiSettings, FiBookmark, FiEdit3, FiUser, FiShield, FiDownload } from 'react-icons/fi';
 import logo from '../../assets/logo.png';
 import './Slider.css';
 
-const Slider = ({ activeView, setActiveView, onOpenSearch }) => {
+const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, isAdminUser, canInstall, onInstall }) => {
   
   return (
     <div className="sidebar-wrapper">
@@ -65,6 +64,16 @@ const Slider = ({ activeView, setActiveView, onOpenSearch }) => {
             <FiEdit3 className="sidebar-btn-icon" size={22} /> الفوائد المقتبسة
           </button>
         </li>
+        {isAdminUser && (
+          <li className="sidebar-nav-item">
+            <button 
+              className={`sidebar-btn ${activeView === 'admin' ? 'sidebar-btn-active' : ''}`}
+              onClick={() => setActiveView('admin')}
+            >
+              <FiShield className="sidebar-btn-icon" size={22} /> لوحة الإدارة
+            </button>
+          </li>
+        )}
       </ul>
 
       <div className="sidebar-footer">
@@ -74,6 +83,26 @@ const Slider = ({ activeView, setActiveView, onOpenSearch }) => {
         >
           <FiSearch size={20} /> بحث شامل
         </button>
+
+        <button
+          className="sidebar-login-btn"
+          onClick={onOpenLogin}
+          title={user ? `حساب: ${user.displayName || user.email}` : 'تسجيل الدخول'}
+        >
+          <FiUser size={20} />
+          {user ? (user.displayName || user.email || 'حسابي') : 'تسجيل الدخول'}
+        </button>
+
+        {canInstall && (
+          <button
+            className="sidebar-login-btn"
+            onClick={onInstall}
+            title="ثبّت التطبيق على جهازك"
+          >
+            <FiDownload size={20} />
+            ثبّت التطبيق
+          </button>
+        )}
         
         <ul className="sidebar-secondary-nav">
           <li className="sidebar-nav-item">

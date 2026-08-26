@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiCopy, FiCheck } from 'react-icons/fi';
 import styles from './QuoteCard.module.css';
-import { glossaryData } from '../../data/glossary';
+import { glossaryData as defaultGlossary } from '../../data/glossary';
+import { formatBrackets } from '../../utils/textFormatting';
 
-const QuoteCard = ({ text, searchQuery }) => {
+const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }) => {
   const [copied, setCopied] = useState(false);
   const [tooltipInfo, setTooltipInfo] = useState({ show: false, term: '', definition: '', x: 0, y: 0 });
 
@@ -19,7 +20,7 @@ const QuoteCard = ({ text, searchQuery }) => {
     setTooltipInfo({
       show: true,
       term,
-      definition: glossaryData[term],
+      definition: glossary[term],
       x: rect.left + rect.width / 2,
       y: rect.top - 10
     });
@@ -29,16 +30,7 @@ const QuoteCard = ({ text, searchQuery }) => {
     setTooltipInfo({ ...tooltipInfo, show: false });
   };
 
-  const isHadithText = (part) => {
-    const trimmed = part.trim();
-    if (trimmed.startsWith('«')) return true;
-    if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
-      return /(ﷺ|رسول الله|النبي|قال|طهور|نجس|الطوافين|الطوافات|قلتين|الخبث|إذا بلغ الماء|لا تشربوا|آنية الذهب|آنية الفضة|صحافها|الدنيا ولكم في الآخرة|الذي يشرب|يجرجر|نار جهنم|لا تأكلوا فيها|فاغسلوها|ثم كلوا فيها|قدح رسول الله|سلسلة من فضة|أيما إهاب|دبغ فقد|هلا أخذوا إهابها|فدبغوه|فانتفعوا به|إنما حرم أكلها|إنما حُرِّم أكلها|بني الإسلام|العمرة إلى العمرة|الحج المبرور|من حج لله|لم يرفث|قد فرض الله عليكم الحج|لو قلت|تعجلوا إلى الحج|من استطاع الحج|فليمت إن شاء|رفع القلم|نعم ولك أجر|أيما صبي حج|أيما عبد حج|لا يحل لامرأة|انطلق فحج|حج عن نفسك|حج عن شبرمة|عليهن جهاد|الحج والعمرة|حج عن أبيك|واعتمر|وقّت رسول الله|ذا الحليفة|الجحفة|قرن المنازل|يلملم|هن لهن|من حيث أنشأ)/.test(trimmed);
-    }
-    return false;
-  };
-
-  // دالة تظليل كلمة البحث بخلفية ذهبية
+  // تظليل كلمة البحث ثم المصطلحات الفقهية في النص العادي
   const highlightSearch = (plainText, baseKey) => {
     if (!searchQuery || !searchQuery.trim()) {
       return <span key={baseKey}>{plainText}</span>;
@@ -64,15 +56,17 @@ const QuoteCard = ({ text, searchQuery }) => {
     );
   };
 
-  // دالة لتظليل المصطلحات الفقهية في النص العادي
   const highlightGlossaryTerms = (plainText, baseKey) => {
-    const terms = Object.keys(glossaryData);
+    const terms = Object.keys(glossary);
     const sortedTerms = terms.sort((a, b) => b.length - a.length);
+    if (sortedTerms.length === 0) {
+      return [<React.Fragment key={`${baseKey}-empty`}>{highlightSearch(plainText, `${baseKey}-p`)}</React.Fragment>];
+    }
     const pattern = new RegExp(`(${sortedTerms.join('|')})`, 'g');
     const segments = plainText.split(pattern);
 
     return segments.map((segment, i) => {
-      if (glossaryData[segment]) {
+      if (glossary[segment]) {
         return (
           <span
             key={`${baseKey}-g-${i}`}
@@ -89,20 +83,6 @@ const QuoteCard = ({ text, searchQuery }) => {
     });
   };
 
-  const formatBrackets = (textChunk) => {
-    const parts = textChunk.split(/(\\{[^}]+\\}|﴿[^﴾]+﴾|«[^»]*(?:»|$)|\([^)]*\))/g);
-    return parts.map((part, index) => {
-      if ((part.startsWith('﴿') && part.endsWith('﴾')) || (part.startsWith('{') && part.endsWith('}'))) {
-        const formattedPart = part.replace(/\{/g, '﴿').replace(/\}/g, '﴾');
-        return <span key={index} className="quran-text">{formattedPart}</span>;
-      } else if (isHadithText(part)) {
-        return <span key={index} className="hadith-text">{part}</span>;
-      }
-      // تظليل المصطلحات الفقهية ثم كلمة البحث في النص العادي
-      return <span key={index}>{highlightGlossaryTerms(part, index)}</span>;
-    });
-  };
-
   const renderParagraph = (paragraph, index) => {
     if (!paragraph.trim()) return null;
 
@@ -116,16 +96,22 @@ const QuoteCard = ({ text, searchQuery }) => {
     }
 
     return (
-      <p key={index} className={`mb-3 ${styles.paragraph}`}>
+      <motion.p
+        key={index}
+        className={`mb-2 ${styles.paragraph}`}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: Math.min(index * 0.07, 0.6), duration: 0.45, ease: 'easeOut' }}
+      >
         {titlePart && (
           <strong className={styles.titlePart}>
             {titlePart}
           </strong>
         )}
         <span style={{ fontWeight: '500' }}>
-          {formatBrackets(bodyPart)}
+          {formatBrackets(bodyPart, searchQuery, highlightGlossaryTerms)}
         </span>
-      </p>
+      </motion.p>
     );
   };
 
@@ -133,7 +119,7 @@ const QuoteCard = ({ text, searchQuery }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`custom-card p-4 p-md-5 mb-4 position-relative shadow-sm ${styles.cardContainer}`}
+      className={`custom-card p-4 p-md-5 mb-4 position-relative shadow-sm manuscript-frame ${styles.cardContainer}`}
     >
       <div className="position-absolute top-0 start-0 m-3">
         <button

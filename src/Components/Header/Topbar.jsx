@@ -1,7 +1,7 @@
 import { FiMoon, FiSun } from 'react-icons/fi';
 import { BsBook } from 'react-icons/bs';
 
-const Topbar = ({ fontSize, setFontSize, theme, toggleTheme }) => {
+const Topbar = ({ setFontSize, theme, toggleTheme, cloudStatus }) => {
   const increaseFont = () => setFontSize(prev => Math.min(prev + 2, 24));
   const decreaseFont = () => setFontSize(prev => Math.max(prev - 2, 14));
 
@@ -24,6 +24,22 @@ const Topbar = ({ fontSize, setFontSize, theme, toggleTheme }) => {
     return 'فاتح';
   };
 
+  // مؤشر حالة المزامنة مع السحابة
+  const getCloudIndicator = () => {
+    if (cloudStatus === 'syncing') {
+      return { icon: '⟳', label: 'جاري المزامنة', title: 'جاري سحب أحدث البيانات من السحابة', color: '#f39c12' };
+    }
+    if (cloudStatus === 'synced') {
+      return { icon: '✓', label: 'متزامن', title: 'البيانات محدثة من السحابة', color: '#27ae60' };
+    }
+    if (cloudStatus === 'offline') {
+      return { icon: '⚠', label: 'بدون اتصال', title: 'تعذر الوصول للسحابة — تعرض البيانات المحلية', color: '#e74c3c' };
+    }
+    return null;
+  };
+
+  const cloud = getCloudIndicator();
+
   return (
     <div className="d-flex justify-content-start align-items-center mb-3 gap-1 flex-wrap">
       <button className="btn btn-link text-decoration-none" style={{ color: 'var(--text-main)' }} onClick={decreaseFont}>A-</button>
@@ -38,6 +54,17 @@ const Topbar = ({ fontSize, setFontSize, theme, toggleTheme }) => {
         {getThemeIcon()}
         <span className="d-none d-md-inline">{getThemeLabel()}</span>
       </button>
+
+      {cloud && (
+        <span
+          className="ms-auto d-flex align-items-center gap-1"
+          style={{ color: cloud.color, fontSize: '0.78rem', fontWeight: 600 }}
+          title={cloud.title}
+        >
+          <span style={{ fontSize: '0.85rem' }}>{cloud.icon}</span>
+          <span className="d-none d-sm-inline">{cloud.label}</span>
+        </span>
+      )}
 
     </div>
   );

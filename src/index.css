@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@400;500;700;800&display=swap");
 
 :root {
   --bg-color: #fafaf7;
@@ -14,6 +14,7 @@
   --sidebar-bg: #ffffff;
   --font-ui: "Tajawal", sans-serif;
   --font-quote: "Amiri", serif;
+  --font-heading: "Aref Ruqaa", "Amiri", serif;
   --base-font-size: 16px;
 }
 
@@ -103,6 +104,110 @@ body {
   transition: all 0.3s ease;
 }
 
+/* ==================== الخطوط التراثية ==================== */
+/* العناوين الرئيسية بخط الرقعة العثماني */
+h3.fw-bold {
+  font-family: var(--font-heading);
+  line-height: 1.9;
+}
+
+/* أسماء الكتب والأبواب والمسائل في القوائم */
+.list-btn > span:first-child {
+  font-family: var(--font-heading);
+  font-size: 1.15em;
+  line-height: 1.8;
+}
+
+/* حقول الإدخال تفضل بخط الواجهة الواضح */
+textarea.form-control,
+input.form-control {
+  font-family: var(--font-ui);
+}
+
+/* ==================== إطار المخطوطة حول متن المسألة ==================== */
+.manuscript-frame::before,
+.manuscript-frame::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  border-radius: 8px;
+  z-index: 1;
+}
+
+/* الخط الداخلي السميك */
+.manuscript-frame::before {
+  inset: 11px;
+  border: 1.5px solid var(--accent-color);
+  opacity: 0.5;
+}
+
+/* الخط الخارجي الرقيق — إطار مزدوج كالمخطوطات */
+.manuscript-frame::after {
+  inset: 16px;
+  border: 1px solid var(--accent-color);
+  opacity: 0.25;
+}
+
+/* ==================== شريط تقدم القراءة ==================== */
+.reading-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(270deg, #c9a84c 0%, var(--accent-color) 55%, var(--primary-color) 100%);
+  transform-origin: right center;
+  z-index: 1500;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(201, 168, 76, 0.35);
+}
+
+/* ==================== شريطة المفضلة المرئية ==================== */
+.bookmark-ribbon {
+  position: absolute;
+  top: -10px;
+  left: 28px;
+  width: 36px;
+  height: 54px;
+  background: linear-gradient(160deg, #ff6b5e 0%, #e74c3c 45%, #b83227 100%);
+  color: white;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 9px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 13px), 0 100%);
+  box-shadow: 0 6px 14px rgba(231, 76, 60, 0.35);
+  z-index: 6;
+  animation: ribbonDrop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+[data-theme="dark"] .bookmark-ribbon {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes ribbonDrop {
+  from {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ==================== التوهج الذهبي للأزرار عند المرور ==================== */
+.btn:not(.btn-danger):not(.btn-outline-danger):not(.btn-light):hover {
+  box-shadow: 0 4px 16px rgba(201, 168, 76, 0.35);
+}
+
+.list-btn:hover {
+  border-color: var(--accent-color) !important;
+  box-shadow:
+    0 6px 18px rgba(251, 220, 153, 0.45),
+    inset 0 0 0 1px rgba(201, 168, 76, 0.35) !important;
+}
+
 .list-btn {
   background-color: var(--card-bg) !important;
   border: 1px solid var(--border-color) !important;
@@ -135,6 +240,12 @@ body {
   border-right: 6px solid var(--accent-color) !important;
 }
 
+/* متن شرح الشيخ بخط النسخ التراثي */
+.explanation-card p {
+  font-family: var(--font-quote);
+  text-align: justify;
+}
+
 .explanation-title {
   color: var(--accent-color) !important;
 }
@@ -146,6 +257,45 @@ body {
 }
 .search-input::placeholder {
   color: var(--text-muted) !important;
+}
+
+/* فلاتر البحث (كبسولات الكتاب والباب) */
+.search-filters .chip-btn {
+  border: 1px solid var(--badge-border);
+  background: var(--badge-bg);
+  color: var(--text-main);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: .82rem;
+  font-family: var(--font-ui);
+  transition: all .25s;
+}
+.search-filters .chip-btn:hover {
+  border-color: var(--accent-color);
+}
+.search-filters .chip-active {
+  background: var(--primary-color) !important;
+  color: #fff !important;
+  border-color: var(--primary-color) !important;
+}
+.search-result-count {
+  font-size: .78rem;
+}
+
+/* تتبع التقدم */
+.progress-track {
+  height: 6px;
+  background: var(--badge-bg);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-color), #27ae60);
+  border-radius: 999px;
+}
+.lesson-read-badge {
+  color: #27ae60;
 }
 
 /* Bootstrap overrides */
@@ -184,8 +334,12 @@ body {
   font-weight: 700;
 }
 /* ==================== تنسيقات النصوص الملونة ==================== */
+/* الآيات بخط المصحف (Amiri Quran) */
 .quran-text {
   color: #2e8b57;
+  font-family: "Amiri Quran", "Amiri", serif;
+  font-size: 1.1em;
+  line-height: 2;
 }
 
 [data-theme="dark"] .quran-text {
@@ -277,6 +431,8 @@ body {
   .sidebar-container,
   .progress-bar-fixed,
   .glossary-tooltip-popup,
+  .reading-progress-bar,
+  .bookmark-ribbon,
   button,
   .btn,
   iframe,
@@ -596,7 +752,7 @@ body {
 
   /* QuoteCard & ExplanationCard */
   .custom-card.p-4.p-md-5.mb-4 {
-    padding: 0.85rem !important;
+    padding: 1.5rem !important; /* Must be larger than the 16px inset of the manuscript frame */
   }
 
   /* حجم خط متن المسألة على الموبايل */

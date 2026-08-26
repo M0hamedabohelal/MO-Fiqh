@@ -8,12 +8,16 @@
   border-left: 1px solid var(--border-color);
   background: var(--sidebar-bg);
   transition: all 0.3s ease;
+  /* لو المحتوى أطول من الشاشة يفضل قابل للتمرير بدل ما يختفي */
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .sidebar-logo-section {
   text-align: center;
-  margin-bottom: 3rem;
-  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  margin-top: 0.5rem;
+  flex-shrink: 0;
 }
 
 .sidebar-logo-link {
@@ -132,6 +136,33 @@
   transform: translateY(-3px);
   box-shadow: 0 8px 25px rgba(15, 61, 62, 0.3);
   filter: brightness(1.1);
+}
+
+.sidebar-login-btn {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--badge-bg);
+  color: var(--text-main);
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-login-btn:hover {
+  border-color: var(--accent-color);
+  color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(201, 168, 76, 0.15);
 }
 
 .sidebar-secondary-nav {

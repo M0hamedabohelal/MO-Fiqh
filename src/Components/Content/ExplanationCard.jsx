@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FiBookOpen, FiCopy, FiCheck } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { formatBrackets } from '../../utils/textFormatting';
 
 const ExplanationCard = ({ explanation, searchQuery }) => {
   const [copied, setCopied] = useState(false);
@@ -9,55 +10,6 @@ const ExplanationCard = ({ explanation, searchQuery }) => {
     navigator.clipboard.writeText(explanation);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const isHadithText = (part) => {
-    const trimmed = part.trim();
-    if (trimmed.startsWith('«')) return true;
-    if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
-      return /(ﷺ|رسول الله|النبي|قال|طهور|نجس|الطوافين|الطوافات|قلتين|الخبث|إذا بلغ الماء|لا تشربوا|آنية الذهب|آنية الفضة|صحافها|الدنيا ولكم في الآخرة|الذي يشرب|يجرجر|نار جهنم|لا تأكلوا فيها|فاغسلوها|ثم كلوا فيها|قدح رسول الله|سلسلة من فضة|أيما إهاب|دبغ فقد|هلا أخذوا إهابها|فدبغوه|فانتفعوا به|إنما حرم أكلها|إنما حُرِّم أكلها|بني الإسلام|العمرة إلى العمرة|الحج المبرور|من حج لله|لم يرفث|قد فرض الله عليكم الحج|لو قلت|تعجلوا إلى الحج|من استطاع الحج|فليمت إن شاء|رفع القلم|نعم ولك أجر|أيما صبي حج|أيما عبد حج|لا يحل لامرأة|انطلق فحج|حج عن نفسك|حج عن شبرمة|عليهن جهاد|الحج والعمرة|حج عن أبيك|واعتمر|وقّت رسول الله|ذا الحليفة|الجحفة|قرن المنازل|يلملم|هن لهن|من حيث أنشأ)/.test(trimmed);
-    }
-    return false;
-  };
-
-  // دالة تظليل كلمة البحث بخلفية ذهبية
-  const highlightSearch = (plainText, baseKey) => {
-    if (!searchQuery || !searchQuery.trim()) {
-      return <span key={baseKey}>{plainText}</span>;
-    }
-    const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const parts = plainText.split(new RegExp(`(${escapedQuery})`, 'gi'));
-    return parts.map((part, i) =>
-      part.toLowerCase() === searchQuery.toLowerCase()
-        ? (
-          <mark
-            key={`${baseKey}-hl-${i}`}
-            style={{
-              backgroundColor: 'rgba(251, 220, 153, 0.75)',
-              color: 'inherit',
-              borderRadius: '3px',
-              padding: '0 2px',
-            }}
-          >
-            {part}
-          </mark>
-        )
-        : <span key={`${baseKey}-s-${i}`}>{part}</span>
-    );
-  };
-
-  const formatBrackets = (textChunk) => {
-    const parts = textChunk.split(/(\\{[^}]+\\}|﴿[^﴾]+﴾|«[^»]*(?:»|$)|\([^)]*\))/g);
-    return parts.map((part, index) => {
-      if ((part.startsWith('﴿') && part.endsWith('﴾')) || (part.startsWith('{') && part.endsWith('}'))) {
-        const formattedPart = part.replace(/\{/g, '﴿').replace(/\}/g, '﴾');
-        return <span key={index} className="quran-text">{formattedPart}</span>;
-      } else if (isHadithText(part)) {
-        return <span key={index} className="hadith-text">{part}</span>;
-      }
-      // تطبيق تظليل البحث على النص العادي
-      return <React.Fragment key={index}>{highlightSearch(part, index)}</React.Fragment>;
-    });
   };
 
   // دالة لتنسيق فقرات الشرح بذكاء (تمييز ما قبل النقطتين)
@@ -74,9 +26,12 @@ const ExplanationCard = ({ explanation, searchQuery }) => {
     }
 
     return (
-      <p
+      <motion.p
         key={index}
         className="mb-3"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: Math.min(index * 0.07, 0.6), duration: 0.45, ease: 'easeOut' }}
         style={{
           lineHeight: '1.9',
           fontSize: '1.1rem',
@@ -89,9 +44,9 @@ const ExplanationCard = ({ explanation, searchQuery }) => {
           </strong>
         )}
         <span style={{ fontWeight: '500' }}>
-          {formatBrackets(bodyPart)}
+          {formatBrackets(bodyPart, searchQuery)}
         </span>
-      </p>
+      </motion.p>
     );
   };
 

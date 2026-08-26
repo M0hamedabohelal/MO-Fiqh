@@ -18,10 +18,16 @@
   text-align: right;
   direction: rtl;
   word-wrap: break-word;
+  font-family: var(--font-quote);
+}
+
+/* محاذاة النص من الجهتين — شكل الكتب المطبوعة */
+.textContent p {
+  text-align: right;
 }
 
 .paragraph {
-  line-height: 1.9;
+  line-height: 1.8;
   font-size: 1.15rem;
   color: var(--text-main);
 }

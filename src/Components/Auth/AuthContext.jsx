@@ -1,0 +1,166 @@
+// سياق المصادقة — إدارة تسجيل الدخول وحالة المستخدم في كل التطبيق
+// الـ SDK يُحمَّل مؤجلاً — أول شاشة لا تنتظر Firebase
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { getFirebase, isFirebaseConfigured } from '../../firebase/config';
+import { fetchUserData, isAdmin as checkAdmin } from '../../firebase/services';
+
+const AuthContext = createContext(null);
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useAuth = () => useContext(AuthContext);
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  // لو Firebase مش مهيأ من البداية مفيش انتظار
+  const [authLoading, setAuthLoading] = useState(isFirebaseConfigured);
+  const [authError, setAuthError] = useState('');
+
+  // مراقبة حالة تسجيل الدخول — بعد تحميل الـ SDK مؤجلاً
+  useEffect(() => {
+    if (!isFirebaseConfigured) return undefined;
+
+    let unsubscribe = () => {};
+    let cancelled = false;
+
+    getFirebase()
+      .then(({ auth, authMod }) => {
+        if (cancelled) return;
+        unsubscribe = authMod.onAuthStateChanged(auth, async (firebaseUser) => {
+          setUser(firebaseUser);
+          if (firebaseUser) {
+            const adminStatus = await checkAdmin(firebaseUser.uid);
+            if (!cancelled) setIsAdminUser(adminStatus);
+          } else if (!cancelled) {
+            setIsAdminUser(false);
+          }
+          if (!cancelled) setAuthLoading(false);
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setAuthLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
+  // إنشاء حساب جديد
+  const register = useCallback(async (email, password, displayName) => {
+    setAuthError('');
+    try {
+      const { auth, authMod } = await getFirebase();
+      const cred = await authMod.createUserWithEmailAndPassword(auth, email, password);
+      if (displayName) {
+        await authMod.updateProfile(cred.user, { displayName });
+      }
+      return { success: true };
+    } catch (err) {
+      const message = translateAuthError(err.code);
+      setAuthError(message);
+      return { success: false, error: message };
+    }
+  }, []);
+
+  // تسجيل دخول
+  const login = useCallback(async (email, password) => {
+    setAuthError('');
+    try {
+      const { auth, authMod } = await getFirebase();
+      await authMod.signInWithEmailAndPassword(auth, email, password);
+      return { success: true };
+    } catch (err) {
+      const message = translateAuthError(err.code);
+      setAuthError(message);
+      return { success: false, error: message };
+    }
+  }, []);
+
+  // تسجيل دخول بحساب جوجل
+  const loginWithGoogle = useCallback(async () => {
+    setAuthError('');
+    try {
+      const { auth, authMod } = await getFirebase();
+      const provider = new authMod.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await authMod.signInWithPopup(auth, provider);
+      return { success: true };
+    } catch (err) {
+      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+        // المستخدم قفل النافذة — مش خطأ حقيقي
+        return { success: false, error: '' };
+      }
+      const message = translateAuthError(err.code);
+      setAuthError(message);
+      return { success: false, error: message };
+    }
+  }, []);
+
+  // تسجيل خروج
+  const logout = useCallback(async () => {
+    const { auth, authMod } = await getFirebase();
+    await authMod.signOut(auth);
+  }, []);
+
+  // جلب بيانات المستخدم من Firestore (المفضلة والفوائد والملاحظات)
+  const loadUserData = useCallback(async (uid) => {
+    if (!isFirebaseConfigured || !uid) return null;
+    try {
+      return await fetchUserData(uid);
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // إعادة فحص صلاحية المشرف
+  const refreshAdminStatus = useCallback(async (uid) => {
+    if (!uid) return false;
+    const status = await checkAdmin(uid);
+    setIsAdminUser(status);
+    return status;
+  }, []);
+
+  const value = {
+    user,
+    isAdminUser,
+    authLoading,
+    authError,
+    isFirebaseConfigured,
+    register,
+    login,
+    loginWithGoogle,
+    logout,
+    loadUserData,
+    refreshAdminStatus,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// ترجمة أخطاء Firebase لرسائل عربية مفهومة
+function translateAuthError(code) {
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'هذا البريد الإلكتروني مستخدم بالفعل، جرّب تسجيل الدخول.';
+    case 'auth/invalid-email':
+      return 'صيغة البريد الإلكتروني غير صحيحة.';
+    case 'auth/weak-password':
+      return 'كلمة المرور ضعيفة — يجب ألا تقل عن 6 حروف.';
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+    case 'auth/too-many-requests':
+      return 'محاولات كثيرة خاطئة — انتظر قليلاً ثم حاول مرة أخرى.';
+    case 'auth/network-request-failed':
+      return 'مشكلة في الاتصال بالإنترنت — تحقق من شبكتك.';
+    case 'auth/operation-not-allowed':
+      return 'تسجيل الدخول بالبريد غير مفعّل في مشروع Firebase.';
+    default:
+      return 'حدث خطأ غير متوقع — حاول مرة أخرى.';
+  }
+}
+
+export default AuthContext;

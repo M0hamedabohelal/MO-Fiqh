@@ -1,0 +1,1 @@
+const fs = require('fs'); const content = fs.readFileSync('src/data/lessons.js', 'utf-8'); const matches = [...content.matchAll(/videoUrl:\s*[\"\']([^\"\']+)[\"\']/g)]; matches.forEach(m => console.log(m[1]));

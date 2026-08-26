@@ -236,6 +236,7 @@ function App() {
   const openLessonByIndex = useCallback((index) => {
     setCurrentIndex(index);
     setCurrentView('reading');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [setCurrentIndex, setCurrentView]);
 
   const openLessonById = useCallback((lessonId) => {
@@ -280,6 +281,11 @@ function App() {
       trackLessonView(currentLesson.id);
     }
   }, [currentView, currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // التمرير لأعلى الصفحة عند تغيير الشاشة أو المسألة
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentView, currentIndex]);
 
   // ─── اختصارات لوحة المفاتيح ───
   const handleKeyboardShortcut = useCallback((event) => {
