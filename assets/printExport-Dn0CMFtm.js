@@ -2,7 +2,7 @@ function e({highlights:e,notes:t,lessons:n}){let i=new Date().toLocaleDateString
     @page { margin: 0; size: auto; } /* إخفاء روابط المتصفح العلوية والسفلية */
     body { font-family: 'Amiri', serif; color: #111; line-height: 1.6; font-size: 11.5pt; padding: 1.5cm; margin: 0; }
     .brand-header { text-align: center; margin-bottom: 2rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 1.5rem; }
-    .brand-name { font-size: 24pt; font-weight: bold; color: #c9a54e; border: 2px solid #c9a54e; padding: 0px 20px; border-radius: 10px; display: inline-block; line-height: 1.5; }
+    .brand-name { font-size: 20pt; font-weight: bold; color: #c9a54e; border: 2px solid #c9a54e; padding: 4px 20px; border-radius: 10px; display: inline-block; line-height: 1.5; }
     .brand-sub { display: block; font-size: 11pt; color: #666; margin-top: 8px; }
     .report-title { text-align: center; font-size: 14pt; color: #444; margin-bottom: 1.5rem; }
     .header .date { font-size: 9pt; color: #666; } 
@@ -16,8 +16,8 @@ function e({highlights:e,notes:t,lessons:n}){let i=new Date().toLocaleDateString
     .empty-msg { color: #aaa; text-align: center; font-size: 10pt; }
   </style></head><body>
     <div class='brand-header'>
-      <div class='brand-name'>فقهي</div>
-      <div class='brand-sub'>تطبيق الباحث الفقهي | ${i}</div>
+      <div class='brand-name'>تطبيق الباحث الفقهي</div>
+      <div class='brand-sub'>${i}</div>
     </div>
     <div class='report-title'>دفتر الفوائد والملاحظات</div>
     <div class='section-title'>فوائدي المقتبسة (${(e||[]).length})</div>${c||`<div class='empty-msg'>لا توجد فوائد.</div>`}<br>
@@ -26,7 +26,7 @@ function e({highlights:e,notes:t,lessons:n}){let i=new Date().toLocaleDateString
     @page { margin: 0; size: auto; } /* إخفاء الروابط العلوية والسفلية */
     body { font-family: 'Amiri', serif; color: #111; line-height: 1.6; font-size: 11.5pt; text-align: justify; padding: 1.5cm; margin: 0; }
     .brand-header { text-align: center; margin-bottom: 2rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 1.5rem; }
-    .brand-name { font-size: 24pt; font-weight: bold; color: #c9a54e; border: 2px solid #c9a54e; padding: 0px 20px; border-radius: 10px; display: inline-block; line-height: 1.5; }
+    .brand-name { font-size: 20pt; font-weight: bold; color: #c9a54e; border: 2px solid #c9a54e; padding: 4px 20px; border-radius: 10px; display: inline-block; line-height: 1.5; }
     .brand-sub { display: block; font-size: 11pt; color: #666; margin-top: 8px; }
     .book-title { text-align: center; font-size: 14pt; color: #444; margin-bottom: 0.5rem; font-weight: bold; }
     .chapter-title { text-align: center; font-size: 18pt; color: #c9a54e; margin-bottom: 2rem; }
@@ -37,8 +37,8 @@ function e({highlights:e,notes:t,lessons:n}){let i=new Date().toLocaleDateString
     .lesson-explanation { margin-top: 6px; padding-top: 6px; border-top: 1px dotted #ccc; color: #444; font-size: 10.5pt; }
   </style></head><body>
     <div class='brand-header'>
-      <div class='brand-name'>فقهي</div>
-      <div class='brand-sub'>تطبيق الباحث الفقهي | ${new Date().toLocaleDateString(`ar-EG`,{weekday:`long`,year:`numeric`,month:`long`,day:`numeric`})}</div>
+      <div class='brand-name'>تطبيق الباحث الفقهي</div>
+      <div class='brand-sub'>${new Date().toLocaleDateString(`ar-EG`,{weekday:`long`,year:`numeric`,month:`long`,day:`numeric`})}</div>
     </div>
     <div class='book-title'>${t}</div>
     <div class='chapter-title'>${e}</div>
@@ -47,7 +47,7 @@ function e({highlights:e,notes:t,lessons:n}){let i=new Date().toLocaleDateString
     @page { margin: 0; size: auto; }
     body { font-family: 'Amiri', serif; color: #111; line-height: 1.6; font-size: 11.5pt; text-align: justify; padding: 1.5cm; margin: 0; }
     .brand-header { text-align: center; margin-bottom: 2rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 1.5rem; }
-    .brand-name { font-size: 24pt; font-weight: bold; color: #c9a54e; border: 2px solid #c9a54e; padding: 0px 20px; border-radius: 10px; display: inline-block; line-height: 1.5; }
+    .brand-name { font-size: 20pt; font-weight: bold; color: #c9a54e; border: 2px solid #c9a54e; padding: 4px 20px; border-radius: 10px; display: inline-block; line-height: 1.5; }
     .brand-sub { display: block; font-size: 11pt; color: #666; margin-top: 8px; }
     .book-title { text-align: center; font-size: 12pt; color: #666; margin-bottom: 0.5rem; font-weight: bold; }
     .chapter-title { text-align: center; font-size: 14pt; color: #444; margin-bottom: 2rem; }
@@ -57,8 +57,8 @@ function e({highlights:e,notes:t,lessons:n}){let i=new Date().toLocaleDateString
     .lesson-explanation { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dotted #ccc; color: #333; font-size: 12pt; line-height: 1.8; }
   </style></head><body>
     <div class='brand-header'>
-      <div class='brand-name'>فقهي</div>
-      <div class='brand-sub'>تطبيق الباحث الفقهي | ${t}</div>
+      <div class='brand-name'>تطبيق الباحث الفقهي</div>
+      <div class='brand-sub'>${t}</div>
     </div>
     <div class='book-title'>${e.bookName||``}</div>
     <div class='chapter-title'>${e.chapterName||``}</div>
