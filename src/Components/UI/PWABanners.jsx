@@ -41,29 +41,28 @@ const PWABanners = ({
     <AnimatePresence>
       {needRefresh && (
         <motion.div
-          initial={{ y: 80, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 80, opacity: 0 }}
-          className="position-fixed bottom-0 start-0 end-0 d-flex align-items-center justify-content-center gap-3 py-2 px-3 mb-5 mb-md-0"
-          style={{ zIndex: 3000 }}
+          initial={{ y: 80, opacity: 0, scale: 0.9 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: 80, opacity: 0, scale: 0.9 }}
+          className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-center py-3 mb-5 mb-md-3"
+          style={{ zIndex: 3000, pointerEvents: 'none' }}
         >
-          <div
-            className="d-flex align-items-center gap-3 px-3 py-2 shadow"
+          <button
+            onClick={applyUpdate}
+            className="d-flex align-items-center gap-2 px-4 py-2 shadow-lg border-0 fw-bold"
             style={{
-              backgroundColor: 'var(--primary-color)',
-              color: 'var(--text-on-primary)',
-              borderRadius: '12px',
+              backgroundColor: '#4eb9a8',
+              color: '#082525',
+              borderRadius: '30px',
+              pointerEvents: 'auto',
+              fontSize: '0.95rem',
+              cursor: 'pointer'
             }}
           >
-            <span className="fw-bold small">تحديث جديد جاهز</span>
-            <button
-              className="btn btn-sm d-flex align-items-center gap-1 fw-bold"
-              style={{ backgroundcolor: 'var(--text-on-primary)', color: 'var(--text-on-accent)', borderRadius: '8px' }}
-              onClick={applyUpdate}
-            >
-              <FiRefreshCw size={14} /> تحديث الآن
-            </button>
-          </div>
+            <span>تحديث جديد جاهز</span>
+            <FiRefreshCw size={16} />
+            <span>تحديث الآن</span>
+          </button>
         </motion.div>
       )}
     </AnimatePresence>
