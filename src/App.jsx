@@ -351,14 +351,17 @@ function App() {
   const lastReadTitle = lessons.find((l) => String(l.id) === lastReadLessonId)?.title;
 
   // حماية التطبيق (إجبار المستخدم على تسجيل الدخول)
+  // ملاحظة: ننتظر اكتمال authLoading قبل أي إجراء — ضروري لـ Google Redirect
   useEffect(() => {
-    if (!authLoading && !user && currentView !== 'hero') {
+    if (authLoading) return; // ✅ ننتظر إنتهاء تحقق الـ Auth (مهم لـ Google Redirect)
+    if (!user && currentView !== 'hero') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentView('hero');
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoginOpen(true);
     }
   }, [user, authLoading, currentView, setCurrentView]);
+
 
   return (
     <div className="container-fluid p-0 position-relative">

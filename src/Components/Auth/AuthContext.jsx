@@ -24,8 +24,23 @@ export const AuthProvider = ({ children }) => {
     let cancelled = false;
 
     getFirebase()
-      .then(({ auth, authMod }) => {
+      .then(async ({ auth, authMod }) => {
         if (cancelled) return;
+
+        // ✅ معالجة نتيجة Google Redirect عند العودة للتطبيق
+        try {
+          const result = await authMod.getRedirectResult(auth);
+          if (result?.user && !cancelled) {
+            // تم تسجيل الدخول بنجاح عبر Google Redirect
+            setAuthError('');
+          }
+        } catch (redirectErr) {
+          if (!cancelled) {
+            const msg = translateAuthError(redirectErr?.code || 'auth/network-request-failed');
+            setAuthError(msg);
+          }
+        }
+
         unsubscribe = authMod.onAuthStateChanged(auth, async (firebaseUser) => {
           setUser(firebaseUser);
           if (firebaseUser) {
@@ -85,11 +100,32 @@ export const AuthProvider = ({ children }) => {
       const { auth, authMod } = await getFirebase();
       const provider = new authMod.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      // استخدام Redirect بدلاً من Popup لأنه متوافق 100% مع تطبيقات PWA والهواتف
-      await authMod.signInWithRedirect(auth, provider);
-      // ملاحظة: مع Redirect لن يكتمل الكود هنا، بل سيغلق الموقع ويفتح صفحة جوجل ثم يعود.
-      // لذلك لا نرجع success هنا، ستتم معالجة الدخول تلقائياً عند عودة المستخدم.
-      return { success: true };
+
+      // محاولة Popup أولاً (أفضل تجربة في المتصفح العادي)
+      // في حالة الفشل (مثل PWA أو متصفح مقيد) ننتقل لـ Redirect
+      try {
+        const result = await authMod.signInWithPopup(auth, provider);
+        if (result?.user) {
+          return { success: true };
+        }
+        return { success: true };
+      } catch (popupErr) {
+        // أخطاء تستوجب التحويل لـ Redirect
+        const redirectCodes = [
+          'auth/popup-blocked',
+          'auth/popup-closed-by-user',
+          'auth/cancelled-popup-request',
+          'auth/operation-not-supported-in-this-environment',
+        ];
+        if (redirectCodes.includes(popupErr?.code)) {
+          // استخدام Redirect كبديل
+          await authMod.signInWithRedirect(auth, provider);
+          // ملاحظة: مع Redirect الصفحة ستُغلق وتُفتح جوجل ثم تعود
+          // النتيجة ستُعالج في useEffect عبر getRedirectResult
+          return { success: true };
+        }
+        throw popupErr;
+      }
     } catch (err) {
       const message = translateAuthError(err?.code || 'auth/network-request-failed');
       setAuthError(message);
@@ -157,6 +193,10 @@ function translateAuthError(code) {
       return 'مشكلة في الاتصال بالإنترنت — تحقق من شبكتك.';
     case 'auth/operation-not-allowed':
       return 'تسجيل الدخول بالبريد غير مفعّل في مشروع Firebase.';
+    case 'auth/popup-closed-by-user':
+      return 'تم إغلاق نافذة تسجيل الدخول — حاول مرة أخرى.';
+    case 'auth/account-exists-with-different-credential':
+      return 'هذا البريد مرتبط بطريقة تسجيل دخول مختلفة، جرّب البريد وكلمة المرور.';
     default:
       return 'حدث خطأ غير متوقع — حاول مرة أخرى.';
   }

@@ -40,10 +40,18 @@ export function useHashRoute(lessons) {
   const lastListView = useRef(['books', 'chapters', 'lessons', 'bookmarks', 'highlights', 'admin'].includes(initialRoute.view) ? initialRoute.view : 'books');
 
   const currentIndexRef = useRef(currentIndex);
+  // ref لمعرفة الشاشة الحالية داخل معالجات الأحداث (بدون stale closure)
+  const currentViewRef = useRef(currentView);
+  // ref لتتبع ما إذا دفعنا guard state لصفحة hero مسبقاً
+  const heroGuardPushedRef = useRef(false);
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
   }, [currentIndex]);
+
+  useEffect(() => {
+    currentViewRef.current = currentView;
+  }, [currentView]);
 
   useEffect(() => {
     if (['books', 'chapters', 'lessons', 'bookmarks', 'highlights', 'admin'].includes(currentView)) {
@@ -88,6 +96,35 @@ export function useHashRoute(lessons) {
       window.removeEventListener('popstate', applyHashNavigation);
     };
   }, [applyHashNavigation]);
+
+  // ───── Guard: منع الخروج من التطبيق عند Back في صفحة hero ─────
+  // عند الدخول لشاشة hero نضيف entry إضافية في history حتى لا يخرج المستخدم
+  // (مشكلة شائعة في Android PWA — زر Back يغلق التطبيق مباشرة)
+  useEffect(() => {
+    if (currentView === 'hero') {
+      if (!heroGuardPushedRef.current) {
+        heroGuardPushedRef.current = true;
+        window.history.pushState({ _heroGuard: true }, '', '#/hero');
+      }
+    } else {
+      heroGuardPushedRef.current = false;
+    }
+  }, [currentView]);
+
+  // معالج Back أثناء وجود المستخدم في hero — نُعيد دفع guard لمنع الخروج
+  useEffect(() => {
+    if (currentView !== 'hero') return;
+
+    const handleBackOnHero = () => {
+      if (currentViewRef.current === 'hero') {
+        // المستخدم ضغط Back وهو في hero → أعِد دفع guard ليبقى في التطبيق
+        window.history.pushState({ _heroGuard: true }, '', '#/hero');
+      }
+    };
+
+    window.addEventListener('popstate', handleBackOnHero);
+    return () => window.removeEventListener('popstate', handleBackOnHero);
+  }, [currentView]);
 
   // مزامنة الرابط وعنوان الصفحة مع الشاشة الحالية (للمشاركة وSEO)
   useEffect(() => {

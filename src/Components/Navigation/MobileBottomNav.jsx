@@ -5,7 +5,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
   <div className="mobile-bottom-nav">
     <button
       className={`nav-item ${['hero', 'books', 'chapters', 'lessons', 'reading'].includes(currentView) ? 'active' : ''}`}
-      onClick={() => onNavigate('hero')}
+      onClick={() => onNavigate(user ? 'books' : 'hero')}
     >
       <FiHome size={20} />
       <span>الرئيسية</span>
