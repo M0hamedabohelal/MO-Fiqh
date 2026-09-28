@@ -1,5 +1,5 @@
 import { FiBook, FiList, FiFileText, FiSearch, FiSettings, FiBookmark, FiEdit3, FiUser, FiShield, FiDownload } from 'react-icons/fi';
-import logo from '../../assets/logo.png';
+import logo from '../../assets/logo.webp';
 import './Slider.css';
 
 const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, isAdminUser, canInstall, onInstall }) => {

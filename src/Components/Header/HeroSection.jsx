@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FiChevronLeft, FiChevronRight, FiDownload, FiUser, FiYoutube, FiBookOpen } from 'react-icons/fi';
-import logo from '../../assets/logo.png';
+import logo from '../../assets/logo.webp';
 import './HeroSection.css';
 
 const slides = [

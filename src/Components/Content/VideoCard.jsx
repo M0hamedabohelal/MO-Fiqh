@@ -1,11 +1,12 @@
 // كارد الفيديو — مع زر تشغيل مباشر من الوقت المحدد للمسألة
+// على الموبايل: يعرض thumbnail مع زر تشغيل بدلاً من iframe مباشرة
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { FiHeadphones } from 'react-icons/fi';
+import { FiHeadphones, FiPlay, FiExternalLink } from 'react-icons/fi';
 
 const VideoCard = ({ videoUrl, startTime, endTime }) => {
   // حالة التشغيل المباشر — لما المستخدم يدوس "اسمع من هنا" نشغّل الصوت تلقائيًا
   const [autoPlay, setAutoPlay] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   // Extract the videoId from the YouTube URL
   const extractVideoId = (url) => {
@@ -36,49 +37,196 @@ const VideoCard = ({ videoUrl, startTime, endTime }) => {
 
   if (!videoId) return null;
 
-  // autoplay=1 يُضاف فقط بعد ضغط الزر
-  let embedUrl = `https://www.youtube.com/embed/${videoId}?start=${startSeconds}&rel=0`;
+  // رابط المشاهدة المباشرة على YouTube (مع الوقت المحدد)
+  const youtubeDirectUrl = `https://youtu.be/${videoId}?t=${startSeconds}`;
+
+  // رابط الـ embed
+  let embedUrl = `https://www.youtube.com/embed/${videoId}?start=${startSeconds}&rel=0&modestbranding=1`;
   if (endSeconds > 0) embedUrl += `&end=${endSeconds}`;
   if (autoPlay) embedUrl += `&autoplay=1`;
 
+  // thumbnail عالية الجودة من YouTube
+  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+  const handlePlay = () => {
+    setAutoPlay(true);
+    setIframeLoaded(false);
+    setTimeout(() => {
+      const el = document.querySelector('.video-ratio-wrapper');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="custom-card p-3 mb-4 shadow-sm"
+    <div
+      className="video-card-wrapper custom-card p-3 mb-4 shadow-sm"
       style={{ borderRight: '6px solid var(--primary-color)', borderRadius: '10px' }}
     >
-      <div className="d-flex justify-content-between mb-3">
-        <small className="fw-bold" style={{ color: 'var(--primary-color)' }}>شاهد شرح المسالة من الشيخ (فيديو)</small>
-        <small className="text-muted" dir="ltr">⏱ {startTime}{endTime ? ` - ${endTime}` : ''}</small>
+      {/* ✅ Header — ألوان واضحة في Dark mode */}
+      <div className="d-flex justify-content-between align-items-start mb-3 gap-2">
+        <span className="video-card-title d-flex align-items-center gap-2">
+          <span style={{
+            background: 'linear-gradient(135deg, var(--primary-color), #0a7c7a)',
+            color: '#fff',
+            borderRadius: '8px',
+            width: '30px',
+            height: '30px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <FiPlay size={14} />
+          </span>
+          <span style={{
+            fontWeight: 700,
+            color: 'var(--text-main)',
+            fontSize: '0.9rem',
+          }}>
+            شاهد شرح المسألة من الشيخ
+          </span>
+        </span>
+
+        {/* ✅ الوقت — ظاهر في Dark mode */}
+        {startTime && (
+          <span
+            className="video-time-badge"
+            dir="ltr"
+            style={{
+              backgroundColor: 'var(--badge-bg)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-main)',
+              borderRadius: '20px',
+              padding: '3px 10px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            ⏱ {startTime}{endTime ? ` – ${endTime}` : ''}
+          </span>
+        )}
       </div>
 
-      {/* زر التشغيل المباشر من الوقت المحدد */}
+      {/* ✅ زر "اسمع من هنا" */}
       {!autoPlay && startSeconds > 0 && (
         <button
-          className="btn w-100 py-2 mb-3 d-flex align-items-center justify-content-center gap-2 listen-from-here-btn"
-          onClick={() => {
-            setAutoPlay(true);
-            // نمرّر المستخدم لموضع الفيديو لو كان بعيدًا تحت
-            const el = document.querySelector('.ratio-16x9');
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          className="btn w-100 py-2 mb-3 d-flex align-items-center justify-content-center gap-2"
+          onClick={handlePlay}
+          style={{
+            background: 'linear-gradient(135deg, var(--primary-color), #0a7c7a)',
+            color: '#fff',
+            borderRadius: '10px',
+            fontWeight: 'bold',
+            border: 'none',
+            fontSize: '0.9rem',
           }}
         >
-          <FiHeadphones size={18} /> اسمع شرح هذه المسألة من هنا ({startTime}{endTime ? ` إلى ${endTime}` : ''})
+          <FiHeadphones size={18} />
+          اسمع شرح هذه المسألة ({startTime}{endTime ? ` – ${endTime}` : ''})
         </button>
       )}
 
-      <div className="ratio ratio-16x9" style={{ borderRadius: '8px', overflow: 'hidden' }}>
-        <iframe
-          key={autoPlay ? 'playing' : 'idle'}
-          src={embedUrl}
-          title="YouTube video player"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
+      {/* ✅ Video Player — Thumbnail + Lazy iframe لتجنب مشكلة الأيقونة الكسيرة على الموبايل */}
+      <div
+        className="video-ratio-wrapper"
+        style={{ borderRadius: '10px', overflow: 'hidden', position: 'relative', aspectRatio: '16/9', backgroundColor: '#000' }}
+      >
+        {autoPlay ? (
+          // بعد الضغط نحمّل iframe
+          <>
+            {!iframeLoaded && (
+              <div style={{
+                position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', backgroundColor: '#000', zIndex: 1,
+              }}>
+                <div className="spinner-border text-light" style={{ width: '2rem', height: '2rem' }} role="status" />
+              </div>
+            )}
+            <iframe
+              key="playing"
+              src={embedUrl}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              onLoad={() => setIframeLoaded(true)}
+              style={{
+                width: '100%',
+                height: '100%',
+                position: 'absolute',
+                inset: 0,
+                border: 'none',
+                opacity: iframeLoaded ? 1 : 0,
+                transition: 'opacity 0.3s ease',
+              }}
+            />
+          </>
+        ) : (
+          // قبل الضغط: Thumbnail مع زر تشغيل جميل
+          <div style={{ position: 'relative', width: '100%', height: '100%', cursor: 'pointer' }} onClick={handlePlay}>
+            {/* Thumbnail */}
+            <img
+              src={thumbnailUrl}
+              alt="video thumbnail"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+              onError={(e) => {
+                // fallback لو الصورة فشلت
+                e.target.style.display = 'none';
+              }}
+            />
+            {/* Overlay داكن */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)',
+            }} />
+            {/* زر تشغيل وسط */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: '10px',
+            }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                backgroundColor: 'rgba(255,0,0,0.9)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                transition: 'transform 0.2s',
+              }}>
+                <FiPlay size={28} color="#fff" style={{ marginLeft: '4px' }} />
+              </div>
+              <span style={{
+                color: '#fff', fontSize: '0.82rem', fontWeight: 600,
+                textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                background: 'rgba(0,0,0,0.4)', padding: '4px 12px', borderRadius: '20px',
+              }}>
+                اضغط للتشغيل
+              </span>
+            </div>
+          </div>
+        )}
       </div>
-    </motion.div>
+
+      {/* ✅ رابط فتح في YouTube مباشرةً — مهم للموبايل */}
+      <div className="text-center mt-2">
+        <a
+          href={youtubeDirectUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="d-inline-flex align-items-center gap-1"
+          style={{ color: 'var(--text-muted)', fontSize: '0.78rem', textDecoration: 'none' }}
+        >
+          <FiExternalLink size={13} />
+          <span>فتح في YouTube</span>
+        </a>
+      </div>
+    </div>
   );
 };
 
