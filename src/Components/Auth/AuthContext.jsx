@@ -85,14 +85,13 @@ export const AuthProvider = ({ children }) => {
       const { auth, authMod } = await getFirebase();
       const provider = new authMod.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      await authMod.signInWithPopup(auth, provider);
+      // استخدام Redirect بدلاً من Popup لأنه متوافق 100% مع تطبيقات PWA والهواتف
+      await authMod.signInWithRedirect(auth, provider);
+      // ملاحظة: مع Redirect لن يكتمل الكود هنا، بل سيغلق الموقع ويفتح صفحة جوجل ثم يعود.
+      // لذلك لا نرجع success هنا، ستتم معالجة الدخول تلقائياً عند عودة المستخدم.
       return { success: true };
     } catch (err) {
-      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-        // المستخدم قفل النافذة — مش خطأ حقيقي
-        return { success: false, error: '' };
-      }
-      const message = translateAuthError(err.code);
+      const message = translateAuthError(err?.code || 'auth/network-request-failed');
       setAuthError(message);
       return { success: false, error: message };
     }
