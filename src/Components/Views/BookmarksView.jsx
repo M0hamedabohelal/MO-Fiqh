@@ -28,8 +28,13 @@ const BookmarksView = ({ bookmarks, lessons, onOpenLessonById, onBrowse, onOpenL
       )}
 
       {bookmarkedLessons.length === 0 ? (
-        <EmptyState icon={FiBookmark} message="لا توجد مسائل في المفضلة حالياً.">
-          <button className="btn btn-primary mt-3" onClick={onBrowse}>
+        <EmptyState
+          icon={FiBookmark}
+          title="لا توجد مسائل محفوظة"
+          message="احفظ المسائل التي تهمك بالضغط على أيقونة المفضلة داخل أي مسألة."
+          hint="⭐ ستجدها هنا في أي وقت"
+        >
+          <button className="btn btn-primary mt-1" onClick={onBrowse}>
             تصفح الكتب
           </button>
         </EmptyState>

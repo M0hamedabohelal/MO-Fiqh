@@ -48,7 +48,12 @@ const HighlightsView = ({ highlights, notes, lessons, onDeleteHighlight, onOpenL
       )}
 
       {highlights.length === 0 ? (
-        <EmptyState icon={FiEdit3} message={(<span>لا توجد فوائد مقتبسة حالياً.<br />حدد أي نص في المسائل لحفظه هنا.</span>)} />
+        <EmptyState
+          icon={FiEdit3}
+          title="لا توجد فوائد مقتبسة بعد"
+          message="حدد أي نص في المسائل واضغط على زر الحفظ لإضافته هنا."
+          hint="✨ جمّع أهم الفوائد العلمية في مكان واحد"
+        />
       ) : (
         <div className="d-flex flex-column gap-3">
           {highlights.slice().reverse().map((highlight) => {
