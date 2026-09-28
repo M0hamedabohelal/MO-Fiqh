@@ -104,6 +104,12 @@ export function useHashRoute(lessons) {
       } else {
         window.history.pushState(null, '', hash);
       }
+    } else {
+      // If initialized directly on a subpage (e.g., refresh), insert hero into history so back button doesn't exit immediately
+      if (hash !== '#/hero' && window.history.length <= 2) {
+        window.history.replaceState(null, '', '#/hero');
+        window.history.pushState(null, '', hash);
+      }
     }
 
     // تحديث عنوان المتصفح ومعاينة المشاركة حسب المسألة المعروضة

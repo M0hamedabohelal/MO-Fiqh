@@ -27,7 +27,11 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
         <li className="sidebar-nav-item">
           <button 
             className={`sidebar-btn ${activeView === 'books' ? 'sidebar-btn-active' : ''}`}
-            onClick={() => setActiveView('books')}
+            onClick={() => {
+              window.history.replaceState(null, '', '#/hero');
+              window.history.pushState(null, '', '#/books');
+              setActiveView('books');
+            }}
           >
             <FiBook className="sidebar-btn-icon" size={22} /> الكتب
           </button>
