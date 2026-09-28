@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiWifiOff, FiRefreshCw, FiCheckCircle, FiX } from 'react-icons/fi';
+import { FiWifiOff, FiCheckCircle, FiX } from 'react-icons/fi';
 
 /**
  * لافتات حالة التطبيق المثبت (PWA):
@@ -37,32 +37,46 @@ const PWABanners = ({
       )}
     </AnimatePresence>
 
-    {/* إشعار التحديث الجاهز */}
     <AnimatePresence>
       {needRefresh && (
         <motion.div
-          initial={{ y: 80, opacity: 0, scale: 0.9 }}
+          initial={{ y: 100, opacity: 0, scale: 0.85 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: 80, opacity: 0, scale: 0.9 }}
+          exit={{ y: 100, opacity: 0, scale: 0.85 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 22 }}
           className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-center py-3 mb-5 mb-md-3"
           style={{ zIndex: 3000, pointerEvents: 'none' }}
         >
-          <button
+          <motion.button
             onClick={applyUpdate}
-            className="d-flex align-items-center gap-2 px-4 py-2 shadow-lg border-0 fw-bold"
+            className="d-flex align-items-center gap-2 px-4 py-3 border-0 fw-bold"
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.95 }}
             style={{
-              backgroundColor: '#4eb9a8',
-              color: '#082525',
-              borderRadius: '30px',
+              background: 'linear-gradient(135deg, #4eb9a8 0%, #2a9d8f 100%)',
+              color: '#fff',
+              borderRadius: '50px',
               pointerEvents: 'auto',
-              fontSize: '0.95rem',
-              cursor: 'pointer'
+              fontSize: '1rem',
+              cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(46,180,163,0.45)',
+              letterSpacing: '0.02em',
             }}
           >
-            <span>تحديث جديد جاهز</span>
-            <FiRefreshCw size={16} />
-            <span>تحديث الآن</span>
-          </button>
+            <motion.span
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
+              style={{ display: 'inline-flex' }}
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 2v6h-6" />
+                <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                <path d="M3 22v-6h6" />
+                <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+              </svg>
+            </motion.span>
+            <span>تحديث الموقع</span>
+          </motion.button>
         </motion.div>
       )}
     </AnimatePresence>
