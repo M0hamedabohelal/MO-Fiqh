@@ -134,7 +134,7 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
         className="btn w-100 p-2 shadow-sm d-flex align-items-center justify-content-center" 
         style={{ 
           backgroundColor: saved ? '#27ae60' : 'var(--accent-color)', 
-          color: saved ? '#fff' : 'var(--primary-color)', 
+          color: saved ? '#fff' : 'var(--text-on-accent)', 
           fontWeight: 'bold',
           borderRadius: '10px',
           transition: 'all 0.3s ease'

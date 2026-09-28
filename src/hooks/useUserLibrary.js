@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
 import {
   syncBookmarks,
@@ -7,18 +7,6 @@ import {
   syncAllNotes,
   syncReadLessons,
 } from '../firebase/services';
-
-// جمع الملاحظات القديمة المخزنة في localStorage بصيغة note_lesson_ID
-function loadLocalNotes() {
-  const map = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('note_lesson_')) {
-      map[key.replace('note_lesson_', '')] = localStorage.getItem(key);
-    }
-  }
-  return map;
-}
 
 function readJsonStorage(key, fallback) {
   try {
@@ -30,102 +18,138 @@ function readJsonStorage(key, fallback) {
 
 /**
  * مكتبة المستخدم: المفضلة، الفوائد المقتبسة، الملاحظات، والمسائل المقروءة.
- * تُحفظ محلياً في localStorage، وتُدمج مع بيانات السحابة عند تسجيل الدخول،
- * ثم تُزامن أي تغيير لاحق تلقائياً.
- * onStatus: دالة اختيارية لتلقي حالة المزامنة ('syncing' | 'synced').
+ * تضمن عزل بيانات كل مستخدم بناءً على حسابه.
+ * تقوم بدمج بيانات الضيف (إن وجدت) لمرة واحدة عند تسجيل الدخول ثم تحذفها من الجهاز.
  */
 export function useUserLibrary({ onStatus } = {}) {
-  const { user, loadUserData } = useAuth();
+  const { user, loadUserData, authLoading } = useAuth();
 
-  const [bookmarks, setBookmarks] = useState(() => readJsonStorage('bookmarks', []));
-  const [highlights, setHighlights] = useState(() => readJsonStorage('highlights', []));
-  const [notes, setNotes] = useState(loadLocalNotes);
-  const [readLessons, setReadLessons] = useState(() => readJsonStorage('readLessons', []));
+  const [bookmarks, setBookmarks] = useState([]);
+  const [highlights, setHighlights] = useState([]);
+  const [notes, setNotes] = useState({});
+  const [readLessons, setReadLessons] = useState([]);
 
-  // حفظ نسخة محلية من كل تغيير
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const isSyncReady = Boolean(user) && isDataLoaded;
+
+  // عند تسجيل الدخول أو الخروج
   useEffect(() => {
-    localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
-    localStorage.setItem('highlights', JSON.stringify(highlights));
-    localStorage.setItem('notesMap', JSON.stringify(notes));
-    localStorage.setItem('readLessons', JSON.stringify(readLessons));
-  }, [bookmarks, highlights, notes, readLessons]);
+    if (authLoading) return; // ننتظر حتى تنتهي حالة التحميل
 
-  // مزامنة السحابة عند تغيير البيانات — فقط بعد اكتمال الدمج الأول للمستخدم
-  // (عشان مفيش سباق يخلي التزامن المحلي يمسح دمج السحابة قبل ما يتم)
-  const mergeStartedRef = useRef(new Set());
-  const [readyUid, setReadyUid] = useState(null);
-  const isSyncReady = Boolean(user) && readyUid === user?.uid;
+    if (!user) {
+      // المستخدم كضيف (غير مسجل الدخول) أو قام بتسجيل الخروج للتو
+      // نحمّل بيانات الضيف المحفوظة محلياً أو نصفّرها
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBookmarks(readJsonStorage('guest_bookmarks', []));
+      setHighlights(readJsonStorage('guest_highlights', []));
+      setNotes(readJsonStorage('guest_notes', {}));
+      setReadLessons(readJsonStorage('guest_readLessons', []));
+      setIsDataLoaded(true);
+      return;
+    }
 
+    // المستخدم مسجل الدخول
+    let cancelled = false;
+    setIsDataLoaded(false);
+
+    (async () => {
+      onStatus?.('syncing');
+      
+      // جلب بيانات المستخدم من السحابة
+      const cloudData = (await loadUserData(user.uid)) || {};
+      if (cancelled) return;
+
+      // جلب بيانات الضيف المحلية لدمجها (إذا كان لديه بيانات قبل تسجيل الدخول)
+      const guestBookmarks = readJsonStorage('guest_bookmarks', []);
+      const guestHighlights = readJsonStorage('guest_highlights', []);
+      const guestNotes = readJsonStorage('guest_notes', {});
+      const guestReadLessons = readJsonStorage('guest_readLessons', []);
+
+      // الدمج الذكي
+      const mergedBookmarks = Array.from(new Set([...(cloudData.bookmarks || []), ...guestBookmarks]));
+      
+      const highlightMap = new Map();
+      [...guestHighlights, ...(cloudData.highlights || [])].forEach((h) => {
+        highlightMap.set(String(h.id ?? h.text), h);
+      });
+      const mergedHighlights = Array.from(highlightMap.values());
+
+      const mergedNotes = { ...guestNotes, ...(cloudData.notes || {}) };
+
+      const mergedReadLessons = Array.from(
+        new Set([...guestReadLessons, ...(cloudData.readLessons || [])].map(String))
+      );
+
+      // تحديث الحالة المحلية
+      setBookmarks(mergedBookmarks);
+      setHighlights(mergedHighlights);
+      setNotes(mergedNotes);
+      setReadLessons(mergedReadLessons);
+
+      // رفع البيانات المدمجة للسحابة
+      try {
+        await Promise.all([
+          syncBookmarks(user.uid, mergedBookmarks),
+          syncHighlights(user.uid, mergedHighlights),
+          syncAllNotes(user.uid, mergedNotes),
+          syncReadLessons(user.uid, mergedReadLessons),
+        ]);
+      } catch {
+        // تجاهل الأخطاء المؤقتة
+      }
+
+      // بعد الدمج والرفع بنجاح، نحذف بيانات الضيف من الجهاز
+      // لضمان عدم ظهورها لمستخدم آخر يسجل دخوله من نفس الجهاز
+      localStorage.removeItem('guest_bookmarks');
+      localStorage.removeItem('guest_highlights');
+      localStorage.removeItem('guest_notes');
+      localStorage.removeItem('guest_readLessons');
+      
+      // إزالة البيانات القديمة المتبقية من الإصدارات السابقة (تنظيف)
+      localStorage.removeItem('bookmarks');
+      localStorage.removeItem('highlights');
+      localStorage.removeItem('notesMap');
+      localStorage.removeItem('readLessons');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('note_lesson_')) localStorage.removeItem(key);
+      }
+
+      setIsDataLoaded(true);
+      onStatus?.('synced');
+    })();
+
+    return () => { cancelled = true; };
+  }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // حفظ محلي لبيانات الضيف (Guest) فقط
+  useEffect(() => {
+    if (user) return; // المسجل يتم حفظه في السحابة
+    if (!isDataLoaded) return;
+    
+    localStorage.setItem('guest_bookmarks', JSON.stringify(bookmarks));
+    localStorage.setItem('guest_highlights', JSON.stringify(highlights));
+    localStorage.setItem('guest_notes', JSON.stringify(notes));
+    localStorage.setItem('guest_readLessons', JSON.stringify(readLessons));
+  }, [bookmarks, highlights, notes, readLessons, user, isDataLoaded]);
+
+  // المزامنة مع السحابة فوراً عند أي تغيير
   useEffect(() => {
     if (!isSyncReady) return;
     syncBookmarks(user.uid, bookmarks).catch(() => {});
-  }, [bookmarks, isSyncReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bookmarks, isSyncReady, user]);
 
   useEffect(() => {
     if (!isSyncReady) return;
     syncHighlights(user.uid, highlights).catch(() => {});
-  }, [highlights, isSyncReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [highlights, isSyncReady, user]);
 
   useEffect(() => {
     if (!isSyncReady) return;
     syncReadLessons(user.uid, readLessons).catch(() => {});
-  }, [readLessons, isSyncReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [readLessons, isSyncReady, user]);
 
-  // دمج بيانات المستخدم من السحابة عند أول تسجيل دخول (اتحاد المفضلة والفوائد والملاحظات)
-  // نقرأ الحالة من الـ closure عمداً: دي لقطة البيانات المحلية قبل الدخول — اللي المفروض تندمج
-  useEffect(() => {
-    if (!user) return;
-    const uid = user.uid;
-    if (mergeStartedRef.current.has(uid)) return;
-    mergeStartedRef.current.add(uid);
-
-    let cancelled = false;
-    (async () => {
-      onStatus?.('syncing');
-      const cloudData = await loadUserData(uid);
-      if (cancelled) return;
-
-      if (cloudData) {
-        const mergedBookmarks = Array.from(new Set([...(cloudData.bookmarks || []), ...bookmarks]));
-
-        const highlightMap = new Map();
-        [...highlights, ...(cloudData.highlights || [])].forEach((h) => {
-          highlightMap.set(String(h.id ?? h.text), h);
-        });
-        const mergedHighlights = Array.from(highlightMap.values());
-
-        const mergedNotes = { ...loadLocalNotes(), ...(cloudData.notes || {}), ...notes };
-
-        const mergedReadLessons = Array.from(
-          new Set([...readLessons, ...(cloudData.readLessons || [])].map(String))
-        );
-
-        setBookmarks(mergedBookmarks);
-        setHighlights(mergedHighlights);
-        setNotes(mergedNotes);
-        setReadLessons(mergedReadLessons);
-
-        try {
-          await Promise.all([
-            syncBookmarks(uid, mergedBookmarks),
-            syncHighlights(uid, mergedHighlights),
-            syncAllNotes(uid, mergedNotes),
-            syncReadLessons(uid, mergedReadLessons),
-          ]);
-        } catch {
-          // تجاهل أخطاء المزامنة الأولى — سيُعاد المحاولة عند أي تغيير تالٍ
-        }
-      }
-      if (!cancelled) {
-        // فتح باب المزامنة بعد اكتمال الدمج
-        setReadyUid(uid);
-        onStatus?.('synced');
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  // الدوال المساعدة للتحكم بالبيانات
   const toggleBookmark = useCallback((lessonId) => {
     setBookmarks((prev) =>
       prev.includes(lessonId) ? prev.filter((id) => id !== lessonId) : [...prev, lessonId]
@@ -140,12 +164,11 @@ export function useUserLibrary({ onStatus } = {}) {
     setHighlights((prev) => prev.filter((h) => h.id !== highlightId));
   }, []);
 
-  // حفظ ملاحظة مسألة (محلي + سحابة)
   const saveNoteForLesson = useCallback((lessonId, text) => {
     const key = String(lessonId);
     setNotes((prev) => ({ ...prev, [key]: text }));
-    if (user) syncNote(user.uid, key, text).catch(() => {});
-  }, [user]);
+    if (user && isSyncReady) syncNote(user.uid, key, text).catch(() => {});
+  }, [user, isSyncReady]);
 
   const toggleReadLesson = useCallback((lessonId) => {
     setReadLessons((prev) =>

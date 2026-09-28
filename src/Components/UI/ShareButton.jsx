@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiShare2, FiDownload, FiCheck } from 'react-icons/fi';
+import { FiDownload, FiCheck } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
 const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
@@ -108,7 +108,7 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
     }
 
     // حساب الارتفاع الكلي
-    const titleAreaHeight = 120;
+    const titleAreaHeight = 180;
     const mainTextHeight = mainLines.length * lineHeight + 40;
     const dividerHeight = 50;
     const sheikhHeaderHeight = sheikhComment ? 60 : 0;
@@ -150,27 +150,33 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
     roundRect(ctx, 25, 25, width - 50, height - 50, 15);
     ctx.stroke();
 
+    // ====== البسملة ======
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#c9a84c';
+    ctx.font = `bold 32px Amiri Quran, serif`;
+    ctx.fillText('بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ', width / 2, 70);
+
     // ====== العنوان ======
     // خلفية العنوان
     ctx.fillStyle = 'rgba(251, 220, 153, 0.12)';
-    roundRect(ctx, padding - 10, 40, width - (padding - 10) * 2, 70, 12);
+    roundRect(ctx, padding - 10, 100, width - (padding - 10) * 2, 70, 12);
     ctx.fill();
 
     ctx.direction = 'rtl';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#fbdc99';
     ctx.font = `bold 34px Tajawal, Arial`;
-    ctx.fillText(title, width / 2, 87);
+    ctx.fillText(title, width / 2, 147);
     
     // فاصل تحت العنوان
-    drawDivider(ctx, titleAreaHeight, width, padding);
+    drawDivider(ctx, titleAreaHeight + 60, width, padding);
 
     // ====== النص الرئيسي ======
     ctx.textAlign = 'right';
     ctx.fillStyle = '#e8e8e8';
     ctx.font = `${mainFontSize}px Tajawal, Arial`;
     
-    let currentY = titleAreaHeight + 45;
+    let currentY = titleAreaHeight + 105;
     mainLines.forEach((line) => {
       if (line === '') {
         currentY += lineHeight * 0.4; // مسافة أصغر للفقرات الفارغة
@@ -229,24 +235,18 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
     // ====== الفوتر ======
     const footerY = height - 50;
     
-    // خط فوق الفوتر
-    ctx.strokeStyle = 'rgba(251, 220, 153, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(padding + 100, footerY - 15);
-    ctx.lineTo(width - padding - 100, footerY - 15);
-    ctx.stroke();
+    // خط فوق الفوتر مزخرف
+    drawDivider(ctx, footerY - 20, width, padding + 100);
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(251, 220, 153, 0.6)';
-    ctx.font = '20px Tajawal, Arial';
-    ctx.fillText('الباحث الفقهي — دراسة وتدبر', width / 2, footerY + 5);
+    ctx.fillStyle = '#fbdc99';
+    ctx.font = 'bold 22px Tajawal, Arial';
+    ctx.fillText('الباحث الفقهي — دراسة وتدبر', width / 2, footerY + 10);
 
     // نجوم
-    ctx.fillStyle = '#fbdc99';
-    ctx.font = '16px Arial';
-    ctx.fillText('✦', width / 2 - 180, footerY + 7);
-    ctx.fillText('✦', width / 2 + 180, footerY + 7);
+    ctx.font = '18px Arial';
+    ctx.fillText('✦', width / 2 - 180, footerY + 12);
+    ctx.fillText('✦', width / 2 + 180, footerY + 12);
 
     return canvas;
   };
@@ -261,26 +261,6 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
     setTimeout(() => setDownloaded(false), 2500);
   };
 
-  const handleNativeShare = async () => {
-    const canvas = generateImage();
-    canvas.toBlob(async (blob) => {
-      if (navigator.share && blob) {
-        try {
-          const file = new File([blob], `${title}.png`, { type: 'image/png' });
-          await navigator.share({
-            title: title,
-            text: `📖 ${title}\n\nمن تطبيق الباحث الفقهي`,
-            files: [file]
-          });
-        } catch {
-          handleDownload();
-        }
-      } else {
-        handleDownload();
-      }
-    }, 'image/png');
-  };
-
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
@@ -289,31 +269,18 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
       className="d-flex gap-2 justify-content-center mb-4"
     >
       <button 
-        onClick={handleNativeShare}
-        className={`btn d-flex align-items-center gap-2 shadow-sm ${isSmall ? 'btn-sm px-2 py-1' : 'px-3 py-2'}`}
-        style={{ 
-          backgroundColor: 'var(--primary-color)', 
-          color: '#fff', 
-          borderRadius: '20px',
-          fontSize: isSmall ? '0.8rem' : '0.9rem'
-        }}
-      >
-        <FiShare2 size={isSmall ? 14 : 16} /> {isSmall ? 'مشاركة' : 'مشاركة كصورة'}
-      </button>
-      
-      <button 
         onClick={handleDownload}
         className={`btn d-flex align-items-center gap-2 shadow-sm ${isSmall ? 'btn-sm px-2 py-1' : 'px-3 py-2'}`}
         style={{ 
-          backgroundColor: downloaded ? '#27ae60' : 'var(--badge-bg)', 
-          color: downloaded ? '#fff' : 'var(--text-main)', 
+          backgroundColor: downloaded ? '#27ae60' : 'var(--primary-color)', 
+          color: '#fff', 
           borderRadius: '20px',
-          border: `1px solid ${downloaded ? '#27ae60' : 'var(--border-color)'}`,
+          border: 'none',
           fontSize: isSmall ? '0.8rem' : '0.9rem',
           transition: 'all 0.3s ease'
         }}
       >
-        {downloaded ? <><FiCheck size={isSmall ? 14 : 16} /> {isSmall ? 'تم' : 'تم التحميل'}</> : <><FiDownload size={isSmall ? 14 : 16} /> {isSmall ? 'تنزيل' : 'تحميل كصورة'}</>}
+        {downloaded ? <><FiCheck size={isSmall ? 14 : 16} /> {isSmall ? 'تم' : 'تم التحميل'}</> : <><FiDownload size={isSmall ? 14 : 16} /> {isSmall ? 'تنزيل' : 'حفظ كصورة'}</>}
       </button>
     </motion.div>
   );

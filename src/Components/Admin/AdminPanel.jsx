@@ -4,12 +4,16 @@ import { motion } from 'framer-motion';
 import {
   FiPlus, FiEdit2, FiTrash2, FiSave, FiX, FiBook,
   FiAlertTriangle, FiCheckCircle, FiRefreshCw,
-  FiSearch, FiEye, FiEyeOff, FiBarChart2
+  FiSearch, FiEye, FiEyeOff, FiBarChart2, FiInfo, FiBell
 } from 'react-icons/fi';
 import {
   createLesson, updateLesson, deleteLessonById,
-  saveTerm, deleteTerm, fetchLessonViews,
+  saveTerm, deleteTerm, fetchLessonViews
 } from '../../firebase/services';
+import QuoteCard from '../Content/QuoteCard';
+import ExplanationCard from '../Content/ExplanationCard';
+import AdminAnnouncements from './AdminAnnouncements';
+
 
 const EMPTY_LESSON = {
   bookName: '',
@@ -22,7 +26,12 @@ const EMPTY_LESSON = {
   sheikhExplanation: '',
   videoUrl: '',
   startTime: '',
+  endTime: '',
+  mediaUrl: '',
+  mediaType: '',
+  adminNote: '',
 };
+
 
 const inputStyle = {
   backgroundColor: 'var(--badge-bg)',
@@ -40,8 +49,42 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
   const [editingDocId, setEditingDocId] = useState(null); // null = إضافة جديدة، docId = تعديل
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_LESSON);
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // docId
   const [showPreview, setShowPreview] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+
+  const uploadToCloudinary = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingMedia(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "fiqh_preset");
+
+    try {
+      const res = await fetch("https://api.cloudinary.com/v1_1/dzk4hgpq/auto/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.secure_url) {
+        setForm(prev => ({
+          ...prev,
+          mediaUrl: data.secure_url,
+          mediaType: file.type.includes("pdf") ? "pdf" : "image"
+        }));
+        flash('success', 'تم رفع الملف بنجاح!');
+      } else {
+        flash('error', 'فشل الرفع، تأكد من إعدادات Cloudinary.');
+      }
+    } catch (err) {
+      flash('error', `خطأ في الرفع: ${err.message}`);
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
 
   // البحث والتصفية داخل اللوحة
   const [adminSearch, setAdminSearch] = useState('');
@@ -84,6 +127,10 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
       sheikhExplanation: lesson.sheikhExplanation || '',
       videoUrl: lesson.videoUrl || '',
       startTime: lesson.startTime || '',
+      endTime: lesson.endTime || '',
+      mediaUrl: lesson.mediaUrl || '',
+      mediaType: lesson.mediaType || '',
+      adminNote: lesson.adminNote || '',
     });
     setFormOpen(true);
   };
@@ -117,6 +164,7 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
 
     setBusy(true);
     try {
+
       if (editingDocId) {
         await updateLesson(editingDocId, { ...cleanedForm, id: Number(editingDocId) });
         flash('success', 'تم حفظ التعديلات بنجاح.');
@@ -308,6 +356,15 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
             <FiBarChart2 /> الإحصائيات
           </button>
         </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link d-flex align-items-center gap-1 ${tab === 'announcements' ? 'active' : ''}`}
+            onClick={() => setTab('announcements')}
+            style={tab === 'announcements' ? { backgroundColor: 'var(--primary-color)' } : { color: 'var(--text-main)' }}
+          >
+            <FiBell /> التنبيهات
+          </button>
+        </li>
       </ul>
 
       {/* ==================== تبويب المسائل ==================== */}
@@ -348,7 +405,7 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
             <button
               className="btn w-100 mb-3 p-3 d-flex align-items-center justify-content-center gap-2 shadow-sm"
               onClick={openAddForm}
-              style={{ backgroundColor: 'var(--accent-color)', color: 'var(--primary-color)', fontWeight: 'bold', borderRadius: '12px' }}
+              style={{ backgroundColor: 'var(--accent-color)', color: 'var(--text-on-accent)', fontWeight: 'bold', borderRadius: '12px' }}
             >
               <FiPlus size={20} /> إضافة مسألة جديدة
             </button>
@@ -402,16 +459,72 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
                   <input type="url" className="form-control" dir="ltr" placeholder="https://youtu.be/..." value={form.videoUrl} onChange={handleFieldChange('videoUrl')} style={inputStyle} />
                 </div>
                 <div className="col-md-4 col-6">
-                  <label className="form-label small fw-bold">وقت التشغيل</label>
+                  <label className="form-label small fw-bold">وقت البداية</label>
                   <input type="text" className="form-control" dir="ltr" placeholder="00:00:00" value={form.startTime} onChange={handleFieldChange('startTime')} style={inputStyle} />
+                </div>
+                <div className="col-md-4 col-6">
+                  <label className="form-label small fw-bold">وقت النهاية (اختياري)</label>
+                  <input type="text" className="form-control" dir="ltr" placeholder="00:00:00" value={form.endTime} onChange={handleFieldChange('endTime')} style={inputStyle} />
+                </div>
+                <div className="col-12">
+                  <label className="form-label small fw-bold">إرفاق صورة أو PDF (اختياري)</label>
+                  <div className="d-flex flex-wrap gap-2 align-items-center">
+                    <input 
+                      type="file" 
+                      className="form-control" 
+                      accept="image/*,.pdf"
+                      onChange={uploadToCloudinary}
+                      style={{ ...inputStyle, maxWidth: '250px' }} 
+                      disabled={uploadingMedia}
+                      id="cloudinaryFileInput"
+                    />
+                    <input 
+                      type="url" 
+                      className="form-control flex-grow-1" 
+                      dir="ltr" 
+                      placeholder="أو ضع رابطاً خارجياً هنا..." 
+                      value={form.mediaUrl} 
+                      onChange={handleFieldChange('mediaUrl')} 
+                      style={inputStyle} 
+                    />
+                    <select className="form-select" value={form.mediaType} onChange={handleFieldChange('mediaType')} style={{ ...inputStyle, maxWidth: '140px' }}>
+                      <option value="">نوع المرفق</option>
+                      <option value="image">صورة (Image)</option>
+                      <option value="pdf">ملف (PDF)</option>
+                    </select>
+                    {form.mediaUrl && (
+                      <button 
+                        type="button" 
+                        className="btn btn-outline-danger btn-sm px-3" 
+                        style={{ borderRadius: '8px' }}
+                        onClick={() => {
+                           setForm(prev => ({ ...prev, mediaUrl: '', mediaType: '' }));
+                           document.getElementById('cloudinaryFileInput').value = '';
+                        }}
+                      >
+                        <FiTrash2 className="me-1" /> إزالة
+                      </button>
+                    )}
+                  </div>
+                  {uploadingMedia ? (
+                     <small className="text-info d-block mt-2">⏳ جاري الرفع إلى السحابة... يرجى الانتظار.</small>
+                  ) : (
+                     <small className="text-muted d-block mt-2">اختر ملفاً من جهازك ليتم رفعه مباشرة، أو قم بلصق رابط خارجي.</small>
+                  )}
                 </div>
                 <div className="col-12">
                   <label className="form-label small fw-bold">متن المسألة</label>
                   <textarea rows="7" className="form-control" value={form.mainText} onChange={handleFieldChange('mainText')} style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.8' }} />
+                  <small className="text-muted d-block mt-1">تلميح: لإنشاء رابط ذكي لمسألة أخرى، استخدم الصيغة: <code dir="ltr" style={{ color: 'var(--accent-color)' }}>[نص الرابط](lesson:رقم_المسألة)</code> (مثال: <code dir="ltr" style={{ color: 'var(--accent-color)' }}>[الوضوء](lesson:5)</code>).</small>
                 </div>
                 <div className="col-12">
                   <label className="form-label small fw-bold">شرح الشيخ</label>
                   <textarea rows="5" className="form-control" value={form.sheikhExplanation} onChange={handleFieldChange('sheikhExplanation')} style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.8' }} />
+                  <small className="text-muted d-block mt-1">تلميح: لإنشاء رابط ذكي لمسألة أخرى، استخدم الصيغة: <code dir="ltr" style={{ color: 'var(--accent-color)' }}>[نص الرابط](lesson:رقم_المسألة)</code></small>
+                </div>
+                <div className="col-12">
+                  <label className="form-label small fw-bold">ملحوظة خاصة (تظهر أعلى المتن - اختياري)</label>
+                  <textarea rows="3" className="form-control" value={form.adminNote} onChange={handleFieldChange('adminNote')} style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.8' }} placeholder="أضف تنبيهاً أو ملحوظة هامة للمستخدم تظهر قبل نص المسألة..." />
                 </div>
               </div>
 
@@ -431,21 +544,37 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
                       <FiBook className="ms-1" /> {form.bookName || 'الكتاب'} {form.chapterName ? `— ${form.chapterName}` : ''} {form.pageNumber ? `• ص ${form.pageNumber}` : ''}
                     </span>
                   </div>
-                  <div className="manuscript-frame p-3 p-md-4">
-                    {(form.mainText || '').split('\n').filter((p) => p.trim()).map((para, i) => (
-                      <p key={i} style={{ fontFamily: 'var(--font-quote)', textAlign: 'justify', lineHeight: '2.2', marginBottom: '1rem', fontSize: '1.1rem' }}>
-                        {para}
-                      </p>
-                    ))}
+                  
+                  {/* البسملة المحاكية */}
+                  <div className="text-center mb-4" style={{ fontFamily: 'var(--font-quote)', fontSize: '1.5rem', color: 'var(--text-main)' }}>
+                    بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ
                   </div>
+
+                  {(form.adminNote || '').trim() && (
+                    <div className="custom-card p-3 mb-4 d-flex gap-3 align-items-start shadow-sm" style={{ borderRight: '4px solid var(--accent-color)' }}>
+                      <FiInfo className="mt-1 flex-shrink-0" size={24} style={{ color: 'var(--accent-color)' }} />
+                      <div className="text-start">
+                        <h6 className="fw-bold mb-2" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-heading)' }}>ملحوظة هامة:</h6>
+                        <div className="mb-0" style={{ lineHeight: '1.9', color: 'var(--text-main)', whiteSpace: 'pre-wrap' }}>{form.adminNote}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {(form.mainText || '').trim() && (
+                    <div className="mt-2 mb-4">
+                      <QuoteCard text={form.mainText || ''} searchQuery="" />
+                    </div>
+                  )}
                   {(form.sheikhExplanation || '').trim() && (
-                    <div className="mt-4">
-                      <h5 className="fw-bold mb-3" style={{ color: 'var(--accent-color)' }}>✦ شرح الشيخ</h5>
-                      {(form.sheikhExplanation || '').split('\n').filter((p) => p.trim()).map((para, i) => (
-                        <p key={i} style={{ textAlign: 'justify', lineHeight: '2', marginBottom: '.75rem' }}>
-                          {para}
-                        </p>
-                      ))}
+                    <div className="mt-4 mb-4">
+                      <ExplanationCard explanation={form.sheikhExplanation || ''} searchQuery="" />
+                    </div>
+                  )}
+                  {(form.mediaUrl) && (
+                    <div className="mt-4 mb-4 text-center">
+                      <span className="badge bg-info p-2 d-block mx-auto mb-2" style={{ maxWidth: '200px' }}>
+                        يوجد مرفق ({form.mediaType || 'لم يحدد'})
+                      </span>
                     </div>
                   )}
                   {form.videoUrl && (
@@ -458,7 +587,7 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
 
               <div className="d-flex gap-2 mt-4">
                 <button type="submit" className="btn flex-grow-1 d-flex align-items-center justify-content-center gap-2" disabled={busy}
-                  style={{ backgroundColor: 'var(--accent-color)', color: 'var(--primary-color)', fontWeight: 'bold', borderRadius: '10px' }}>
+                  style={{ backgroundColor: 'var(--accent-color)', color: 'var(--text-on-accent)', fontWeight: 'bold', borderRadius: '10px' }}>
                   {busy ? <span className="spinner-border spinner-border-sm" /> : <><FiSave /> حفظ</>}
                 </button>
                 <button type="button" className="btn btn-light d-flex align-items-center gap-2" onClick={() => setShowPreview((prev) => !prev)}>
@@ -502,7 +631,10 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
                   ) : (
                     <div key={lesson._docId || lesson.id} className="custom-card p-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
                       <div className="flex-grow-1 text-end" style={{ minWidth: '200px' }}>
-                        <div className="fw-bold small">{lesson.title}</div>
+                        <div className="fw-bold small">
+                          <span className="badge bg-secondary me-2 ms-2" style={{ fontSize: '0.7rem' }}>ID: {lesson.id}</span>
+                          {lesson.title}
+                        </div>
                         <small className="text-muted">{lesson.chapterName} • ص {lesson.pageNumber}</small>
                       </div>
                       <div className="d-flex gap-2 flex-shrink-0">
@@ -536,7 +668,7 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
               </div>
             </div>
             <button type="submit" className="btn mt-3 d-flex align-items-center gap-2" disabled={busy || !newTerm.trim() || !newDefinition.trim()}
-              style={{ backgroundColor: 'var(--accent-color)', color: 'var(--primary-color)', fontWeight: 'bold', borderRadius: '10px' }}>
+              style={{ backgroundColor: 'var(--accent-color)', color: 'var(--text-on-accent)', fontWeight: 'bold', borderRadius: '10px' }}>
               {busy ? <span className="spinner-border spinner-border-sm" /> : <><FiPlus /> إضافة للمصطلحات</>}
             </button>
           </form>
@@ -549,7 +681,7 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
                   <textarea rows="2" className="form-control mb-2" value={editingTermDef} onChange={(e) => setEditingTermDef(e.target.value)} style={{ ...inputStyle, resize: 'vertical' }} />
                   <div className="d-flex gap-2">
                     <button className="btn btn-sm d-flex align-items-center gap-1" disabled={busy} onClick={() => handleUpdateTerm(term)}
-                      style={{ backgroundColor: 'var(--accent-color)', color: 'var(--primary-color)', fontWeight: 'bold' }}>
+                      style={{ backgroundColor: 'var(--accent-color)', color: 'var(--text-on-accent)', fontWeight: 'bold' }}>
                       <FiSave size={14} /> حفظ
                     </button>
                     <button className="btn btn-sm btn-light" onClick={() => setEditingTermKey(null)}>إلغاء</button>
@@ -633,6 +765,11 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }) => {
             </div>
           )}
         </>
+      )}
+
+      {/* ==================== الإشعارات ==================== */}
+      {tab === 'announcements' && (
+        <AdminAnnouncements />
       )}
 
       {/* زر تحديث من السحابة */}

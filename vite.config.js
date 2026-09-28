@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     // PWA: تثبيت الموقع كتطبيق + عمل أوفلاين عبر Service Worker
     VitePWA({
-      // prompt: نتحكم في إشعار "تحديث جاهز" بأنفسنا بدل إعادة التحميل التلقائي
+      // prompt: نتحكم في إشعار "تحديث جاهز" بأنفسنا ليظهر زر التحديث
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'robots.txt', 'sitemap.xml'],
       manifest: {
@@ -60,9 +60,11 @@ export default defineConfig(({ mode }) => ({
         // تقسيم المكتبات لملفات منفصلة — تحميل أسرع وكاش أفضل
         manualChunks(id) {
           if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) return 'react-core';
             if (id.includes('firebase') || id.includes('@firebase')) return 'firebase';
             if (id.includes('framer-motion')) return 'motion';
             if (id.includes('react-icons')) return 'icons';
+            if (id.includes('fuse.js')) return 'fuse';
             return 'vendor';
           }
         },

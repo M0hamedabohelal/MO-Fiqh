@@ -1,6 +1,17 @@
 import { FiBook, FiList, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
 import EmptyState from '../UI/EmptyState';
 import LessonListItem from '../UI/LessonListItem';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: 20 },
+  show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 // شاشة أبواب الكتاب الواحد (أكورديون بكل باب ومسائله)
 const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, onSelectLesson }) => (
@@ -16,12 +27,17 @@ const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, on
         message="لم تتم إضافة فصول أو مسائل لهذا الكتاب بعد."
       />
     ) : (
-      <div className="d-flex flex-column gap-3">
+      <motion.div 
+        className="d-flex flex-column gap-3"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
         {chapters.map(({ chapterName, issues }) => {
           const isOpen = openChapterName === chapterName;
 
           return (
-            <div key={chapterName} className="custom-card shadow-sm overflow-hidden">
+            <motion.div key={chapterName} variants={itemVariants} className="custom-card shadow-sm overflow-hidden" layout>
               <button
                 className="btn w-100 text-end p-4 d-flex justify-content-between align-items-center list-btn border-0"
                 onClick={() => onToggleChapter(chapterName)}
@@ -38,23 +54,30 @@ const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, on
                 </div>
               </button>
 
-              {isOpen && (
-                <div className="px-3 pb-3">
-                  {issues.map((lesson) => (
-                    <LessonListItem
-                      key={lesson.id}
-                      title={lesson.title}
-                      pageNumber={lesson.pageNumber}
-                      isRead={lesson.isRead}
-                      onClick={() => onSelectLesson(lesson)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="px-3 pb-3"
+                  >
+                    {issues.map((lesson) => (
+                      <LessonListItem
+                        key={lesson.id}
+                        title={lesson.title}
+                        pageNumber={lesson.pageNumber}
+                        isRead={lesson.isRead}
+                        onClick={() => onSelectLesson(lesson)}
+                      />
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     )}
   </div>
 );

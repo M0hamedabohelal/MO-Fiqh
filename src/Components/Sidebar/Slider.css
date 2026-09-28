@@ -104,7 +104,7 @@
 
 .sidebar-btn-active {
   background: var(--accent-color) !important;
-  color: var(--primary-color) !important;
+  color: var(--text-on-accent) !important;
   font-weight: 700 !important;
   border-color: rgba(201, 168, 76, 0.2) !important;
   box-shadow: 0 4px 15px rgba(201, 168, 76, 0.2);
@@ -198,6 +198,6 @@
 }
 
 .sidebar-settings-active {
-  color: var(--primary-color) !important;
+  color: var(--text-on-accent) !important;
   font-weight: 700;
 }

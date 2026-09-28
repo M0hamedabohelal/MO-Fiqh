@@ -1,10 +1,12 @@
-import { FiEdit3, FiTrash2, FiBook, FiChevronLeft, FiPrinter } from 'react-icons/fi';
+import { FiEdit3, FiTrash2, FiBook, FiChevronLeft, FiPrinter, FiCloud } from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
 import ShareButton from '../UI/ShareButton';
 import { exportNotesPrint } from '../../utils/printExport';
+import { useAuth } from '../Auth/AuthContext';
 
 // شاشة الفوائد المقتبسة + تصديرها مع الملاحظات
-const HighlightsView = ({ highlights, notes, lessons, onDeleteHighlight, onOpenLessonById }) => {
+const HighlightsView = ({ highlights, notes, lessons, onDeleteHighlight, onOpenLessonById, onOpenLogin }) => {
+  const { user } = useAuth();
   const hasAnySavedContent =
     highlights.length > 0 || Object.values(notes).some((t) => t && String(t).trim());
 
@@ -14,10 +16,16 @@ const HighlightsView = ({ highlights, notes, lessons, onDeleteHighlight, onOpenL
         <h3 className="mb-0 fw-bold" style={{ color: 'var(--primary-color)' }}>
           <FiEdit3 className="ms-2" /> الفوائد المقتبسة
         </h3>
-        {hasAnySavedContent && (
-          <button
-            className="btn btn-sm d-flex align-items-center shadow-sm"
-            style={{
+        <div className="d-flex gap-2">
+          {!user && (
+            <button onClick={onOpenLogin} className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+              <FiCloud /> حفظ سحابي
+            </button>
+          )}
+          {hasAnySavedContent && (
+            <button
+              className="btn btn-sm d-flex align-items-center shadow-sm"
+              style={{
               backgroundColor: 'var(--badge-bg)',
               border: '1px solid var(--border-color)',
               borderRadius: '10px',
@@ -30,6 +38,15 @@ const HighlightsView = ({ highlights, notes, lessons, onDeleteHighlight, onOpenL
           </button>
         )}
       </div>
+      </div>
+
+      {!user && hasAnySavedContent && (
+        <div className="alert alert-warning py-2 small d-flex align-items-center gap-2" role="alert">
+          <FiCloud size={18} />
+          <span>أنت تتصفح كضيف. <a href="#" onClick={(e) => { e.preventDefault(); onOpenLogin(); }} className="alert-link">سجّل الدخول</a> لحفظ فوائدك سحابياً.</span>
+        </div>
+      )}
+
       {highlights.length === 0 ? (
         <EmptyState icon={FiEdit3} message={(<span>لا توجد فوائد مقتبسة حالياً.<br />حدد أي نص في المسائل لحفظه هنا.</span>)} />
       ) : (

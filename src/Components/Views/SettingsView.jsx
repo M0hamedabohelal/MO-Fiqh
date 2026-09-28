@@ -1,4 +1,4 @@
-import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle } from 'react-icons/fi';
+import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiStar, FiActivity } from 'react-icons/fi';
 
 // شاشة الإعدادات وحول التطبيق
 const SettingsView = ({ canInstall, onInstall, isInstalled }) => (
@@ -19,7 +19,7 @@ const SettingsView = ({ canInstall, onInstall, isInstalled }) => (
           </p>
           <button
             className="btn btn-lg d-flex align-items-center justify-content-center gap-2 shadow-sm border-0 w-75 mx-auto mb-4"
-            style={{ backgroundColor: 'var(--primary-color)', color: 'var(--accent-color)', borderRadius: '10px', fontWeight: 'bold' }}
+            style={{ backgroundColor: 'var(--primary-color)', color: 'var(--text-on-primary)', borderRadius: '10px', fontWeight: 'bold' }}
             onClick={onInstall}
           >
             <FiDownload size={22} /> تثبيت الآن
@@ -42,6 +42,27 @@ const SettingsView = ({ canInstall, onInstall, isInstalled }) => (
       <p className="fs-5 text-muted mb-4" style={{ lineHeight: '1.8' }}>
         نرجو الدعاء لمصمم الموقع بظهر الغيب وسؤال التوفيق والسداد في الدارين.
       </p>
+
+      <hr className="my-4 w-75 mx-auto" style={{ opacity: 0.1 }} />
+
+      {/* قسم آخر التحديثات ومستقبل التطبيق */}
+      <FiStar size={40} className="mx-auto mb-3" style={{ color: '#f39c12' }} />
+      <h4 className="fw-bold mb-3" style={{ color: 'var(--text-main)' }}>أحدث التطويرات والمستقبل</h4>
+      <div className="text-start p-3 p-md-4 rounded shadow-sm mx-auto mb-4" style={{ backgroundColor: 'var(--badge-bg)', border: '1px solid var(--border-color)', maxWidth: '100%' }}>
+        <ul className="mb-4 text-muted" style={{ lineHeight: '2' }}>
+          <li><strong style={{color:'var(--primary-color)'}}>تصدير كملف PDF 🖨️:</strong> يمكنك الآن تصدير أبواب كاملة أو فوائدك لملف أنيق للطباعة والمذاكرة.</li>
+          <li><strong style={{color:'var(--primary-color)'}}>الإشعارات الداخلية 🔔:</strong> تنبيهات فورية داخل التطبيق لمعرفة كل جديد يضاف للموسوعة.</li>
+          <li><strong style={{color:'var(--primary-color)'}}>الإحالات الذكية 🔗:</strong> روابط متفرعة تنقلك بين المسائل المرتبطة بلمسة أنيقة.</li>
+          <li><strong style={{color:'var(--primary-color)'}}>مزامنة سحابية ☁️:</strong> فوائدك وملاحظاتك محفوظة بأمان على السحابة لاستعادتها في أي وقت.</li>
+        </ul>
+        
+        <h6 className="fw-bold d-flex align-items-center gap-2 mb-2" style={{ color: 'var(--primary-color)' }}>
+          <FiActivity /> خطة التطوير القادمة (Future)...
+        </h6>
+        <p className="text-muted small mb-0" style={{ lineHeight: '1.8' }}>
+          نعمل حالياً على تصميم ميزات تفاعلية متقدمة تشمل: تتبع نسب قراءة كل كتاب (Progress Tracking)، واختبارات فقهية نهاية كل باب (Quizzes)، والبحث الدلالي بالذكاء الاصطناعي... بالإضافة لدراسة بناء واجهة خلفية مستقلة (Node.js & Express).
+        </p>
+      </div>
 
       <hr className="my-4 w-75 mx-auto" style={{ opacity: 0.1 }} />
 

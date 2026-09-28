@@ -5,12 +5,14 @@ import {
   FiClock,
   FiChevronLeft,
   FiChevronRight,
-  FiList,
   FiBookmark,
   FiEdit3,
   FiFlag,
   FiCheckCircle,
   FiBook,
+  FiArrowRight,
+  FiInfo,
+  FiPrinter
 } from 'react-icons/fi';
 
 import Breadcrumb from '../Header/Breadcrumb';
@@ -18,11 +20,18 @@ import QuoteCard from '../Content/QuoteCard';
 import ExplanationCard from '../Content/ExplanationCard';
 import VideoCard from '../Content/VideoCard';
 import NotesCard from '../Content/NotesCard';
+import MediaCard from '../Content/MediaCard';
 import ShareButton from '../UI/ShareButton';
+import BismillahHeader from '../UI/BismillahHeader';
+import { exportChapterPrint } from '../../utils/printExport';
+import ArabesqueDivider from '../UI/ArabesqueDivider';
+
+import FloatingTOC from '../UI/FloatingTOC';
 
 // شاشة القراءة: نص المسألة + شرح الشيخ + الفيديو + الملاحظات والأدوات التفاعلية
 const ReadingView = ({
   lesson,
+  allLessons,
   glossary,
   searchQuery,
   noteValue,
@@ -39,7 +48,14 @@ const ReadingView = ({
   onToggleStopMark,
   onCreateHighlight,
   onBackToIndex,
+  onSelectLesson,
 }) => {
+  // طباعة الباب كاملاً
+  const handlePrintChapter = () => {
+    const chapterLessons = allLessons.filter(l => l.chapterName === lesson.chapterName && l.bookName === lesson.bookName);
+    exportChapterPrint({ chapterName: lesson.chapterName, bookName: lesson.bookName, lessons: chapterLessons });
+  };
+
   // التقاط تحديد النص لحفظه كفائدة مقتبسة
   const [selectionPopup, setSelectionPopup] = useState({ show: false, text: '', x: 0, y: 0 });
 
@@ -107,14 +123,14 @@ const ReadingView = ({
         )}
       </AnimatePresence>
 
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <button
           className="btn btn-sm text-muted d-flex align-items-center"
           onClick={onBackToIndex}
         >
-          <FiList className="ms-2" /> العودة لفهرس المسائل
+          <FiArrowRight className="ms-2" /> <span className="d-none d-md-inline">العودة لفهرس المسائل</span>
         </button>
-        <div className="d-flex align-items-center gap-2">
+        <div className="d-flex align-items-center gap-2 flex-wrap">
           <button
             className="btn btn-sm d-flex align-items-center shadow-sm"
             style={{
@@ -130,8 +146,26 @@ const ReadingView = ({
             title={isRead ? 'إلغاء تعليم المسألة كمقروءة' : 'تعليم المسألة كمقروءة'}
           >
             <FiCheckCircle size={16} className="ms-1" />
-            {isRead ? 'خلصتها' : 'خلصتها؟'}
+            <span className="d-none d-sm-inline">{isRead ? 'خلصتها' : 'خلصتها؟'}</span>
           </button>
+
+          <button
+            className="btn btn-sm d-flex align-items-center shadow-sm"
+            style={{
+              borderRadius: '10px',
+              fontWeight: 'bold',
+              transition: 'all 0.3s',
+              backgroundColor: 'var(--badge-bg)',
+              borderColor: 'var(--border-color)',
+              color: 'var(--primary-color)',
+              border: '1px solid',
+            }}
+            onClick={handlePrintChapter}
+            title="طباعة الباب كاملاً"
+          >
+            <FiPrinter size={18} /> <span className="ms-1">الباب كامل</span>
+          </button>
+
           <button
             className={`bookmark-btn ${isBookmarked ? 'active' : ''}`}
             onClick={onToggleBookmark}
@@ -159,57 +193,94 @@ const ReadingView = ({
         </button>
       </div>
 
-      <Breadcrumb book={lesson.bookName} chapter={lesson.chapterName} />
-
-      <h3 className="mb-3 fw-bold mt-4 text-center" style={{ color: 'var(--primary-color)' }}>
-        {lesson.title}
-      </h3>
-
-      <div className="d-flex justify-content-center flex-wrap gap-3 mb-4">
-        <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
-          <FiBook className="ms-2" style={{ color: 'var(--accent-color)' }} /> ص {lesson.pageNumber}
-        </span>
-        <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
-          <FiVideo className="ms-2" style={{ color: 'var(--accent-color)' }} /> {lesson.videoNumber}
-        </span>
-        <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
-          <FiClock className="ms-2" style={{ color: 'var(--accent-color)' }} /> يبدأ عند: {lesson.videoTimestamp}
-        </span>
-        <button
-          className="badge d-flex align-items-center py-2 px-3 shadow-sm border-0"
-          style={{
-            cursor: 'pointer',
-            transition: 'all 0.3s',
-            backgroundColor: isStopMarked ? 'var(--primary-color)' : 'var(--badge-bg)',
-            color: isStopMarked ? 'var(--accent-color)' : 'var(--text-main)',
-          }}
-          onClick={onToggleStopMark}
-          title="تحديد كعلامة توقف للعودة إليها لاحقاً"
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={lesson.id}
+          initial={{ opacity: 0, x: 50, rotateY: -10 }}
+          animate={{ opacity: 1, x: 0, rotateY: 0 }}
+          exit={{ opacity: 0, x: -50, rotateY: 10 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          style={{ perspective: '1000px' }}
         >
-          <FiFlag className="ms-2" style={{ color: 'var(--accent-color)' }} />
-          {isStopMarked ? 'علامة وقوفك الحالية' : 'ضع علامة وقوف'}
-        </button>
-      </div>
+          <Breadcrumb book={lesson.bookName} chapter={lesson.chapterName} />
 
-      <QuoteCard text={lesson.mainText} searchQuery={searchQuery} glossary={glossary} />
+          <h3 className="mb-3 fw-bold mt-4 text-center" style={{ color: 'var(--primary-color)' }}>
+            {lesson.title}
+          </h3>
 
-      <ShareButton
-        title={lesson.title}
-        text={lesson.mainText}
-        sheikhComment={lesson.sheikhExplanation}
-      />
+          <div className="d-flex justify-content-center flex-wrap gap-3 mb-4">
+            <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
+              <FiBook className="ms-2" style={{ color: 'var(--accent-color)' }} /> ص {lesson.pageNumber}
+            </span>
+            <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
+              <FiVideo className="ms-2" style={{ color: 'var(--accent-color)' }} /> {lesson.videoNumber}
+            </span>
+            <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
+              <FiClock className="ms-2" style={{ color: 'var(--accent-color)' }} /> يبدأ عند: {lesson.videoTimestamp}
+            </span>
+            <button
+              className="badge d-flex align-items-center py-2 px-3 shadow-sm border-0"
+              style={{
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                backgroundColor: isStopMarked ? 'var(--primary-color)' : 'var(--badge-bg)',
+                color: isStopMarked ? 'var(--text-on-primary)' : 'var(--text-main)',
+              }}
+              onClick={onToggleStopMark}
+              title="تحديد كعلامة توقف للعودة إليها لاحقاً"
+            >
+              <FiFlag className="ms-2" style={{ color: 'var(--accent-color)' }} />
+              {isStopMarked ? 'علامة وقوفك الحالية' : 'ضع علامة وقوف'}
+            </button>
+          </div>
 
-      <ExplanationCard explanation={lesson.sheikhExplanation} searchQuery={searchQuery} />
-      <VideoCard videoUrl={lesson.videoUrl} startTime={lesson.startTime} />
+          <BismillahHeader />
+          {(lesson.adminNote || '').trim() && (
+            <div className="custom-card p-4 mb-4 d-flex gap-3 align-items-start shadow-sm" style={{ borderRight: '4px solid var(--accent-color)' }}>
+              <FiInfo className="mt-1 flex-shrink-0" size={24} style={{ color: 'var(--accent-color)' }} />
+              <div>
+                <h6 className="fw-bold mb-2" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-heading)' }}>ملحوظة هامة:</h6>
+                <div className="mb-0" style={{ lineHeight: '1.9', color: 'var(--text-main)', whiteSpace: 'pre-wrap' }}>{lesson.adminNote}</div>
+              </div>
+            </div>
+          )}
+          
+          {(lesson.mainText || '').trim() && (
+            <QuoteCard text={lesson.mainText} searchQuery={searchQuery} glossary={glossary} />
+          )}
+          
+          <ShareButton
+            title={lesson.title}
+            text={lesson.mainText}
+            sheikhComment={lesson.sheikhExplanation}
+          />
 
-      {/* الميزات التفاعلية */}
-      <NotesCard 
-        lessonId={lesson.id} 
-        lessonTitle={lesson.title} 
-        bookName={lesson.bookName}
-        chapterName={lesson.chapterName}
-        note={noteValue} 
-        onSave={onSaveNote} 
+          <ArabesqueDivider />
+
+          {(lesson.sheikhExplanation || '').trim() && (
+            <ExplanationCard explanation={lesson.sheikhExplanation} searchQuery={searchQuery} />
+          )}
+          
+          <MediaCard mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} />
+          <VideoCard videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} />
+
+          {/* الميزات التفاعلية */}
+          <NotesCard 
+            lessonId={lesson.id} 
+            lessonTitle={lesson.title} 
+            bookName={lesson.bookName}
+            chapterName={lesson.chapterName}
+            note={noteValue} 
+            onSave={onSaveNote} 
+          />
+        </motion.div>
+      </AnimatePresence>
+
+
+      <FloatingTOC 
+        currentLesson={lesson} 
+        allLessons={allLessons} 
+        onSelectLesson={onSelectLesson} 
       />
     </div>
   );

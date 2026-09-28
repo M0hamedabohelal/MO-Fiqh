@@ -14,13 +14,13 @@ import MobileBottomNav from './Components/Navigation/MobileBottomNav';
 import PWABanners from './Components/UI/PWABanners';
 
 // شاشات التطبيق
-import BooksView from './Components/Views/BooksView';
-import ChaptersView from './Components/Views/ChaptersView';
-import LessonsView from './Components/Views/LessonsView';
-import BookmarksView from './Components/Views/BookmarksView';
-import HighlightsView from './Components/Views/HighlightsView';
-import ReadingView from './Components/Views/ReadingView';
-import SettingsView from './Components/Views/SettingsView';
+const BooksView = lazy(() => import('./Components/Views/BooksView'));
+const ChaptersView = lazy(() => import('./Components/Views/ChaptersView'));
+const LessonsView = lazy(() => import('./Components/Views/LessonsView'));
+const BookmarksView = lazy(() => import('./Components/Views/BookmarksView'));
+const HighlightsView = lazy(() => import('./Components/Views/HighlightsView'));
+const ReadingView = lazy(() => import('./Components/Views/ReadingView'));
+const SettingsView = lazy(() => import('./Components/Views/SettingsView'));
 
 // نظام الحسابات والسحابة
 import { useAuth } from './Components/Auth/AuthContext';
@@ -43,7 +43,7 @@ import { glossaryData as staticGlossary } from './data/glossary';
 
 function App() {
   // نظام الحسابات
-  const { user, isAdminUser } = useAuth();
+  const { user, isAdminUser, authLoading } = useAuth();
 
   // بيانات المحتوى: الداتا المحلية كأساس، والسحابة تُدمج فوقها عند التوفر
   const [rawLessons, setRawLessons] = useState(lessonsData);
@@ -63,10 +63,18 @@ function App() {
       { w: 'السادس', v: 6 }, { w: 'السابع', v: 7 }, { w: 'الثامن', v: 8 }, { w: 'التاسع', v: 9 }, { w: 'العاشر', v: 10 }
     ];
 
+    const normalizeText = (text) => {
+      if (!text) return '';
+      return text.replace(/[أإآا]/g, 'ا')
+                 .replace(/[يى]/g, 'ي')
+                 .replace(/ة/g, 'ه');
+    };
+
     const getOrdinalVal = (text) => {
       if (!text) return 999;
+      const normalizedText = normalizeText(text);
       for (const o of ordinals) {
-        if (text.includes(o.w)) return o.v;
+        if (normalizedText.includes(normalizeText(o.w))) return o.v;
       }
       return 999;
     };
@@ -101,7 +109,6 @@ function App() {
     deleteHighlight,
     saveNoteForLesson,
     toggleReadLesson,
-    markLessonRead,
   } = useUserLibrary({ onStatus: setCloudStatus });
 
   // موجّه الروابط الهاشي
@@ -112,12 +119,13 @@ function App() {
     setCurrentIndex,
     goToNextLesson,
     goToPrevLesson,
+    goBackToList,
   } = useHashRoute(lessons);
   const currentLesson = lessons[currentIndex];
 
   // UI States
   const [fontSize, setFontSize] = useState(16);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');
@@ -166,9 +174,16 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // جلب البيانات عند بدء التطبيق
     reloadFromCloud();
   }, [reloadFromCloud]);
+
+  useEffect(() => {
+    // تحديث البيانات تلقائياً بمجرد عودة الاتصال بالإنترنت
+    if (!isOffline) {
+      reloadFromCloud();
+    }
+  }, [isOffline, reloadFromCloud]);
 
   // ─── بيانات الفهرس المشتقة ───
   const chaptersWithIssues = useMemo(() => {
@@ -274,10 +289,9 @@ function App() {
     }
   };
 
-  // تعليم المسألة كمقروءة تلقائياً + تسجيل مشاهدة عند فتحها في وضع القراءة
+  // تسجيل مشاهدة عند فتحها في وضع القراءة
   useEffect(() => {
     if (currentView === 'reading' && currentLesson?.id) {
-      markLessonRead(currentLesson.id);
       trackLessonView(currentLesson.id);
     }
   }, [currentView, currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -336,6 +350,16 @@ function App() {
 
   const lastReadTitle = lessons.find((l) => String(l.id) === lastReadLessonId)?.title;
 
+  // حماية التطبيق (إجبار المستخدم على تسجيل الدخول)
+  useEffect(() => {
+    if (!authLoading && !user && currentView !== 'hero') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCurrentView('hero');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsLoginOpen(true);
+    }
+  }, [user, authLoading, currentView, setCurrentView]);
+
   return (
     <div className="container-fluid p-0 position-relative">
       {/* نافذة البحث المنبثقة */}
@@ -347,7 +371,13 @@ function App() {
       />
 
       {/* نافذة تسجيل الدخول */}
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      <LoginModal 
+        isOpen={isLoginOpen} 
+        onClose={() => setIsLoginOpen(false)} 
+        onSuccess={() => {
+          if (currentView === 'hero') setCurrentView('books');
+        }}
+      />
 
       {/* دليل اختصارات لوحة المفاتيح */}
       <ShortcutsHelpModal open={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
@@ -355,7 +385,13 @@ function App() {
       {/* الشاشة الرئيسية الترحيبية */}
       {currentView === 'hero' ? (
         <HeroSection
-          onStartBrowsing={() => setCurrentView('books')}
+          onStartBrowsing={() => {
+            if (user) {
+              setCurrentView('books');
+            } else {
+              setIsLoginOpen(true);
+            }
+          }}
           lastReadTitle={lastReadTitle}
           onContinueReading={() => {
             if (lastReadLessonId) openLessonById(lastReadLessonId);
@@ -391,12 +427,18 @@ function App() {
             <div className="container mt-4" style={{ maxWidth: '850px' }}>
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={`${currentView}-${currentIndex}`}
-                  initial={{ opacity: 0, x: -20, filter: 'blur(4px)' }}
-                  animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, x: 20, filter: 'blur(4px)' }}
+                  key={currentView}
+                  initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.98, y: -10 }}
                   transition={{ duration: 0.3, ease: 'easeOut' }}
                 >
+                  <Suspense fallback={
+                    <div className="text-center p-5">
+                      <div className="spinner-border" style={{ color: 'var(--primary-color)' }} role="status" />
+                      <p className="text-muted mt-3">جارٍ التحميل...</p>
+                    </div>
+                  }>
                   {/* 1. شاشة الكتب */}
                   {currentView === 'books' && (
                     <BooksView books={booksWithStats} onOpenBook={openBookChapters} />
@@ -429,6 +471,7 @@ function App() {
                       lessons={lessons}
                       onOpenLessonById={openLessonById}
                       onBrowse={() => setCurrentView('books')}
+                      onOpenLogin={() => setIsLoginOpen(true)}
                     />
                   )}
 
@@ -440,30 +483,36 @@ function App() {
                       lessons={lessons}
                       onDeleteHighlight={deleteHighlight}
                       onOpenLessonById={openLessonById}
+                      onOpenLogin={() => setIsLoginOpen(true)}
                     />
                   )}
 
                   {/* 4. شاشة القراءة */}
                   {currentView === 'reading' && currentLesson && (
-                    <ReadingView
-                      lesson={currentLesson}
-                      glossary={glossary}
-                      searchQuery={currentSearchQuery}
-                      noteValue={notes[String(currentLesson.id)] || ''}
-                      onSaveNote={saveNoteForLesson}
-                      isRead={readLessons.includes(String(currentLesson.id))}
-                      onToggleRead={() => toggleReadLesson(currentLesson.id)}
-                      isBookmarked={bookmarks.includes(currentLesson.id)}
-                      onToggleBookmark={() => toggleBookmark(currentLesson.id)}
-                      canGoPrev={currentIndex > 0}
-                      canGoNext={currentIndex < lessons.length - 1}
-                      onPrev={goToPrevLesson}
-                      onNext={goToNextLesson}
-                      isStopMarked={lastReadLessonId === currentLesson.id.toString()}
-                      onToggleStopMark={toggleStopMark}
-                      onCreateHighlight={createHighlightFromSelection}
-                      onBackToIndex={() => setCurrentView('lessons')}
-                    />
+                      <ReadingView
+                        lesson={currentLesson}
+                        allLessons={lessons}
+                        glossary={glossary}
+                        searchQuery={currentSearchQuery}
+                        noteValue={notes[String(currentLesson.id)] || ''}
+                        onSaveNote={saveNoteForLesson}
+                        isRead={readLessons.includes(String(currentLesson.id))}
+                        onToggleRead={() => toggleReadLesson(currentLesson.id)}
+                        isBookmarked={bookmarks.includes(currentLesson.id)}
+                        onToggleBookmark={() => toggleBookmark(currentLesson.id)}
+                        canGoPrev={currentIndex > 0}
+                        canGoNext={currentIndex < lessons.length - 1}
+                        onPrev={goToPrevLesson}
+                        onNext={goToNextLesson}
+                        isStopMarked={lastReadLessonId === currentLesson.id.toString()}
+                        onToggleStopMark={toggleStopMark}
+                        onCreateHighlight={createHighlightFromSelection}
+                        onBackToIndex={goBackToList}
+                        onSelectLesson={(lesson) => openLessonById(lesson.id)}
+                        setFontSize={setFontSize}
+                        theme={theme}
+                        setTheme={setTheme}
+                      />
                   )}
 
                   {/* 5. شاشة لوحة الإدارة — للمشرفين فقط */}
@@ -496,6 +545,7 @@ function App() {
                       isInstalled={isInstalled}
                     />
                   )}
+                  </Suspense>
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -515,14 +565,7 @@ function App() {
       {/* زر العودة للأعلى */}
       <BackToTopButton />
 
-      {/* لافتات PWA: أوفلاين + تحديث جاهز + جاهزية العمل بدون إنترنت */}
-      <PWABanners
-        isOffline={isOffline}
-        needRefresh={needRefresh}
-        applyUpdate={applyUpdate}
-        offlineReady={offlineReady}
-        dismissOfflineReady={dismissOfflineReady}
-      />
+
 
       {/* شريط التنقل السفلي للموبايل */}
       {currentView !== 'hero' && (

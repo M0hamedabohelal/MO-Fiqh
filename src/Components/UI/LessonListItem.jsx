@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { FiCheckCircle, FiChevronLeft } from 'react-icons/fi';
 
 // زر المسألة الموحد في فهرس الأبواب والمسائل (شارة مقروء + عنوان + رقم صفحة)
@@ -17,4 +18,4 @@ const LessonListItem = ({ title, pageNumber, isRead, onClick }) => (
   </button>
 );
 
-export default LessonListItem;
+export default memo(LessonListItem);

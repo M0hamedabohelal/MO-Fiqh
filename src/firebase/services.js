@@ -216,3 +216,23 @@ export async function migrateInitialData(lessonsArray, glossaryObject) {
 
   return uploaded;
 }
+
+/* ==================== الإشعارات (Announcements) ==================== */
+export async function fetchAnnouncements() {
+  const { db, fs } = await getDb();
+  const snapshot = await fs.getDocs(fs.collection(db, 'announcements'));
+  return snapshot.docs.map(d => ({ ...d.data(), id: d.id })).sort((a,b) => b.createdAt - a.createdAt);
+}
+
+export async function createAnnouncement(annData) {
+  const { db, fs } = await getDb();
+  const docRef = fs.doc(fs.collection(db, 'announcements'));
+  const payload = { ...annData, createdAt: Date.now() };
+  await fs.setDoc(docRef, payload);
+  return { ...payload, id: docRef.id };
+}
+
+export async function deleteAnnouncement(id) {
+  const { db, fs } = await getDb();
+  await fs.deleteDoc(fs.doc(db, 'announcements', String(id)));
+}

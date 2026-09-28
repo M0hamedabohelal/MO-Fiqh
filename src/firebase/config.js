@@ -27,12 +27,26 @@ export function getFirebase() {
       import('firebase/auth'),
       import('firebase/firestore'),
     ])
-      .then(([appMod, authMod, fsMod]) => {
+      .then(async ([appMod, authMod, fsMod]) => {
         const app = appMod.getApps().length > 0 ? appMod.getApps()[0] : appMod.initializeApp(firebaseConfig);
+        
+        let db;
+        try {
+          // محاولة تهيئة الكاش المحلي (Offline Persistence) بحد أقصى 10 ميجابايت (10485760 بايت)
+          db = fsMod.initializeFirestore(app, {
+            localCache: fsMod.persistentLocalCache({
+              cacheSizeBytes: 10485760 // 10 MB limit to assure the user
+            })
+          });
+        } catch {
+          // في حال فشل الكاش أو كان مهيئاً مسبقاً، نستخدم النسخة العادية
+          db = fsMod.getFirestore(app);
+        }
+
         return {
           app,
           auth: authMod.getAuth(app),
-          db: fsMod.getFirestore(app),
+          db,
           authMod,
           fsMod,
         };

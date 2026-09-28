@@ -1,4 +1,5 @@
 import React from 'react';
+import { FiLink } from 'react-icons/fi';
 
 // كلمات دالة على النص الحديثي داخل الأقواس العادية ( ... )
 const HADITH_KEYWORDS = /(ﷺ|رسول الله|النبي|قال|طهور|نجس|الطوافين|الطوافات|قلتين|الخبث|إذا بلغ الماء|لا تشربوا|آنية الذهب|آنية الفضة|صحافها|الدنيا ولكم في الآخرة|الذي يشرب|يجرجر|نار جهنم|لا تأكلوا فيها|فاغسلوها|ثم كلوا فيها|قدح رسول الله|سلسلة من فضة|أيما إهاب|دبغ فقد|هلا أخذوا إهابها|فدبغوه|فانتفعوا به|إنما حرم أكلها|إنما حُرِّم أكلها|بني الإسلام|العمرة إلى العمرة|الحج المبرور|من حج لله|لم يرفث|قد فرض الله عليكم الحج|لو قلت|تعجلوا إلى الحج|من استطاع الحج|فليمت إن شاء|رفع القلم|نعم ولك أجر|أيما صبي حج|أيما عبد حج|لا يحل لامرأة|انطلق فحج|حج عن نفسك|حج عن شبرمة|عليهن جهاد|الحج والعمرة|حج عن أبيك|واعتمر|وقّت رسول الله|ذا الحليفة|الجحفة|قرن المنازل|يلملم|هن لهن|من حيث أنشأ)/;
@@ -39,18 +40,44 @@ export const highlightSearch = (plainText, searchQuery, baseKey) => {
   );
 };
 
-// تقسيم النص إلى آيات { } / ﴿ ﴾ وأحاديث « » وأقواس ( ) مع تنسيق كل نوع
-// renderPlainText: دالة اختيارية لتخصيص عرض النص العادي (مثل تظليل مصطلحات المعجم)
+// تقسيم النص إلى آيات { } / ﴿ ﴾ وأحاديث « » وأقواس ( ) وروابط إحالات وتظليل فسفوري
 export const formatBrackets = (textChunk, searchQuery, renderPlainText) => {
-  const parts = textChunk.split(/(\{[^}]+\}|﴿[^﴾]+﴾|«[^»]*(?:»|$)|\([^)]*\))/g);
+  // تقسيم النص إلى آيات، أحاديث، تظليل فسفوري * *، روابط [text](lesson:id)، وأقواس عادية
+  const parts = textChunk.split(/(\{[^}]+\}|﴿[^﴾]+﴾|«[^»]*(?:»|$)|\[[^\]]+\]\(lesson:\d+\)|\([^)]*\)|\*[^*]+\*)/g);
+  
   return parts.map((part, index) => {
+    // 1. الآيات القرآنية
     if ((part.startsWith('﴿') && part.endsWith('﴾')) || (part.startsWith('{') && part.endsWith('}'))) {
       const formattedPart = part.replace(/\{/g, '﴿').replace(/\}/g, '﴾');
       return <span key={index} className="quran-text">{formattedPart}</span>;
     }
+    
+    // 2. الماركر الفسفوري
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return <mark key={index} className="highlighter-marker">{part.slice(1, -1)}</mark>;
+    }
+
+    // 3. الإحالات الذكية
+    const linkMatch = part.match(/^\[([^\]]+)\]\(lesson:(\d+)\)$/);
+    if (linkMatch) {
+      return (
+        <a
+          key={index}
+          href={`#/lesson/${linkMatch[2]}`}
+          className="cross-link"
+          title="انتقل إلى هذه المسألة"
+        >
+          <FiLink className="cross-link-icon" /> {linkMatch[1]}
+        </a>
+      );
+    }
+
+    // 4. الأحاديث النبوية
     if (isHadithText(part)) {
       return <span key={index} className="hadith-text">{part}</span>;
     }
+    
+    // 4. النص العادي أو المصطلحات الفقهية
     if (renderPlainText) {
       return <span key={index}>{renderPlainText(part, index)}</span>;
     }

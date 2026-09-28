@@ -5,7 +5,7 @@ import { FiX, FiLogIn, FiUserPlus, FiMail, FiLock, FiUser, FiLogOut } from 'reac
 import { FcGoogle } from 'react-icons/fc';
 import { useAuth } from './AuthContext';
 
-const LoginModal = ({ isOpen, onClose }) => {
+const LoginModal = ({ isOpen, onClose, onSuccess }) => {
   const { user, login, loginWithGoogle, register, logout, authError, isFirebaseConfigured } = useAuth();
   const [mode, setMode] = useState('login'); // login | register
   const [email, setEmail] = useState('');
@@ -19,18 +19,27 @@ const LoginModal = ({ isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setBusy(true);
+    let res;
     if (mode === 'login') {
-      await login(email, password);
+      res = await login(email, password);
     } else {
-      await register(email, password, displayName);
+      res = await register(email, password, displayName);
     }
     setBusy(false);
+    if (res.success) {
+      onClose();
+      if (onSuccess) onSuccess();
+    }
   };
 
   const handleGoogleLogin = async () => {
     setGoogleBusy(true);
-    await loginWithGoogle();
+    const res = await loginWithGoogle();
     setGoogleBusy(false);
+    if (res.success) {
+      onClose();
+      if (onSuccess) onSuccess();
+    }
   };
 
   const handleLogout = async () => {
@@ -167,7 +176,7 @@ const LoginModal = ({ isOpen, onClose }) => {
               type="submit"
               className="btn w-100 d-flex align-items-center justify-content-center gap-2 mb-3"
               disabled={busy || !isFirebaseConfigured}
-              style={{ backgroundColor: 'var(--accent-color)', color: 'var(--primary-color)', fontWeight: 'bold', borderRadius: '10px' }}
+              style={{ backgroundColor: 'var(--accent-color)', color: 'var(--text-on-accent)', fontWeight: 'bold', borderRadius: '10px' }}
             >
               {busy ? (
                 <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />

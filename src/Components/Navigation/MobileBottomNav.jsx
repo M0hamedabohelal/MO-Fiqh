@@ -4,8 +4,8 @@ import { FiHome, FiBookmark, FiEdit3, FiList, FiUser, FiShield } from 'react-ico
 const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLogin }) => (
   <div className="mobile-bottom-nav">
     <button
-      className={`nav-item ${['books', 'chapters', 'lessons', 'reading'].includes(currentView) ? 'active' : ''}`}
-      onClick={() => onNavigate('books')}
+      className={`nav-item ${['hero', 'books', 'chapters', 'lessons', 'reading'].includes(currentView) ? 'active' : ''}`}
+      onClick={() => onNavigate('hero')}
     >
       <FiHome size={20} />
       <span>الرئيسية</span>

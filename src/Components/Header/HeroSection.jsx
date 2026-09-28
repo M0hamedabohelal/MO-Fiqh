@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiChevronLeft, FiChevronRight, FiDownload, FiUser, FiYoutube } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiDownload, FiUser, FiYoutube, FiBookOpen } from 'react-icons/fi';
 import logo from '../../assets/logo.png';
 import './HeroSection.css';
 
@@ -36,8 +36,8 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpen
       setTimeout(() => {
         setCurrentSlide((prev) => (prev + 1) % slides.length);
         setSlideVisible(true);
-      }, 500);
-    }, 5000);
+      }, 600); // slightly longer for the new elegant transition
+    }, 6000);
     return () => clearInterval(interval);
   }, []);
 
@@ -68,139 +68,112 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpen
 
   return (
     <section className={`hero-section ${isVisible ? 'hero-visible' : ''}`} id="hero-section">
-      {/* Islamic geometric pattern overlay */}
-      <div className="hero-pattern" aria-hidden="true"></div>
+      {/* Dynamic Animated Background Patterns */}
+      <div className="hero-bg-layer hero-bg-pattern"></div>
+      <div className="hero-bg-layer hero-bg-gradient"></div>
+      
+      {/* Decorative Corner Ornaments */}
+      <div className="hero-corner hero-corner-tr"></div>
+      <div className="hero-corner hero-corner-bl"></div>
 
-      {/* Decorative elements */}
-      <div className="hero-glow hero-glow-1" aria-hidden="true"></div>
-      <div className="hero-glow hero-glow-2" aria-hidden="true"></div>
-
-      {/* زر تسجيل الدخول */}
-      <button className="hero-login-btn" onClick={onOpenLogin} title={user ? `حساب: ${user.displayName || user.email}` : 'تسجيل الدخول'}>
-        <FiUser size={17} />
-        <span>{user ? (user.displayName || user.email || 'حسابي') : 'تسجيل الدخول'}</span>
+      {/* Login Button */}
+      <button className="hero-login-btn premium-glass" onClick={onOpenLogin} title={user ? `حساب: ${user.displayName || user.email}` : 'تسجيل الدخول'}>
+        <div className="login-btn-inner">
+          <FiUser size={18} />
+          <span>{user ? (user.displayName || user.email || 'حسابي') : 'تسجيل الدخول'}</span>
+        </div>
       </button>
 
-      <div className="hero-content">
-        {/* Logo */}
-        <div className="hero-logo-wrapper">
-          <div className="hero-logo-ring" aria-hidden="true"></div>
-          <img
-            src={logo}
-            alt="شعار الباحث الفقهي"
-            className="hero-logo"
-            width="140"
-            height="140"
-          />
-        </div>
-
-        {/* Gold accent line */}
-        <div className="hero-accent-line" aria-hidden="true"></div>
-
-        {/* Title */}
-        <h1 className="hero-title">الباحث الفقهي</h1>
-
-        {/* Slider content */}
-        <div className="hero-slider-container">
-          <button 
-            className="slider-nav-btn slider-prev" 
-            onClick={prevSlide}
-            aria-label="الشريحة السابقة"
-          >
-            <FiChevronRight />
-          </button>
-
-          <div className="hero-slider">
-            <div className={`hero-slide ${slideVisible ? 'slide-visible' : 'slide-hidden'}`}>
-              <p className="hero-subtitle">{slides[currentSlide].subtitle}</p>
-              <p className="hero-description">{slides[currentSlide].description}</p>
+      <div className="hero-main-container">
+        {/* Arch Frame */}
+        <div className="hero-arch-frame">
+          <div className="hero-arch-inner">
+            
+            {/* Logo area with rotating mandala */}
+            <div className="hero-logo-showcase">
+              <div className="hero-mandala-bg"></div>
+              <img
+                src={logo}
+                alt="شعار الباحث الفقهي"
+                className="hero-logo-img"
+                width="150"
+                height="150"
+              />
             </div>
+
+            {/* Title with Gold separator */}
+            <div className="hero-title-area">
+              <h1 className="hero-title">الباحث الفقهي</h1>
+              <div className="hero-separator">
+                <span className="sep-line"></span>
+                <span className="sep-icon">✦</span>
+                <span className="sep-line"></span>
+              </div>
+            </div>
+
+            {/* Elegant Slider */}
+            <div className="hero-slider-wrapper">
+              <button className="hero-nav-btn prev-btn" onClick={prevSlide} aria-label="السابق">
+                <FiChevronRight size={24} />
+              </button>
+              
+              <div className="hero-slider-content premium-glass">
+                <div className="slider-border-ornament top-ornament"></div>
+                <div className={`slide-content-inner ${slideVisible ? 'slide-active' : 'slide-exit'}`}>
+                  <h2 className="slide-subtitle">{slides[currentSlide].subtitle}</h2>
+                  <p className="slide-desc">{slides[currentSlide].description}</p>
+                </div>
+                <div className="slider-border-ornament bottom-ornament"></div>
+              </div>
+
+              <button className="hero-nav-btn next-btn" onClick={nextSlide} aria-label="التالي">
+                <FiChevronLeft size={24} />
+              </button>
+            </div>
+
+            {/* Dots */}
+            <div className="hero-dots-container">
+              {slides.map((_, index) => (
+                <button
+                  key={index}
+                  className={`hero-dot ${index === currentSlide ? 'active' : ''}`}
+                  onClick={() => goToSlide(index)}
+                  aria-label={`الشريحة ${index + 1}`}
+                >
+                  <span className="dot-inner"></span>
+                </button>
+              ))}
+            </div>
+
+            {/* Call to Actions */}
+            <div className="hero-actions-container">
+              <button className="hero-btn-primary" onClick={onStartBrowsing}>
+                <span className="btn-shine"></span>
+                <FiBookOpen className="btn-icon" size={22} />
+                <span className="btn-text">ابدأ التصفح الآن</span>
+              </button>
+
+              <div className="hero-secondary-actions">
+                <a className="hero-btn-secondary" href="/fiqh-book.pdf" download="الفقه.pdf">
+                  <FiDownload size={18} />
+                  <span>تحميل الكتاب</span>
+                </a>
+                <a className="hero-btn-secondary" href="https://www.youtube.com/playlist?list=PL1i_D1Vw3d5P5Q6IHHW22JHrnLCwm60Bn" target="_blank" rel="noopener noreferrer">
+                  <FiYoutube size={18} />
+                  <span>السلسلة المرئية</span>
+                </a>
+              </div>
+
+              {lastReadTitle && (
+                <button className="hero-btn-continue" onClick={onContinueReading}>
+                  <div className="pulse-dot"></div>
+                  <span>أكمل القراءة: {lastReadTitle}</span>
+                  <FiChevronLeft size={16} />
+                </button>
+              )}
+            </div>
+
           </div>
-
-          <button 
-            className="slider-nav-btn slider-next" 
-            onClick={nextSlide}
-            aria-label="الشريحة التالية"
-          >
-            <FiChevronLeft />
-          </button>
-        </div>
-
-        {/* Slide indicators */}
-        <div className="hero-indicators">
-          {slides.map((_, index) => (
-            <button
-              key={index}
-              className={`hero-dot ${index === currentSlide ? 'hero-dot-active' : ''}`}
-              onClick={() => goToSlide(index)}
-              aria-label={`الانتقال إلى الشريحة ${index + 1}`}
-              id={`hero-dot-${index}`}
-            >
-              {index === currentSlide && <span className="hero-dot-progress"></span>}
-            </button>
-          ))}
-        </div>
-
-        {/* CTA Button */}
-        <button
-          className="hero-cta"
-          onClick={onStartBrowsing}
-          id="hero-cta-button"
-        >
-          <span className="hero-cta-text">ابدأ التصفح</span>
-          <svg className="hero-cta-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-        </button>
-
-        <div className="hero-links-wrapper d-flex justify-content-center gap-3 flex-wrap mt-3">
-          <a
-            className="hero-download"
-            href="/fiqh-book.pdf"
-            download="الفقه.pdf"
-          >
-            <FiDownload className="hero-download-icon" size={20} />
-            <span>تحميل ملف الكتاب</span>
-          </a>
-
-          <a
-            className="hero-download"
-            href="https://www.youtube.com/playlist?list=PL1i_D1Vw3d5P5Q6IHHW22JHrnLCwm60Bn"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <FiYoutube className="hero-download-icon" size={20} />
-            <span>سلسلة الفقه كاملة</span>
-          </a>
-        </div>
-
-        {/* Continue Reading Button */}
-        {lastReadTitle && (
-          <button
-            className="hero-cta"
-            onClick={onContinueReading}
-            id="hero-continue-button"
-            style={{ 
-              marginTop: '15px', 
-              background: 'transparent', 
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              color: 'white',
-              backdropFilter: 'blur(5px)'
-            }}
-          >
-            <span className="hero-cta-text">أكمل: {lastReadTitle}</span>
-            <svg className="hero-cta-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </button>
-        )}
-
-        {/* Bottom decorative border */}
-        <div className="hero-bottom-ornament" aria-hidden="true">
-          <svg viewBox="0 0 200 20" className="hero-ornament-svg">
-            <path d="M0,10 Q25,0 50,10 T100,10 T150,10 T200,10" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3" />
-          </svg>
         </div>
       </div>
     </section>

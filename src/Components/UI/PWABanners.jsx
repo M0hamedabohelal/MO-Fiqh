@@ -51,14 +51,14 @@ const PWABanners = ({
             className="d-flex align-items-center gap-3 px-3 py-2 shadow"
             style={{
               backgroundColor: 'var(--primary-color)',
-              color: 'var(--accent-color)',
+              color: 'var(--text-on-primary)',
               borderRadius: '12px',
             }}
           >
             <span className="fw-bold small">تحديث جديد جاهز</span>
             <button
               className="btn btn-sm d-flex align-items-center gap-1 fw-bold"
-              style={{ backgroundColor: 'var(--accent-color)', color: 'var(--primary-color)', borderRadius: '8px' }}
+              style={{ backgroundcolor: 'var(--text-on-primary)', color: 'var(--text-on-accent)', borderRadius: '8px' }}
               onClick={applyUpdate}
             >
               <FiRefreshCw size={14} /> تحديث الآن

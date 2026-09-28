@@ -8,7 +8,7 @@ function parseInitialRoute() {
     const idx = lessonsData.findIndex((l) => String(l.id) === lessonMatch[1]);
     if (idx !== -1) return { view: 'reading', index: idx };
   }
-  const viewMatch = window.location.hash.match(/^#\/(books|lessons|bookmarks|highlights)$/);
+  const viewMatch = window.location.hash.match(/^#\/?(hero|books|chapters|lessons|bookmarks|highlights|admin)$/);
   if (viewMatch) return { view: viewMatch[1], index: 0 };
   return { view: 'hero', index: 0 };
 }
@@ -36,11 +36,20 @@ export function useHashRoute(lessons) {
   const [currentView, setCurrentView] = useState(initialRoute.view);
   const [currentIndex, setCurrentIndex] = useState(initialRoute.index);
 
+  // لحفظ التبويب الأخير الذي كان به قائمة (للرجوع إليه)
+  const lastListView = useRef(['books', 'chapters', 'lessons', 'bookmarks', 'highlights', 'admin'].includes(initialRoute.view) ? initialRoute.view : 'books');
+
   const currentIndexRef = useRef(currentIndex);
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
   }, [currentIndex]);
+
+  useEffect(() => {
+    if (['books', 'chapters', 'lessons', 'bookmarks', 'highlights', 'admin'].includes(currentView)) {
+      lastListView.current = currentView;
+    }
+  }, [currentView]);
 
   const goToNextLesson = useCallback(() => {
     if (currentIndexRef.current < lessons.length - 1) {
@@ -67,13 +76,17 @@ export function useHashRoute(lessons) {
         return;
       }
     }
-    const viewMatch = window.location.hash.match(/^#\/(books|lessons|bookmarks|highlights)$/);
+    const viewMatch = window.location.hash.match(/^#\/?(hero|books|chapters|lessons|bookmarks|highlights|admin)$/);
     if (viewMatch) setCurrentView(viewMatch[1]);
   }, [lessons]);
 
   useEffect(() => {
     window.addEventListener('hashchange', applyHashNavigation);
-    return () => window.removeEventListener('hashchange', applyHashNavigation);
+    window.addEventListener('popstate', applyHashNavigation);
+    return () => {
+      window.removeEventListener('hashchange', applyHashNavigation);
+      window.removeEventListener('popstate', applyHashNavigation);
+    };
   }, [applyHashNavigation]);
 
   // مزامنة الرابط وعنوان الصفحة مع الشاشة الحالية (للمشاركة وSEO)
@@ -82,11 +95,15 @@ export function useHashRoute(lessons) {
     let hash = '#/';
     if (currentView === 'reading' && currentLesson?.id) {
       hash = `#/lesson/${currentLesson.id}`;
-    } else if (['books', 'lessons', 'bookmarks', 'highlights'].includes(currentView)) {
-      hash = `#${currentView}`;
+    } else if (['hero', 'books', 'chapters', 'lessons', 'bookmarks', 'highlights', 'admin'].includes(currentView)) {
+      hash = `#/${currentView}`;
     }
     if (window.location.hash !== hash) {
-      window.history.replaceState(null, '', hash);
+      if (window.location.hash === '' || window.location.hash === '#/') {
+        window.history.replaceState(null, '', hash);
+      } else {
+        window.history.pushState(null, '', hash);
+      }
     }
 
     // تحديث عنوان المتصفح ومعاينة المشاركة حسب المسألة المعروضة
@@ -106,6 +123,10 @@ export function useHashRoute(lessons) {
     }
   }, [currentView, currentIndex, lessons]);
 
+  const goBackToList = useCallback(() => {
+    setCurrentView(lastListView.current);
+  }, []);
+
   return {
     currentView,
     setCurrentView,
@@ -113,5 +134,6 @@ export function useHashRoute(lessons) {
     setCurrentIndex,
     goToNextLesson,
     goToPrevLesson,
+    goBackToList,
   };
 }

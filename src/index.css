@@ -5,6 +5,8 @@
   --primary-color: #0f3d3e;
   --accent-color: #fbdc99;
   --text-main: #2c2c2c;
+  --text-on-accent: #0f3d3e;
+  --text-on-primary: #fbdc99;
   --text-muted: #6c757d;
   --card-bg: #ffffff;
   --card-border: rgba(0, 0, 0, 0.05);
@@ -16,6 +18,7 @@
   --font-quote: "Amiri", serif;
   --font-heading: "Aref Ruqaa", "Amiri", serif;
   --base-font-size: 16px;
+  --card-bg-alpha: rgba(255, 255, 255, 0.85);
 }
 
 [data-theme="dark"] {
@@ -23,6 +26,8 @@
   --primary-color: #4db6ac; /* Lighter teal for better contrast */
   --accent-color: #d4a373; /* Warmer tone for dark mode */
   --text-main: #e0e0e0;
+  --text-on-accent: #121212;
+  --text-on-primary: #121212;
   --text-muted: #a0a0a0;
   --card-bg: #1e1e1e;
   --card-border: rgba(255, 255, 255, 0.1);
@@ -30,6 +35,7 @@
   --badge-bg: #2a2a2a;
   --badge-border: rgba(255, 255, 255, 0.1);
   --sidebar-bg: #1a1a1a;
+  --card-bg-alpha: rgba(30, 30, 30, 0.85);
 }
 html {
   /* هذا السطر يخبر المتصفح أن يربط حجم الخط الأساسي بالزر الذي برمجناه */
@@ -41,11 +47,28 @@ html {
   transition: font-size 0.2s ease-in-out;
 }
 
+/* إزالة المربع الأزرق واللون الخلفي عند الضغط على الأزرار */
+button:focus, .btn:focus, .btn-link:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.clean-btn {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+.clean-btn:focus, .clean-btn:active {
+  background: transparent !important;
+}
+
 body {
   font-family: var(--font-ui);
-  background-color: var(--bg-color);
+  background-color: var(--bg-color) !important;
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-  color: var(--text-main);
+  color: var(--text-main) !important;
   font-size: var(--base-font-size);
   transition: all 0.3s ease;
   margin: 0;
@@ -87,15 +110,11 @@ body {
   /* Glassmorphism Effect */
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  background-color: rgba(255, 255, 255, 0.85); /* fallback for light mode */
+  background-color: var(--card-bg-alpha, var(--card-bg));
   border-radius: 12px;
   border: 1px solid var(--card-border);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
-}
-
-[data-theme="dark"] .custom-card {
-  background-color: rgba(30, 30, 30, 0.85);
 }
 
 /* Custom UI Elements */
@@ -170,7 +189,7 @@ input.form-control {
   width: 36px;
   height: 54px;
   background: linear-gradient(160deg, #ff6b5e 0%, #e74c3c 45%, #b83227 100%);
-  color: white;
+  color: var(--text-on-accent);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -360,6 +379,8 @@ input.form-control {
   --primary-color: #5b3a29;
   --accent-color: #c09553;
   --text-main: #3e2a1a;
+  --text-on-accent: #3e2a1a;
+  --text-on-primary: #f4ecd8;
   --text-muted: #7a6a5a;
   --card-bg: #faf3e3;
   --card-border: rgba(90, 60, 30, 0.1);
@@ -367,6 +388,7 @@ input.form-control {
   --badge-bg: #f0e6d0;
   --badge-border: rgba(90, 60, 30, 0.15);
   --sidebar-bg: #efe5d0;
+  --card-bg-alpha: rgba(250, 243, 227, 0.9);
 }
 
 [data-theme="sepia"] .custom-card {
@@ -405,7 +427,7 @@ input.form-control {
   border: 1px solid var(--accent-color);
   border-radius: 12px;
   padding: 14px 18px;
-  max-width: 320px;
+  max-width: min(320px, 90vw);
   min-width: 200px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
   direction: rtl;
@@ -524,7 +546,7 @@ input.form-control {
   height: 45px;
   border-radius: 50%;
   background-color: var(--accent-color);
-  color: white;
+  color: var(--text-on-accent);
   border: none;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   display: flex;
@@ -557,7 +579,7 @@ input.form-control {
 }
 
 .back-to-top-progress-value {
-  stroke: var(--primary-color);
+  stroke: var(--text-on-accent);
   stroke-linecap: round;
 }
 
@@ -605,6 +627,11 @@ input.form-control {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
     padding-bottom: 80px !important; /* مسافة لشريط التنقل السفلي */
+  }
+
+  /* إخفاء شريط التنقل عند فتح لوحة المفاتيح (عند التركيز على حقل إدخال) */
+  body:has(input:focus, textarea:focus) .mobile-bottom-nav {
+    display: none !important;
   }
 
   /* تقليل الهوامش العلوية للـ container */
@@ -867,4 +894,234 @@ input.form-control {
     font-size: 0.66rem !important;
     gap: 2px !important;
   }
+}
+/* ==================== وضع القراءة المريح (Reading Mode) والمسائل الطويلة ==================== */
+.reading-mode-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.reading-mode-container {
+  background: var(--card-bg);
+  width: 100%;
+  max-width: 900px;
+  height: 90vh;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  position: relative;
+}
+
+.reading-mode-header {
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 1rem;
+}
+
+.reading-mode-scroll {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding-right: 15px; /* Scrollbar padding */
+}
+
+/* التمييز البصري للنصوص الطويلة */
+.typography-enhanced {
+  line-height: 2.2 !important;
+  font-size: 1.25rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.highlighted-title {
+  color: var(--primary-color) !important;
+  font-weight: bold;
+  font-size: 1.25rem;
+  display: inline;
+  margin-left: 8px;
+}
+
+.enhanced-body {
+  color: var(--text-main);
+  opacity: 0.95;
+}
+
+@media (max-width: 768px) {
+  .reading-mode-overlay { padding: 0.5rem; }
+  .reading-mode-container { height: 95vh; padding: 1.5rem 1rem; border-radius: 12px; }
+  .typography-enhanced { font-size: 1.15rem !important; }
+}
+
+
+/* ==================== خلفية ورق البردي (Parchment Texture) ==================== */
+.manuscript-frame, .explanation-card {
+  position: relative;
+}
+.manuscript-frame::before, .explanation-card::before {
+  /* Existing borders... let"s add texture using multiple backgrounds if needed, or a specific class */
+}
+
+/* Texture class to be added to QuoteCard and ExplanationCard */
+.parchment-texture {
+  position: relative;
+  overflow: hidden;
+}
+.parchment-texture::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiBvcGFjaXR5PSIwLjAzIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC4wNSIgbnVtT2N0YXZlcz0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNuKSIvPjwvc3ZnPg==");
+  z-index: 0;
+  mix-blend-mode: multiply;
+}
+
+[data-theme="dark"] .parchment-texture::before {
+  mix-blend-mode: screen;
+  opacity: 0.05;
+}
+
+
+/* Solid background for Glossary Tooltip */
+.glossary-tooltip-content {
+  background-color: #ffffff !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(251, 220, 153, 0.8) !important;
+}
+
+[data-theme="dark"] .glossary-tooltip-content {
+  background-color: #1e1e1e !important;
+}
+
+/* Floating TOC Mobile & PC Fix */
+.floating-toc-btn {
+  bottom: 90px;
+}
+.floating-toc-panel {
+  bottom: 150px !important;
+  top: 90px !important; /* مساحة آمنة من الأعلى */
+  height: auto !important;
+  max-height: calc(100vh - 240px) !important;
+  background-color: var(--card-bg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+@media (max-width: 768px) {
+  .floating-toc-btn {
+    bottom: 140px !important; /* Above MobileBottomNav and BackToTop */
+  }
+  .floating-toc-panel {
+    bottom: 200px !important;
+    top: 80px !important; /* مساحة آمنة من الأعلى لتجنب القص بسبب شريط المتصفح */
+    height: auto !important; /* التمدد التلقائي بين القمة والقاع */
+    max-height: calc(100dvh - 280px) !important;
+  }
+}
+
+/* ==================== الإحالات الذكية (Cross-links) ==================== */
+.cross-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--primary-color) !important;
+  font-weight: 700;
+  text-decoration: none !important;
+  background-color: rgba(139, 94, 52, 0.08); /* لون تراثي خفيف */
+  padding: 0 6px 2px 6px;
+  border-radius: 6px;
+  border-bottom: 2px solid var(--accent-color);
+  transition: all 0.2s ease-in-out;
+  margin: 0 2px;
+  font-size: 0.95em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+[data-theme="dark"] .cross-link {
+  background-color: rgba(220, 180, 120, 0.12);
+}
+
+.cross-link:hover {
+  background-color: var(--accent-color);
+  color: var(--card-bg) !important;
+  border-bottom-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.cross-link .cross-link-icon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.cross-link:hover .cross-link-icon {
+  opacity: 1;
+}
+
+/* ==================== أنماط النصوص المتقدمة (قرآن، حديث، تظليل) ==================== */
+.quran-text {
+  font-family: 'Amiri Quran', serif;
+  color: #2E7D32; /* أخضر إسلامي */
+  font-size: 1.3em;
+  line-height: 2.2;
+  padding: 0 4px;
+}
+
+[data-theme="dark"] .quran-text {
+  color: #81C784;
+}
+
+.hadith-text {
+  color: #A1887F; /* بني أنيق */
+  font-weight: 500;
+}
+
+[data-theme="dark"] .hadith-text {
+  color: #D7CCC8;
+}
+
+.highlighter-marker {
+  background-color: #FEF08A; /* أصفر فسفوري هادئ */
+  color: #1a1a1a;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+[data-theme="dark"] .highlighter-marker {
+  background-color: rgba(254, 240, 138, 0.2);
+  color: var(--text-main);
+}
+
+.islamic-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2.5rem 0;
+  opacity: 0.8;
+}
+
+.islamic-divider::before,
+.islamic-divider::after {
+  content: '';
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+  flex-grow: 0.3;
+}
+
+.islamic-divider-icon {
+  color: var(--accent-color);
+  margin: 0 1rem;
+  font-size: 1.5rem;
 }
