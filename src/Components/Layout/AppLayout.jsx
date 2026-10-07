@@ -88,23 +88,31 @@ const AppLayout = ({
               )}
 
               {currentView === 'chapters' && (
-                <ChaptersView
-                  bookName={selectedBookName}
-                  chapters={selectedBookChapters}
-                  openChapterName={openChapterName}
-                  onToggleChapter={toggleChapter}
-                  onSelectLesson={(lesson) => openLessonById(lesson.id)}
-                  newLessonIds={newLessonIds}
-                />
+                selectedBookName ? (
+                  <ChaptersView
+                    bookName={selectedBookName}
+                    chapters={selectedBookChapters}
+                    openChapterName={openChapterName}
+                    onToggleChapter={toggleChapter}
+                    onSelectLesson={(lesson) => openLessonById(lesson.id)}
+                    newLessonIds={newLessonIds}
+                  />
+                ) : (
+                  <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} />
+                )
               )}
 
               {currentView === 'lessons' && (
-                <LessonsView
-                  bookName={selectedBookName}
-                  chapters={selectedBookChapters}
-                  onSelectLesson={(lesson) => openLessonById(lesson.id)}
-                  newLessonIds={newLessonIds}
-                />
+                selectedBookName ? (
+                  <LessonsView
+                    bookName={selectedBookName}
+                    chapters={selectedBookChapters}
+                    onSelectLesson={(lesson) => openLessonById(lesson.id)}
+                    newLessonIds={newLessonIds}
+                  />
+                ) : (
+                  <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} />
+                )
               )}
 
               {currentView === 'bookmarks' && (

@@ -19,9 +19,12 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }) => {
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [isOpen]);
 
+  const bookName = currentLesson?.bookName;
+
   const bookLessons = useMemo(() => {
-    return allLessons.filter(l => l.bookName === currentLesson.bookName);
-  }, [allLessons, currentLesson.bookName]);
+    if (!bookName) return [];
+    return allLessons.filter(l => l.bookName === bookName);
+  }, [allLessons, bookName]);
 
   const chapters = useMemo(() => {
     const map = new Map();
@@ -33,7 +36,7 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }) => {
     return Array.from(map.entries());
   }, [bookLessons]);
 
-  if (!allLessons || allLessons.length === 0) return null;
+  if (!currentLesson || !allLessons || allLessons.length === 0) return null;
 
   return (
     <>

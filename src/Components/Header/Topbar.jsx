@@ -7,10 +7,11 @@ import AnnouncementsModal from '../UI/AnnouncementsModal';
 const Topbar = ({ setFontSize, theme, toggleTheme, cloudStatus }) => {
   const increaseFont = () => setFontSize(prev => Math.min(prev + 2, 24));
   const decreaseFont = () => setFontSize(prev => Math.max(prev - 2, 14));
-  const { announcements, unreadCount, markAsRead } = useAnnouncements();
+  const { announcements, unreadCount, markAsRead, refresh } = useAnnouncements();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleOpenAnnouncements = () => {
+    refresh();
     setIsModalOpen(true);
     markAsRead();
   };

@@ -273,23 +273,49 @@ function App() {
     [lessons, freshIds, readLessons],
   );
 
-  // ─── تسجيل يوم الزيارة لسلسلة المواظبة (الإنجازات: آخر 365 يومًا) ───
+  // ─── تسجيل يوم الزيارة لسلسلة المواظبة (آخر 365 يومًا) + دمجها سحابيًا ───
   useEffect(() => {
-    try {
-      const key = 'fiqh_visit_days';
-      const now = new Date();
-      const m = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const today = `${now.getFullYear()}-${m}-${day}`;
-      const days = JSON.parse(localStorage.getItem(key) || '[]');
-      if (!days.includes(today)) {
-        days.push(today);
-        localStorage.setItem(key, JSON.stringify(days.slice(-365)));
+    const key = 'fiqh_visit_days';
+    const readLocal = () => {
+      try {
+        const v = JSON.parse(localStorage.getItem(key) || '[]');
+        return Array.isArray(v) ? v : [];
+      } catch {
+        return [];
       }
-    } catch {
-      // التخزين المحلي غير متاح — نتجاهل بصمت
+    };
+    const saveLocal = (days) => {
+      try {
+        localStorage.setItem(key, JSON.stringify(days.slice(-365)));
+      } catch {
+        // التخزين المحلي غير متاح — نتجاهل بصمت
+      }
+    };
+    const now = new Date();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${now.getFullYear()}-${m}-${day}`;
+    const localDays = readLocal();
+    if (!localDays.includes(today)) {
+      localDays.push(today);
+      saveLocal(localDays);
     }
-  }, []);
+    if (!user || authLoading) return;
+    // دمج أيام الأجهزة الأخرى من السحابة حتى لا تصفر السلسلة بتغيير الجهاز
+    (async () => {
+      try {
+        const { fetchUserData, syncVisitDays } = await import('./firebase/services');
+        const cloud = await fetchUserData(user.uid);
+        const merged = Array.from(new Set([...(cloud.visits || []), ...readLocal()]))
+          .sort()
+          .slice(-365);
+        saveLocal(merged);
+        await syncVisitDays(user.uid, merged);
+      } catch {
+        // تجاهل الأخطاء المؤقتة — النسخة المحلية كافية
+      }
+    })();
+  }, [user, authLoading]);
 
   // ─── تسريع التنقل: تحميل شاشات التطبيق مسبقًا عند الخمول ───
   useEffect(() => {

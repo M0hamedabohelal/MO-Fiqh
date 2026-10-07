@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchAnnouncements } from '../firebase/services';
 import { isFirebaseConfigured } from '../firebase/config';
 
@@ -6,9 +6,10 @@ export function useAnnouncements() {
   const [announcements, setAnnouncements] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!isFirebaseConfigured) return;
-    fetchAnnouncements().then(data => {
+    try {
+      const data = await fetchAnnouncements();
       setAnnouncements(data);
       let readIds = [];
       try {
@@ -16,12 +17,17 @@ export function useAnnouncements() {
       } catch {
         readIds = [];
       }
-      const unread = data.filter(a => !readIds.includes(a.id)).length;
-      setUnreadCount(unread);
-    }).catch(() => {
+      setUnreadCount(data.filter(a => !readIds.includes(a.id)).length);
+    } catch {
       // تجاهل أخطاء الجلب — التنبيهات ليست حرجة
-    });
+    }
   }, []);
+
+  useEffect(() => {
+    // جلب أولي عند التحميل — مقصود (لا بديل تفاعلي له)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
 
   const markAsRead = () => {
     const allIds = announcements.map(a => a.id);
@@ -29,5 +35,5 @@ export function useAnnouncements() {
     setUnreadCount(0);
   };
 
-  return { announcements, unreadCount, markAsRead };
+  return { announcements, unreadCount, markAsRead, refresh: load };
 }

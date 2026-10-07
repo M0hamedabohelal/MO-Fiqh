@@ -91,6 +91,8 @@ export function useUserLibrary({ onStatus } = {}) {
       setReadLessons(mergedReadLessons);
 
       // رفع البيانات المدمجة للسحابة
+      // ⚠️ حذف بيانات الضيف من الجهاز يتم فقط بعد نجاح الرفع — وإلا ضاعت نهائيًا
+      let uploaded = false;
       try {
         await Promise.all([
           syncBookmarks(user.uid, mergedBookmarks),
@@ -98,8 +100,15 @@ export function useUserLibrary({ onStatus } = {}) {
           syncAllNotes(user.uid, mergedNotes),
           syncReadLessons(user.uid, mergedReadLessons),
         ]);
+        uploaded = true;
       } catch {
-        // تجاهل الأخطاء المؤقتة
+        // تجاهل الأخطاء المؤقتة — تبقى نسخة الضيف محفوظة للدمج في المرة القادمة
+      }
+
+      if (!uploaded) {
+        setIsDataLoaded(true);
+        onStatus?.('offline');
+        return;
       }
 
       // بعد الدمج والرفع بنجاح، نحذف بيانات الضيف من الجهاز

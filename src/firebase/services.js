@@ -97,11 +97,11 @@ async function userRoot(db, fs, uid) {
   return fs.collection(db, 'users', uid, 'data');
 }
 
-// جلب كل بيانات المستخدم: bookmarks / highlights / notes / readLessons
+// جلب كل بيانات المستخدم: bookmarks / highlights / notes / readLessons / visits
 export async function fetchUserData(uid) {
   const { db, fs } = await getDb();
   const snapshot = await fs.getDocs(await userRoot(db, fs, uid));
-  const data = { bookmarks: [], highlights: [], notes: {}, readLessons: [] };
+  const data = { bookmarks: [], highlights: [], notes: {}, readLessons: [], visits: [] };
   snapshot.forEach((d) => {
     const value = d.data();
     switch (d.id) {
@@ -116,6 +116,9 @@ export async function fetchUserData(uid) {
         break;
       case 'readLessons':
         data.readLessons = value.items || [];
+        break;
+      case 'visits':
+        data.visits = value.items || [];
         break;
       default:
         break;
@@ -142,6 +145,12 @@ export async function syncHighlights(uid, highlightsArray) {
 export async function syncReadLessons(uid, readLessonIds) {
   const { db, fs } = await getDb();
   await saveUserDataSection(db, fs, uid, 'readLessons', { items: readLessonIds });
+}
+
+// مزامنة أيام الزيارة لسلسلة المواظبة عبر الأجهزة
+export async function syncVisitDays(uid, daysArray) {
+  const { db, fs } = await getDb();
+  await saveUserDataSection(db, fs, uid, 'visits', { items: daysArray });
 }
 
 /* ==================== إحصائيات القراءة ==================== */
