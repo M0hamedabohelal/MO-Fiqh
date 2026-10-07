@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@400;500;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@400;500;700;800&display=swap");
 
 :root {
   --bg-color: #fafaf7;
@@ -16,52 +16,48 @@
   --sidebar-bg: #ffffff;
   --font-ui: "Tajawal", sans-serif;
   --font-quote: "Amiri", serif;
-  --font-heading: "Aref Ruqaa", "Amiri", serif;
+  --font-heading: "Amiri", serif;
   --base-font-size: 16px;
   --card-bg-alpha: rgba(255, 255, 255, 0.85);
 }
 
 [data-theme="dark"] {
-  --bg-color: #121212;
-  --primary-color: #4db6ac; /* Lighter teal for better contrast */
-  --accent-color: #d4a373; /* Warmer tone for dark mode */
-  --text-main: #e0e0e0;
+  --bg-color: #101414;            /* تيل داكن دافئ بدل رمادي بارد */
+  --primary-color: #5cc0b5;       /* Teal أفتح لتباين أفضل مع النص */
+  --accent-color: #d8a06a;        /* ذهبي-برتقالي دافئ */
+  --text-main: #e6e8e6;
   --text-on-accent: #121212;
   --text-on-primary: #121212;
-  --text-muted: #a0a0a0;
-  --card-bg: #1e1e1e;
-  --card-border: rgba(255, 255, 255, 0.1);
-  --border-color: rgba(255, 255, 255, 0.1);
-  --badge-bg: #2a2a2a;
+  --text-muted: #a9b1ad;
+  --card-bg: #1a2020;             /* مائل للتينال ليمتزج مع هوية الموقع */
+  --card-border: rgba(255, 255, 255, 0.08);
+  --border-color: rgba(255, 255, 255, 0.09);
+  --badge-bg: #232b2b;
   --badge-border: rgba(255, 255, 255, 0.1);
-  --sidebar-bg: #1a1a1a;
-  --card-bg-alpha: rgba(30, 30, 30, 0.85);
+  --sidebar-bg: #161b1b;
+  --card-bg-alpha: rgba(26, 32, 32, 0.82);
 }
 html {
   /* هذا السطر يخبر المتصفح أن يربط حجم الخط الأساسي بالزر الذي برمجناه */
   font-size: var(--base-font-size, 16px) !important;
 }
 
-/* إضافة انتقال ناعم (Smooth Transition) عشان لما نكبر ونصغر الخط ميكونش فجأة */
-* {
-  transition: font-size 0.2s ease-in-out;
+/* تغيير الثيم بسلاسة — تتضمن الخلفية والنص والحدود */
+*, *::before, *::after {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    font-size 0.2s ease-in-out;
 }
+
+/* استثناء: عناصر تحتاج لتحركات فورية دون تأخير */
 
 /* إزالة المربع الأزرق واللون الخلفي عند الضغط على الأزرار */
 button:focus, .btn:focus, .btn-link:focus {
   outline: none !important;
   box-shadow: none !important;
-}
-
-.clean-btn {
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-}
-.clean-btn:focus, .clean-btn:active {
-  background: transparent !important;
 }
 
 body {
@@ -70,6 +66,8 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   color: var(--text-main) !important;
   font-size: var(--base-font-size);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   transition: all 0.3s ease;
   margin: 0;
   padding: 0;
@@ -117,6 +115,11 @@ body {
   transition: all 0.3s ease;
 }
 
+/* ظل أعمق للبطاقات في الوضع الداكن حتى تتمايز عن الخلفية */
+[data-theme="dark"] .custom-card {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
 /* Custom UI Elements */
 .sidebar-container {
   background-color: var(--sidebar-bg) !important;
@@ -130,11 +133,13 @@ h3.fw-bold {
   line-height: 1.9;
 }
 
-/* أسماء الكتب والأبواب والمسائل في القوائم */
+/* أسماء الكتب والأبواب والمسائل في القوائم — تباعد ضيق أنظف مع خط النسخ */
 .list-btn > span:first-child {
   font-family: var(--font-heading);
-  font-size: 1.15em;
-  line-height: 1.8;
+  font-size: 1.08em;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-align: right;
 }
 
 /* حقول الإدخال تفضل بخط الواجهة الواضح */
@@ -167,83 +172,88 @@ input.form-control {
   opacity: 0.25;
 }
 
-/* ==================== شريط تقدم القراءة ==================== */
-.reading-progress-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(270deg, #c9a84c 0%, var(--accent-color) 55%, var(--primary-color) 100%);
-  transform-origin: right center;
-  z-index: 1500;
-  pointer-events: none;
-  box-shadow: 0 1px 4px rgba(201, 168, 76, 0.35);
+/* ==================== نظام الأزرار السلس والمتحرك (Smooth Interactive Buttons) ==================== */
+
+/* انتقال أساسي فائق السلاسة لجميع الأزرار والعناصر التفاعلية */
+button,
+.btn,
+.list-btn,
+.nav-lesson-btn,
+.chip-btn,
+.sidebar-btn,
+.sidebar-login-btn,
+.sidebar-search-btn,
+.sidebar-settings-btn,
+.bookmark-btn,
+.floating-toc-btn,
+.badge {
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.2s ease !important;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
-/* ==================== شريطة المفضلة المرئية ==================== */
-.bookmark-ribbon {
-  position: absolute;
-  top: -10px;
-  left: 28px;
-  width: 36px;
-  height: 54px;
-  background: linear-gradient(160deg, #ff6b5e 0%, #e74c3c 45%, #b83227 100%);
-  color: var(--text-on-accent);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 9px;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 13px), 0 100%);
-  box-shadow: 0 6px 14px rgba(231, 76, 60, 0.35);
-  z-index: 6;
-  animation: ribbonDrop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+/* تأثير ضغطة تفاعلية ارتدادية عند النقر أو اللمس على الهاتف (Tactile Press) */
+button:active:not(:disabled),
+.btn:active:not(:disabled),
+.list-btn:active,
+.nav-lesson-btn:active:not(:disabled),
+.chip-btn:active,
+.sidebar-btn:active,
+.sidebar-login-btn:active,
+.sidebar-search-btn:active,
+.floating-toc-btn:active {
+  transform: translateY(1px) scale(0.97) !important;
 }
 
-[data-theme="dark"] .bookmark-ribbon {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+/* التوهج والرفع الخفيف للأزرار العامة عند المرور */
+.btn:not(.btn-link):not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(201, 168, 76, 0.25);
 }
 
-@keyframes ribbonDrop {
-  from {
-    transform: translateY(-16px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+.btn-link:hover {
+  transform: translateY(-1px);
+  opacity: 0.85;
 }
 
-/* ==================== التوهج الذهبي للأزرار عند المرور ==================== */
-.btn:not(.btn-danger):not(.btn-outline-danger):not(.btn-light):hover {
-  box-shadow: 0 4px 16px rgba(201, 168, 76, 0.35);
-}
-
-.list-btn:hover {
-  border-color: var(--accent-color) !important;
-  box-shadow:
-    0 6px 18px rgba(251, 220, 153, 0.45),
-    inset 0 0 0 1px rgba(201, 168, 76, 0.35) !important;
-}
-
+/* بطاقات القوائم (الكتب، الأبواب، المسائل، نتائج البحث) */
 .list-btn {
   background-color: var(--card-bg) !important;
   border: 1px solid var(--border-color) !important;
-  border-radius: 10px;
-  font-size: 1.2rem; /* Will be overridden by inline if needed, but better here */
+  border-radius: 12px;
+  font-size: 1.15rem;
   color: var(--text-main) !important;
-  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
 }
 
 .list-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transform: translateY(-3px);
+  border-color: var(--accent-color) !important;
+  box-shadow:
+    0 8px 24px rgba(201, 168, 76, 0.2),
+    inset 0 0 0 1px rgba(201, 168, 76, 0.25) !important;
+}
+
+/* حركة انسيابية للأيقونات والسهم داخل بطاقات القوائم عند الـ Hover */
+.list-btn svg {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.list-btn:hover svg:last-child {
+  transform: translateX(-4px);
 }
 
 .list-btn.active-result {
   border-color: var(--accent-color) !important;
-  box-shadow: 0 0 0 2px rgba(251, 220, 153, 0.35);
+  box-shadow: 0 0 0 2px rgba(251, 220, 153, 0.45);
 }
 
 .badge-custom {
@@ -251,7 +261,12 @@ input.form-control {
   color: var(--text-main) !important;
   border: 1px solid var(--badge-border) !important;
   font-size: 0.9rem;
-  transition: all 0.3s ease;
+  border-radius: 8px;
+}
+
+.badge-custom:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-color) !important;
 }
 
 .explanation-card {
@@ -263,6 +278,10 @@ input.form-control {
 .explanation-card p {
   font-family: var(--font-quote);
   text-align: justify;
+  text-justify: inter-word;
+  line-height: 2.05;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .explanation-title {
@@ -332,46 +351,7 @@ input.form-control {
   padding: 2rem 1.5rem;
   border-left: 1px solid rgba(0, 0, 0, 0.05);
 }
-.sidebar-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  color: var(--text-main);
-  text-decoration: none;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-.sidebar-link:hover {
-  background-color: rgba(0, 0, 0, 0.03);
-  transform: translateX(-5px);
-}
-.sidebar-link.active {
-  background-color: var(--accent-color);
-  font-weight: 700;
-}
-/* ==================== تنسيقات النصوص الملونة ==================== */
-/* الآيات بخط المصحف (Amiri Quran) */
-.quran-text {
-  color: #2e8b57;
-  font-family: "Amiri Quran", "Amiri", serif;
-  font-size: 1.1em;
-  line-height: 2;
-}
-
-[data-theme="dark"] .quran-text {
-  color: #4ade80;
-}
-
-.hadith-text {
-  color: #b07d46;
-}
-
-[data-theme="dark"] .hadith-text {
-  color: #d4a373;
-}
+/* ==================== النصوص المقدسة (قرآن وحديث) ==================== */
 
 /* ==================== وضع السيبيا (الورق القديم) ==================== */
 [data-theme="sepia"] {
@@ -437,8 +417,8 @@ input.form-control {
 }
 
 @keyframes tooltipFadeIn {
-  from { opacity: 0; transform: translate(-50%, -90%); }
-  to { opacity: 1; transform: translate(-50%, -100%); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ==================== أنماط الطباعة ==================== */
@@ -451,10 +431,10 @@ input.form-control {
   }
 
   .sidebar-container,
-  .progress-bar-fixed,
   .glossary-tooltip-popup,
-  .reading-progress-bar,
-  .bookmark-ribbon,
+  .mobile-bottom-nav,
+  .reading-progress-fixed,
+  .topbar,
   button,
   .btn,
   iframe,
@@ -489,46 +469,80 @@ input.form-control {
     padding: 0 !important;
   }
 
-  .print-header {
-    display: block !important;
-    text-align: center;
-    margin-bottom: 20pt;
-    padding-bottom: 10pt;
-    border-bottom: 2pt solid #333;
+  /* حارس الطباعة من الثيم الداكن: نمنع أي نص فاتح (var(--text-main)) من الظهور على ورق أبيض */
+  .custom-card,
+  .explanation-card,
+  .notes-card,
+  .list-btn,
+  .badge-custom,
+  .search-input,
+  .textContent,
+  .parchment-texture {
+    color: #111 !important;
+    background: #fff !important;
+    background-image: none !important;
+  }
+  .custom-card h5,
+  .custom-card h3,
+  .custom-card strong,
+  .lessons-text {
+    color: #111 !important;
   }
 }
 
 /* ==================== الموبايل والتحسينات الإضافية ==================== */
 
-/* شريط التنقل السفلي للموبايل */
+/* شريط التنقل السفلي للموبايل مع دعم الـ Safe Area للشاشات الحديثة */
 .mobile-bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   background-color: var(--card-bg);
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
   display: flex;
   justify-content: space-around;
-  padding: 10px 0;
+  align-items: center;
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px));
   z-index: 1000;
   border-top: 1px solid var(--border-color);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .mobile-bottom-nav .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   background: none;
   border: none;
-  gap: 4px;
+  gap: 3px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-width: 52px;
+}
+
+.mobile-bottom-nav .nav-item svg {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mobile-bottom-nav .nav-item:active {
+  transform: scale(0.88) !important;
 }
 
 .mobile-bottom-nav .nav-item.active {
   color: var(--accent-color);
   font-weight: bold;
+}
+
+.mobile-bottom-nav .nav-item.active svg {
+  transform: translateY(-2px) scale(1.15);
+  filter: drop-shadow(0 2px 6px rgba(201, 168, 76, 0.4));
 }
 
 @media (min-width: 768px) {
@@ -537,82 +551,69 @@ input.form-control {
   }
 }
 
-/* زر العودة للأعلى */
-.back-to-top {
-  position: fixed;
-  bottom: 80px;
-  left: 20px;
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  background-color: var(--accent-color);
-  color: var(--text-on-accent);
-  border: none;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 1.2rem;
-  z-index: 999;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  overflow: visible;
-}
-
-.back-to-top-progress {
-  position: absolute;
-  inset: -4px;
-  width: calc(100% + 8px);
-  height: calc(100% + 8px);
-  transform: rotate(-90deg);
-  pointer-events: none;
-}
-
-.back-to-top-progress-track,
-.back-to-top-progress-value {
-  fill: none;
-  stroke-width: 3;
-}
-
-.back-to-top-progress-track {
-  stroke: rgba(255, 255, 255, 0.22);
-}
-
-.back-to-top-progress-value {
-  stroke: var(--text-on-accent);
-  stroke-linecap: round;
-}
-
-.back-to-top-icon {
-  position: relative;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-@media (min-width: 768px) {
-  .back-to-top {
-    bottom: 30px;
-  }
-}
-
-.back-to-top:hover {
-  transform: translateY(-5px);
-  background-color: var(--primary-color);
-}
-
 /* زر حفظ المسألة (المفضلة) */
 .bookmark-btn {
   background: none;
   border: none;
   color: var(--text-muted);
-  transition: color 0.3s;
-  padding: 5px;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bookmark-btn:hover {
+  color: var(--accent-color);
+  transform: scale(1.18) rotate(-6deg);
+}
+
+.bookmark-btn:active {
+  transform: scale(0.9) !important;
 }
 
 .bookmark-btn.active {
   color: var(--accent-color);
+}
+
+/* ==================== أزرار التنقل بين المسائل (السابقة / التالية) ==================== */
+.nav-lesson-btn {
+  background-color: var(--badge-bg);
+  color: var(--primary-color) !important;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 8px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-lesson-btn svg {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.nav-lesson-btn:hover:not(:disabled) {
+  background-color: var(--primary-color);
+  color: var(--text-on-primary) !important;
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(15, 61, 62, 0.25);
+}
+
+.nav-lesson-btn:hover:not(:disabled) svg:first-child {
+  transform: translateX(3px);
+}
+
+.nav-lesson-btn:hover:not(:disabled) svg:last-child {
+  transform: translateX(-3px);
+}
+
+.nav-lesson-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none !important;
 }
 
 /* ================================================================
@@ -626,7 +627,9 @@ input.form-control {
   .col-lg-10.col-md-9 {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
-    padding-bottom: 80px !important; /* مسافة لشريط التنقل السفلي */
+    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; /* مسافة لشريط التنقل السفلي + safe area */
+    /* تجنّب تداخل المحتوى مع النوتش/شريط الحالة في التطبيق المثبت (خاصة آيفون) */
+    padding-top: env(safe-area-inset-top, 0px) !important;
   }
 
   /* إخفاء شريط التنقل عند فتح لوحة المفاتيح (عند التركيز على حقل إدخال) */
@@ -667,10 +670,10 @@ input.form-control {
 
   /* ─── شاشة القراءة ─── */
 
-  /* أزرار التنقل بين المسائل */
-  .d-flex.justify-content-between.mb-4 .btn {
-    font-size: 0.85rem;
-    padding: 6px 12px;
+  /* أزرار السابق / التالي */
+  .nav-lesson-btn {
+    font-size: 0.85rem !important;
+    padding: 5px 10px !important;
   }
 
   /* عنوان المسألة */
@@ -750,7 +753,7 @@ input.form-control {
   }
 
   /* أزرار السابق / التالي */
-  .d-flex.justify-content-between.mb-4 .btn {
+  .nav-lesson-btn {
     font-size: 0.8rem !important;
     padding: 5px 10px !important;
   }
@@ -826,14 +829,6 @@ input.form-control {
     height: 22px !important;
   }
 
-  /* ─── زر العودة للأعلى ─── */
-  .back-to-top {
-    width: 40px !important;
-    height: 40px !important;
-    bottom: 70px !important;
-    left: 12px !important;
-  }
-
   /* ─── نافذة البحث ─── */
   .custom-card.w-100.p-4 {
     border-radius: 14px !important;
@@ -895,369 +890,4 @@ input.form-control {
     gap: 2px !important;
   }
 }
-/* ==================== وضع القراءة المريح (Reading Mode) والمسائل الطويلة ==================== */
-.reading-mode-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
 
-.reading-mode-container {
-  background: var(--card-bg);
-  width: 100%;
-  max-width: 900px;
-  height: 90vh;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-  display: flex;
-  flex-direction: column;
-  padding: 2rem;
-  position: relative;
-}
-
-.reading-mode-header {
-  border-bottom: 2px solid var(--border-color);
-  padding-bottom: 1rem;
-}
-
-.reading-mode-scroll {
-  overflow-y: auto;
-  flex-grow: 1;
-  padding-right: 15px; /* Scrollbar padding */
-}
-
-/* التمييز البصري للنصوص الطويلة */
-.typography-enhanced {
-  line-height: 2.2 !important;
-  font-size: 1.25rem !important;
-  margin-bottom: 1.5rem !important;
-}
-
-.highlighted-title {
-  color: var(--primary-color) !important;
-  font-weight: bold;
-  font-size: 1.25rem;
-  display: inline;
-  margin-left: 8px;
-}
-
-.enhanced-body {
-  color: var(--text-main);
-  opacity: 0.95;
-}
-
-@media (max-width: 768px) {
-  .reading-mode-overlay { padding: 0.5rem; }
-  .reading-mode-container { height: 95vh; padding: 1.5rem 1rem; border-radius: 12px; }
-  .typography-enhanced { font-size: 1.15rem !important; }
-}
-
-
-/* ==================== خلفية ورق البردي (Parchment Texture) ==================== */
-.manuscript-frame, .explanation-card {
-  position: relative;
-}
-.manuscript-frame::before, .explanation-card::before {
-  /* Existing borders... let"s add texture using multiple backgrounds if needed, or a specific class */
-}
-
-/* Texture class to be added to QuoteCard and ExplanationCard */
-.parchment-texture {
-  position: relative;
-  overflow: hidden;
-}
-.parchment-texture::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiBvcGFjaXR5PSIwLjAzIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC4wNSIgbnVtT2N0YXZlcz0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNuKSIvPjwvc3ZnPg==");
-  z-index: 0;
-  mix-blend-mode: multiply;
-}
-
-[data-theme="dark"] .parchment-texture::before {
-  mix-blend-mode: screen;
-  opacity: 0.05;
-}
-
-
-/* Solid background for Glossary Tooltip */
-.glossary-tooltip-content {
-  background-color: #ffffff !important;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
-  border: 1px solid rgba(251, 220, 153, 0.8) !important;
-}
-
-[data-theme="dark"] .glossary-tooltip-content {
-  background-color: #1e1e1e !important;
-}
-
-/* Floating TOC Mobile & PC Fix */
-.floating-toc-btn {
-  bottom: 90px;
-}
-.floating-toc-panel {
-  bottom: 150px !important;
-  top: 90px !important; /* مساحة آمنة من الأعلى */
-  height: auto !important;
-  max-height: calc(100vh - 240px) !important;
-  background-color: var(--card-bg) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-@media (max-width: 768px) {
-  .floating-toc-btn {
-    bottom: 140px !important; /* Above MobileBottomNav and BackToTop */
-  }
-  .floating-toc-panel {
-    bottom: 200px !important;
-    top: 80px !important; /* مساحة آمنة من الأعلى لتجنب القص بسبب شريط المتصفح */
-    height: auto !important; /* التمدد التلقائي بين القمة والقاع */
-    max-height: calc(100dvh - 280px) !important;
-  }
-}
-
-/* ==================== الإحالات الذكية (Cross-links) ==================== */
-.cross-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  color: var(--primary-color) !important;
-  font-weight: 700;
-  text-decoration: none !important;
-  background-color: rgba(139, 94, 52, 0.08); /* لون تراثي خفيف */
-  padding: 0 6px 2px 6px;
-  border-radius: 6px;
-  border-bottom: 2px solid var(--accent-color);
-  transition: all 0.2s ease-in-out;
-  margin: 0 2px;
-  font-size: 0.95em;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-}
-
-[data-theme="dark"] .cross-link {
-  background-color: rgba(220, 180, 120, 0.12);
-}
-
-.cross-link:hover {
-  background-color: var(--accent-color);
-  color: var(--card-bg) !important;
-  border-bottom-color: var(--primary-color);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.cross-link .cross-link-icon {
-  width: 14px;
-  height: 14px;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
-}
-
-.cross-link:hover .cross-link-icon {
-  opacity: 1;
-}
-
-/* ==================== أنماط النصوص المتقدمة (قرآن، حديث، تظليل) ==================== */
-.quran-text {
-  font-family: 'Amiri Quran', serif;
-  color: #2E7D32; /* أخضر إسلامي */
-  font-size: 1.3em;
-  line-height: 2.2;
-  padding: 0 4px;
-}
-
-[data-theme="dark"] .quran-text {
-  color: #81C784;
-}
-
-.hadith-text {
-  color: #A1887F; /* بني أنيق */
-  font-weight: 500;
-}
-
-[data-theme="dark"] .hadith-text {
-  color: #D7CCC8;
-}
-
-.highlighter-marker {
-  background-color: #FEF08A; /* أصفر فسفوري هادئ */
-  color: #1a1a1a;
-  padding: 0 6px;
-  border-radius: 4px;
-  font-weight: bold;
-}
-
-[data-theme="dark"] .highlighter-marker {
-  background-color: rgba(254, 240, 138, 0.2);
-  color: var(--text-main);
-}
-
-.islamic-divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 2.5rem 0;
-  opacity: 0.8;
-}
-
-.islamic-divider::before,
-.islamic-divider::after {
-  content: '';
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
-  flex-grow: 0.3;
-}
-
-.islamic-divider-icon {
-  color: var(--accent-color);
-  margin: 0 1rem;
-  font-size: 1.5rem;
-}
-
-/* ==================== نافذة تسجيل الدخول (Login Modal) ==================== */
-
-/* ✅ حقول إدخال مخصصة — تعمل بشكل صحيح في الداكن والفاتح والورقي */
-.login-input {
-  appearance: none;
-  -webkit-appearance: none;
-  background-color: var(--badge-bg) !important;
-  color: var(--text-main) !important;
-  border: 1.5px solid var(--border-color) !important;
-  border-radius: 10px;
-  padding: 11px 44px 11px 14px;
-  width: 100%;
-  font-size: 0.95rem;
-  font-family: var(--font-ui);
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.login-input:focus {
-  border-color: var(--primary-color) !important;
-  box-shadow: 0 0 0 3px rgba(77, 182, 172, 0.15) !important;
-  background-color: var(--badge-bg) !important;
-  color: var(--text-main) !important;
-  outline: none !important;
-}
-
-/* ✅ الإصلاح الرئيسي: placeholder مرئي في الداكن */
-.login-input::placeholder {
-  color: var(--text-muted) !important;
-  opacity: 1 !important;
-}
-
-/* إزالة الخلفية البيضاء من autofill في الكروم */
-.login-input:-webkit-autofill,
-.login-input:-webkit-autofill:hover,
-.login-input:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--text-main) !important;
-  -webkit-box-shadow: 0 0 0 1000px var(--badge-bg) inset !important;
-  background-color: var(--badge-bg) !important;
-  transition: background-color 5000s ease-in-out 0s;
-}
-
-/* ==================== زر التحديث PWA الجذاب ==================== */
-.update-banner-btn {
-  background: linear-gradient(135deg, #0f4c4d 0%, #0a7c7a 50%, #4eb9a8 100%);
-  color: #ffffff;
-  border: none;
-  border-radius: 50px;
-  padding: 12px 24px;
-  cursor: pointer;
-  box-shadow:
-    0 8px 30px rgba(14, 120, 115, 0.5),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.update-banner-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.12) 50%, transparent 70%);
-  animation: shimmer-update 2.5s infinite;
-}
-
-@keyframes shimmer-update {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
-}
-
-.update-banner-btn:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow:
-    0 12px 40px rgba(14, 120, 115, 0.65),
-    0 4px 12px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-.update-banner-btn:active {
-  transform: translateY(0) scale(0.99);
-}
-
-.update-icon-wrapper {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-/* أيقونة التحديث تدور باستمرار */
-.update-spin-icon {
-  animation: spin-update 1.8s linear infinite;
-}
-
-@keyframes spin-update {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-.update-text-block {
-  display: flex;
-  flex-direction: column;
-  text-align: right;
-  gap: 2px;
-}
-
-.update-title {
-  font-weight: 700;
-  font-size: 0.95rem;
-  line-height: 1.2;
-}
-
-.update-subtitle {
-  font-size: 0.75rem;
-  opacity: 0.8;
-  font-weight: 400;
-}
-
-.update-arrow {
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-right: -4px;
-}

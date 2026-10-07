@@ -2,16 +2,14 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { fetchLessons, fetchGlossary } from '../firebase/services';
 import { isFirebaseConfigured } from '../firebase/config';
 import { BOOKS_LIST } from '../data/books';
-import { lessonsData } from '../data/lessons';
-import { glossaryData as staticGlossary } from '../data/glossary';
 
 /**
  * hook مسؤول عن تحميل بيانات المحتوى (المسائل والمسرد)
  * من الداتا المحلية أولاً، ثم دمج بيانات السحابة عند توفرها
  */
 export function useAppData({ isOffline }) {
-  const [rawLessons, setRawLessons] = useState(lessonsData);
-  const [glossary, setGlossary] = useState(staticGlossary);
+  const [rawLessons, setRawLessons] = useState([]);
+  const [glossary, setGlossary] = useState({});
   const [cloudStatus, setCloudStatus] = useState(isFirebaseConfigured ? 'syncing' : 'local');
 
   // ترتيب المسائل حسب الكتاب → الباب → الترتيب الأبجدي
@@ -73,11 +71,27 @@ export function useAppData({ isOffline }) {
     }
   }, []);
 
-  useEffect(() => { reloadFromCloud(); }, [reloadFromCloud]);
-
+  // تحميل البيانات من السحابة مؤجّلاً بحيث لا ينافس أول رسم للشاشة
+  // (يُجدول بعد ~1.2 ثانية، ويُعاد عند تغيّر حالة الاتصال)
   useEffect(() => {
-    if (!isOffline) reloadFromCloud();
+    if (isOffline) return;
+    const t = setTimeout(() => { reloadFromCloud(); }, 1200);
+    return () => clearTimeout(t);
   }, [isOffline, reloadFromCloud]);
+
+  // تحميل البيانات المحلية (نسخة احتياطية عند غياب السحابة) ديناميكيًا
+  // حتى لا تدخل ملفات الداتا الكبيرة في حزمة التحميل الأولية
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([import('../data/lessons'), import('../data/glossary')])
+      .then(([lmod, gmod]) => {
+        if (cancelled) return;
+        setRawLessons((prev) => (prev.length ? prev : lmod.lessonsData || []));
+        setGlossary((prev) => ({ ...(gmod.glossaryData || {}), ...prev }));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud };
 }

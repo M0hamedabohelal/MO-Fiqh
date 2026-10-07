@@ -23,7 +23,8 @@ export default defineConfig(({ mode }) => ({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#ffffff',
+        // لون شاشة البداية يطابق الثيم الداكن الافتراضي (#101414) لمنع وميض أبيض عند الفتح
+        background_color: '#101414',
         theme_color: '#0f3d3e',
         categories: ['education', 'books'],
         icons: [
@@ -61,7 +62,9 @@ export default defineConfig(({ mode }) => ({
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('react') || id.includes('react-dom')) return 'react-core';
-            if (id.includes('firebase') || id.includes('@firebase')) return 'firebase';
+            // نترك firebase خارج manualChunks تمامًا (return 없음 → undefined) فلا تُفرط في vendor،
+            // وتبقى شارد ديناميكي مستقل: firestore تُحمَّل عند طلب المحتوى فقط، وauth عند تسجيل الدخول فقط.
+            if (id.includes('firebase') || id.includes('@firebase')) return undefined;
             if (id.includes('framer-motion')) return 'motion';
             if (id.includes('react-icons')) return 'icons';
             if (id.includes('fuse.js')) return 'fuse';

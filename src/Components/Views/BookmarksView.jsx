@@ -1,4 +1,4 @@
-import { FiBookmark, FiChevronLeft, FiCloud } from 'react-icons/fi';
+import { FiBookmark, FiChevronLeft, FiCloud, FiBook } from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
 import { useAuth } from '../Auth/AuthContext';
 
@@ -46,13 +46,16 @@ const BookmarksView = ({ bookmarks, lessons, onOpenLessonById, onBrowse, onOpenL
               className="btn w-100 text-end p-4 shadow-sm d-flex justify-content-between align-items-center list-btn mb-3"
               onClick={() => onOpenLessonById(lesson.id)}
             >
-              <span className="d-flex flex-column gap-1">
-                <span>{lesson.title}</span>
-                <small className="text-muted">
-                  {lesson.bookName} &gt; {lesson.chapterName}
-                </small>
-              </span>
-              <FiChevronLeft style={{ color: 'var(--accent-color)' }} />
+              <div className="d-flex flex-column align-items-start text-start gap-2 pe-1">
+                <span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.15em', lineHeight: '1.8' }}>
+                  {lesson.title}
+                </span>
+                <span className="text-muted" style={{ fontFamily: 'var(--font-ui)', fontSize: '0.85rem', lineHeight: '1.5' }}>
+                  <FiBook className="me-1 mb-1" size={14} />
+                  {lesson.bookName} <span className="mx-1">&gt;</span> {lesson.chapterName}
+                </span>
+              </div>
+              <FiChevronLeft className="flex-shrink-0 ms-2" size={20} style={{ color: 'var(--accent-color)' }} />
             </button>
           ))}
         </div>

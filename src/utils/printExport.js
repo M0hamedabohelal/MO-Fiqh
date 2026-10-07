@@ -124,7 +124,7 @@ function formatPrintText(text) {
   if (!text) return '';
   let formatted = String(text).replace(/\n/g, '<br>');
   // استبدال النجوم (العادية أو العربية) بفاصل مزخرف يتوسط الصفحة
-  formatted = formatted.replace(/[\*٭]{3,}/g, '<div class="islamic-divider-print">۞</div>');
+  formatted = formatted.replace(/[*٭]{3,}/g, '<div class="islamic-divider-print">۞</div>');
   return formatted;
 }
 

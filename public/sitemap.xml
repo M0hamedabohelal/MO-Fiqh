@@ -1,8 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://www.fqh.me/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
+  <url><loc>https://www.fqh.me/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/books/%D9%83%D8%AA%D8%A7%D8%A8%20%D8%A7%D9%84%D8%B7%D9%87%D8%A7%D8%B1%D8%A9/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/books/%D9%83%D8%AA%D8%A7%D8%A8%20%D8%A7%D9%84%D8%AD%D8%AC/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/1/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/2/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/3/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/4/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/5/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/6/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/7/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/8/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/9/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/10/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/11/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/12/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/13/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/14/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/15/</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://www.fqh.me/lessons/16/</loc><changefreq>weekly</changefreq></url>
 </urlset>

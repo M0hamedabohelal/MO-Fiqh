@@ -62,53 +62,6 @@ const VideoCard = ({ videoUrl, startTime, endTime }) => {
       className="video-card-wrapper custom-card p-3 mb-4 shadow-sm"
       style={{ borderRight: '6px solid var(--primary-color)', borderRadius: '10px' }}
     >
-      {/* ✅ Header — ألوان واضحة في Dark mode */}
-      <div className="d-flex justify-content-between align-items-start mb-3 gap-2">
-        <span className="video-card-title d-flex align-items-center gap-2">
-          <span style={{
-            background: 'linear-gradient(135deg, var(--primary-color), #0a7c7a)',
-            color: '#fff',
-            borderRadius: '8px',
-            width: '30px',
-            height: '30px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <FiPlay size={14} />
-          </span>
-          <span style={{
-            fontWeight: 700,
-            color: 'var(--text-main)',
-            fontSize: '0.9rem',
-          }}>
-            شاهد شرح المسألة من الشيخ
-          </span>
-        </span>
-
-        {/* ✅ الوقت — ظاهر في Dark mode */}
-        {startTime && (
-          <span
-            className="video-time-badge"
-            dir="ltr"
-            style={{
-              backgroundColor: 'var(--badge-bg)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-main)',
-              borderRadius: '20px',
-              padding: '3px 10px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            ⏱ {startTime}{endTime ? ` – ${endTime}` : ''}
-          </span>
-        )}
-      </div>
-
       {/* ✅ زر "اسمع من هنا" */}
       {!autoPlay && startSeconds > 0 && (
         <button
@@ -124,7 +77,7 @@ const VideoCard = ({ videoUrl, startTime, endTime }) => {
           }}
         >
           <FiHeadphones size={18} />
-          اسمع شرح هذه المسألة ({startTime}{endTime ? ` – ${endTime}` : ''})
+          اسمع شرح هذه المسألة
         </button>
       )}
 

@@ -12,7 +12,8 @@ import {
   FiBook,
   FiArrowRight,
   FiInfo,
-  FiPrinter
+  FiPrinter,
+  FiImage,
 } from 'react-icons/fi';
 
 import Breadcrumb from '../Header/Breadcrumb';
@@ -25,8 +26,9 @@ import ShareButton from '../UI/ShareButton';
 import BismillahHeader from '../UI/BismillahHeader';
 import { exportChapterPrint } from '../../utils/printExport';
 import ArabesqueDivider from '../UI/ArabesqueDivider';
-
 import FloatingTOC from '../UI/FloatingTOC';
+import ReadingProgressBar from '../UI/ReadingProgressBar';
+import QuoteImageModal from '../UI/QuoteImageModal';
 
 // شاشة القراءة: نص المسألة + شرح الشيخ + الفيديو + الملاحظات والأدوات التفاعلية
 const ReadingView = ({
@@ -57,7 +59,8 @@ const ReadingView = ({
   };
 
   // التقاط تحديد النص لحفظه كفائدة مقتبسة
-  const [selectionPopup, setSelectionPopup] = useState({ show: false, text: '', x: 0, y: 0 });
+  const [selectionPopup, setSelectionPopup] = useState({ show: false, text: '', x: 0, y: 0, below: false });
+  const [quoteImage, setQuoteImage] = useState({ show: false, text: '' });
 
   const captureSelection = useCallback(() => {
     const selection = window.getSelection();
@@ -65,19 +68,33 @@ const ReadingView = ({
     if (text.length > 5) {
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
-      setSelectionPopup({ show: true, text, x: rect.left + rect.width / 2, y: rect.top - 10 });
+      // تمركز أفقي مع منع الخروج من الشاشة (مهم للفون)
+      const cx = rect.left + rect.width / 2;
+      const halfPopup = 115;
+      const x = Math.min(Math.max(cx, halfPopup + 8), window.innerWidth - halfPopup - 8);
+      // لو التحديد قريب من أعلى الشاشة، اعرض البوب-أب تحته بدل فوقه
+      let y = rect.top - 10;
+      let below = false;
+      if (rect.top < 100) {
+        y = rect.bottom + 12;
+        below = true;
+      }
+      setSelectionPopup({ show: true, text, x, y, below });
     } else {
-      setSelectionPopup({ show: false, text: '', x: 0, y: 0 });
+      setSelectionPopup({ show: false, text: '', x: 0, y: 0, below: false });
     }
   }, []);
 
   const handleMouseUp = (e) => {
+    if (quoteImage.show) return;
     // لا نفعل التحديد إذا كنا نضغط على زر
     if (e.target.closest('button')) return;
     captureSelection();
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
+    if (quoteImage.show) return;
+    if (e.target.closest && e.target.closest('button')) return;
     // نفس المنطق للمس في الموبايل مع مهلة قصيرة لاكتمال التحديد
     setTimeout(captureSelection, 100);
   };
@@ -86,39 +103,77 @@ const ReadingView = ({
     if (!selectionPopup.text) return;
     onCreateHighlight(selectionPopup.text);
     window.getSelection().removeAllRanges();
-    setSelectionPopup({ show: false, text: '', x: 0, y: 0 });
+    setSelectionPopup({ show: false, text: '', x: 0, y: 0, below: false });
+  };
+
+  const openQuoteImage = () => {
+    if (!selectionPopup.text) return;
+    setQuoteImage({ show: true, text: selectionPopup.text });
+    window.getSelection().removeAllRanges();
+    setSelectionPopup({ show: false, text: '', x: 0, y: 0, below: false });
   };
 
   return (
     <div onMouseUp={handleMouseUp} onTouchEnd={handleTouchEnd}>
-      {/* زر حفظ التحديد كفائدة */}
+      {/* ✅ شريط تقدم القراءة */}
+      <ReadingProgressBar />
+
+      {/* زر حفظ التحديد كفائدة أو تحويله لبطاقة مصوّرة */}
       <AnimatePresence>
         {selectionPopup.show && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            className="selection-popup"
             style={{
               position: 'fixed',
               top: selectionPopup.y,
               left: selectionPopup.x,
-              transform: 'translate(-50%, -100%)',
+              transform: selectionPopup.below ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
               zIndex: 9999,
-              backgroundColor: 'var(--primary-color)',
-              color: 'var(--accent-color)',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-              cursor: 'pointer',
+              background: 'linear-gradient(135deg, #c9a84c 0%, #e6c875 50%, #c9a84c 100%)',
+              color: '#1a1a1a',
+              padding: '6px 8px',
+              borderRadius: '50px',
+              boxShadow: '0 6px 20px rgba(201, 168, 76, 0.55), 0 2px 8px rgba(0,0,0,0.25)',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              fontWeight: 'bold',
+              gap: '2px',
+              fontWeight: '700',
               whiteSpace: 'nowrap',
+              maxWidth: 'calc(100vw - 16px)',
+              fontSize: '0.9rem',
+              fontFamily: 'var(--font-ui)',
+              userSelect: 'none',
             }}
-            onClick={saveSelectionAsHighlight}
           >
-            <FiEdit3 size={18} /> حفظ كفائدة
+            <button
+              onClick={saveSelectionAsHighlight}
+              title="حفظ النص المحدد كفائدة"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                background: 'transparent', border: 'none', color: 'inherit',
+                fontWeight: 'inherit', fontSize: 'inherit', fontFamily: 'inherit',
+                padding: '6px 12px', borderRadius: '50px', cursor: 'pointer',
+              }}
+            >
+              <FiEdit3 size={16} /> حفظ كفائدة
+            </button>
+            <span style={{ width: '1px', height: '20px', background: 'rgba(26,26,26,0.25)' }} />
+            <button
+              onClick={openQuoteImage}
+              title="تحويل النص المحدد إلى بطاقة مصوّرة"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                background: 'transparent', border: 'none', color: 'inherit',
+                fontWeight: 'inherit', fontSize: 'inherit', fontFamily: 'inherit',
+                padding: '6px 12px', borderRadius: '50px', cursor: 'pointer',
+              }}
+            >
+              <FiImage size={16} /> صورة
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -131,6 +186,7 @@ const ReadingView = ({
           <FiArrowRight className="ms-2" /> <span className="d-none d-md-inline">العودة لفهرس المسائل</span>
         </button>
         <div className="d-flex align-items-center gap-2 flex-wrap">
+
           <button
             className="btn btn-sm d-flex align-items-center shadow-sm"
             style={{
@@ -178,14 +234,14 @@ const ReadingView = ({
 
       <div className="d-flex justify-content-between mb-4">
         <button
-          className="btn btn-outline-primary btn-sm d-flex align-items-center"
+          className="btn nav-lesson-btn btn-sm d-flex align-items-center"
           onClick={onPrev}
           disabled={!canGoPrev}
         >
           <FiChevronRight className="ms-1" /> السابقة
         </button>
         <button
-          className="btn btn-outline-primary btn-sm d-flex align-items-center"
+          className="btn nav-lesson-btn btn-sm d-flex align-items-center"
           onClick={onNext}
           disabled={!canGoNext}
         >
@@ -258,7 +314,7 @@ const ReadingView = ({
           <ArabesqueDivider />
 
           {(lesson.sheikhExplanation || '').trim() && (
-            <ExplanationCard explanation={lesson.sheikhExplanation} searchQuery={searchQuery} />
+            <ExplanationCard explanation={lesson.sheikhExplanation} searchQuery={searchQuery} glossary={glossary} />
           )}
           
           <MediaCard mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} />
@@ -281,6 +337,14 @@ const ReadingView = ({
         currentLesson={lesson} 
         allLessons={allLessons} 
         onSelectLesson={onSelectLesson} 
+      />
+
+      {/* بطاقة الاقتباس المصوّرة من النص المحدد */}
+      <QuoteImageModal
+        show={quoteImage.show}
+        text={quoteImage.text}
+        source={`${lesson.bookName || ''} • ${lesson.title || ''}`}
+        onClose={() => setQuoteImage({ show: false, text: '' })}
       />
     </div>
   );

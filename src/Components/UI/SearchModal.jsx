@@ -2,6 +2,68 @@ import { useState, useEffect, useMemo } from 'react';
 import { FiSearch, FiX, FiFileText, FiFilter, FiList } from 'react-icons/fi';
 import Fuse from 'fuse.js';
 
+// تطبيع الحروف العربية لتحسين المطابقة: توحيد الألفات والهاء/التاء والياء
+// وإزالة التشكيل والتطويل والترقيم حتى يتسامح البحث مع الاختلافات الإملائية
+function normalizeArabic(s) {
+  return String(s || '')
+    .replace(/ﷲ/g, ' الله ') // رابطة "اللّٰه" → حروف
+    .replace(/[\u064B-\u0652\u0670\u0640]/g, '') // تشكيل + تطويل
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[،؛؟!.,()\-:]/g, ' ') // ترقيم → مسافة
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+// بناء تعبير يطابق الحروف مع احتمال وجود تشكيل بينها ومعاملة أصل إملائي متسامح
+function buildTolerantRegex(norm) {
+  const map = {
+    'ا': '[اأإآٱ]', 'أ': '[اأإآٱ]', 'إ': '[اأإآٱ]', 'آ': '[اأإآٱ]',
+    'ه': '[هة]', 'ة': '[هة]',
+    'ي': '[يى]', 'ى': '[يى]',
+  };
+  const diac = '[\\u064B-\\u0652\\u0670\\u0640]*';
+  const parts = norm.split('').map((c) => {
+    if (c === ' ') return '\\s+';
+    const cls = map[c] || c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return `${diac}${cls}${diac}`;
+  });
+  return parts.join('[\\u064B-\\u0652\\u0670\\u0640]*');
+}
+
+// إبراز نص الاستعلام داخل النص الأصلي مع التسامح الإملائي والتشكيل
+function highlightQuery(text, query, key) {
+  const orig = String(text || '');
+  const nq = normalizeArabic(query);
+  if (!nq) return <span key={key}>{orig}</span>;
+  try {
+    const rgx = new RegExp(buildTolerantRegex(nq), 'g');
+    const out = [];
+    let last = 0;
+    let i = 0;
+    let m;
+    while ((m = rgx.exec(orig)) !== null) {
+      if (m[0]) {
+        out.push(orig.slice(last, m.index));
+        out.push(
+          <mark key={`${key}-hl-${i}`} style={{ backgroundColor: 'rgba(251,220,153,0.45)', borderRadius: '3px', paddingInline: '2px' }}>
+            {m[0]}
+          </mark>,
+        );
+        last = m.index + m[0].length;
+        i += 1;
+      }
+      if (m.index === rgx.lastIndex) rgx.lastIndex += 1;
+    }
+    if (out.length > 0) out.push(orig.slice(last));
+    return out.length > 0 ? out : orig;
+  } catch {
+    return orig;
+  }
+}
+
 const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -9,24 +71,54 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
   const [filterBook, setFilterBook] = useState('');
   const [filterChapter, setFilterChapter] = useState('');
 
-  // إعدادات خوارزمية البحث الذكي (Fuse.js)
-  const fuse = useMemo(
+  // نسخة للبحث تحمل حقولاً مُطبعَة عربيًا (تُستخدم للمطابقة فقط، والعرض من الحقول الأصلية)
+  const searchDocs = useMemo(
     () =>
-      new Fuse(data, {
-        keys: [
-          { name: 'title', weight: 0.7 }, // الوزن الأكبر للعنوان
-          { name: 'mainText', weight: 0.2 }, // ثم متن الكتاب
-          { name: 'sheikhExplanation', weight: 0.1 } // ثم الشرح
-        ],
-        threshold: 0.3, // يسمح ببعض الأخطاء الإملائية البسيطة
-        includeMatches: true
-      }),
+      data.map((item) => ({
+        ...item,
+        nTitle: normalizeArabic(item.title),
+        nBook: normalizeArabic(item.bookName),
+        nChapter: normalizeArabic(item.chapterName),
+        nText: normalizeArabic(item.mainText),
+        nExpl: normalizeArabic(item.sheikhExplanation),
+      })),
     [data]
   );
 
-  const results = useMemo(() => {
-    if (query.trim() === '') return [];
-    return fuse.search(query).map((result) => result.item);
+  // إعدادات خوارزمية البحث الذكي (Fuse.js) — بحقول مطبّعة + تسامح تلقائي
+  const fuse = useMemo(
+    () =>
+      new Fuse(searchDocs, {
+        keys: [
+          { name: 'nTitle', weight: 0.5 }, // العنوان المطبَّع هو الأقوى
+          { name: 'title', weight: 0.25 }, // مع الحفاظ على النص الأصلي
+          { name: 'nText', weight: 0.12 }, // متن الكتاب مطبَّع
+          { name: 'nExpl', weight: 0.06 },
+          { name: 'nBook', weight: 0.04 },
+          { name: 'nChapter', weight: 0.03 },
+        ],
+        threshold: 0.35, // تسامح معقول مع الأخطاء الإملائية
+        ignoreLocation: true, // المطابقة في أي موضع وليس بالبداية فقط
+        ignoreFieldNorm: true,
+        minMatchCharLength: 2, // تجاهل النتائج العشوائية بحرف واحد
+        includeMatches: true,
+      }),
+    [searchDocs]
+  );
+
+  // نتائج البحث + علم "نتائج تقريبية" عند تحمّل الأخطاء الإملائية
+  const { results: searchResults, isFuzzy } = useMemo(() => {
+    if (query.trim() === '') return { results: [], isFuzzy: false };
+    const q = normalizeArabic(query);
+    let found = fuse.search(q);
+    let fuzzy = false;
+    // ارتقاء التسامح عند عدم وجود نتائج حتى يستوعب الأخطاء الإملائية في العربية
+    if (found.length === 0) {
+      found = fuse.search(q, { threshold: 0.6 });
+      if (found.length === 0) found = fuse.search(q, { threshold: 0.75 });
+      fuzzy = found.length > 0;
+    }
+    return { results: found.slice(0, 100).map((r) => r.item), isFuzzy: fuzzy };
   }, [query, fuse]);
 
   // تصفير الفلاتر عند تغيير كلمة البحث
@@ -37,33 +129,43 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
     setActiveIndex(0);
   }, [query]);
 
+  // عند فتح البحث من جديد — تصفير الفلاتر ومؤشر التحديد
+  useEffect(() => {
+    if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveIndex(0);
+      setFilterBook('');
+      setFilterChapter('');
+    }
+  }, [isOpen]);
+
   // الكتب والأبواب الموجودة فعليًا في النتائج الحالية
   const availableBooks = useMemo(
-    () => [...new Set(results.map((r) => r.bookName).filter(Boolean))],
-    [results]
+    () => [...new Set(searchResults.map((r) => r.bookName).filter(Boolean))],
+    [searchResults]
   );
 
   const availableChapters = useMemo(
     () => [
       ...new Set(
-        results
+        searchResults
           .filter((r) => !filterBook || r.bookName === filterBook)
           .map((r) => r.chapterName)
           .filter(Boolean)
       ),
     ],
-    [results, filterBook]
+    [searchResults, filterBook]
   );
 
   // النتائج بعد تطبيق الفلاتر
   const visibleResults = useMemo(
     () =>
-      results.filter(
+      searchResults.filter(
         (r) =>
           (!filterBook || r.bookName === filterBook) &&
           (!filterChapter || r.chapterName === filterChapter)
       ),
-    [results, filterBook, filterChapter]
+    [searchResults, filterBook, filterChapter]
   );
 
   // حماية من تجاوز المؤشر لعدد النتائج بعد تغيير الفلاتر
@@ -140,7 +242,7 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
         </div>
 
         {/* فلاتر النتائج — الكتاب ثم الباب */}
-        {query.trim() !== '' && results.length > 0 && (
+        {query.trim() !== '' && searchResults.length > 0 && (
           <div className="search-filters mb-2">
             <div className="d-flex gap-2 flex-wrap align-items-center">
               <FiFilter size={14} style={{ color: 'var(--primary-color)', flexShrink: 0 }} />
@@ -185,13 +287,16 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
 
             <div className="text-muted search-result-count mt-2">
               {visibleResults.length} نتيجة{filterBook ? ` في ${filterBook}` : ''}
+              {isFuzzy && visibleResults.length > 0 && (
+                <span style={{ color: 'var(--accent-color)' }}> — نتائج تقريبية (رُعيت الأخطاء الإملائية)</span>
+              )}
             </div>
           </div>
         )}
 
         {/* عرض النتائج */}
         <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-          {query && results.length === 0 && (
+          {query && searchResults.length === 0 && (
             <div className="text-center text-muted p-4">لا توجد نتائج مطابقة لبحثك.</div>
           )}
           
@@ -206,13 +311,13 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
                 <FiFileText size={20} />
               </div>
               <div>
-                <h6 className="fw-bold mb-1" style={{ color: 'var(--text-main)' }}>{lesson.title}</h6>
+                <h6 className="fw-bold mb-1" style={{ color: 'var(--text-main)' }}>{highlightQuery(lesson.title, query, lesson.id)}</h6>
                 <small className="text-muted">{lesson.bookName} - {lesson.chapterName}</small>
               </div>
             </button>
           ))}
 
-          {query.trim() !== '' && results.length > 0 && visibleResults.length === 0 && (
+          {query.trim() !== '' && searchResults.length > 0 && visibleResults.length === 0 && (
             <div className="text-center text-muted p-4">لا توجد نتائج ضمن هذا الفلتر — جرّب كتابًا آخر.</div>
           )}
         </div>

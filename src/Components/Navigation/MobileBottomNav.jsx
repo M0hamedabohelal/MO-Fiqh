@@ -1,14 +1,21 @@
-import { FiHome, FiBookmark, FiEdit3, FiList, FiUser, FiShield } from 'react-icons/fi';
+import { FiHome, FiBookmark, FiEdit3, FiList, FiUser, FiShield, FiBook } from 'react-icons/fi';
 
 // شريط التنقل السفلي للموبايل
 const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLogin }) => (
   <div className="mobile-bottom-nav">
     <button
-      className={`nav-item ${['hero', 'books', 'chapters', 'lessons', 'reading'].includes(currentView) ? 'active' : ''}`}
-      onClick={() => onNavigate(user ? 'books' : 'hero')}
+      className={`nav-item ${currentView === 'hero' ? 'active' : ''}`}
+      onClick={() => onNavigate('hero')}
     >
       <FiHome size={20} />
-      <span>الرئيسية</span>
+      <span>البداية</span>
+    </button>
+    <button
+      className={`nav-item ${['books', 'chapters', 'lessons', 'reading'].includes(currentView) ? 'active' : ''}`}
+      onClick={() => onNavigate('books')}
+    >
+      <FiBook size={20} />
+      <span>الفهرس</span>
     </button>
     <button
       className={`nav-item ${currentView === 'bookmarks' ? 'active' : ''}`}

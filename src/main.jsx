@@ -5,6 +5,7 @@ import { ErrorBoundary } from './ErrorBoundary.jsx';
 import { AuthProvider } from './Components/Auth/AuthContext';
 import 'bootstrap/dist/css/bootstrap.rtl.min.css';
 import './index.css';
+import './styles/exterior.css';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

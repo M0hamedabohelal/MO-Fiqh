@@ -41,15 +41,23 @@ export function usePWA() {
     const goOnline = () => setIsOffline(false);
     const goOffline = () => setIsOffline(true);
 
+    // فحص دوري للتحديثات: عند عودة التركيز للتبويب وكل 30 دقيقة
+    // حتى يظهر زر "تحديث الموقع" فورًا بعد أي نشر حتى لو الصفحة مفتوحة
+    const onFocus = () => updateSWRef.current?.(false);
+    const updateInterval = setInterval(() => updateSWRef.current?.(false), 30 * 60 * 1000);
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleInstalled);
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
+    window.addEventListener('focus', onFocus);
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleInstalled);
       window.removeEventListener('online', goOnline);
       window.removeEventListener('offline', goOffline);
+      window.removeEventListener('focus', onFocus);
+      clearInterval(updateInterval);
     };
   }, []);
 

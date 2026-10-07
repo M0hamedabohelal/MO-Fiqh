@@ -1,103 +1,58 @@
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
-import { FiUser } from 'react-icons/fi';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 
-import HeroSection from './Components/Header/HeroSection';
-import Slider from './Components/Sidebar/Slider';
-import Topbar from './Components/Header/Topbar';
-
-// نافذة البحث ونوافذ وأزرار الواجهة المشتركة
-import SearchModal from './Components/UI/SearchModal';
+import HeroSection    from './Components/Header/HeroSection';
+import SearchModal    from './Components/UI/SearchModal';
 import ShortcutsHelpModal from './Components/UI/ShortcutsHelpModal';
-import BackToTopButton from './Components/UI/BackToTopButton';
 import MobileBottomNav from './Components/Navigation/MobileBottomNav';
-import PWABanners from './Components/UI/PWABanners';
-import SplashScreen from './Components/UI/SplashScreen';
+import PWABanners     from './Components/UI/PWABanners';
+import SplashScreen   from './Components/UI/SplashScreen';
+import LoginModal     from './Components/Auth/LoginModal';
+import AppLayout      from './Components/Layout/AppLayout';
+import OnboardingSlides, { shouldShowOnboarding } from './Components/UI/OnboardingSlides';
 
-// شاشات التطبيق
-const BooksView = lazy(() => import('./Components/Views/BooksView'));
-const ChaptersView = lazy(() => import('./Components/Views/ChaptersView'));
-const LessonsView = lazy(() => import('./Components/Views/LessonsView'));
-const BookmarksView = lazy(() => import('./Components/Views/BookmarksView'));
-const HighlightsView = lazy(() => import('./Components/Views/HighlightsView'));
-const ReadingView = lazy(() => import('./Components/Views/ReadingView'));
-const SettingsView = lazy(() => import('./Components/Views/SettingsView'));
-
-// نظام الحسابات والسحابة
-import { useAuth } from './Components/Auth/AuthContext';
-import LoginModal from './Components/Auth/LoginModal';
-// لوحة الإدارة تُحمّل عند الطلب فقط (تسريع التحميل للمستخدم العادي)
-const AdminPanel = lazy(() => import('./Components/Admin/AdminPanel'));
-
-// الـ hooks المستخرجة من التطبيق
-import { useHashRoute } from './hooks/useHashRoute';
-import { useUserLibrary } from './hooks/useUserLibrary';
+import { useAuth }             from './Components/Auth/AuthContext';
+import { useHashRoute }        from './hooks/useHashRoute';
+import { useUserLibrary }      from './hooks/useUserLibrary';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { usePWA } from './hooks/usePWA';
-import { useAppData } from './hooks/useAppData';
+import { usePWA }              from './hooks/usePWA';
+import { useAppData }          from './hooks/useAppData';
 
-import { trackLessonView } from './firebase/services';
-import { isFirebaseConfigured } from './firebase/config';
-
-import { lessonsData } from './data/lessons';
+import { trackLessonView }     from './firebase/services';
+import { BOOKS_LIST }          from './data/books';
 
 function App() {
-  // نظام الحسابات
+  // ─── Auth ───
   const { user, isAdminUser, authLoading } = useAuth();
 
-  // حالة التطبيق المثبت (PWA): التثبيت والتحديث والعمل أوفلاين
-  const {
-    canInstall,
-    isInstalled,
-    promptInstall,
-    needRefresh,
-    applyUpdate,
-    offlineReady,
-    dismissOfflineReady,
-    isOffline,
-  } = usePWA();
+  // ─── PWA ───
+  const { canInstall, promptInstall, needRefresh, applyUpdate, offlineReady, dismissOfflineReady, isOffline } = usePWA();
 
-  // بيانات المحتوى — مُدارة في hook مستقل
+  // ─── بيانات المحتوى ───
   const { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud } = useAppData({ isOffline });
 
-  // المكتبة الشخصية (مفضلة/فوائد/ملاحظات/مقروء + مزامنة السحابة)
-  const {
-    bookmarks,
-    highlights,
-    notes,
-    readLessons,
-    toggleBookmark,
-    addHighlight,
-    deleteHighlight,
-    saveNoteForLesson,
-    toggleReadLesson,
-  } = useUserLibrary({ onStatus: setCloudStatus });
+  // ─── المكتبة الشخصية ───
+  const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson } = useUserLibrary({ onStatus: setCloudStatus });
 
-  // موجّه الروابط الهاشي
-  const {
-    currentView,
-    setCurrentView,
-    currentIndex,
-    setCurrentIndex,
-    goToNextLesson,
-    goToPrevLesson,
-    goBackToList,
-  } = useHashRoute(lessons);
+  // ─── التوجيه الهاشي ───
+  const { currentView, setCurrentView, currentIndex, setCurrentIndex, selectedBookName, setSelectedBookName, openChapterName, setOpenChapterName, goToNextLesson, goToPrevLesson, goBackToList } = useHashRoute(lessons);
   const currentLesson = lessons[currentIndex];
 
-  // UI States
-  const [fontSize, setFontSize] = useState(16);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  // ─── UI State ───
+  const [fontSize, setFontSize]           = useState(16);
+  const [theme, setTheme]                 = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return (saved === 'sepia' || saved === 'dark') ? saved : 'dark';
+  });
+  const [isSearchOpen, setIsSearchOpen]   = useState(false);
+  const [isLoginOpen, setIsLoginOpen]     = useState(false);
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');
-  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
-  const [selectedBookName, setSelectedBookName] = useState('كتاب الطهارة');
-  const [openChapterName, setOpenChapterName] = useState(null);
-  const [lastReadLessonId, setLastReadLessonId] = useState(() => localStorage.getItem('lastReadLessonId') || null);
+  const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
+  const [lastReadLessonId, setLastReadLessonId]       = useState(() => localStorage.getItem('lastReadLessonId') || null);
+  const [showSplash, setShowSplash]       = useState(true);
+  // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // شاشة التحميل — تختفي بعد اكتمال تحميل Firebase أو بعد ثانيتين كحد أقصى
-  const [showSplash, setShowSplash] = useState(true);
+  // شاشة التحميل
   useEffect(() => {
     const maxTimer = setTimeout(() => setShowSplash(false), 2000);
     if (!authLoading) {
@@ -108,6 +63,7 @@ function App() {
     return () => clearTimeout(maxTimer);
   }, [authLoading]);
 
+  // Theme & Font
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
@@ -117,54 +73,35 @@ function App() {
     document.documentElement.style.setProperty('--base-font-size', `${fontSize}px`);
   }, [fontSize]);
 
-  // ─── بيانات الفهرس المشتقة ───
+  // ─── بيانات مشتقة للفهرس ───
   const chaptersWithIssues = useMemo(() => {
-    const chaptersMap = new Map();
-
+    const map = new Map();
     lessons.forEach((lesson, index) => {
       if (!lesson.bookName || !lesson.chapterName) return;
-
-      const bName = lesson.bookName.trim();
-      const cName = lesson.chapterName.trim();
-      const chapterKey = `${bName}__${cName}`;
-
-      if (!chaptersMap.has(chapterKey)) {
-        chaptersMap.set(chapterKey, {
-          bookName: bName,
-          chapterName: cName,
-          issues: [],
-        });
-      }
-
-      chaptersMap.get(chapterKey).issues.push({
-        ...lesson,
-        lessonIndex: index,
-        isRead: readLessons.includes(String(lesson.id)),
-      });
+      const key = `${lesson.bookName.trim()}__${lesson.chapterName.trim()}`;
+      if (!map.has(key)) map.set(key, { bookName: lesson.bookName.trim(), chapterName: lesson.chapterName.trim(), issues: [] });
+      map.get(key).issues.push({ ...lesson, lessonIndex: index, isRead: readLessons.includes(String(lesson.id)) });
     });
-
-    return Array.from(chaptersMap.values());
+    return Array.from(map.values());
   }, [lessons, readLessons]);
 
   const booksWithStats = useMemo(() => (
     BOOKS_LIST.map((bookName) => {
-      const chapters = chaptersWithIssues.filter((chapter) => chapter.bookName === bookName);
+      const chapters    = chaptersWithIssues.filter((c) => c.bookName === bookName);
       const bookLessons = lessons.filter((l) => (l.bookName || '').trim() === bookName);
-      const issuesCount = bookLessons.length;
-      const readCount = bookLessons.filter((l) => readLessons.includes(String(l.id))).length;
-
+      const readCount   = bookLessons.filter((l) => readLessons.includes(String(l.id))).length;
       return {
         bookName,
         chaptersCount: chapters.length,
-        issuesCount,
+        issuesCount: bookLessons.length,
         readCount,
-        progressPercent: issuesCount > 0 ? Math.round((readCount / issuesCount) * 100) : 0,
+        progressPercent: bookLessons.length > 0 ? Math.round((readCount / bookLessons.length) * 100) : 0,
       };
     })
   ), [chaptersWithIssues, lessons, readLessons]);
 
   const selectedBookChapters = useMemo(
-    () => chaptersWithIssues.filter((chapter) => chapter.bookName === selectedBookName),
+    () => chaptersWithIssues.filter((c) => c.bookName === selectedBookName),
     [chaptersWithIssues, selectedBookName]
   );
 
@@ -175,11 +112,9 @@ function App() {
     setCurrentView('chapters');
   };
 
-  const toggleChapter = (chapterName) => {
+  const toggleChapter = (chapterName) =>
     setOpenChapterName((prev) => (prev === chapterName ? null : chapterName));
-  };
 
-  // فتح مسألة بفهرسها في قائمة المسائل أو بمعرفها المباشر
   const openLessonByIndex = useCallback((index) => {
     setCurrentIndex(index);
     setCurrentView('reading');
@@ -196,20 +131,11 @@ function App() {
     openLessonById(selectedLesson.id);
   };
 
-  // حفظ التحديد الحالي كفائدة مقتبسة مرتبطة بالمسألة المعروضة
   const createHighlightFromSelection = useCallback((text) => {
     if (!currentLesson) return;
-    addHighlight({
-      id: Date.now(),
-      lessonId: currentLesson.id,
-      bookName: currentLesson.bookName,
-      chapterName: currentLesson.chapterName,
-      title: currentLesson.title,
-      text,
-    });
+    addHighlight({ id: Date.now(), lessonId: currentLesson.id, bookName: currentLesson.bookName, chapterName: currentLesson.chapterName, title: currentLesson.title, text });
   }, [currentLesson, addHighlight]);
 
-  // علامة الوقوف: مسألة واحدة محفوظة في localStorage للعودة إليها لاحقاً
   const toggleStopMark = () => {
     const id = currentLesson.id.toString();
     if (lastReadLessonId === id) {
@@ -221,291 +147,98 @@ function App() {
     }
   };
 
-  // تسجيل مشاهدة عند فتحها في وضع القراءة
+  // تسجيل مشاهدة المسألة
   useEffect(() => {
-    if (currentView === 'reading' && currentLesson?.id) {
-      trackLessonView(currentLesson.id);
-    }
+    if (currentView === 'reading' && currentLesson?.id) trackLessonView(currentLesson.id);
   }, [currentView, currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // التمرير لأعلى الصفحة عند تغيير الشاشة أو المسألة
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentView, currentIndex]);
+  // التمرير لأعلى عند تغيير الشاشة
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [currentView, currentIndex]);
 
   // ─── اختصارات لوحة المفاتيح ───
   const handleKeyboardShortcut = useCallback((event) => {
     const activeElement = document.activeElement;
-    const isTyping =
-      activeElement?.tagName === 'INPUT' ||
-      activeElement?.tagName === 'TEXTAREA' ||
-      activeElement?.isContentEditable;
+    const isTyping = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA' || activeElement?.isContentEditable;
     const key = event.key.toLowerCase();
 
-    if ((event.ctrlKey || event.metaKey) && key === 'k') {
-      event.preventDefault();
-      setIsSearchOpen(true);
-      return;
-    }
-
-    if (key === '/' && !isTyping) {
-      event.preventDefault();
-      setIsSearchOpen(true);
-      return;
-    }
-
-    if (key === '?' && !isTyping) {
-      event.preventDefault();
-      setShowShortcutsHelp((prev) => !prev);
-      return;
-    }
-
+    if ((event.ctrlKey || event.metaKey) && key === 'k') { event.preventDefault(); setIsSearchOpen(true); return; }
+    if (key === '/' && !isTyping) { event.preventDefault(); setIsSearchOpen(true); return; }
+    if (key === '?' && !isTyping) { event.preventDefault(); setShowShortcutsHelp((p) => !p); return; }
     if (isTyping) return;
 
     if (key === 'm') setCurrentView('bookmarks');
     if (key === 'h') setCurrentView('highlights');
     if (key === 'l') setCurrentView('lessons');
-
     if (currentView === 'reading' && currentLesson) {
       if (event.key === 'ArrowRight') goToPrevLesson();
-      if (event.key === 'ArrowLeft') goToNextLesson();
+      if (event.key === 'ArrowLeft')  goToNextLesson();
       if (key === 'b') toggleBookmark(currentLesson.id);
       if (key === 's') setIsSearchOpen(true);
-      if (key === 'f') {
-        const selection = window.getSelection().toString().trim();
-        if (selection.length > 5) createHighlightFromSelection(selection);
-      }
+      if (key === 'f') { const sel = window.getSelection().toString().trim(); if (sel.length > 5) createHighlightFromSelection(sel); }
     }
   }, [currentView, currentLesson, setCurrentView, goToPrevLesson, goToNextLesson, toggleBookmark, createHighlightFromSelection]);
 
   useKeyboardShortcuts(handleKeyboardShortcut);
 
+  // ─── التوجيه: التصفح مفتوح للجميع (القراءة عامة لأجل SEO)، والحساب للخصائص المحفوظة ───
   const lastReadTitle = lessons.find((l) => String(l.id) === lastReadLessonId)?.title;
 
-  // حماية التطبيق (إجبار المستخدم على تسجيل الدخول)
-  // ملاحظة: ننتظر اكتمال authLoading قبل أي إجراء — ضروري لـ Google Redirect
   useEffect(() => {
-    if (authLoading) return; // ✅ ننتظر إنتهاء تحقق الـ Auth (مهم لـ Google Redirect)
-    if (!user && currentView !== 'hero') {
+    if (authLoading) return;
+    // ✅ Onboarding: بعد تسجيل الدخول نتحقق من أول مرة
+    if (user && shouldShowOnboarding()) {
+      // رفض ذاتي: عرض الشرائح يحدث مرة واحدة بعد الدخول — setState داخل التأثير مقصود هنا
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCurrentView('hero');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsLoginOpen(true);
+      setShowOnboarding(true);
     }
-  }, [user, authLoading, currentView, setCurrentView]);
+  }, [user, authLoading]);
 
+  // Props مشتركة للـ AppLayout
+  const layoutProps = {
+    currentView, currentIndex, currentLesson, lessons,
+    user, isAdminUser,
+    theme, setTheme, fontSize, setFontSize,
+    cloudStatus,
+    canInstall, promptInstall,
+    glossary, notes, bookmarks, highlights, readLessons,
+    booksWithStats, selectedBookName, selectedBookChapters,
+    openChapterName, lastReadLessonId,
+    setCurrentView, openBookChapters, toggleChapter,
+    openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
+    toggleBookmark, toggleReadLesson, saveNoteForLesson,
+    deleteHighlight, createHighlightFromSelection,
+    toggleStopMark,
+    onOpenSearch: () => setIsSearchOpen(true),
+    onOpenLogin: () => setIsLoginOpen(true),
+    reloadFromCloud,
+    currentSearchQuery,
+  };
 
   return (
     <div className="container-fluid p-0 position-relative">
-      {/* شاشة التحميل الجميلة */}
       <SplashScreen visible={showSplash} />
 
-      {/* نافذة البحث المنبثقة */}
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        data={lessons}
-        onSelect={handleSearchResultSelect}
-      />
+      {/* ✅ Onboarding — مرة واحدة للمستخدم الجديد */}
+      {showOnboarding && <OnboardingSlides onDone={() => setShowOnboarding(false)} />}
 
-      {/* نافذة تسجيل الدخول */}
-      <LoginModal 
-        isOpen={isLoginOpen} 
-        onClose={() => setIsLoginOpen(false)} 
-        onSuccess={() => {
-          if (currentView === 'hero') setCurrentView('books');
-        }}
-      />
-
-      {/* دليل اختصارات لوحة المفاتيح */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} data={lessons} onSelect={handleSearchResultSelect} />
+      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { if (currentView === 'hero') setCurrentView('books'); }} />
       <ShortcutsHelpModal open={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
 
-      {/* الشاشة الرئيسية الترحيبية */}
       {currentView === 'hero' ? (
         <HeroSection
-          onStartBrowsing={() => {
-            if (user) {
-              setCurrentView('books');
-            } else {
-              setIsLoginOpen(true);
-            }
-          }}
+          onStartBrowsing={() => setCurrentView('books')}
           lastReadTitle={lastReadTitle}
-          onContinueReading={() => {
-            if (lastReadLessonId) openLessonById(lastReadLessonId);
-          }}
+          onContinueReading={() => { if (lastReadLessonId) openLessonById(lastReadLessonId); }}
           onOpenLogin={() => setIsLoginOpen(true)}
           user={user}
         />
       ) : (
-        <div className="row g-0">
-
-          {/* الشريط الجانبي */}
-          <div className="col-lg-2 col-md-3 d-none d-md-block sidebar-container">
-            <Slider
-              activeView={currentView}
-              setActiveView={setCurrentView}
-              onOpenSearch={() => setIsSearchOpen(true)}
-              onOpenLogin={() => setIsLoginOpen(true)}
-              user={user}
-              isAdminUser={isAdminUser}
-              canInstall={canInstall}
-              onInstall={promptInstall}
-            />
-          </div>
-
-          <div className="col-lg-10 col-md-9 px-4 py-3 pb-5 pb-md-3">
-            <Topbar
-              setFontSize={setFontSize}
-              theme={theme}
-              toggleTheme={setTheme}
-              cloudStatus={cloudStatus}
-            />
-
-            <div className="container mt-4" style={{ maxWidth: '850px' }}>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentView === 'reading' ? `reading-${currentIndex}` : currentView}
-                  initial={{ opacity: 0, y: 18 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-                >
-                  <Suspense fallback={
-                    <div className="text-center p-5">
-                      <div className="spinner-border" style={{ color: 'var(--primary-color)' }} role="status" />
-                      <p className="text-muted mt-3">جارٍ التحميل...</p>
-                    </div>
-                  }>
-                  {/* 1. شاشة الكتب */}
-                  {currentView === 'books' && (
-                    <BooksView books={booksWithStats} onOpenBook={openBookChapters} />
-                  )}
-
-                  {/* 2. شاشة الفصول */}
-                  {currentView === 'chapters' && (
-                    <ChaptersView
-                      bookName={selectedBookName}
-                      chapters={selectedBookChapters}
-                      openChapterName={openChapterName}
-                      onToggleChapter={toggleChapter}
-                      onSelectLesson={(lesson) => openLessonById(lesson.id)}
-                    />
-                  )}
-
-                  {/* 3. شاشة المسائل */}
-                  {currentView === 'lessons' && (
-                    <LessonsView
-                      bookName={selectedBookName}
-                      chapters={selectedBookChapters}
-                      onSelectLesson={(lesson) => openLessonById(lesson.id)}
-                    />
-                  )}
-
-                  {/* شاشة المفضلة */}
-                  {currentView === 'bookmarks' && (
-                    <BookmarksView
-                      bookmarks={bookmarks}
-                      lessons={lessons}
-                      onOpenLessonById={openLessonById}
-                      onBrowse={() => setCurrentView('books')}
-                      onOpenLogin={() => setIsLoginOpen(true)}
-                    />
-                  )}
-
-                  {/* شاشة الفوائد المقتبسة */}
-                  {currentView === 'highlights' && (
-                    <HighlightsView
-                      highlights={highlights}
-                      notes={notes}
-                      lessons={lessons}
-                      onDeleteHighlight={deleteHighlight}
-                      onOpenLessonById={openLessonById}
-                      onOpenLogin={() => setIsLoginOpen(true)}
-                    />
-                  )}
-
-                  {/* 4. شاشة القراءة */}
-                  {currentView === 'reading' && currentLesson && (
-                      <ReadingView
-                        lesson={currentLesson}
-                        allLessons={lessons}
-                        glossary={glossary}
-                        searchQuery={currentSearchQuery}
-                        noteValue={notes[String(currentLesson.id)] || ''}
-                        onSaveNote={saveNoteForLesson}
-                        isRead={readLessons.includes(String(currentLesson.id))}
-                        onToggleRead={() => toggleReadLesson(currentLesson.id)}
-                        isBookmarked={bookmarks.includes(currentLesson.id)}
-                        onToggleBookmark={() => toggleBookmark(currentLesson.id)}
-                        canGoPrev={currentIndex > 0}
-                        canGoNext={currentIndex < lessons.length - 1}
-                        onPrev={goToPrevLesson}
-                        onNext={goToNextLesson}
-                        isStopMarked={lastReadLessonId === currentLesson.id.toString()}
-                        onToggleStopMark={toggleStopMark}
-                        onCreateHighlight={createHighlightFromSelection}
-                        onBackToIndex={goBackToList}
-                        onSelectLesson={(lesson) => openLessonById(lesson.id)}
-                        setFontSize={setFontSize}
-                        theme={theme}
-                        setTheme={setTheme}
-                      />
-                  )}
-
-                  {/* 5. شاشة لوحة الإدارة — للمشرفين فقط */}
-                  {currentView === 'admin' && (
-                    isAdminUser ? (
-                      <Suspense fallback={
-                        <div className="text-center p-5">
-                          <div className="spinner-border" style={{ color: 'var(--primary-color)' }} role="status" />
-                          <p className="text-muted mt-3">جارٍ تحميل لوحة الإدارة...</p>
-                        </div>
-                      }>
-                        <AdminPanel lessons={lessons} glossary={glossary} onDataChanged={reloadFromCloud} />
-                      </Suspense>
-                    ) : (
-                      <div className="mt-4 mb-5">
-                        <div className="custom-card p-5 text-center shadow-sm">
-                          <FiUser size={48} className="mb-3 text-muted" style={{ opacity: 0.35 }} />
-                          <h5 className="fw-bold mb-2" style={{ color: 'var(--text-main)' }}>هذه الصفحة للمشرفين فقط</h5>
-                          <p className="text-muted mb-0">سجّل الدخول بحساب مشرف للوصول إلى لوحة الإدارة.</p>
-                        </div>
-                      </div>
-                    )
-                  )}
-
-                  {/* 6. شاشة الإعدادات */}
-                  {currentView === 'settings' && (
-                    <SettingsView
-                      canInstall={canInstall}
-                      onInstall={promptInstall}
-                      isInstalled={isInstalled}
-                    />
-                  )}
-                  </Suspense>
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
+        <AppLayout {...layoutProps} />
       )}
 
-      {/* إشعارات التطبيق المثبت (PWA) */}
-      <PWABanners
-        isOffline={isOffline}
-        needRefresh={needRefresh}
-        applyUpdate={applyUpdate}
-        offlineReady={offlineReady}
-        dismissOfflineReady={dismissOfflineReady}
-      />
+      <PWABanners isOffline={isOffline} needRefresh={needRefresh} applyUpdate={applyUpdate} offlineReady={offlineReady} dismissOfflineReady={dismissOfflineReady} />
 
-      {/* زر العودة للأعلى */}
-      <BackToTopButton />
-
-
-
-      {/* شريط التنقل السفلي للموبايل */}
       {currentView !== 'hero' && (
         <MobileBottomNav
           currentView={currentView}

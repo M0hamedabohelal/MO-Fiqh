@@ -14,48 +14,47 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId
 );
 
-let firebasePromise = null;
-
-// تحميل الـ SDK والتهيئة مرة واحدة فقط — يعيد { app, auth, db, authMod, fsMod }
-export function getFirebase() {
+// تطبيق واحد مشترك عبر كل المسارات (initializeApp آمن للتكرار)
+export function getApp() {
   if (!isFirebaseConfigured) {
     return Promise.reject(new Error('Firebase غير مهيأ'));
   }
-  if (!firebasePromise) {
-    firebasePromise = Promise.all([
-      import('firebase/app'),
-      import('firebase/auth'),
-      import('firebase/firestore'),
-    ])
-      .then(async ([appMod, authMod, fsMod]) => {
-        const app = appMod.getApps().length > 0 ? appMod.getApps()[0] : appMod.initializeApp(firebaseConfig);
-        
-        let db;
-        try {
-          // محاولة تهيئة الكاش المحلي (Offline Persistence) بحد أقصى 10 ميجابايت (10485760 بايت)
-          db = fsMod.initializeFirestore(app, {
-            localCache: fsMod.persistentLocalCache({
-              cacheSizeBytes: 10485760 // 10 MB limit to assure the user
-            })
-          });
-        } catch {
-          // في حال فشل الكاش أو كان مهيئاً مسبقاً، نستخدم النسخة العادية
-          db = fsMod.getFirestore(app);
-        }
+  return import('firebase/app').then((appMod) => {
+    const app = appMod.getApps().length > 0 ? appMod.getApps()[0] : appMod.initializeApp(firebaseConfig);
+    return { app, appMod };
+  });
+}
 
-        return {
-          app,
-          auth: authMod.getAuth(app),
-          db,
-          authMod,
-          fsMod,
-        };
-      })
-      .catch((err) => {
-        // فشل التحميل — نسمح بإعادة المحاولة لاحقاً
-        firebasePromise = null;
-        throw err;
-      });
+let dbPromise = null;
+// مسار البيانات: firestore + تهيئة الكاش المحلي (مرة واحدة)
+export function getFirestore() {
+  if (!dbPromise) {
+    dbPromise = Promise.all([getApp(), import('firebase/firestore')]).then(([{ app }, fsMod]) => {
+      let db;
+      try {
+        // محاولة تهيئة الكاش المحلي (Offline Persistence) بحد أقصى 10 ميجابايت (10485760 بايت)
+        db = fsMod.initializeFirestore(app, {
+          localCache: fsMod.persistentLocalCache({ cacheSizeBytes: 10485760 }),
+        });
+      } catch {
+        // في حال فشل الكاش أو كان مهيئاً مسبقاً، نستخدم النسخة العادية
+        db = fsMod.getFirestore(app);
+      }
+      return { app, db, fsMod };
+    });
   }
-  return firebasePromise;
+  return dbPromise;
+}
+
+let authPromise = null;
+// مسار المصادقة: auth فقط (يُحمَّل عند تسجيل الدخول أو فحص الجلسة)
+export function getAuthModule() {
+  if (!authPromise) {
+    authPromise = Promise.all([getApp(), import('firebase/auth')]).then(([{ app }, authMod]) => ({
+      app,
+      auth: authMod.getAuth(app),
+      authMod,
+    }));
+  }
+  return authPromise;
 }

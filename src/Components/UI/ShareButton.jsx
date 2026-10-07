@@ -87,7 +87,7 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
     const paragraphs = cleanMainText.split('\n').filter(p => p.trim());
     
     // قياس ارتفاع النص الرئيسي
-    ctx.font = `${mainFontSize}px Tajawal, Arial`;
+    ctx.font = `${mainFontSize}px 'Amiri', serif`;
     let mainLines = [];
     paragraphs.forEach((para, idx) => {
       const wrapped = wrapText(ctx, para.trim(), maxTextWidth);
@@ -96,7 +96,7 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
     });
 
     // تجهيز تعليق الشيخ
-    ctx.font = `${sheikhFontSize}px Tajawal, Arial`;
+    ctx.font = `${sheikhFontSize}px 'Amiri', serif`;
     let sheikhLines = [];
     if (sheikhComment) {
       const sheikhParagraphs = sheikhComment.split('\n').filter(p => p.trim());
@@ -165,7 +165,7 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
     ctx.direction = 'rtl';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#fbdc99';
-    ctx.font = `bold 34px Tajawal, Arial`;
+    ctx.font = `bold 34px 'Amiri', serif`;
     ctx.fillText(title, width / 2, 147);
     
     // فاصل تحت العنوان
@@ -174,7 +174,7 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
     // ====== النص الرئيسي ======
     ctx.textAlign = 'right';
     ctx.fillStyle = '#e8e8e8';
-    ctx.font = `${mainFontSize}px Tajawal, Arial`;
+    ctx.font = `${mainFontSize}px 'Amiri', serif`;
     
     let currentY = titleAreaHeight + 105;
     mainLines.forEach((line) => {
@@ -202,7 +202,7 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
       // عنوان تعليق الشيخ
       ctx.textAlign = 'center';
       ctx.fillStyle = '#fbdc99';
-      ctx.font = `bold 26px Tajawal, Arial`;
+      ctx.font = `bold 26px 'Amiri', serif`;
       ctx.fillText('📖 تعليق الشيخ', width / 2, currentY + 2);
       currentY += 50;
 
@@ -220,7 +220,7 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
       // نص تعليق الشيخ
       ctx.textAlign = 'right';
       ctx.fillStyle = '#d4c9a8';
-      ctx.font = `${sheikhFontSize}px Tajawal, Arial`;
+      ctx.font = `${sheikhFontSize}px 'Amiri', serif`;
 
       sheikhLines.forEach((line) => {
         if (line === '') {
@@ -240,7 +240,7 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#fbdc99';
-    ctx.font = 'bold 22px Tajawal, Arial';
+    ctx.font = "bold 22px 'Amiri', serif";
     ctx.fillText('الباحث الفقهي — دراسة وتدبر', width / 2, footerY + 10);
 
     // نجوم

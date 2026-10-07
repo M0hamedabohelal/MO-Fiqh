@@ -27,10 +27,14 @@
 }
 
 .paragraph {
-  line-height: 2.0;
-  font-size: 1.15rem;
+  line-height: 2.1;
+  font-size: 1.18rem;
+  letter-spacing: 0.01em;
   color: var(--text-main);
   text-align: justify;
+  text-justify: inter-word;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .titlePart {

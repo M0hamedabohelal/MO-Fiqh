@@ -1,10 +1,10 @@
 // طبقة الخدمات — كل التعامل مع Firestore في مكان واحد
-// الـ SDK يُحمَّل مؤجلاً عبر getFirebase() — لا يؤثر على سرعة أول شاشة
-import { getFirebase, isFirebaseConfigured } from './config';
+// يبدأ بمسار البيانات فقط (firestore) — لا يُسحب auth معه
+import { getFirestore, isFirebaseConfigured } from './config';
 
 async function getDb() {
   if (!isFirebaseConfigured) throw new Error('Firebase غير مهيأ');
-  const { db, fsMod } = await getFirebase();
+  const { db, fsMod } = await getFirestore();
   return { db, fs: fsMod };
 }
 

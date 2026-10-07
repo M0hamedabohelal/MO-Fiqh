@@ -1,9 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { FiCopy, FiCheck, FiBookOpen, FiLink } from 'react-icons/fi';
 import styles from './QuoteCard.module.css';
 import { glossaryData as defaultGlossary } from '../../data/glossary';
 import { formatBrackets } from '../../utils/textFormatting';
+
+// تطبيع حرفي عربي للتسامح مع التشكيل واختلاف أشكال الحروف (للمطابقة فقط)
+function normalizeGlossaryTerm(s) {
+  return String(s || '')
+    .normalize('NFKC')
+    .replace(/[\u064B-\u0652\u0670\u0640]/g, '') // تشكيل + تطويل
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي');
+}
+
+// تطبيع مع حفظ خريطة موضع (NormIndex → OrigIndex) كي نُبرز النص الأصلي
+function normalizeWithIndex(s) {
+  const map = [];
+  let norm = '';
+  for (let i = 0; i < s.length; i += 1) {
+    let c = s[i].normalize('NFKC');
+    c = c.replace(/[\u064B-\u0652\u0670\u0640]/g, '');
+    if (!c) continue; // حروف التشكيل المحذوفة لا تستهلك موضعًا في الناتج
+    c = c.replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
+    map.push(i);
+    norm += c;
+  }
+  return { norm, map };
+}
 
 const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }) => {
   const [copied, setCopied] = useState(false);
@@ -20,42 +46,46 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleTermHover = (e, term) => {
-    let xPos = e.clientX;
-    const padding = 20;
-    const halfWidth = 160; // max-width is 320px, so half is 160px
-    if (xPos < halfWidth + padding) xPos = halfWidth + padding;
-    if (xPos > window.innerWidth - halfWidth - padding) xPos = window.innerWidth - halfWidth - padding;
+  const positionAtPointer = (clientX, clientY) => {
+    const el = tooltipRef.current;
+    if (!el) return;
+    const H = el.offsetHeight;
+    const W = el.offsetWidth;
+    const margin = 10;
+    // يظهر قريبًا جدًا من المؤشر، مع هامش صغير حتى لا يحجبه السهم نفسه
+    let left = clientX + 9;
+    let top = clientY + 9;
+    if (top + H > window.innerHeight - margin) top = clientY - H - margin;
+    if (left + W > window.innerWidth - margin) left = clientX - W - margin;
+    left = Math.max(margin, left);
+    top = Math.max(margin, top);
+    el.style.top = `${top}px`;
+    el.style.left = `${left}px`;
+    el.style.transform = 'none';
+  };
 
-    setTooltipInfo({
-      show: true,
-      term,
-      definition: glossary[term],
-      x: xPos,
-      y: e.clientY - 15
-    });
+  const handleTermHover = (e, term) => {
+    const cx = e.clientX;
+    const cy = e.clientY;
+    setTooltipInfo({ show: true, term, definition: glossary[term], x: cx + 9, y: cy + 9 });
+    setTimeout(() => positionAtPointer(cx, cy), 10);
   };
 
   const handleTermClick = (e, term) => {
-    const rect = e.target.getBoundingClientRect();
-    let xPos = rect.left + rect.width / 2;
-    const padding = 20;
-    const halfWidth = 160;
-    if (xPos < halfWidth + padding) xPos = halfWidth + padding;
-    if (xPos > window.innerWidth - halfWidth - padding) xPos = window.innerWidth - halfWidth - padding;
-
-    setTooltipInfo({
-      show: true,
-      term,
-      definition: glossary[term],
-      x: xPos,
-      y: rect.top - 10
-    });
+    const cx = e.clientX;
+    const cy = e.clientY;
+    setTooltipInfo({ show: true, term, definition: glossary[term], x: cx + 9, y: cy + 9 });
+    setTimeout(() => positionAtPointer(cx, cy), 10);
   };
+
+  // يُحدّث موضع البوب ليلاحق سهم الماوس فوق الكلمة
+  const handleTermMove = (e) => positionAtPointer(e.clientX, e.clientY);
 
   const handleTermLeave = () => {
-    setTooltipInfo({ ...tooltipInfo, show: false });
+    setTooltipInfo((p) => ({ ...p, show: false }));
   };
+
+  const tooltipRef = useRef(null);
 
   const highlightSearch = (plainText, baseKey) => {
     if (!searchQuery || !searchQuery.trim()) {
@@ -124,31 +154,63 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }) => {
     });
   };
 
-  const highlightGlossaryTerms = (plainText, baseKey) => {
-    const terms = Object.keys(glossary);
-    const sortedTerms = terms.sort((a, b) => b.length - a.length);
-    if (sortedTerms.length === 0) {
+  // مصطلحات القاموس مُطبَّعة ومرتّبة من الأطول للأقصر (تفضيل أطول تطابق)
+  const sortedGlossaryTerms = useMemo(
+    () =>
+      Object.entries(glossary)
+        .map(([term, def]) => ({ term, def, norm: normalizeGlossaryTerm(term) }))
+        .filter((e) => e.norm)
+        .sort((a, b) => b.norm.length - a.norm.length),
+    [glossary],
+  );
+
+  // إبراز المصطلحات بتطبيع متسامح مع التشكيل واختلاف أشكال الحروف
+  const renderGlossary = (plainText, baseKey) => {
+    if (sortedGlossaryTerms.length === 0) {
       return [<React.Fragment key={`${baseKey}-empty`}>{parseCrossLinks(plainText, `${baseKey}-p`)}</React.Fragment>];
     }
-    const pattern = new RegExp(`(${sortedTerms.join('|')})`, 'g');
-    const segments = plainText.split(pattern);
-
-    return segments.map((segment, i) => {
-      if (glossary[segment]) {
-        return (
+    const { norm, map } = normalizeWithIndex(plainText);
+    const nodes = [];
+    let cur = 0;
+    let lastOrig = 0;
+    let k = 0;
+    while (cur < norm.length) {
+      let best = null;
+      for (const e of sortedGlossaryTerms) {
+        if (norm.startsWith(e.norm, cur) && (!best || e.norm.length > best.norm.length)) {
+          best = e;
+        }
+      }
+      if (best) {
+        if (lastOrig < map[cur]) {
+          nodes.push(parseCrossLinks(plainText.slice(lastOrig, map[cur]), `${baseKey}-t${k}`));
+        }
+        const end = cur + best.norm.length;
+        const origStart = map[cur];
+        const origEnd = map[end - 1] + 1;
+        nodes.push(
           <span
-            key={`${baseKey}-g-${i}`}
+            key={`${baseKey}-g-${k}`}
             className="glossary-term"
-            onMouseEnter={(e) => handleTermHover(e, segment)}
-            onClick={(e) => handleTermClick(e, segment)}
+            onMouseEnter={(e) => handleTermHover(e, best.term)}
+            onClick={(e) => handleTermClick(e, best.term)}
+            onMouseMove={(e) => handleTermMove(e)}
             onMouseLeave={handleTermLeave}
           >
-            {segment}
+            {plainText.slice(origStart, origEnd)}
           </span>
         );
+        lastOrig = origEnd;
+        cur = end;
+        k += 1;
+      } else {
+        cur += 1;
       }
-      return <React.Fragment key={`${baseKey}-t-${i}`}>{parseCrossLinks(segment, `${baseKey}-t-${i}`)}</React.Fragment>;
-    });
+    }
+    if (lastOrig < plainText.length) {
+      nodes.push(parseCrossLinks(plainText.slice(lastOrig), `${baseKey}-t${k}`));
+    }
+    return nodes;
   };
 
   const renderParagraph = (paragraph, index) => {
@@ -160,6 +222,36 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }) => {
         <div key={index} className="islamic-divider">
           <span className="islamic-divider-icon">۞</span>
         </div>
+      );
+    }
+
+    const trimmed = paragraph.trim();
+
+    // عنوان وسطي: ## عنوان ## أو ## عنوان
+    const midMatch = trimmed.match(/^##\s*(.+?)\s*##$/);
+    if (midMatch) {
+      return (
+        <div key={index} className="mid-heading">
+          <span className="mid-heading-text">{formatBrackets(midMatch[1], searchQuery, renderGlossary)}</span>
+        </div>
+      );
+    }
+    if (/^##\s+/.test(trimmed)) {
+      const headingText = trimmed.replace(/^##\s+/, '');
+      return (
+        <div key={index} className="mid-heading">
+          <span className="mid-heading-text">{formatBrackets(headingText, searchQuery, renderGlossary)}</span>
+        </div>
+      );
+    }
+
+    // اقتباس العلماء: > نص الاقتباس
+    if (trimmed.startsWith('>')) {
+      const quoteText = trimmed.replace(/^>\s?/, '');
+      return (
+        <blockquote key={index} className="scholar-quote">
+          {formatBrackets(quoteText, searchQuery, renderGlossary)}
+        </blockquote>
       );
     }
 
@@ -197,11 +289,11 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }) => {
             className={`${styles.titlePart} ${isLongIssue ? 'highlighted-title' : ''}`}
             style={{ color: 'var(--primary-color)' }}
           >
-            {titlePart}
+            {renderGlossary(titlePart.replace(/:$/, ''), `${index}-title`)}{titlePart.endsWith(':') ? ':' : ''}
           </strong>
         )}
         <span className={isLongIssue ? 'enhanced-body' : ''} style={{ fontWeight: '500' }}>
-          {formatBrackets(bodyPart, searchQuery, highlightGlossaryTerms)}
+          {formatBrackets(bodyPart, searchQuery, renderGlossary)}
         </span>
       </motion.p>
     );
@@ -276,14 +368,14 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }) => {
         )}
 
         {/* Glossary Tooltip */}
-        {tooltipInfo.show && (
+        {tooltipInfo.show && createPortal(
           <div
+            ref={tooltipRef}
             className="glossary-tooltip-popup"
             style={{
               position: 'fixed',
               top: tooltipInfo.y,
               left: tooltipInfo.x,
-              transform: 'translate(-50%, -100%)',
               zIndex: 9999,
             }}
           >
@@ -295,7 +387,8 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }) => {
                 {tooltipInfo.definition}
               </span>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </motion.div>
     </>

@@ -26,16 +26,17 @@ const HighlightsView = ({ highlights, notes, lessons, onDeleteHighlight, onOpenL
             <button
               className="btn btn-sm d-flex align-items-center shadow-sm"
               style={{
-              backgroundColor: 'var(--badge-bg)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '10px',
-              fontWeight: 'bold',
-            }}
-            onClick={() => exportNotesPrint({ highlights, notes, lessons })}
-            title="طباعة أو حفظ PDF"
-          >
-            <FiPrinter className="ms-2" size={18} /> تصدير الفوائد والملاحظات
-          </button>
+                backgroundColor: 'var(--badge-bg)',
+                color: 'var(--text-main)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                fontWeight: 'bold',
+              }}
+              onClick={() => exportNotesPrint({ highlights, notes, lessons })}
+              title="طباعة أو حفظ PDF"
+            >
+              <FiPrinter className="ms-2" size={18} /> تصدير الفوائد والملاحظات
+            </button>
         )}
       </div>
       </div>

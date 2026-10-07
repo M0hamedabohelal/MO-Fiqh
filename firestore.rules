@@ -1,0 +1,57 @@
+rules_version = '2';
+
+// قواعد Firestore — الباحث الفقهي
+// المبدأ: قراءة المحتوى للجميع، الكتابة للأدمن فقط، وبيانات كل مستخدم له وحده.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // المشرف = مستخدم مسجل وله مستند في مجموعة admins (يُدار من الكونسول فقط)
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // ─── المحتوى العام: قراءة للجميع، كتابة للأدمن فقط ───
+    match /lessons/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /glossary/{term} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /announcements/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ─── سجل المشرفين: كل مستخدم يقرأ سجله فقط (لفحص الصلاحية)، ولا كتابة من العميل ───
+    match /admins/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update, delete: if false;
+    }
+
+    // ─── بيانات المستخدم الخاصة (مفضلة/فوائد/ملاحظات/مقروء): صاحبها فقط ───
+    match /users/{uid}/data/{section} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ─── إحصائيات المشاهدات: قراءة للجميع، وتحديث تراكمي للجميع (تتبع مجهول من trackLessonView) ───
+    match /stats/views {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // ─── افتراضي: منع أي مسار آخر ───
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

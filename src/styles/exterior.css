@@ -1,0 +1,312 @@
+/* ==================== خلفية ورق البردي (Parchment Texture) ==================== */
+.manuscript-frame, .explanation-card {
+  position: relative;
+}
+
+/* Texture class to be added to QuoteCard and ExplanationCard */
+.parchment-texture {
+  position: relative;
+  overflow: hidden;
+}
+.parchment-texture::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiBvcGFjaXR5PSIwLjAzIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC4wNSIgbnVtT2N0YXZlcz0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNuKSIvPjwvc3ZnPg==");
+  z-index: 0;
+  mix-blend-mode: multiply;
+}
+
+[data-theme="dark"] .parchment-texture::before {
+  mix-blend-mode: screen;
+  opacity: 0.05;
+}
+
+
+/* Solid background for Glossary Tooltip */
+.glossary-tooltip-content {
+  background-color: #ffffff !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(251, 220, 153, 0.8) !important;
+}
+
+[data-theme="dark"] .glossary-tooltip-content {
+  background-color: #1e1e1e !important;
+}
+
+/* Floating TOC Mobile & PC Fix */
+.floating-toc-btn {
+  bottom: 90px;
+}
+.floating-toc-panel {
+  bottom: 150px !important;
+  top: 90px !important; /* مساحة آمنة من الأعلى */
+  height: auto !important;
+  max-height: calc(100vh - 240px) !important;
+  background-color: var(--card-bg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+@media (max-width: 768px) {
+  .floating-toc-btn {
+    bottom: 140px !important; /* Above MobileBottomNav and BackToTop */
+  }
+  .floating-toc-panel {
+    bottom: 200px !important;
+    top: 80px !important; /* مساحة آمنة من الأعلى لتجنب القص بسبب شريط المتصفح */
+    height: auto !important; /* التمدد التلقائي بين القمة والقاع */
+    max-height: calc(100dvh - 280px) !important;
+  }
+}
+
+/* ==================== الإحالات الذكية (Cross-links) ==================== */
+.cross-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--primary-color) !important;
+  font-weight: 700;
+  text-decoration: none !important;
+  background-color: rgba(139, 94, 52, 0.08); /* لون تراثي خفيف */
+  padding: 0 6px 2px 6px;
+  border-radius: 6px;
+  border-bottom: 2px solid var(--accent-color);
+  transition: all 0.2s ease-in-out;
+  margin: 0 2px;
+  font-size: 0.95em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+[data-theme="dark"] .cross-link {
+  background-color: rgba(220, 180, 120, 0.12);
+}
+
+.cross-link:hover {
+  background-color: var(--accent-color);
+  color: var(--card-bg) !important;
+  border-bottom-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.cross-link .cross-link-icon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.cross-link:hover .cross-link-icon {
+  opacity: 1;
+}
+
+/* ==================== أنماط النصوص المتقدمة (قرآن، حديث، تظليل) ==================== */
+.quran-text {
+  font-family: 'Amiri Quran', serif;
+  color: #2E7D32; /* أخضر إسلامي */
+  font-size: 1.3em;
+  line-height: 2.2;
+  padding: 0 4px;
+}
+
+[data-theme="dark"] .quran-text {
+  color: #81C784;
+}
+
+.hadith-text {
+  color: #A1887F; /* بني أنيق */
+  font-weight: 500;
+}
+
+[data-theme="dark"] .hadith-text {
+  color: #D7CCC8;
+}
+
+.highlighter-marker {
+  background-color: #FEF08A; /* أصفر فسفوري هادئ */
+  color: #1a1a1a;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+[data-theme="dark"] .highlighter-marker {
+  background-color: rgba(254, 240, 138, 0.2);
+  color: var(--text-main);
+}
+
+.islamic-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2.5rem 0;
+  opacity: 0.8;
+}
+
+.islamic-divider::before,
+.islamic-divider::after {
+  content: '';
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+  flex-grow: 0.3;
+}
+
+.islamic-divider-icon {
+  color: var(--accent-color);
+  margin: 0 1rem;
+  font-size: 1.5rem;
+}
+
+/* ==================== رموز التنسيق الجديدة ==================== */
+
+/* **عريض مميز** — نفس لون النص مع تخانة وحجم أوضح */
+.bold-accent {
+  font-weight: 700;
+  font-size: 1.08em;
+  -webkit-text-stroke: 0.35px currentColor;
+  text-shadow: 0 0 0.5px currentColor;
+  letter-spacing: 0.01em;
+}
+
+/* !!تنبيه تحذيري!! */
+.alert-inline {
+  display: inline-block;
+  background-color: rgba(231, 76, 60, 0.1);
+  border: 1.5px solid rgba(231, 76, 60, 0.55);
+  color: #c0392b;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 8px;
+  margin: 0 2px;
+  line-height: 1.9;
+}
+
+[data-theme="dark"] .alert-inline {
+  background-color: rgba(231, 76, 60, 0.16);
+  color: #ff9d8a;
+  border-color: rgba(231, 76, 60, 0.6);
+}
+
+[data-theme="sepia"] .alert-inline {
+  background-color: rgba(178, 74, 56, 0.1);
+  color: #8f3b2a;
+}
+
+/* > اقتباس العلماء */
+.scholar-quote {
+  margin: 1.2rem 0;
+  padding: 0.9rem 1.2rem;
+  background-color: var(--badge-bg);
+  border-right: 4px solid var(--primary-color);
+  border-radius: 10px 4px 4px 10px;
+  font-family: var(--font-quote);
+  line-height: 2;
+  color: var(--text-main);
+  position: relative;
+}
+
+.scholar-quote::before {
+  content: '❝';
+  position: absolute;
+  top: -14px;
+  right: 12px;
+  background: var(--card-bg);
+  color: var(--accent-color);
+  font-size: 1.6rem;
+  line-height: 1;
+  padding: 0 6px;
+  border-radius: 6px;
+}
+
+/* ## عنوان وسطي ## */
+.mid-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 1.8rem 0 1.2rem;
+  text-align: center;
+}
+
+.mid-heading::before,
+.mid-heading::after {
+  content: '';
+  height: 1.5px;
+  flex: 1;
+  max-width: 120px;
+  background: linear-gradient(90deg, transparent, var(--accent-color));
+  border-radius: 2px;
+}
+
+.mid-heading::after {
+  background: linear-gradient(90deg, var(--accent-color), transparent);
+}
+
+.mid-heading-text {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1.35rem;
+  color: var(--primary-color);
+  background-color: var(--badge-bg);
+  border: 1px solid var(--badge-border);
+  padding: 4px 22px;
+  border-radius: 999px;
+  line-height: 2;
+  max-width: 100%;
+}
+
+/* ==================== بوب-أب تحديد النص (فون) ==================== */
+@media (max-width: 480px) {
+  .selection-popup {
+    font-size: 0.82rem !important;
+    padding: 4px 6px !important;
+    border-radius: 40px !important;
+  }
+  .selection-popup button {
+    padding: 6px 10px !important;
+    gap: 4px !important;
+  }
+}
+
+/* ==================== نافذة تسجيل الدخول (Login Modal) ==================== */
+
+/* ✅ حقول إدخال مخصصة — تعمل بشكل صحيح في الداكن والفاتح والورقي */
+.login-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--badge-bg) !important;
+  color: var(--text-main) !important;
+  border: 1.5px solid var(--border-color) !important;
+  border-radius: 10px;
+  padding: 11px 44px 11px 14px;
+  width: 100%;
+  font-size: 0.95rem;
+  font-family: var(--font-ui);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-input:focus {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 3px rgba(77, 182, 172, 0.15) !important;
+  background-color: var(--badge-bg) !important;
+  color: var(--text-main) !important;
+  outline: none !important;
+}
+
+/* ✅ الإصلاح الرئيسي: placeholder مرئي في الداكن */
+.login-input::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 1 !important;
+}
+
+/* إزالة الخلفية البيضاء من autofill في الكروم */
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover,
+.login-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-main) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--badge-bg) inset !important;
+  background-color: var(--badge-bg) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}

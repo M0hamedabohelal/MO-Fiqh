@@ -1,7 +1,7 @@
 // سياق المصادقة — إدارة تسجيل الدخول وحالة المستخدم في كل التطبيق
 // الـ SDK يُحمَّل مؤجلاً — أول شاشة لا تنتظر Firebase
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getFirebase, isFirebaseConfigured } from '../../firebase/config';
+import { getAuthModule, isFirebaseConfigured } from '../../firebase/config';
 import { fetchUserData, isAdmin as checkAdmin } from '../../firebase/services';
 
 const AuthContext = createContext(null);
@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
     let unsubscribe = () => {};
     let cancelled = false;
 
-    getFirebase()
+    getAuthModule()
       .then(async ({ auth, authMod }) => {
         if (cancelled) return;
 
@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
   const register = useCallback(async (email, password, displayName) => {
     setAuthError('');
     try {
-      const { auth, authMod } = await getFirebase();
+      const { auth, authMod } = await getAuthModule();
       const cred = await authMod.createUserWithEmailAndPassword(auth, email, password);
       if (displayName) {
         await authMod.updateProfile(cred.user, { displayName });
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (email, password) => {
     setAuthError('');
     try {
-      const { auth, authMod } = await getFirebase();
+      const { auth, authMod } = await getAuthModule();
       await authMod.signInWithEmailAndPassword(auth, email, password);
       return { success: true };
     } catch (err) {
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }) => {
   const loginWithGoogle = useCallback(async () => {
     setAuthError('');
     try {
-      const { auth, authMod } = await getFirebase();
+      const { auth, authMod } = await getAuthModule();
       const provider = new authMod.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }) => {
 
   // تسجيل خروج
   const logout = useCallback(async () => {
-    const { auth, authMod } = await getFirebase();
+    const { auth, authMod } = await getAuthModule();
     await authMod.signOut(auth);
   }, []);
 

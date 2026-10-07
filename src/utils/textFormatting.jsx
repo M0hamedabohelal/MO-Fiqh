@@ -42,8 +42,9 @@ export const highlightSearch = (plainText, searchQuery, baseKey) => {
 
 // تقسيم النص إلى آيات { } / ﴿ ﴾ وأحاديث « » وأقواس ( ) وروابط إحالات وتظليل فسفوري
 export const formatBrackets = (textChunk, searchQuery, renderPlainText) => {
-  // تقسيم النص إلى آيات، أحاديث، تظليل فسفوري * *، روابط [text](lesson:id)، وأقواس عادية
-  const parts = textChunk.split(/(\{[^}]+\}|﴿[^﴾]+﴾|«[^»]*(?:»|$)|\[[^\]]+\]\(lesson:\d+\)|\([^)]*\)|\*[^*]+\*)/g);
+  // تقسيم النص إلى آيات، أحاديث، عريض ** **، تنبيه !! !!، تظليل فسفوري * *، روابط [text](lesson:id)، وأقواس عادية
+  // ملاحظة: ** قبل * حتى لا يلتبس العريض مع الفسفوري
+  const parts = textChunk.split(/(\{[^}]+\}|﴿[^﴾]+﴾|«[^»]*(?:»|$)|\[[^\]]+\]\(lesson:\d+\)|\([^)]*\)|\*\*[^*]+\*\*|\*[^*]+\*|!![^!]+!!)/g);
   
   return parts.map((part, index) => {
     // 1. الآيات القرآنية
@@ -52,7 +53,17 @@ export const formatBrackets = (textChunk, searchQuery, renderPlainText) => {
       return <span key={index} className="quran-text">{formattedPart}</span>;
     }
     
-    // 2. الماركر الفسفوري
+    // 2. العريض المميز ** **
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return <strong key={index} className="bold-accent">{part.slice(2, -2)}</strong>;
+    }
+
+    // 2ب. التنبيه التحذيري !! !!
+    if (part.startsWith('!!') && part.endsWith('!!') && part.length > 4) {
+      return <span key={index} className="alert-inline">⚠ {part.slice(2, -2)}</span>;
+    }
+
+    // 2ج. الماركر الفسفوري
     if (part.startsWith('*') && part.endsWith('*')) {
       return <mark key={index} className="highlighter-marker">{part.slice(1, -1)}</mark>;
     }
