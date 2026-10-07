@@ -13,7 +13,15 @@ const itemVariants = {
   show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
 };
 
-// شاشة أبواب الكتاب الواحد (أكورديون بكل باب ومسائله)
+// ترقيم الأبواب بالحروف على طريقة كتب التراث
+const ORDINALS = [
+  'الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن',
+  'التاسع', 'العاشر', 'الحادي عشر', 'الثاني عشر', 'الثالث عشر', 'الرابع عشر',
+  'الخامس عشر', 'السادس عشر', 'السابع عشر', 'الثامن عشر', 'التاسع عشر', 'العشرون',
+];
+const ordinalOf = (n) => (n >= 1 && n <= ORDINALS.length ? ORDINALS[n - 1] : `رقم ${n}`);
+
+// شاشة أبواب الكتاب الواحد — صفحة كتاب شرعي: ترويسة مزخرفة + فهرس بالنقاط
 const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, onSelectLesson, newLessonIds }) => (
   <div className="mt-4">
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
@@ -33,25 +41,30 @@ const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, on
         initial="hidden"
         animate="show"
       >
-        {chapters.map(({ chapterName, issues }) => {
+        {chapters.map(({ chapterName, issues }, chapterIndex) => {
           const isOpen = openChapterName === chapterName;
 
           return (
-            <motion.div key={chapterName} variants={itemVariants} className="custom-card shadow-sm overflow-hidden" layout>
+            <motion.div key={chapterName} variants={itemVariants} className="book-page" layout>
               <button
-                className="btn w-100 text-end p-4 d-flex justify-content-between align-items-center list-btn border-0"
+                className="chapter-band"
                 onClick={() => onToggleChapter(chapterName)}
                 aria-expanded={isOpen}
               >
-                <span>{chapterName}</span>
-                <div className="d-flex align-items-center gap-3">
-                  <span className="text-muted small">{issues.length} مسائل</span>
+                <span className="chapter-band-side">۞</span>
+                <span className="chapter-band-center">
+                  <span className="chapter-ordinal">الباب {ordinalOf(chapterIndex + 1)}</span>
+                  <span className="chapter-band-name">{chapterName}</span>
+                  <span className="chapter-band-count">{issues.length} مسائل</span>
+                </span>
+                <span className="chapter-band-side">۞</span>
+                <span className="chapter-band-chevron">
                   {isOpen ? (
                     <FiChevronRight style={{ color: 'var(--accent-color)' }} />
                   ) : (
                     <FiChevronLeft style={{ color: 'var(--accent-color)' }} />
                   )}
-                </div>
+                </span>
               </button>
 
               <AnimatePresence>
@@ -65,6 +78,7 @@ const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, on
                     {issues.map((lesson) => (
                       <LessonListItem
                         key={lesson.id}
+                        variant="toc"
                         title={lesson.title}
                         pageNumber={lesson.pageNumber}
                         isRead={lesson.isRead}

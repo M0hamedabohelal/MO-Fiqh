@@ -36,10 +36,6 @@ const AchievementsView = ({ readLessons, highlights, notes, booksWithStats, less
   const streak = useMemo(() => getStreak(), []);
   const notesCount = useMemo(() => Object.keys(notes || {}).length, [notes]);
   const readCount = (readLessons || []).length;
-  const booksDone = useMemo(
-    () => (booksWithStats || []).filter((b) => b.issuesCount > 0 && b.readCount >= b.issuesCount).length,
-    [booksWithStats],
-  );
   const totalLessons = useMemo(
     () => lessonsCount || (booksWithStats || []).reduce((s, b) => s + (b.issuesCount || 0), 0),
     [lessonsCount, booksWithStats],
@@ -50,7 +46,13 @@ const AchievementsView = ({ readLessons, highlights, notes, booksWithStats, less
     { icon: FiBook, title: 'أول الغيث', desc: 'اقرأ أول مسألة', earned: readCount >= 1 },
     { icon: FiZap, title: 'المثابر', desc: '3 أيام متتالية', earned: streak >= 3 },
     { icon: FiAward, title: 'الأسبوع الذهبي', desc: '7 أيام متتالية', earned: streak >= 7 },
-    { icon: FiStar, title: 'ختمة', desc: 'أكمل كتابًا كاملًا', earned: booksDone >= 1 },
+    // شارة ختمة مستقلة لكل كتاب — التقدم بعدد الكتب المُتممة
+    ...(booksWithStats || []).map((b) => ({
+      icon: FiStar,
+      title: `ختمة ${b.bookName}`,
+      desc: b.issuesCount > 0 ? `${b.readCount} من ${b.issuesCount} مسائل` : 'لا مسائل بعد',
+      earned: b.issuesCount > 0 && b.readCount >= b.issuesCount,
+    })),
     { icon: FiEdit3, title: 'المقتبس', desc: 'احفظ 10 فوائد', earned: (highlights || []).length >= 10 },
     { icon: FiFileText, title: 'المدون', desc: 'اكتب 5 ملاحظات', earned: notesCount >= 5 },
   ];

@@ -447,6 +447,154 @@
   }
 }
 
+/* ==================== صفحة الأبواب على هيئة كتاب شرعي ==================== */
+.book-page {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  padding: 6px 14px 4px;
+}
+
+.book-page::before,
+.book-page::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  border-radius: 10px;
+}
+
+.book-page::before {
+  inset: 6px;
+  border: 1px solid var(--accent-color);
+  opacity: 0.4;
+}
+
+.book-page::after {
+  inset: 10px;
+  border: 1px solid var(--accent-color);
+  opacity: 0.18;
+}
+
+/* ترويسة الباب المزخرفة */
+.chapter-band {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 16px 6px 12px;
+  color: var(--text-main);
+}
+
+.chapter-band-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chapter-ordinal {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
+.chapter-band-name {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  line-height: 1.8;
+  text-align: center;
+}
+
+.chapter-band-count {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.chapter-band-side {
+  color: var(--accent-color);
+  font-size: 1.1rem;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.chapter-band-chevron {
+  flex-shrink: 0;
+  display: flex;
+}
+
+/* صف فهرس تراثي: عنوان + نقاط + رقم الصفحة */
+.toc-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 11px 4px;
+  color: var(--text-main);
+  font-family: var(--font-quote);
+  font-size: 1.08rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+}
+
+.toc-row:last-child {
+  border-bottom: none;
+}
+
+.toc-row:hover {
+  background-color: rgba(251, 220, 153, 0.12);
+  border-radius: 8px;
+}
+
+.toc-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.toc-dots {
+  flex: 1;
+  min-width: 20px;
+  border-bottom: 2px dotted var(--accent-color);
+  opacity: 0.55;
+  transform: translateY(-4px);
+}
+
+.toc-page {
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-family: var(--font-ui);
+}
+
+@media (max-width: 480px) {
+  .book-page {
+    padding: 4px 8px 2px;
+  }
+  .chapter-band-name {
+    font-size: 1.15rem;
+  }
+  .toc-row {
+    font-size: 1rem;
+    padding: 10px 2px;
+  }
+}
+
 /* ==================== شارة "جديد" للمسائل المضافة حديثًا ==================== */
 .new-badge {
   display: inline-block;
