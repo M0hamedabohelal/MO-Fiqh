@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiMoon, FiSun, FiBell } from 'react-icons/fi';
+import { FiMoon, FiBell } from 'react-icons/fi';
 import { BsBook } from 'react-icons/bs';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import AnnouncementsModal from '../UI/AnnouncementsModal';
@@ -15,23 +15,20 @@ const Topbar = ({ setFontSize, theme, toggleTheme, cloudStatus }) => {
     markAsRead();
   };
 
-  // دالة للتبديل بين الأوضاع الثلاثة: فاتح -> سيبيا -> داكن -> فاتح
+  // دالة للتبديل بين الوضعين فقط: داكن <-> تراثي (الفاتح محذوف)
   const cycleTheme = () => {
-    if (theme === 'light') toggleTheme('sepia');
-    else if (theme === 'sepia') toggleTheme('dark');
-    else toggleTheme('light');
+    if (theme === 'sepia') toggleTheme('dark');
+    else toggleTheme('sepia');
   };
 
   const getThemeIcon = () => {
-    if (theme === 'dark') return <FiMoon size={20} />;
     if (theme === 'sepia') return <BsBook size={20} />;
-    return <FiSun size={20} />;
+    return <FiMoon size={20} />;
   };
 
   const getThemeLabel = () => {
-    if (theme === 'dark') return 'داكن';
-    if (theme === 'sepia') return 'ورقي';
-    return 'فاتح';
+    if (theme === 'sepia') return 'تراثي';
+    return 'داكن';
   };
 
   // مؤشر حالة المزامنة مع السحابة

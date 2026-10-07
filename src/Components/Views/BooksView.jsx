@@ -15,7 +15,7 @@ const BooksView = ({ books, onOpenBook, newCount }) => (
     )}
     <div className="row px-1">
       {books.map(({ bookName, issuesCount, readCount, progressPercent }) => (
-        <div className="col-6 mb-3 px-2" key={bookName}>
+        <div className="col-6 col-md-4 mb-4 px-2" key={bookName}>
           <button
             className="btn w-100 p-0 book-item-btn shadow-sm"
             onClick={() => onOpenBook(bookName)}

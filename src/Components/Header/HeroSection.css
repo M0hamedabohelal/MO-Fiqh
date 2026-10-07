@@ -237,9 +237,6 @@
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.08));
   animation: floatLogo 6s ease-in-out infinite;
 }
-[data-theme="light"] .hero-logo-img {
-  mix-blend-mode: multiply;
-}
 
 /* Title Area */
 .hero-title-area {
