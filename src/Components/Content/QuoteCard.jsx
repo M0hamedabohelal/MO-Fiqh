@@ -78,14 +78,22 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }) => {
     setTimeout(() => positionAtPointer(cx, cy), 10);
   };
 
-  // يُحدّث موضع البوب ليلاحق سهم الماوس فوق الكلمة
-  const handleTermMove = (e) => positionAtPointer(e.clientX, e.clientY);
+  // يُحدّث موضع البوب ليلاحق سهم الماوس فوق الكلمة — مخنوق بإطار واحد لتجنب قراءات التخطيط المتكررة
+  const handleTermMove = (e) => {
+    const { clientX, clientY } = e;
+    if (moveRaf.current) return;
+    moveRaf.current = requestAnimationFrame(() => {
+      moveRaf.current = 0;
+      positionAtPointer(clientX, clientY);
+    });
+  };
 
   const handleTermLeave = () => {
     setTooltipInfo((p) => ({ ...p, show: false }));
   };
 
   const tooltipRef = useRef(null);
+  const moveRaf = useRef(0);
 
   const highlightSearch = (plainText, baseKey) => {
     if (!searchQuery || !searchQuery.trim()) {

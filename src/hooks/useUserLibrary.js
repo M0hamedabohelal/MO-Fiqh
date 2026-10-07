@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
 import {
   syncBookmarks,
@@ -133,21 +133,20 @@ export function useUserLibrary({ onStatus } = {}) {
     localStorage.setItem('guest_readLessons', JSON.stringify(readLessons));
   }, [bookmarks, highlights, notes, readLessons, user, isDataLoaded]);
 
-  // المزامنة مع السحابة فوراً عند أي تغيير
+  // المزامنة مع السحابة دفعة واحدة بعد هدوء التغييرات (تجنّب كتابة لكل ضغطة متتالية)
+  const syncTimer = useRef(null);
   useEffect(() => {
     if (!isSyncReady) return;
-    syncBookmarks(user.uid, bookmarks).catch(() => {});
-  }, [bookmarks, isSyncReady, user]);
-
-  useEffect(() => {
-    if (!isSyncReady) return;
-    syncHighlights(user.uid, highlights).catch(() => {});
-  }, [highlights, isSyncReady, user]);
-
-  useEffect(() => {
-    if (!isSyncReady) return;
-    syncReadLessons(user.uid, readLessons).catch(() => {});
-  }, [readLessons, isSyncReady, user]);
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => {
+      syncBookmarks(user.uid, bookmarks).catch(() => {});
+      syncHighlights(user.uid, highlights).catch(() => {});
+      syncReadLessons(user.uid, readLessons).catch(() => {});
+    }, 800);
+    return () => {
+      if (syncTimer.current) clearTimeout(syncTimer.current);
+    };
+  }, [bookmarks, highlights, readLessons, isSyncReady, user]);
 
   // الدوال المساعدة للتحكم بالبيانات
   const toggleBookmark = useCallback((lessonId) => {

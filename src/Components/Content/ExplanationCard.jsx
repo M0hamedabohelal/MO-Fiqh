@@ -14,6 +14,7 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
   const [tooltipInfo, setTooltipInfo] = useState({ show: false, term: '', definition: '', x: 0, y: 0 });
   const sortedTerms = useMemo(() => sortedGlossaryTerms(glossary), [glossary]);
   const tooltipRef = useRef(null);
+  const moveRaf = useRef(0);
 
   const positionAtPointer = (clientX, clientY) => {
     const el = tooltipRef.current;
@@ -44,7 +45,15 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
     setTooltipInfo({ show: true, term, definition: glossary[term], x: cx + 9, y: cy + 9 });
     setTimeout(() => positionAtPointer(cx, cy), 10);
   };
-  const handleTermMove = (e) => positionAtPointer(e.clientX, e.clientY);
+  const handleTermMove = (e) => {
+    // خنق بإطار واحد: قراءة أبعاد العنصر في كل حدث حركة مكلفة
+    const { clientX, clientY } = e;
+    if (moveRaf.current) return;
+    moveRaf.current = requestAnimationFrame(() => {
+      moveRaf.current = 0;
+      positionAtPointer(clientX, clientY);
+    });
+  };
   const handleTermLeave = () => setTooltipInfo((p) => ({ ...p, show: false }));
 
   // النصوص تُعرض عبر renderer يمرر معالجات (لا يقرأ refs أثناء الرسم)
@@ -55,7 +64,6 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
     onMove: handleTermMove,
     onLeave: handleTermLeave,
   });
-
   // حساب طول الشرح (عدد الكلمات تقريباً)
   const wordCount = (explanation || '').trim().split(/\s+/).length;
   const isLongIssue = wordCount > 100;

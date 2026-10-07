@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 
 const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
   const [downloaded, setDownloaded] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   // دالة لف النص مع دعم RTL
   const wrapText = (ctx, text, maxWidth) => {
@@ -105,6 +107,17 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
         sheikhLines.push(...wrapped);
         if (idx < sheikhParagraphs.length - 1) sheikhLines.push('');
       });
+    }
+
+    // سقف عدد الأسطر حتى لا تتجاوز الصورة حدود ذاكرة الكانفس على الفون
+    const MAX_LINES = 180;
+    if (mainLines.length > MAX_LINES) {
+      mainLines.length = MAX_LINES;
+      mainLines.push('…');
+    }
+    if (sheikhLines.length > MAX_LINES) {
+      sheikhLines.length = MAX_LINES;
+      sheikhLines.push('…');
     }
 
     // حساب الارتفاع الكلي
@@ -252,13 +265,26 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
   };
 
   const handleDownload = () => {
-    const canvas = generateImage();
-    const link = document.createElement('a');
-    link.download = `${title}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    setDownloaded(true);
-    setTimeout(() => setDownloaded(false), 2500);
+    if (generating) return;
+    setGenerating(true);
+    setFailed(false);
+    // التأجيل يتيح للزر إظهار حالة التحميل قبل العملية الثقيلة (حتى لا تتجمد الواجهة)
+    setTimeout(() => {
+      try {
+        const canvas = generateImage();
+        const link = document.createElement('a');
+        link.download = `${title}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        setDownloaded(true);
+        setTimeout(() => setDownloaded(false), 2500);
+      } catch {
+        setFailed(true);
+        setTimeout(() => setFailed(false), 2500);
+      } finally {
+        setGenerating(false);
+      }
+    }, 60);
   };
 
   return (
@@ -270,9 +296,10 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
     >
       <button 
         onClick={handleDownload}
+        disabled={generating}
         className={`btn d-flex align-items-center gap-2 shadow-sm ${isSmall ? 'btn-sm px-2 py-1' : 'px-3 py-2'}`}
         style={{ 
-          backgroundColor: downloaded ? '#27ae60' : 'var(--primary-color)', 
+          backgroundColor: downloaded ? '#27ae60' : failed ? '#e74c3c' : 'var(--primary-color)', 
           color: '#fff', 
           borderRadius: '20px',
           border: 'none',
@@ -280,7 +307,10 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }) => {
           transition: 'all 0.3s ease'
         }}
       >
-        {downloaded ? <><FiCheck size={isSmall ? 14 : 16} /> {isSmall ? 'تم' : 'تم التحميل'}</> : <><FiDownload size={isSmall ? 14 : 16} /> {isSmall ? 'تنزيل' : 'حفظ كصورة'}</>}
+        {downloaded ? <><FiCheck size={isSmall ? 14 : 16} /> {isSmall ? 'تم' : 'تم التحميل'}</>
+          : generating ? (isSmall ? 'جارٍ...' : 'جارٍ التوليد...')
+          : failed ? (isSmall ? 'فشل' : 'فشل التوليد')
+          : <><FiDownload size={isSmall ? 14 : 16} /> {isSmall ? 'تنزيل' : 'حفظ كصورة'}</>}
       </button>
     </motion.div>
   );

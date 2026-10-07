@@ -123,6 +123,8 @@ const VideoCard = ({ videoUrl, startTime, endTime }) => {
             <img
               src={thumbnailUrl}
               alt="video thumbnail"
+              loading="lazy"
+              decoding="async"
               style={{
                 width: '100%',
                 height: '100%',

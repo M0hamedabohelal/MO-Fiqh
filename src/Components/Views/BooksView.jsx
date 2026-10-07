@@ -14,7 +14,7 @@ const BooksView = ({ books, onOpenBook, newCount }) => (
       </div>
     )}
     <div className="row px-1">
-      {books.map(({ bookName, chaptersCount, issuesCount, readCount, progressPercent }) => (
+      {books.map(({ bookName, issuesCount, readCount, progressPercent }) => (
         <div className="col-6 mb-3 px-2" key={bookName}>
           <button
             className="btn w-100 p-0 book-item-btn shadow-sm"
@@ -29,12 +29,8 @@ const BooksView = ({ books, onOpenBook, newCount }) => (
               {/* Inner Arch Frame */}
               <div className="book-arch-frame">
                 <div className="book-arch-inner">
-                  <h4 className="book-top-title">موسوعة الفقه</h4>
+                  <h4 className="book-top-title">الفقه الميسر</h4>
                   <div className="book-main-title">{bookName}</div>
-                  <div className="book-subtitle">
-                    {chaptersCount > 0 ? `تقسيم أبواب` : 'فارغ'}
-                  </div>
-                  <div className="book-author">الباحث الفقهي</div>
                 </div>
               </div>
               

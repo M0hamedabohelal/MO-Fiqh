@@ -101,7 +101,6 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
         ignoreLocation: true, // المطابقة في أي موضع وليس بالبداية فقط
         ignoreFieldNorm: true,
         minMatchCharLength: 2, // تجاهل النتائج العشوائية بحرف واحد
-        includeMatches: true,
       }),
     [searchDocs]
   );

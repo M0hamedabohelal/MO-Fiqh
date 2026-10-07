@@ -10,10 +10,17 @@ export function useAnnouncements() {
     if (!isFirebaseConfigured) return;
     fetchAnnouncements().then(data => {
       setAnnouncements(data);
-      const readIds = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
+      let readIds = [];
+      try {
+        readIds = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
+      } catch {
+        readIds = [];
+      }
       const unread = data.filter(a => !readIds.includes(a.id)).length;
       setUnreadCount(unread);
-    }).catch(console.error);
+    }).catch(() => {
+      // تجاهل أخطاء الجلب — التنبيهات ليست حرجة
+    });
   }, []);
 
   const markAsRead = () => {
