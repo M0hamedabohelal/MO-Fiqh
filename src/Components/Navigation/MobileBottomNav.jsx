@@ -1,7 +1,8 @@
-import { FiHome, FiBookmark, FiEdit3, FiList, FiUser, FiShield, FiBook } from 'react-icons/fi';
+import { FiHome, FiBookmark, FiEdit3, FiList, FiUser, FiShield, FiBook, FiSearch } from 'react-icons/fi';
 
-// شريط التنقل السفلي للموبايل
-const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLogin }) => (
+// شريط التنقل السفلي للموبايل + زر بحث عائم (يظهر على الشاشات الصغيرة فقط)
+const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLogin, onOpenSearch }) => (
+  <>
   <div className="mobile-bottom-nav">
     <button
       className={`nav-item ${currentView === 'hero' ? 'active' : ''}`}
@@ -55,6 +56,17 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
       <span>{user ? (user.displayName || 'حسابي') : 'دخول'}</span>
     </button>
   </div>
+
+  {/* زر البحث العائم — للفون فقط (مخفي على الشاشات الكبيرة) */}
+  <button
+    className="mobile-search-fab"
+    onClick={onOpenSearch}
+    title="بحث"
+    aria-label="بحث"
+  >
+    <FiSearch size={22} />
+  </button>
+  </>
 );
 
 export default MobileBottomNav;

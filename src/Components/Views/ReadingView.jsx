@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiVideo,
@@ -51,6 +51,7 @@ const ReadingView = ({
   onCreateHighlight,
   onBackToIndex,
   onSelectLesson,
+  setFontSize,
 }) => {
   // طباعة الباب كاملاً
   const handlePrintChapter = () => {
@@ -92,9 +93,62 @@ const ReadingView = ({
     captureSelection();
   };
 
+  // طي شارات المسألة على الفون (مفتوحة افتراضيًا على الشاشات الكبيرة)
+  const [showMeta, setShowMeta] = useState(
+    () => typeof window === 'undefined' || window.innerWidth >= 768,
+  );
+
+  // مراجع السحب والقرص (فون)
+  const touchStartRef = useRef({ x: 0, y: 0, t: 0 });
+  const pinchDistRef = useRef(0);
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      // بداية قرص التكبير: سجّل المسافة وامنع زوم المتصفح أثناء الحركة
+      const a = e.touches[0];
+      const b = e.touches[1];
+      pinchDistRef.current = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      e.currentTarget.style.touchAction = 'none';
+    } else if (e.touches.length === 1) {
+      const t = e.touches[0];
+      touchStartRef.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2 && pinchDistRef.current > 0 && setFontSize) {
+      const a = e.touches[0];
+      const b = e.touches[1];
+      const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      const ratio = d / pinchDistRef.current;
+      // عتبة صغيرة حتى لا يهتز الخط مع كل حركة
+      if (Math.abs(ratio - 1) > 0.05) {
+        setFontSize((prev) => Math.min(24, Math.max(14, Math.round(prev * ratio))));
+        pinchDistRef.current = d;
+      }
+    }
+  };
+
   const handleTouchEnd = (e) => {
-    if (quoteImage.show) return;
+    e.currentTarget.style.touchAction = '';
+    const wasPinch = pinchDistRef.current > 0;
+    pinchDistRef.current = 0;
+    if (quoteImage.show || wasPinch) return;
     if (e.target.closest && e.target.closest('button')) return;
+    // السحب الأفقي = تنقل بين المسائل (يمين/شمال)، مع تجاهل السحب العمودي والتحديد
+    const changed = e.changedTouches && e.changedTouches[0];
+    if (changed && e.changedTouches.length === 1) {
+      const s = touchStartRef.current;
+      const dx = changed.clientX - s.x;
+      const dy = changed.clientY - s.y;
+      const dt = Date.now() - s.t;
+      const hasSelection = window.getSelection().toString().trim().length > 0;
+      if (!hasSelection && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8 && dt < 600) {
+        // RTL: السحب لليسار = المسألة التالية، لليمين = السابقة
+        if (dx < 0 && canGoNext) { onNext(); return; }
+        if (dx > 0 && canGoPrev) { onPrev(); return; }
+      }
+    }
     // نفس المنطق للمس في الموبايل مع مهلة قصيرة لاكتمال التحديد
     setTimeout(captureSelection, 100);
   };
@@ -114,7 +168,7 @@ const ReadingView = ({
   };
 
   return (
-    <div onMouseUp={handleMouseUp} onTouchEnd={handleTouchEnd}>
+    <div onMouseUp={handleMouseUp} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
       {/* ✅ شريط تقدم القراءة */}
       <ReadingProgressBar />
 
@@ -264,7 +318,19 @@ const ReadingView = ({
             {lesson.title}
           </h3>
 
-          <div className="d-flex justify-content-center flex-wrap gap-3 mb-4">
+          {/* زر طي/فتح تفاصيل المسألة — للفون فقط */}
+          <div className="d-md-none text-center mb-2">
+            <button
+              className="btn btn-sm text-muted"
+              onClick={() => setShowMeta((v) => !v)}
+              style={{ fontSize: '0.82rem' }}
+              aria-expanded={showMeta}
+            >
+              {showMeta ? 'إخفاء التفاصيل ▴' : 'تفاصيل المسألة ▾'}
+            </button>
+          </div>
+
+          <div className={`${showMeta ? 'd-flex' : 'd-none'} d-md-flex justify-content-center flex-wrap gap-3 mb-4`}>
             <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
               <FiBook className="ms-2" style={{ color: 'var(--accent-color)' }} /> ص {lesson.pageNumber}
             </span>

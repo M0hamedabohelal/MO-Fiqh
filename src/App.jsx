@@ -246,6 +246,7 @@ function App() {
           isAdminUser={isAdminUser}
           onNavigate={setCurrentView}
           onOpenLogin={() => setIsLoginOpen(true)}
+          onOpenSearch={() => setIsSearchOpen(true)}
         />
       )}
     </div>

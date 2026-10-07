@@ -52,7 +52,7 @@ const Topbar = ({ setFontSize, theme, toggleTheme, cloudStatus }) => {
 
   return (
     <>
-    <div className="d-flex justify-content-start align-items-center mb-3 gap-1 flex-wrap">
+    <div className="topbar-row d-flex justify-content-start align-items-center mb-3 gap-1 flex-wrap">
       <button className="btn btn-link text-decoration-none" style={{ color: 'var(--text-main)' }} onClick={decreaseFont}>A-</button>
       <button className="btn btn-link text-decoration-none fw-bold fs-5" style={{ color: 'var(--text-main)' }} onClick={increaseFont}>A+</button>
       
