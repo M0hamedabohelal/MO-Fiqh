@@ -610,19 +610,28 @@
 }
 
 @media (max-width: 480px) {
-  .hero-logo-showcase { width: 120px; height: 120px; }
-  .hero-logo-img { width: 90px; height: 90px; }
-  .hero-title { font-size: 2.2rem; }
-  
+  /* واجهة مدمجة للفون: كل العناصر أصغر وهوامش أضيق */
+  .hero-section { min-height: auto; padding: 4rem 0.75rem 1.5rem; }
+  .hero-logo-showcase { width: 88px; height: 88px; margin-bottom: 0.75rem; }
+  .hero-logo-img { width: 68px; height: 68px; }
+  .hero-title { font-size: 1.9rem; margin-bottom: 0.5rem; }
+  .hero-title-area { margin-bottom: 1.25rem; }
+  .hero-arch-inner { padding: 1.75rem 0.75rem 1.5rem; }
+  .hero-slider-content { padding: 1.1rem 0.9rem; min-height: 0; }
+  .slide-subtitle { font-size: 1.15rem; margin-bottom: 0.4rem; }
+  .slide-desc { font-size: 0.92rem; }
+  .hero-dots-container { margin-bottom: 1.5rem; gap: 8px; }
+  .hero-actions-container { gap: 1rem; }
+
   .hero-nav-btn { display: none; /* Hide arrows on very small screens, use dots */ }
   .hero-slider-wrapper { margin-bottom: 1rem; }
-  
+
   .hero-btn-primary { padding: 12px 30px; font-size: 1.05rem; width: 100%; justify-content: center; }
   .hero-secondary-actions { flex-direction: column; width: 100%; gap: 0.5rem; }
   .hero-btn-secondary { width: 100%; justify-content: center; }
-  
+
   .hero-arch-frame::before { border-radius: 30vw 30vw 10px 10px; }
   .hero-arch-frame::after { border-radius: 29vw 29vw 8px 8px; }
-  
+
   .hero-login-btn { top: 1rem; left: 1rem; }
 }

@@ -214,10 +214,18 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-start" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050, paddingTop: '10vh' }}>
-      
+    <div
+      className="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-start"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050, paddingTop: '10vh' }}
+      onClick={onClose}
+    >
+
       {/* جسم النافذة */}
-      <div className="custom-card w-100 p-4" style={{ maxWidth: '600px', margin: '0 20px', zIndex: 1051 }}>
+      <div
+        className="custom-card w-100 p-4"
+        style={{ maxWidth: '600px', margin: '0 20px', zIndex: 1051 }}
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* مربع البحث وزر الإغلاق */}
         <div className="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">

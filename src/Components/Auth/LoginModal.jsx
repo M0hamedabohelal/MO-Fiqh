@@ -71,7 +71,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }) => {
 
   return (
     <div
-      className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+      className="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
       style={{ backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 1100, padding: '20px' }}
       onClick={onClose}
     >

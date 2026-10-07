@@ -42,6 +42,8 @@ const AppLayout = ({
   toggleStopMark,
   onOpenSearch, onOpenLogin, reloadFromCloud,
   currentSearchQuery,
+  newLessonIds,
+  newLessonsCount,
 }) => (
   <div className="row g-0">
 
@@ -75,12 +77,12 @@ const AppLayout = ({
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <Suspense fallback={<ViewSpinner />}>
 
               {currentView === 'books' && (
-                <BooksView books={booksWithStats} onOpenBook={openBookChapters} />
+                <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} />
               )}
 
               {currentView === 'chapters' && (
@@ -90,6 +92,7 @@ const AppLayout = ({
                   openChapterName={openChapterName}
                   onToggleChapter={toggleChapter}
                   onSelectLesson={(lesson) => openLessonById(lesson.id)}
+                  newLessonIds={newLessonIds}
                 />
               )}
 
@@ -98,6 +101,7 @@ const AppLayout = ({
                   bookName={selectedBookName}
                   chapters={selectedBookChapters}
                   onSelectLesson={(lesson) => openLessonById(lesson.id)}
+                  newLessonIds={newLessonIds}
                 />
               )}
 

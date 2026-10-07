@@ -14,7 +14,7 @@ const itemVariants = {
 };
 
 // شاشة أبواب الكتاب الواحد (أكورديون بكل باب ومسائله)
-const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, onSelectLesson }) => (
+const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, onSelectLesson, newLessonIds }) => (
   <div className="mt-4">
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
       <FiList className="ms-2" /> {bookName} - الفصول
@@ -68,6 +68,7 @@ const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, on
                         title={lesson.title}
                         pageNumber={lesson.pageNumber}
                         isRead={lesson.isRead}
+                        isNew={newLessonIds && newLessonIds.has(String(lesson.id))}
                         onClick={() => onSelectLesson(lesson)}
                       />
                     ))}

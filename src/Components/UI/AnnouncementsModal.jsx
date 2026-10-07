@@ -8,7 +8,7 @@ const AnnouncementsModal = ({ announcements, onClose }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className='modal-backdrop'
+        className='modal-backdrop modal-overlay'
         style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '15px' }}
         onClick={onClose}
       >

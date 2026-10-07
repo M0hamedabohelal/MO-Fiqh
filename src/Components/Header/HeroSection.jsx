@@ -98,6 +98,8 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpen
                 className="hero-logo-img"
                 width="150"
                 height="150"
+                fetchpriority="high"
+                decoding="async"
               />
             </div>
 

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:ital,wght@0,400;0,700;1,400&family=Tajawal:wght@400;500;700;800&display=swap");
+/* الخطوط تُحمَّل من index.html عبر link (أسرع) — لا تستخدم @import هنا */
 
 :root {
   --bg-color: #fafaf7;
@@ -42,14 +42,12 @@ html {
   font-size: var(--base-font-size, 16px) !important;
 }
 
-/* تغيير الثيم بسلاسة — تتضمن الخلفية والنص والحدود */
+/* تغيير الثيم بسلاسة — الخلفية والنص والحدود فقط (بدون ظلال وأحجام حفاظًا على أداء الفون) */
 *, *::before, *::after {
   transition:
     background-color 0.3s ease,
     color 0.3s ease,
-    border-color 0.3s ease,
-    box-shadow 0.3s ease,
-    font-size 0.2s ease-in-out;
+    border-color 0.3s ease;
 }
 
 /* استثناء: عناصر تحتاج لتحركات فورية دون تأخير */

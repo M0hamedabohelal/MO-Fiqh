@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiVideo,
@@ -51,7 +51,6 @@ const ReadingView = ({
   onCreateHighlight,
   onBackToIndex,
   onSelectLesson,
-  setFontSize,
 }) => {
   // طباعة الباب كاملاً
   const handlePrintChapter = () => {
@@ -93,47 +92,18 @@ const ReadingView = ({
     captureSelection();
   };
 
-  // طي شارات المسألة على الفون (مفتوحة افتراضيًا على الشاشات الكبيرة)
-  const [showMeta, setShowMeta] = useState(
-    () => typeof window === 'undefined' || window.innerWidth >= 768,
-  );
-
-  // مراجع السحب والقرص (فون)
+  // مراجع السحب (فون)
   const touchStartRef = useRef({ x: 0, y: 0, t: 0 });
-  const pinchDistRef = useRef(0);
 
   const handleTouchStart = (e) => {
-    if (e.touches.length === 2) {
-      // بداية قرص التكبير: سجّل المسافة وامنع زوم المتصفح أثناء الحركة
-      const a = e.touches[0];
-      const b = e.touches[1];
-      pinchDistRef.current = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-      e.currentTarget.style.touchAction = 'none';
-    } else if (e.touches.length === 1) {
+    if (e.touches.length === 1) {
       const t = e.touches[0];
       touchStartRef.current = { x: t.clientX, y: t.clientY, t: Date.now() };
     }
   };
 
-  const handleTouchMove = (e) => {
-    if (e.touches.length === 2 && pinchDistRef.current > 0 && setFontSize) {
-      const a = e.touches[0];
-      const b = e.touches[1];
-      const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-      const ratio = d / pinchDistRef.current;
-      // عتبة صغيرة حتى لا يهتز الخط مع كل حركة
-      if (Math.abs(ratio - 1) > 0.05) {
-        setFontSize((prev) => Math.min(24, Math.max(14, Math.round(prev * ratio))));
-        pinchDistRef.current = d;
-      }
-    }
-  };
-
   const handleTouchEnd = (e) => {
-    e.currentTarget.style.touchAction = '';
-    const wasPinch = pinchDistRef.current > 0;
-    pinchDistRef.current = 0;
-    if (quoteImage.show || wasPinch) return;
+    if (quoteImage.show) return;
     if (e.target.closest && e.target.closest('button')) return;
     // السحب الأفقي = تنقل بين المسائل (يمين/شمال)، مع تجاهل السحب العمودي والتحديد
     const changed = e.changedTouches && e.changedTouches[0];
@@ -167,8 +137,41 @@ const ReadingView = ({
     setSelectionPopup({ show: false, text: '', x: 0, y: 0, below: false });
   };
 
+  // على الفون: أنيميشن دخول بسيط (opacity فقط) بدل حركة 3D الثقيلة على الـ GPU
+  const isSmallScreen = useMemo(
+    () => typeof window !== 'undefined' && window.innerWidth < 768,
+    [],
+  );
+
+  // عنوان لاصق يظهر عند السكرول لأسفل (فون فقط)
+  const [showSticky, setShowSticky] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onScroll = () => setShowSticky(window.scrollY > 340);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <div onMouseUp={handleMouseUp} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+    <div onMouseUp={handleMouseUp} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      {/* عنوان لاصق أعلى الشاشة عند السكرول (فون فقط) */}
+      <AnimatePresence>
+        {showSticky && (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => window.scrollTo({ top: 0 })}
+            title="العودة لأعلى"
+            className="reading-sticky-title d-md-none"
+          >
+            {lesson.title}
+          </motion.button>
+        )}
+      </AnimatePresence>
       {/* ✅ شريط تقدم القراءة */}
       <ReadingProgressBar />
 
@@ -306,11 +309,11 @@ const ReadingView = ({
       <AnimatePresence mode="wait">
         <motion.div
           key={lesson.id}
-          initial={{ opacity: 0, x: 50, rotateY: -10 }}
-          animate={{ opacity: 1, x: 0, rotateY: 0 }}
-          exit={{ opacity: 0, x: -50, rotateY: 10 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-          style={{ perspective: '1000px' }}
+          initial={isSmallScreen ? { opacity: 0 } : { opacity: 0, x: 50, rotateY: -10 }}
+          animate={isSmallScreen ? { opacity: 1 } : { opacity: 1, x: 0, rotateY: 0 }}
+          exit={isSmallScreen ? { opacity: 0 } : { opacity: 0, x: -50, rotateY: 10 }}
+          transition={{ duration: isSmallScreen ? 0.15 : 0.22, ease: 'easeOut' }}
+          style={isSmallScreen ? undefined : { perspective: '1000px' }}
         >
           <Breadcrumb book={lesson.bookName} chapter={lesson.chapterName} />
 
@@ -318,19 +321,7 @@ const ReadingView = ({
             {lesson.title}
           </h3>
 
-          {/* زر طي/فتح تفاصيل المسألة — للفون فقط */}
-          <div className="d-md-none text-center mb-2">
-            <button
-              className="btn btn-sm text-muted"
-              onClick={() => setShowMeta((v) => !v)}
-              style={{ fontSize: '0.82rem' }}
-              aria-expanded={showMeta}
-            >
-              {showMeta ? 'إخفاء التفاصيل ▴' : 'تفاصيل المسألة ▾'}
-            </button>
-          </div>
-
-          <div className={`${showMeta ? 'd-flex' : 'd-none'} d-md-flex justify-content-center flex-wrap gap-3 mb-4`}>
+          <div className="d-flex justify-content-center flex-wrap gap-3 mb-4">
             <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
               <FiBook className="ms-2" style={{ color: 'var(--accent-color)' }} /> ص {lesson.pageNumber}
             </span>

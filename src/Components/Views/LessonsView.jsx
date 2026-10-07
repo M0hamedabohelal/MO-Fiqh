@@ -15,7 +15,7 @@ const itemVariants = {
 };
 
 // شاشة فهرس المسائل الكامل للكتاب المختار (مجمعة حسب الأبواب)
-const LessonsView = ({ bookName, chapters, onSelectLesson }) => (
+const LessonsView = ({ bookName, chapters, onSelectLesson, newLessonIds }) => (
   <div className="mt-4">
     <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <h3 className="mb-0 fw-bold" style={{ color: 'var(--primary-color)' }}>
@@ -65,6 +65,7 @@ const LessonsView = ({ bookName, chapters, onSelectLesson }) => (
                   title={lesson.title}
                   pageNumber={lesson.pageNumber}
                   isRead={lesson.isRead}
+                  isNew={newLessonIds && newLessonIds.has(String(lesson.id))}
                   onClick={() => onSelectLesson(lesson)}
                 />
               </motion.div>

@@ -57,7 +57,7 @@ function App() {
     const maxTimer = setTimeout(() => setShowSplash(false), 2000);
     if (!authLoading) {
       clearTimeout(maxTimer);
-      const minTimer = setTimeout(() => setShowSplash(false), 600);
+      const minTimer = setTimeout(() => setShowSplash(false), 350);
       return () => clearTimeout(minTimer);
     }
     return () => clearTimeout(maxTimer);
@@ -118,7 +118,7 @@ function App() {
   const openLessonByIndex = useCallback((index) => {
     setCurrentIndex(index);
     setCurrentView('reading');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0 });
   }, [setCurrentIndex, setCurrentView]);
 
   const openLessonById = useCallback((lessonId) => {
@@ -152,8 +152,8 @@ function App() {
     if (currentView === 'reading' && currentLesson?.id) trackLessonView(currentLesson.id);
   }, [currentView, currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // التمرير لأعلى عند تغيير الشاشة
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [currentView, currentIndex]);
+  // التمرير لأعلى فورًا عند تغيير الشاشة (بدون smooth البطيء على الفون)
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [currentView, currentIndex]);
 
   // ─── اختصارات لوحة المفاتيح ───
   const handleKeyboardShortcut = useCallback((event) => {
@@ -193,6 +193,59 @@ function App() {
     }
   }, [user, authLoading]);
 
+  // ─── شارة "جديد": مسائل أُضيفت منذ آخر زيارة (المعرفات متسلسلة دائمًا) ───
+  const seenMaxId = useMemo(() => {
+    try {
+      return Number(localStorage.getItem('fiqh_seen_max_lesson_id') || 0);
+    } catch {
+      return 0;
+    }
+  }, []);
+  const currentMaxId = useMemo(
+    () => lessons.reduce((m, l) => Math.max(m, Number(l.id) || 0), 0),
+    [lessons],
+  );
+  useEffect(() => {
+    if (currentMaxId > 0) {
+      try {
+        localStorage.setItem('fiqh_seen_max_lesson_id', String(Math.max(currentMaxId, seenMaxId)));
+      } catch {
+        // التخزين المحلي غير متاح — نتجاهل بصمت
+      }
+    }
+  }, [currentMaxId, seenMaxId]);
+  const newLessonIds = useMemo(() => {
+    const s = new Set();
+    lessons.forEach((l) => {
+      if (Number(l.id) > seenMaxId) s.add(String(l.id));
+    });
+    return s;
+  }, [lessons, seenMaxId]);
+
+  // ─── تسريع التنقل: تحميل شاشات التطبيق مسبقًا عند الخمول ───
+  useEffect(() => {
+    const preload = () => {
+      void import('./Components/Views/BooksView');
+      void import('./Components/Views/ChaptersView');
+      void import('./Components/Views/LessonsView');
+      void import('./Components/Views/ReadingView');
+      void import('./Components/Views/BookmarksView');
+      void import('./Components/Views/HighlightsView');
+      void import('./Components/Views/SettingsView');
+    };
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(preload, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const t = setTimeout(preload, 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // لوحة الإدارة تُحمَّل مسبقًا للمشرفين فقط
+  useEffect(() => {
+    if (isAdminUser) void import('./Components/Admin/AdminPanel');
+  }, [isAdminUser]);
+
   // Props مشتركة للـ AppLayout
   const layoutProps = {
     currentView, currentIndex, currentLesson, lessons,
@@ -212,6 +265,8 @@ function App() {
     onOpenLogin: () => setIsLoginOpen(true),
     reloadFromCloud,
     currentSearchQuery,
+    newLessonIds,
+    newLessonsCount: newLessonIds.size,
   };
 
   return (

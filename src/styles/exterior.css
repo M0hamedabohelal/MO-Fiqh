@@ -357,3 +357,122 @@
   background-color: var(--badge-bg) !important;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* ==================== شارة "جديد" للمسائل المضافة حديثًا ==================== */
+.new-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-family: var(--font-ui);
+  color: #fff;
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  padding: 1px 10px 3px;
+  border-radius: 999px;
+  line-height: 1.6;
+  box-shadow: 0 2px 6px rgba(39, 174, 96, 0.4);
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .new-badge {
+  color: #06281a;
+  background: linear-gradient(135deg, #2ecc71, #7bed9f);
+}
+
+/* ==================== عنوان القراءة اللاصق (فون) ==================== */
+.reading-sticky-title {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1000;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--card-bg);
+  color: var(--primary-color);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 48px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+@media (min-width: 768px) {
+  .reading-sticky-title {
+    display: none;
+  }
+}
+
+/* ==================== النوافذ كـ Bottom Sheet على الفون ==================== */
+@media (max-width: 768px) {
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .modal-overlay > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 92dvh;
+    overflow-y: auto;
+  }
+}
+
+/* ==================== إطار مخطوطة أنحف + شريط سفلي أنظف (فون) ==================== */
+@media (max-width: 480px) {
+  .manuscript-frame::before {
+    inset: 6px;
+    border-width: 1px;
+  }
+  .manuscript-frame::after {
+    inset: 9px;
+  }
+  /* إظهار تسمية الزر النشط فقط لتقليل الزحمة */
+  .mobile-bottom-nav .nav-item span {
+    display: none;
+  }
+  .mobile-bottom-nav .nav-item.active span {
+    display: block;
+  }
+}
+
+/* ==================== راحة القراءة ليلًا ==================== */
+/* التفاف نصي أجمل يقلل التعرج في نهايات الأسطر */
+.paragraph,
+.textContent p,
+.explanation-card p {
+  text-wrap: pretty;
+}
+
+/* تخفيف سطوع إطار المخطوطة في الداكن */
+[data-theme="dark"] .manuscript-frame::before {
+  opacity: 0.35;
+}
+[data-theme="dark"] .manuscript-frame::after {
+  opacity: 0.18;
+}
+
+/* تباعد أسطر أريح للقراءة الطويلة ليلًا على الفون */
+@media (max-width: 480px) {
+  [data-theme="dark"] .custom-card .paragraph {
+    line-height: 2.05 !important;
+  }
+}
+
+/* ==================== تخفيف GPU على الفون ==================== */
+/* إلغاء blur البطاقات وطبقة البردي على الشاشات الصغيرة — أثقل عمليتين أثناء السكرول */
+@media (max-width: 768px) {
+  [data-theme] .custom-card {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: var(--card-bg);
+  }
+  .parchment-texture::before {
+    display: none;
+  }
+}

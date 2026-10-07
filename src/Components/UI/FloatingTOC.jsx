@@ -1,9 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiList, FiX } from 'react-icons/fi';
 
 const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const panelRef = useRef(null);
+  const btnRef = useRef(null);
+
+  // الإغلاق بالضغط في أي مكان خارج اللوحة والزر (لا يحجب التمرير أو التفاعل)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onPointerDown = (e) => {
+      if (panelRef.current && panelRef.current.contains(e.target)) return;
+      if (btnRef.current && btnRef.current.contains(e.target)) return;
+      setIsOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [isOpen]);
 
   const bookLessons = useMemo(() => {
     return allLessons.filter(l => l.bookName === currentLesson.bookName);
@@ -25,6 +39,7 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }) => {
     <>
       {/* Toggle Button */}
       <button
+        ref={btnRef}
         onClick={() => setIsOpen(!isOpen)}
         className="btn shadow-lg d-flex align-items-center justify-content-center floating-toc-btn"
         title="شجرة الفقه"
@@ -48,6 +63,7 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }) => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            ref={panelRef}
             initial={{ opacity: 0, x: -50, scale: 0.9 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -50, scale: 0.9 }}
