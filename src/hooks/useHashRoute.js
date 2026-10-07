@@ -19,7 +19,7 @@ function encode(s) {
 //   #/lesson/{id}
 //   #/book/{bookName}                          → شاشة الأبواب لكتاب معين
 //   #/book/{bookName}/chapter/{chapterName}    → شاشة الأبواب مع فتح باب معين
-//   #/hero | #/books | #/lessons | #/bookmarks | #/highlights | #/admin
+//   #/hero | #/books | #/lessons | #/bookmarks | #/highlights | #/achievements | #/admin
 function parseRoute(hash, lessons) {
   const lessonMatch = hash.match(/^#\/lesson\/(\d+)/);
   if (lessonMatch) {
@@ -37,7 +37,7 @@ function parseRoute(hash, lessons) {
     return { view: "chapters", index: 0, lessonId: null, bookName, chapterName };
   }
 
-  const viewMatch = hash.match(/^#\/?(hero|books|lessons|bookmarks|highlights|admin)$/);
+  const viewMatch = hash.match(/^#\/?(hero|books|lessons|bookmarks|highlights|achievements|admin)$/);
   if (viewMatch) return { view: viewMatch[1], index: 0, lessonId: null, bookName: null, chapterName: null };
 
   return { view: "hero", index: 0, lessonId: null, bookName: null, chapterName: null };
@@ -107,7 +107,7 @@ export function useHashRoute(lessons) {
 
   // لحفظ التبويب الأخير الذي كان به قائمة (للرجوع إليه)
   const lastListView = useRef(
-    ["books", "chapters", "lessons", "bookmarks", "highlights", "admin"].includes(
+    ["books", "chapters", "lessons", "bookmarks", "highlights", "achievements", "admin"].includes(
       initialRoute.view,
     )
       ? initialRoute.view
@@ -127,7 +127,7 @@ export function useHashRoute(lessons) {
 
   useEffect(() => {
     if (
-      ["books", "chapters", "lessons", "bookmarks", "highlights", "admin"].includes(
+      ["books", "chapters", "lessons", "bookmarks", "highlights", "achievements", "admin"].includes(
         currentView,
       )
     ) {
@@ -138,14 +138,14 @@ export function useHashRoute(lessons) {
   const goToNextLesson = useCallback(() => {
     if (currentIndexRef.current < lessons.length - 1) {
       setCurrentIndex(currentIndexRef.current + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0 });
     }
   }, [lessons.length]);
 
   const goToPrevLesson = useCallback(() => {
     if (currentIndexRef.current > 0) {
       setCurrentIndex(currentIndexRef.current - 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0 });
     }
   }, []);
 
@@ -200,7 +200,7 @@ export function useHashRoute(lessons) {
         hash = `#/book/${encode(selectedBookName)}`;
       }
     } else if (
-      ["hero", "books", "lessons", "bookmarks", "highlights", "admin"].includes(
+      ["hero", "books", "lessons", "bookmarks", "highlights", "achievements", "admin"].includes(
         currentView,
       )
     ) {

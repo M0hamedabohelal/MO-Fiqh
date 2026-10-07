@@ -786,8 +786,8 @@ button:active:not(:disabled),
   /* حجم خط متن المسألة على الموبايل */
   .custom-card p,
   .custom-card span {
-    font-size: 1rem !important;
-    line-height: 1.85 !important;
+    font-size: 1.05rem !important;
+    line-height: 1.95 !important;
   }
 
   /* ─── الفوائد المقتبسة (Highlights) ─── */

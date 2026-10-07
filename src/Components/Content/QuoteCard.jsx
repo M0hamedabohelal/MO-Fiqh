@@ -274,7 +274,7 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }) => {
     return (
       <motion.p
         key={index}
-        className={`mb-3 ${styles.paragraph} ${typoClass}`}
+        className={`${styles.paragraph} ${typoClass}`}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: Math.min(index * 0.05, 0.4), duration: 0.4, ease: 'easeOut' }}

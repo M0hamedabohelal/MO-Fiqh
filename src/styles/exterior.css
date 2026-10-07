@@ -358,6 +358,95 @@
   transition: background-color 5000s ease-in-out 0s;
 }
 
+/* ==================== أغلفة الكتب (ثابتة الألوان في كل الثيمات) ==================== */
+.book-cover {
+  position: relative;
+  overflow: hidden;
+  border: none;
+  border-radius: 16px;
+  padding: 1.5rem 1.5rem 1.25rem;
+  color: #f5ead1;
+  text-align: right;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.book-cover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.book-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cpath d='M30 0L35 25L60 30L35 35L30 60L25 35L0 30L25 25Z' fill='%23d8b96c'/%3E%3C/svg%3E");
+  background-size: 60px 60px;
+}
+
+.book-cover::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(216, 185, 108, 0.35);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.cover-0 { background: linear-gradient(135deg, #0f3d3e 0%, #1a5c5e 60%, #0b2425 100%); }
+.cover-1 { background: linear-gradient(135deg, #3a2b12 0%, #6b4d1f 60%, #241a0c 100%); }
+.cover-2 { background: linear-gradient(135deg, #3d1520 0%, #6e2436 60%, #250c13 100%); }
+
+.book-cover-ornament {
+  position: absolute;
+  top: 2px;
+  left: 14px;
+  font-size: 2.6rem;
+  line-height: 1;
+  color: #d8b96c;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.book-cover-title {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.book-cover-meta {
+  color: #d8b96c;
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+
+.book-cover-arrow {
+  color: #d8b96c;
+}
+
+.book-cover-done {
+  color: #2ecc71;
+}
+
+.book-cover-track {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.book-cover-progress {
+  color: rgba(245, 234, 209, 0.75);
+}
+
+@media (max-width: 480px) {
+  .book-cover {
+    padding: 1.25rem 1.25rem 1rem;
+  }
+  .book-cover-title {
+    font-size: 1.4rem;
+  }
+}
+
 /* ==================== شارة "جديد" للمسائل المضافة حديثًا ==================== */
 .new-badge {
   display: inline-block;
@@ -401,10 +490,17 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
-@media (min-width: 768px) {
-  .reading-sticky-title {
-    display: none;
-  }
+/* ==================== نافذة البحث مثبتة أعلى الشاشة (كل المقاسات) ==================== */
+.search-overlay {
+  align-items: flex-start !important;
+  padding: 0 !important;
+}
+
+.search-overlay > * {
+  width: 100% !important;
+  max-width: 600px !important;
+  margin: env(safe-area-inset-top, 0px) auto 0 !important;
+  border-radius: 0 0 20px 20px !important;
 }
 
 /* ==================== النوافذ كـ Bottom Sheet على الفون ==================== */
@@ -461,6 +557,13 @@
 @media (max-width: 480px) {
   [data-theme="dark"] .custom-card .paragraph {
     line-height: 2.05 !important;
+  }
+}
+
+/* ==================== محاذاة أنظف: يمين بدل الضبط على الشاشات المتوسطة والصغيرة ==================== */
+@media (max-width: 768px) {
+  .explanation-card p {
+    text-align: right;
   }
 }
 

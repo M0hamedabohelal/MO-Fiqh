@@ -13,6 +13,7 @@ const BookmarksView  = lazy(() => import('../Views/BookmarksView'));
 const HighlightsView = lazy(() => import('../Views/HighlightsView'));
 const ReadingView    = lazy(() => import('../Views/ReadingView'));
 const SettingsView   = lazy(() => import('../Views/SettingsView'));
+const AchievementsView = lazy(() => import('../Views/AchievementsView'));
 const AdminPanel     = lazy(() => import('../Admin/AdminPanel'));
 
 const ViewSpinner = ({ label = 'جارٍ التحميل...' }) => (
@@ -44,6 +45,7 @@ const AppLayout = ({
   currentSearchQuery,
   newLessonIds,
   newLessonsCount,
+  lessonsCount,
 }) => (
   <div className="row g-0">
 
@@ -174,6 +176,18 @@ const AppLayout = ({
                   canInstall={canInstall}
                   onInstall={promptInstall}
                   isInstalled={false}
+                  onOpenAchievements={() => setCurrentView('achievements')}
+                />
+              )}
+
+              {currentView === 'achievements' && (
+                <AchievementsView
+                  readLessons={readLessons}
+                  highlights={highlights}
+                  notes={notes}
+                  booksWithStats={booksWithStats}
+                  lessonsCount={lessonsCount}
+                  userName={user?.displayName || user?.email || 'طالب العلم'}
                 />
               )}
 

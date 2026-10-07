@@ -166,7 +166,7 @@ const ReadingView = ({
             transition={{ duration: 0.2 }}
             onClick={() => window.scrollTo({ top: 0 })}
             title="العودة لأعلى"
-            className="reading-sticky-title d-md-none"
+            className="reading-sticky-title"
           >
             {lesson.title}
           </motion.button>

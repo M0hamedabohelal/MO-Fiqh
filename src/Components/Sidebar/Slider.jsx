@@ -1,4 +1,4 @@
-import { FiBook, FiList, FiFileText, FiSearch, FiSettings, FiBookmark, FiEdit3, FiUser, FiShield, FiDownload } from 'react-icons/fi';
+import { FiBook, FiList, FiFileText, FiSearch, FiSettings, FiBookmark, FiEdit3, FiUser, FiShield, FiDownload, FiAward } from 'react-icons/fi';
 import logo from '../../assets/logo.webp';
 import './Slider.css';
 
@@ -66,6 +66,14 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
             onClick={() => setActiveView('highlights')}
           >
             <FiEdit3 className="sidebar-btn-icon" size={22} /> الفوائد المقتبسة
+          </button>
+        </li>
+        <li className="sidebar-nav-item">
+          <button 
+            className={`sidebar-btn ${activeView === 'achievements' ? 'sidebar-btn-active' : ''}`}
+            onClick={() => setActiveView('achievements')}
+          >
+            <FiAward className="sidebar-btn-icon" size={22} /> إنجازاتي
           </button>
         </li>
         {isAdminUser && (

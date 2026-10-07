@@ -215,15 +215,15 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
 
   return (
     <div
-      className="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-start"
-      style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050, paddingTop: '10vh' }}
+      className="search-overlay position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-start"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}
       onClick={onClose}
     >
 
       {/* جسم النافذة */}
       <div
         className="custom-card w-100 p-4"
-        style={{ maxWidth: '600px', margin: '0 20px', zIndex: 1051 }}
+        style={{ maxWidth: '600px', zIndex: 1051 }}
         onClick={(e) => e.stopPropagation()}
       >
         

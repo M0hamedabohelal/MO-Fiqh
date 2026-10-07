@@ -20,6 +20,9 @@ import { useAppData }          from './hooks/useAppData';
 import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
 
+// لقطة وقت تحميل التطبيق — للمقارنات الزمنية أثناء الرسم (أسبوع الشارة)
+const APP_START = Date.now();
+
 function App() {
   // ─── Auth ───
   const { user, isAdminUser, authLoading } = useAuth();
@@ -193,34 +196,98 @@ function App() {
     }
   }, [user, authLoading]);
 
-  // ─── شارة "جديد": مسائل أُضيفت منذ آخر زيارة (المعرفات متسلسلة دائمًا) ───
-  const seenMaxId = useMemo(() => {
+  // ─── شارة "جديد": تظهر أسبوعًا من أول ظهور للمسألة ───
+  // (المسائل بلا تاريخ إضافة، فيُحفظ أول ظهور محليًا؛ والقديم منها لا يُوسم)
+  const NEW_BADGE_DAYS = 7;
+  const readFirstSeen = () => {
+    try {
+      return JSON.parse(localStorage.getItem('fiqh_lessons_first_seen') || '{}');
+    } catch {
+      return {};
+    }
+  };
+  const readSeenMax = () => {
     try {
       return Number(localStorage.getItem('fiqh_seen_max_lesson_id') || 0);
     } catch {
       return 0;
     }
-  }, []);
-  const currentMaxId = useMemo(
-    () => lessons.reduce((m, l) => Math.max(m, Number(l.id) || 0), 0),
-    [lessons],
-  );
-  useEffect(() => {
-    if (currentMaxId > 0) {
-      try {
-        localStorage.setItem('fiqh_seen_max_lesson_id', String(Math.max(currentMaxId, seenMaxId)));
-      } catch {
-        // التخزين المحلي غير متاح — نتجاهل بصمت
-      }
-    }
-  }, [currentMaxId, seenMaxId]);
-  const newLessonIds = useMemo(() => {
-    const s = new Set();
+  };
+  const { freshIds } = useMemo(() => {
+    const fresh = new Set();
+    if (lessons.length === 0) return { freshIds: fresh };
+    const weekMs = NEW_BADGE_DAYS * 24 * 60 * 60 * 1000;
+    const records = readFirstSeen();
+    const seenMax = readSeenMax();
+    const isFirstRun = seenMax === 0 && Object.keys(records).length === 0;
     lessons.forEach((l) => {
-      if (Number(l.id) > seenMaxId) s.add(String(l.id));
+      const id = String(l.id);
+      const rec = records[id];
+      if (rec === undefined) {
+        // بلا سجل: جديدة فقط لو ظهرت بعد آخر معرف معروف (وليست أول تشغيل)
+        if (!isFirstRun && (Number(l.id) || 0) > seenMax) fresh.add(id);
+      } else if (rec > 0 && APP_START - rec < weekMs) {
+        fresh.add(id);
+      }
     });
-    return s;
-  }, [lessons, seenMaxId]);
+    return { freshIds: fresh };
+  }, [lessons]);
+  // ختم الطوابع الزمنية للمسائل الجديدة + تحديث أعلى معرف + تنظيف المحذوف
+  useEffect(() => {
+    if (lessons.length === 0) return;
+    const now = Date.now();
+    const records = readFirstSeen();
+    const seenMax = readSeenMax();
+    const isFirstRun = seenMax === 0 && Object.keys(records).length === 0;
+    let changed = false;
+    let maxId = seenMax;
+    const alive = new Set();
+    lessons.forEach((l) => {
+      const id = String(l.id);
+      alive.add(id);
+      const numId = Number(l.id) || 0;
+      if (numId > maxId) maxId = numId;
+      if (records[id] === undefined && !isFirstRun && numId > seenMax) {
+        records[id] = now;
+        changed = true;
+      }
+    });
+    Object.keys(records).forEach((id) => {
+      if (!alive.has(id)) {
+        delete records[id];
+        changed = true;
+      }
+    });
+    try {
+      if (changed) localStorage.setItem('fiqh_lessons_first_seen', JSON.stringify(records));
+      if (maxId !== seenMax) localStorage.setItem('fiqh_seen_max_lesson_id', String(maxId));
+    } catch {
+      // التخزين المحلي غير متاح — نتجاهل بصمت
+    }
+  }, [lessons]);
+  const newLessonIds = freshIds;
+  const newLessonsCount = useMemo(
+    () => lessons.filter((l) => freshIds.has(String(l.id)) && !readLessons.includes(String(l.id))).length,
+    [lessons, freshIds, readLessons],
+  );
+
+  // ─── تسجيل يوم الزيارة لسلسلة المواظبة (الإنجازات: آخر 365 يومًا) ───
+  useEffect(() => {
+    try {
+      const key = 'fiqh_visit_days';
+      const now = new Date();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const today = `${now.getFullYear()}-${m}-${day}`;
+      const days = JSON.parse(localStorage.getItem(key) || '[]');
+      if (!days.includes(today)) {
+        days.push(today);
+        localStorage.setItem(key, JSON.stringify(days.slice(-365)));
+      }
+    } catch {
+      // التخزين المحلي غير متاح — نتجاهل بصمت
+    }
+  }, []);
 
   // ─── تسريع التنقل: تحميل شاشات التطبيق مسبقًا عند الخمول ───
   useEffect(() => {
@@ -266,7 +333,8 @@ function App() {
     reloadFromCloud,
     currentSearchQuery,
     newLessonIds,
-    newLessonsCount: newLessonIds.size,
+    newLessonsCount,
+    lessonsCount: lessons.length,
   };
 
   return (

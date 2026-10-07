@@ -1,11 +1,24 @@
-import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiStar, FiActivity } from 'react-icons/fi';
+import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiStar, FiActivity, FiAward, FiChevronLeft } from 'react-icons/fi';
 
 // شاشة الإعدادات وحول التطبيق
-const SettingsView = ({ canInstall, onInstall, isInstalled }) => (
+const SettingsView = ({ canInstall, onInstall, isInstalled, onOpenAchievements }) => (
   <div className="mt-4 mb-5 text-center">
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
       حول التطبيق والإعدادات
     </h3>
+
+    {/* بطاقة الدخول للإنجازات */}
+    <div className="custom-card p-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>
+      <button
+        className="btn w-100 d-flex justify-content-between align-items-center list-btn border-0 p-3"
+        onClick={onOpenAchievements}
+      >
+        <span className="d-flex align-items-center gap-2 fw-bold" style={{ color: 'var(--text-main)' }}>
+          <FiAward size={22} style={{ color: 'var(--accent-color)' }} /> إنجازاتي ومواظبتي
+        </span>
+        <FiChevronLeft style={{ color: 'var(--accent-color)' }} />
+      </button>
+    </div>
 
     <div className="custom-card p-5 mx-auto text-center" style={{ maxWidth: '600px' }}>
 
