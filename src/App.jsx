@@ -140,7 +140,8 @@ function App() {
   }, [currentLesson, addHighlight]);
 
   const toggleStopMark = () => {
-    const id = currentLesson.id.toString();
+    const id = currentLesson?.id?.toString();
+    if (!id) return;
     if (lastReadLessonId === id) {
       setLastReadLessonId(null);
       localStorage.removeItem('lastReadLessonId');
@@ -151,9 +152,10 @@ function App() {
   };
 
   // تسجيل مشاهدة المسألة
+  const currentLessonId = currentLesson?.id;
   useEffect(() => {
-    if (currentView === 'reading' && currentLesson?.id) trackLessonView(currentLesson.id);
-  }, [currentView, currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (currentView === 'reading' && currentLessonId) trackLessonView(currentLessonId);
+  }, [currentView, currentLessonId]);
 
   // التمرير لأعلى فورًا عند تغيير الشاشة (بدون smooth البطيء على الفون)
   useEffect(() => { window.scrollTo({ top: 0 }); }, [currentView, currentIndex]);

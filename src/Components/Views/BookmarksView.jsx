@@ -5,7 +5,9 @@ import { useAuth } from '../Auth/AuthContext';
 // شاشة المسائل المحفوظة في المفضلة
 const BookmarksView = ({ bookmarks, lessons, onOpenLessonById, onBrowse, onOpenLogin }) => {
   const { user } = useAuth();
-  const bookmarkedLessons = lessons.filter((l) => bookmarks.includes(l.id));
+  // المطابقة كنصوص دائمًا — المعرفات قد تأتي أرقامًا من مصدر ونصوصًا من آخر
+  const bookmarkSet = new Set((bookmarks || []).map(String));
+  const bookmarkedLessons = lessons.filter((l) => bookmarkSet.has(String(l.id)));
 
   return (
     <div className="mt-4 mb-5">

@@ -138,8 +138,8 @@ const AppLayout = ({
                   onSaveNote={saveNoteForLesson}
                   isRead={readLessons.includes(String(currentLesson.id))}
                   onToggleRead={() => toggleReadLesson(currentLesson.id)}
-                  isBookmarked={bookmarks.includes(currentLesson.id)}
-                  onToggleBookmark={() => toggleBookmark(currentLesson.id)}
+                  isBookmarked={bookmarks.includes(String(currentLesson.id))}
+                  onToggleBookmark={() => toggleBookmark(String(currentLesson.id))}
                   canGoPrev={currentIndex > 0}
                   canGoNext={currentIndex < lessons.length - 1}
                   onPrev={goToPrevLesson}
@@ -149,17 +149,12 @@ const AppLayout = ({
                   onCreateHighlight={createHighlightFromSelection}
                   onBackToIndex={goBackToList}
                   onSelectLesson={(lesson) => openLessonById(lesson.id)}
-                  setFontSize={setFontSize}
-                  theme={theme}
-                  setTheme={setTheme}
                 />
               )}
 
               {currentView === 'admin' && (
                 isAdminUser ? (
-                  <Suspense fallback={<ViewSpinner label="جارٍ تحميل لوحة الإدارة..." />}>
-                    <AdminPanel lessons={lessons} glossary={glossary} onDataChanged={reloadFromCloud} />
-                  </Suspense>
+                  <AdminPanel lessons={lessons} glossary={glossary} onDataChanged={reloadFromCloud} />
                 ) : (
                   <div className="mt-4 mb-5">
                     <div className="custom-card p-5 text-center shadow-sm">

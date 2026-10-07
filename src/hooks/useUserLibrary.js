@@ -39,11 +39,13 @@ export function useUserLibrary({ onStatus } = {}) {
     if (!user) {
       // المستخدم كضيف (غير مسجل الدخول) أو قام بتسجيل الخروج للتو
       // نحمّل بيانات الضيف المحفوظة محلياً أو نصفّرها
+      // المعرفات تُوحَّد كنصوص دائمًا حتى لا تفشل المطابقة بين رقم ونص
+      const asStringArray = (v) => (Array.isArray(v) ? v.map(String) : []);
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setBookmarks(readJsonStorage('guest_bookmarks', []));
+      setBookmarks(asStringArray(readJsonStorage('guest_bookmarks', [])));
       setHighlights(readJsonStorage('guest_highlights', []));
       setNotes(readJsonStorage('guest_notes', {}));
-      setReadLessons(readJsonStorage('guest_readLessons', []));
+      setReadLessons(asStringArray(readJsonStorage('guest_readLessons', [])));
       setIsDataLoaded(true);
       return;
     }
@@ -65,8 +67,10 @@ export function useUserLibrary({ onStatus } = {}) {
       const guestNotes = readJsonStorage('guest_notes', {});
       const guestReadLessons = readJsonStorage('guest_readLessons', []);
 
-      // الدمج الذكي
-      const mergedBookmarks = Array.from(new Set([...(cloudData.bookmarks || []), ...guestBookmarks]));
+      // الدمج الذكي (المعرفات كنصوص لتوحيد النوع بين المصادر)
+      const mergedBookmarks = Array.from(
+        new Set([...(cloudData.bookmarks || []), ...guestBookmarks].map(String))
+      );
       
       const highlightMap = new Map();
       [...guestHighlights, ...(cloudData.highlights || [])].forEach((h) => {
@@ -110,10 +114,13 @@ export function useUserLibrary({ onStatus } = {}) {
       localStorage.removeItem('highlights');
       localStorage.removeItem('notesMap');
       localStorage.removeItem('readLessons');
-      for (let i = 0; i < localStorage.length; i++) {
+      // جمع المفاتيح أولًا ثم حذفها — الحذف أثناء التكرار يُزيح الفهارس ويُفوّت مفاتيح
+      const staleKeys = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('note_lesson_')) localStorage.removeItem(key);
+        if (key && key.startsWith('note_lesson_')) staleKeys.push(key);
       }
+      staleKeys.forEach((key) => localStorage.removeItem(key));
 
       setIsDataLoaded(true);
       onStatus?.('synced');
@@ -148,11 +155,15 @@ export function useUserLibrary({ onStatus } = {}) {
     };
   }, [bookmarks, highlights, readLessons, isSyncReady, user]);
 
-  // الدوال المساعدة للتحكم بالبيانات
+  // الدوال المساعدة للتحكم بالبيانات (المعرفات كنصوص دائمًا)
   const toggleBookmark = useCallback((lessonId) => {
-    setBookmarks((prev) =>
-      prev.includes(lessonId) ? prev.filter((id) => id !== lessonId) : [...prev, lessonId]
-    );
+    const key = String(lessonId);
+    setBookmarks((prev) => {
+      const normalized = prev.map(String);
+      return normalized.includes(key)
+        ? normalized.filter((id) => id !== key)
+        : [...normalized, key];
+    });
   }, []);
 
   const addHighlight = useCallback((highlight) => {
