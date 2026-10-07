@@ -1,4 +1,4 @@
-import { FiBook, FiCheckCircle, FiChevronLeft, FiStar } from 'react-icons/fi';
+import { FiBook, FiCheckCircle, FiStar } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
 // شاشة فهرس الكتب — كل كتاب بغلاف بصري + إحصاءات التقدم
@@ -14,42 +14,45 @@ const BooksView = ({ books, onOpenBook, newCount }) => (
       </div>
     )}
     <div className="row">
-      {books.map(({ bookName, chaptersCount, issuesCount, readCount, progressPercent }, i) => (
+      {books.map(({ bookName, chaptersCount, issuesCount, readCount, progressPercent }) => (
         <div className="col-md-6 mb-3" key={bookName}>
           <button
-            className={`btn w-100 text-end shadow-sm book-cover cover-${i % 3}`}
+            className="btn w-100 shadow-sm book-cover"
             onClick={() => onOpenBook(bookName)}
           >
-            <div className="book-cover-ornament">۞</div>
-            <div className="d-flex justify-content-between align-items-center">
-              <span className="book-cover-title">{bookName}</span>
-              <div className="d-flex align-items-center gap-3">
-                {issuesCount > 0 && readCount === issuesCount && (
-                  <FiCheckCircle size={18} className="book-cover-done" />
-                )}
-                <FiChevronLeft className="book-cover-arrow" />
-              </div>
-            </div>
-            <div className="book-cover-meta">
-              {chaptersCount > 0 ? `${chaptersCount} أبواب - ${issuesCount} مسائل` : 'فارغ'}
-            </div>
+            <span className="bk-corner bk-tl">✦</span>
+            <span className="bk-corner bk-tr">✦</span>
+            <span className="bk-corner bk-bl">✦</span>
+            <span className="bk-corner bk-br">✦</span>
+            {issuesCount > 0 && readCount === issuesCount && (
+              <span className="bk-seal" title="كتاب مُتمم">
+                <FiCheckCircle size={20} />
+              </span>
+            )}
+            <span className="bk-cartouche">الباحث الفقهي</span>
+            <span className="book-cover-title">{bookName}</span>
+            <span className="bk-ornament">۞</span>
+            <span className="book-cover-meta">
+              {chaptersCount > 0 ? `${chaptersCount} أبواب • ${issuesCount} مسائل` : 'فارغ'}
+            </span>
             {issuesCount > 0 && (
-              <div className="mt-3">
-                <div className="progress-track book-cover-track">
-                  <motion.div
+              <span className="bk-progress">
+                <span className="progress-track book-cover-track">
+                  <motion.span
                     className="progress-fill"
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPercent}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
                   />
-                </div>
+                </span>
                 <small className="book-cover-progress d-block mt-1">
                   {progressPercent > 0
                     ? `ختمت ${readCount} من ${issuesCount} مسائل (${progressPercent}%)`
                     : `لم تقرأ أي مسألة بعد — ${issuesCount} مسائل بانتظارك`}
                 </small>
-              </div>
+              </span>
             )}
+            <span className="bk-foot">fqh.me</span>
           </button>
         </div>
       ))}

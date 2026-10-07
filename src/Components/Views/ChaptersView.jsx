@@ -1,4 +1,4 @@
-import { FiBook, FiList, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiBook, FiList, FiChevronLeft } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import EmptyState from '../UI/EmptyState';
 import LessonListItem from '../UI/LessonListItem';
@@ -59,11 +59,9 @@ const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, on
                 </span>
                 <span className="chapter-band-side">۞</span>
                 <span className="chapter-band-chevron">
-                  {isOpen ? (
-                    <FiChevronRight style={{ color: 'var(--accent-color)' }} />
-                  ) : (
+                  <span className={`chapter-chevron-icon ${isOpen ? 'open' : ''}`}>
                     <FiChevronLeft style={{ color: 'var(--accent-color)' }} />
-                  )}
+                  </span>
                 </span>
               </button>
 
@@ -73,7 +71,8 @@ const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, on
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="px-3 pb-3"
+                    transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+                    className="px-3 pb-3 overflow-hidden"
                   >
                     {issues.map((lesson) => (
                       <LessonListItem

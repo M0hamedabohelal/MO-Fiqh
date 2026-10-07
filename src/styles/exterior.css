@@ -358,92 +358,168 @@
   transition: background-color 5000s ease-in-out 0s;
 }
 
-/* ==================== أغلفة الكتب (ثابتة الألوان في كل الثيمات) ==================== */
+/* ==================== أغلفة الكتب على هيئة كتاب شرعي (كحلي + ذهبي) ==================== */
 .book-cover {
   position: relative;
   overflow: hidden;
   border: none;
-  border-radius: 16px;
-  padding: 1.5rem 1.5rem 1.25rem;
-  color: #f5ead1;
-  text-align: right;
+  border-radius: 6px;
+  min-height: 360px;
+  padding: 2.2rem 1.75rem 1.6rem;
+  color: #f0e3c0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cpath d='M36 6L41 31L66 36L41 41L36 66L31 41L6 36L31 31Z' fill='%23c9a227' fill-opacity='0.5'/%3E%3C/svg%3E"),
+    radial-gradient(120% 100% at 50% 0%, #263a94 0%, #1a2a6e 45%, #0e1845 100%);
+  background-size: 72px 72px, cover;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45), inset 0 0 70px rgba(0, 0, 0, 0.4);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .book-cover:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5), inset 0 0 70px rgba(0, 0, 0, 0.4);
 }
 
+/* الإطار الذهبي المزدوج */
 .book-cover::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: 10px;
+  border: 2px solid #c9a227;
+  border-radius: 4px;
+  opacity: 0.9;
   pointer-events: none;
-  opacity: 0.07;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cpath d='M30 0L35 25L60 30L35 35L30 60L25 35L0 30L25 25Z' fill='%23d8b96c'/%3E%3C/svg%3E");
-  background-size: 60px 60px;
 }
 
 .book-cover::after {
   content: '';
   position: absolute;
-  inset: 8px;
-  border: 1px solid rgba(216, 185, 108, 0.35);
-  border-radius: 12px;
+  inset: 16px;
+  border: 1px solid #c9a227;
+  border-radius: 3px;
+  opacity: 0.5;
   pointer-events: none;
 }
 
-.cover-0 { background: linear-gradient(135deg, #0f3d3e 0%, #1a5c5e 60%, #0b2425 100%); }
-.cover-1 { background: linear-gradient(135deg, #3a2b12 0%, #6b4d1f 60%, #241a0c 100%); }
-.cover-2 { background: linear-gradient(135deg, #3d1520 0%, #6e2436 60%, #250c13 100%); }
-
-.book-cover-ornament {
+/* زخارف الزوايا */
+.bk-corner {
   position: absolute;
-  top: 2px;
-  left: 14px;
-  font-size: 2.6rem;
+  color: #e6c875;
+  font-size: 15px;
   line-height: 1;
-  color: #d8b96c;
-  opacity: 0.25;
-  pointer-events: none;
+  z-index: 1;
 }
 
+.bk-tl { top: 3px; left: 6px; }
+.bk-tr { top: 3px; right: 6px; }
+.bk-bl { bottom: 3px; left: 6px; }
+.bk-br { bottom: 3px; right: 6px; }
+
+/* الهلالي العلوي */
+.bk-cartouche {
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1a2a6e;
+  background: linear-gradient(180deg, #f0d98c 0%, #c9a227 100%);
+  padding: 8px 26px 12px;
+  border-radius: 60px 60px 8px 8px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(26, 42, 110, 0.35);
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+/* عنوان الكتاب بخط ذهبي بارز */
 .book-cover-title {
   font-family: var(--font-heading);
-  font-size: 1.6rem;
+  font-size: 2.1rem;
   font-weight: 700;
-  line-height: 1.6;
+  line-height: 1.7;
+  color: #e9c766;
+  text-shadow: 0 2px 0 #6e5210, 0 0 26px rgba(233, 199, 102, 0.35);
+  position: relative;
+  z-index: 1;
+}
+
+.bk-ornament {
+  color: #e6c875;
+  font-size: 1.15rem;
+  opacity: 0.9;
+  position: relative;
+  z-index: 1;
 }
 
 .book-cover-meta {
-  color: #d8b96c;
-  font-size: 0.85rem;
-  margin-top: 2px;
+  color: rgba(240, 227, 192, 0.85);
+  font-size: 0.92rem;
+  position: relative;
+  z-index: 1;
 }
 
-.book-cover-arrow {
-  color: #d8b96c;
-}
-
-.book-cover-done {
-  color: #2ecc71;
+/* شريط التقدم الذهبي الرفيع */
+.bk-progress {
+  width: 100%;
+  max-width: 230px;
+  margin-top: 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .book-cover-track {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.book-cover-track .progress-fill {
+  background: linear-gradient(90deg, #c9a227, #e6c875);
 }
 
 .book-cover-progress {
-  color: rgba(245, 234, 209, 0.75);
+  color: rgba(240, 227, 192, 0.75);
+}
+
+/* سطر الناشر أسفل الغلاف */
+.bk-foot {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  color: rgba(230, 200, 117, 0.65);
+  font-family: var(--font-ui);
+  direction: ltr;
+  position: relative;
+  z-index: 1;
+}
+
+/* ختم الإتمام */
+.bk-seal {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0e1845;
+  background: linear-gradient(180deg, #f0d98c, #c9a227);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 2;
 }
 
 @media (max-width: 480px) {
   .book-cover {
-    padding: 1.25rem 1.25rem 1rem;
+    min-height: 320px;
+    padding: 1.8rem 1.25rem 1.4rem;
   }
   .book-cover-title {
-    font-size: 1.4rem;
+    font-size: 1.75rem;
   }
 }
 
@@ -531,6 +607,16 @@
 .chapter-band-chevron {
   flex-shrink: 0;
   display: flex;
+}
+
+/* دوران ناعم لسهم الفتح/القفل */
+.chapter-chevron-icon {
+  display: flex;
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.chapter-chevron-icon.open {
+  transform: rotate(-90deg);
 }
 
 /* صف فهرس تراثي: عنوان + نقاط + رقم الصفحة */
