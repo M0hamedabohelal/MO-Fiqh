@@ -735,12 +735,8 @@ button:active:not(:disabled),
     border-radius: 10px !important;
   }
 
-  /* ─── صفحة الكتب: العمودين يصبح عمود واحد ─── */
-  .row .col-md-6 {
-    width: 100% !important;
-    max-width: 100% !important;
-    flex: 0 0 100% !important;
-  }
+  /* ─── صفحة الكتب: العمودين أصبحا اثنان دائمًا في BooksView ─── */
+
 
   /* ─── شاشة القراءة ─── */
 

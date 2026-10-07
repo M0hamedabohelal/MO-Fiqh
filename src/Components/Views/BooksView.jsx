@@ -13,46 +13,58 @@ const BooksView = ({ books, onOpenBook, newCount }) => (
         </span>
       </div>
     )}
-    <div className="row">
+    <div className="row px-1">
       {books.map(({ bookName, chaptersCount, issuesCount, readCount, progressPercent }) => (
-        <div className="col-md-6 mb-3" key={bookName}>
+        <div className="col-6 mb-3 px-2" key={bookName}>
           <button
-            className="btn w-100 shadow-sm book-cover"
+            className="btn w-100 p-0 book-item-btn shadow-sm"
             onClick={() => onOpenBook(bookName)}
           >
-            <span className="bk-corner bk-tl">✦</span>
-            <span className="bk-corner bk-tr">✦</span>
-            <span className="bk-corner bk-bl">✦</span>
-            <span className="bk-corner bk-br">✦</span>
-            {issuesCount > 0 && readCount === issuesCount && (
-              <span className="bk-seal" title="كتاب مُتمم">
-                <FiCheckCircle size={20} />
-              </span>
-            )}
-            <span className="bk-cartouche">الباحث الفقهي</span>
-            <span className="book-cover-title">{bookName}</span>
-            <span className="bk-ornament">۞</span>
-            <span className="book-cover-meta">
-              {chaptersCount > 0 ? `${chaptersCount} أبواب • ${issuesCount} مسائل` : 'فارغ'}
-            </span>
-            {issuesCount > 0 && (
-              <span className="bk-progress">
-                <span className="progress-track book-cover-track">
-                  <motion.span
-                    className="progress-fill"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progressPercent}%` }}
-                    transition={{ duration: 0.8, ease: 'easeOut' }}
-                  />
+            <div className="book-cover-graphic">
+              {/* Ribbon at top right */}
+              <div className="book-ribbon">
+                <FiBook size={14} />
+              </div>
+              
+              {/* Inner Arch Frame */}
+              <div className="book-arch-frame">
+                <div className="book-arch-inner">
+                  <h4 className="book-top-title">موسوعة الفقه</h4>
+                  <div className="book-main-title">{bookName}</div>
+                  <div className="book-subtitle">
+                    {chaptersCount > 0 ? `تقسيم أبواب` : 'فارغ'}
+                  </div>
+                  <div className="book-author">الباحث الفقهي</div>
+                </div>
+              </div>
+              
+              {issuesCount > 0 && readCount === issuesCount && (
+                <span className="bk-seal" title="كتاب مُتمم">
+                  <FiCheckCircle size={18} />
                 </span>
-                <small className="book-cover-progress d-block mt-1">
-                  {progressPercent > 0
-                    ? `ختمت ${readCount} من ${issuesCount} مسائل (${progressPercent}%)`
-                    : `لم تقرأ أي مسألة بعد — ${issuesCount} مسائل بانتظارك`}
-                </small>
-              </span>
-            )}
-            <span className="bk-foot">fqh.me</span>
+              )}
+            </div>
+            
+            <div className="book-meta-section">
+              <div className="book-meta-text" title={bookName}>
+                <span className="book-meta-text-title">{bookName}</span>
+                <span className="d-block text-muted small mt-1" style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>
+                  {issuesCount > 0 ? `${issuesCount} مسألة` : 'قريباً'}
+                </span>
+              </div>
+              {issuesCount > 0 && (
+                <div className="bk-progress mt-2">
+                  <span className="progress-track book-cover-track">
+                    <motion.span
+                      className="progress-fill"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPercent}%` }}
+                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                    />
+                  </span>
+                </div>
+              )}
+            </div>
           </button>
         </div>
       ))}
