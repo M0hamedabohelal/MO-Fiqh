@@ -66,6 +66,12 @@ function highlightQuery(text, query, key) {
 
 const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
   const [query, setQuery] = useState('');
+  // تأخير البحث 150ms حتى يتوقف المستخدم عن الكتابة (يمنع بحثًا مع كل حرف)
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 150);
+    return () => clearTimeout(t);
+  }, [query]);
   const [activeIndex, setActiveIndex] = useState(0);
   // فلاتر النتائج — حصر النتائج في كتاب معين ثم باب معين
   const [filterBook, setFilterBook] = useState('');
@@ -107,8 +113,8 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
 
   // نتائج البحث + علم "نتائج تقريبية" عند تحمّل الأخطاء الإملائية
   const { results: searchResults, isFuzzy } = useMemo(() => {
-    if (query.trim() === '') return { results: [], isFuzzy: false };
-    const q = normalizeArabic(query);
+    if (debouncedQuery.trim() === '') return { results: [], isFuzzy: false };
+    const q = normalizeArabic(debouncedQuery);
     let found = fuse.search(q);
     let fuzzy = false;
     // ارتقاء التسامح عند عدم وجود نتائج حتى يستوعب الأخطاء الإملائية في العربية
@@ -118,7 +124,7 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
       fuzzy = found.length > 0;
     }
     return { results: found.slice(0, 100).map((r) => r.item), isFuzzy: fuzzy };
-  }, [query, fuse]);
+  }, [debouncedQuery, fuse]);
 
   // تصفير الفلاتر عند تغيير كلمة البحث
   useEffect(() => {
@@ -126,7 +132,7 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
     setFilterBook('');
     setFilterChapter('');
     setActiveIndex(0);
-  }, [query]);
+  }, [debouncedQuery]);
 
   // عند فتح البحث من جديد — تصفير الفلاتر ومؤشر التحديد
   useEffect(() => {
@@ -171,7 +177,7 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
   const safeActiveIndex = Math.min(activeIndex, Math.max(visibleResults.length - 1, 0));
 
   const handleSelectLesson = (lesson) => {
-    onSelect(lesson, query);
+    onSelect(lesson, debouncedQuery);
     setQuery('');
     setActiveIndex(0);
     onClose();
@@ -249,7 +255,7 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
         </div>
 
         {/* فلاتر النتائج — الكتاب ثم الباب */}
-        {query.trim() !== '' && searchResults.length > 0 && (
+        {debouncedQuery.trim() !== '' && searchResults.length > 0 && (
           <div className="search-filters mb-2">
             <div className="d-flex gap-2 flex-wrap align-items-center">
               <FiFilter size={14} style={{ color: 'var(--primary-color)', flexShrink: 0 }} />
@@ -303,7 +309,7 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
 
         {/* عرض النتائج */}
         <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-          {query && searchResults.length === 0 && (
+          {debouncedQuery && searchResults.length === 0 && (
             <div className="text-center text-muted p-4">لا توجد نتائج مطابقة لبحثك.</div>
           )}
           
@@ -318,13 +324,13 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }) => {
                 <FiFileText size={20} />
               </div>
               <div>
-                <h6 className="fw-bold mb-1" style={{ color: 'var(--text-main)' }}>{highlightQuery(lesson.title, query, lesson.id)}</h6>
+                <h6 className="fw-bold mb-1" style={{ color: 'var(--text-main)' }}>{highlightQuery(lesson.title, debouncedQuery, lesson.id)}</h6>
                 <small className="text-muted">{lesson.bookName} - {lesson.chapterName}</small>
               </div>
             </button>
           ))}
 
-          {query.trim() !== '' && searchResults.length > 0 && visibleResults.length === 0 && (
+          {debouncedQuery.trim() !== '' && searchResults.length > 0 && visibleResults.length === 0 && (
             <div className="text-center text-muted p-4">لا توجد نتائج ضمن هذا الفلتر — جرّب كتابًا آخر.</div>
           )}
         </div>
