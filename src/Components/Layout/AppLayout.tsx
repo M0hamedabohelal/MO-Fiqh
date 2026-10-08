@@ -50,6 +50,7 @@ interface AppLayoutProps {
   setFontSize: Dispatch<SetStateAction<number>>;
   cloudStatus: string;
   canInstall: boolean;
+  isInstalled: boolean;
   promptInstall: () => void;
   needRefresh: boolean;
   applyUpdate: () => void;
@@ -95,7 +96,7 @@ const AppLayout = ({
   user, isAdminUser,
   theme, setTheme, setFontSize,
   cloudStatus,
-  canInstall, promptInstall,
+  canInstall, isInstalled, promptInstall,
   needRefresh, applyUpdate, checkForUpdates,
   glossary, notes, bookmarks, highlights, readLessons,
   booksWithStats, selectedBookName, selectedBookChapters,
@@ -258,7 +259,7 @@ const AppLayout = ({
                 <SettingsView
                   canInstall={canInstall}
                   onInstall={promptInstall}
-                  isInstalled={false}
+                  isInstalled={isInstalled}
                   onOpenAchievements={() => setCurrentView('achievements')}
                   needRefresh={needRefresh}
                   onApplyUpdate={applyUpdate}
