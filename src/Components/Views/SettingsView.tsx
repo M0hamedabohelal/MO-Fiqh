@@ -1,18 +1,72 @@
-import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiAward, FiChevronLeft } from 'react-icons/fi';
+import { useState } from 'react';
+import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiAward, FiChevronLeft, FiRefreshCw } from 'react-icons/fi';
 
 interface SettingsViewProps {
   canInstall: boolean;
   onInstall: () => void;
   isInstalled: boolean;
   onOpenAchievements: () => void;
+  needRefresh?: boolean;
+  onApplyUpdate?: () => void;
+  onCheckForUpdates?: () => Promise<void>;
 }
 
 // شاشة الإعدادات وحول التطبيق
-const SettingsView = ({ canInstall, onInstall, isInstalled, onOpenAchievements }: SettingsViewProps) => (
+const SettingsView = ({ canInstall, onInstall, isInstalled, onOpenAchievements, needRefresh, onApplyUpdate, onCheckForUpdates }: SettingsViewProps) => {
+  const [checking, setChecking] = useState(false);
+  const [checkedOnce, setCheckedOnce] = useState(false);
+
+  const handleCheck = async (): Promise<void> => {
+    if (checking) return;
+    setChecking(true);
+    setCheckedOnce(false);
+    try {
+      await onCheckForUpdates?.();
+    } finally {
+      // مهلة لوصول نتيجة الفحص من الـ Service Worker
+      setTimeout(() => {
+        setChecking(false);
+        setCheckedOnce(true);
+      }, 1500);
+    }
+  };
+
+  return (
   <div className="mt-4 mb-5 text-center">
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
       حول التطبيق والإعدادات
     </h3>
+
+    {/* قسم تحديث التطبيق */}
+    <div className="custom-card p-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>
+      <h5 className="fw-bold mb-3 d-flex align-items-center justify-content-center gap-2" style={{ color: 'var(--text-main)' }}>
+        <FiRefreshCw size={20} style={{ color: 'var(--accent-color)' }} /> تحديث التطبيق
+      </h5>
+      {needRefresh ? (
+        <button
+          className="btn w-100 d-flex align-items-center justify-content-center gap-2 border-0"
+          onClick={onApplyUpdate}
+          style={{ background: 'linear-gradient(135deg, #4eb9a8, #2a9d8f)', color: '#fff', fontWeight: 'bold', borderRadius: '10px', padding: '10px' }}
+        >
+          <FiRefreshCw size={18} /> تحديث الموقع الآن
+        </button>
+      ) : (
+        <>
+          <button
+            className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
+            onClick={handleCheck}
+            disabled={checking}
+            style={{ borderRadius: '10px', padding: '10px' }}
+          >
+            <FiRefreshCw size={18} />
+            {checking ? 'جارٍ التحقق...' : 'التحقق من وجود تحديث'}
+          </button>
+          {checkedOnce && !needRefresh && (
+            <small className="text-muted d-block mt-2">أنت على أحدث نسخة</small>
+          )}
+        </>
+      )}
+    </div>
 
     {/* بطاقة الدخول للإنجازات */}
     <div className="custom-card p-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>
@@ -102,6 +156,7 @@ const SettingsView = ({ canInstall, onInstall, isInstalled, onOpenAchievements }
 
     </div>
   </div>
-);
+  );
+};
 
 export default SettingsView;

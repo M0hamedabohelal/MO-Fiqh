@@ -29,7 +29,7 @@ function App() {
   const { user, isAdminUser, authLoading } = useAuth();
 
   // ─── PWA ───
-  const { canInstall, promptInstall, needRefresh, applyUpdate, offlineReady, dismissOfflineReady, isOffline } = usePWA();
+  const { canInstall, promptInstall, needRefresh, applyUpdate, checkForUpdates, offlineReady, dismissOfflineReady, isOffline } = usePWA();
 
   // ─── بيانات المحتوى ───
   const { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud } = useAppData({ isOffline });
@@ -353,6 +353,7 @@ function App() {
     theme, setTheme, fontSize, setFontSize,
     cloudStatus,
     canInstall, promptInstall,
+    needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
     booksWithStats, selectedBookName, selectedBookChapters,
     openChapterName, lastReadLessonId,

@@ -50,6 +50,9 @@ interface AppLayoutProps {
   cloudStatus: string;
   canInstall: boolean;
   promptInstall: () => void;
+  needRefresh: boolean;
+  applyUpdate: () => void;
+  checkForUpdates: () => Promise<void>;
   glossary: GlossaryMap;
   notes: Record<string, string>;
   bookmarks: string[];
@@ -92,6 +95,7 @@ const AppLayout = ({
   theme, setTheme, setFontSize,
   cloudStatus,
   canInstall, promptInstall,
+  needRefresh, applyUpdate, checkForUpdates,
   glossary, notes, bookmarks, highlights, readLessons,
   booksWithStats, selectedBookName, selectedBookChapters,
   openChapterName, lastReadLessonId,
@@ -239,6 +243,9 @@ const AppLayout = ({
                   onInstall={promptInstall}
                   isInstalled={false}
                   onOpenAchievements={() => setCurrentView('achievements')}
+                  needRefresh={needRefresh}
+                  onApplyUpdate={applyUpdate}
+                  onCheckForUpdates={checkForUpdates}
                 />
               )}
 

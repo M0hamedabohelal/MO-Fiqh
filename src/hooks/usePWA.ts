@@ -78,7 +78,21 @@ export function usePWA() {
 
   // تطبيق التحديث الجاهز (إعادة تحميل الصفحة)
   const applyUpdate = useCallback(() => {
-    updateSWRef.current?.(true);
+    if (updateSWRef.current) {
+      updateSWRef.current(true);
+    } else {
+      // احتياطي: لو تعذّر الوصول للـ SW نحدّث بالطريقة العادية
+      window.location.reload();
+    }
+  }, []);
+
+  // فحص يدوي لوجود تحديث (يُستخدم من زر "التحقق من التحديثات")
+  const checkForUpdates = useCallback(async (): Promise<void> => {
+    try {
+      await updateSWRef.current?.(false);
+    } catch {
+      // تجاهل — الفحص التلقائي عند التركيز يغطي
+    }
   }, []);
 
   return {
@@ -88,6 +102,7 @@ export function usePWA() {
     needRefresh,
     offlineReady,
     applyUpdate,
+    checkForUpdates,
     dismissOfflineReady: () => setOfflineReady(false),
     isOffline,
   };
