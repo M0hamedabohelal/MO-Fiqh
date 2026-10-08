@@ -45,7 +45,7 @@ const glossary2 = {};
 glosSnap.forEach((d) => (glossary2[d.id] = d.data()));
 
 // دمج القاموس المحلي (الموجود في الكود) مع السحابي = ما يراه المستخدم فعلاً
-const { glossaryData } = await import('../src/data/glossary.js');
+const { glossaryData } = await import('../src/data/glossary.ts');
 const mergedGlossary = { ...glossaryData, ...glossary }; // المحلي أولًا ثم السحابي يغطّي
 
 // توزيع المسائل حسب الكتاب

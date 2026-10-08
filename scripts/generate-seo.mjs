@@ -11,8 +11,8 @@ const PUBLIC = join(root, 'public');
 const BASE = 'https://www.fqh.me';
 
 // ── البيانات ──
-const { lessonsData } = await import('../src/data/lessons.js');
-const { BOOKS_LIST } = await import('../src/data/books.js');
+const { lessonsData } = await import('../src/data/lessons.ts');
+const { BOOKS_LIST } = await import('../src/data/books.ts');
 
 // مساعدة: اسم آمن للمجلد (ترميز عربي URL-صديق)
 const enc = (s) => encodeURIComponent((s || '').trim());

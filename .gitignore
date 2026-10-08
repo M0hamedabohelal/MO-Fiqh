@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# كاش النشر المحلي + صفحات SEO المولدة أثناء البناء (تُعاد توليدها كل مرة)
+.firebase/
+public/books/
+public/lessons/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

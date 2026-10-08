@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
-import { lessonsData } from '../src/data/lessons.js';
-import { glossaryData } from '../src/data/glossary.js';
+import { lessonsData } from '../src/data/lessons.ts';
+import { glossaryData } from '../src/data/glossary.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

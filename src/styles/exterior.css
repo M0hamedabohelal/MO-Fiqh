@@ -790,6 +790,22 @@
   }
 }
 
+/* ==================== ألوان تحديد النص (Selection) ==================== */
+::selection {
+  background-color: var(--accent-color);
+  color: var(--text-on-primary);
+}
+
+::-webkit-selection {
+  background-color: var(--accent-color);
+  color: var(--text-on-primary);
+}
+
+::-moz-selection {
+  background-color: var(--accent-color);
+  color: var(--text-on-primary);
+}
+
 /* ==================== راحة القراءة ليلًا ==================== */
 /* التفاف نصي أجمل يقلل التعرج في نهايات الأسطر */
 .paragraph,

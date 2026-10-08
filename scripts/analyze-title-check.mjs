@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import { glossaryData } from '../src/data/glossary.js';
+import { glossaryData } from '../src/data/glossary.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 function loadEnv() {
