@@ -21,7 +21,7 @@ export function exportNotesPrint({ highlights, notes, lessons }: NotesPrintInput
   let highlightsHtml = '';
   Object.entries(groupedHighlights).forEach(([lessonId, items]) => {
     const lesson = lessonMap[lessonId];
-    const source = lesson ? `${lesson.bookName} — ${lesson.chapterName} — ${lesson.title}` : '';
+    const source = lesson ? escapeHtml(`${lesson.bookName} — ${lesson.chapterName} — ${lesson.title}`) : '';
     highlightsHtml += `<div class='section-block'><div class='section-source'>${source}</div>${items.map(h => `<div class='highlight-item'><span class='highlight-color'></span><span class='highlight-text'>${formatPrintText(h.text)}</span></div>`).join('')}</div>`;
   });
 
@@ -29,7 +29,7 @@ export function exportNotesPrint({ highlights, notes, lessons }: NotesPrintInput
   Object.entries(notesMap).forEach(([lessonId, text]) => {
     if (!text || !String(text).trim()) return;
     const lesson = lessonMap[lessonId];
-    const source = lesson ? `${lesson.bookName} — ${lesson.chapterName} — ${lesson.title}` : 'مسألة غير محددة';
+    const source = lesson ? escapeHtml(`${lesson.bookName} — ${lesson.chapterName} — ${lesson.title}`) : 'مسألة غير محددة';
     notesHtml += `<div class='section-block'><div class='section-source'>${source}</div><div class='note-item'><div class='note-content'>${formatPrintText(text)}</div></div></div>`;
   });
 
@@ -67,9 +67,9 @@ export function exportNotesPrint({ highlights, notes, lessons }: NotesPrintInput
 
 export function exportChapterPrint({ chapterName, bookName, lessons }: { chapterName: string; bookName: string; lessons: Lesson[] }): void {
   const date = new Date().toLocaleDateString('ar-EG', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-  const lessonsHtml = lessons.map(l => `<div class='section-block'><h3>${l.title}</h3><div class='lesson-text'>${l.mainText ? formatPrintText(l.mainText) : ''}</div>${l.sheikhExplanation ? `<div class='lesson-explanation'><strong>الشرح:</strong> ${formatPrintText(l.sheikhExplanation)}</div>` : ''}</div>`).join('');
+  const lessonsHtml = lessons.map(l => `<div class='section-block'><h3>${escapeHtml(l.title)}</h3><div class='lesson-text'>${l.mainText ? formatPrintText(l.mainText) : ''}</div>${l.sheikhExplanation ? `<div class='lesson-explanation'><strong>الشرح:</strong> ${formatPrintText(l.sheikhExplanation)}</div>` : ''}</div>`).join('');
   
-  const html = `<!DOCTYPE html><html lang='ar' dir='rtl'><head><meta charset='utf-8'><title>فقهي — ${chapterName}</title><link href='https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap' rel='stylesheet'><style>
+  const html = `<!DOCTYPE html><html lang='ar' dir='rtl'><head><meta charset='utf-8'><title>فقهي — ${escapeHtml(chapterName)}</title><link href='https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap' rel='stylesheet'><style>
     @page { margin: 0; size: auto; } /* إخفاء الروابط العلوية والسفلية */
     body { font-family: 'Amiri', serif; color: #111; line-height: 1.6; font-size: 11.5pt; text-align: justify; padding: 1.5cm; margin: 0; }
     .brand-header { text-align: center; margin-bottom: 2rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 1.5rem; }
@@ -88,18 +88,28 @@ export function exportChapterPrint({ chapterName, bookName, lessons }: { chapter
       <div class='brand-name'>تطبيق الباحث الفقهي</div>
       <div class='brand-sub'>${date}</div>
     </div>
-    <div class='book-title'>${bookName}</div>
-    <div class='chapter-title'>${chapterName}</div>
+    <div class='book-title'>${escapeHtml(bookName)}</div>
+    <div class='chapter-title'>${escapeHtml(chapterName)}</div>
     ${lessonsHtml}
   </body></html>`;
   
   printViaIframe(html);
 }
 
+// تطهير نصوص المستخدم/المحتوى قبل حقنها في HTML الطباعة — تُكتب عبر doc.write بنفس الأصل
+function escapeHtml(s: string): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // دالة مساعدة لتنسيق النص للطباعة واستبدال النجوم بفاصل إسلامي جميل
 function formatPrintText(text: string): string {
   if (!text) return '';
-  let formatted = String(text).replace(/\n/g, '<br>');
+  let formatted = escapeHtml(text).replace(/\n/g, '<br>');
   // استبدال النجوم (العادية أو العربية) بفاصل مزخرف يتوسط الصفحة
   formatted = formatted.replace(/[*٭]{3,}/g, '<div class="islamic-divider-print">۞</div>');
   return formatted;

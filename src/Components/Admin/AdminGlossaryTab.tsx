@@ -37,9 +37,12 @@ const AdminGlossaryTab = ({ glossary, onDataChanged, flash }: AdminGlossaryTabPr
   };
 
   const handleUpdateTerm = async (term: string): Promise<void> => {
+    // حماية من مسح تعريف سليم بقيمة فارغة — نفس قيد مسار الإضافة
+    const trimmedDef = editingTermDef.trim();
+    if (!trimmedDef) return;
     setBusy(true);
     try {
-      await saveTerm(term, editingTermDef);
+      await saveTerm(term, trimmedDef);
       setEditingTermKey(null);
       flash('success', 'تم تحديث المصطلح.');
       await onDataChanged();

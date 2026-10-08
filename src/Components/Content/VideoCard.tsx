@@ -24,18 +24,23 @@ const VideoCard = ({ videoUrl, startTime, endTime }: VideoCardProps) => {
   };
 
   // Convert time (mm:ss or seconds) to total seconds
+  // أي قيمة غير صالحة (مثل "ab:cd") تُعطي NaN الذي كان يكسر رابط المشاهدة — نعيد 0 بدلًا منه
   const parseTime = (time: string | undefined): number => {
     if (!time) return 0;
-    const timeStr = time.toString();
+    const timeStr = time.toString().trim();
+    if (!timeStr) return 0;
+    let total = NaN;
     if (timeStr.includes(':')) {
       const parts = timeStr.split(':').map(Number);
       if (parts.length === 2) {
-        return parts[0] * 60 + parts[1]; // mm:ss
+        total = parts[0] * 60 + parts[1]; // mm:ss
       } else if (parts.length === 3) {
-        return parts[0] * 3600 + parts[1] * 60 + parts[2]; // hh:mm:ss
+        total = parts[0] * 3600 + parts[1] * 60 + parts[2]; // hh:mm:ss
       }
+    } else {
+      total = parseInt(timeStr, 10);
     }
-    return parseInt(timeStr, 10) || 0;
+    return Number.isFinite(total) && total >= 0 ? Math.floor(total) : 0;
   };
 
   const videoId = extractVideoId(videoUrl);
@@ -49,7 +54,8 @@ const VideoCard = ({ videoUrl, startTime, endTime }: VideoCardProps) => {
 
   // رابط الـ embed
   let embedUrl = `https://www.youtube.com/embed/${videoId}?start=${startSeconds}&rel=0&modestbranding=1`;
-  if (endSeconds > 0) embedUrl += `&end=${endSeconds}`;
+  // النهاية تُقبل فقط لو بعد البداية — وإلا يتجمد المشغّل على شاشة فارغة
+  if (endSeconds > startSeconds) embedUrl += `&end=${endSeconds}`;
   if (autoPlay) embedUrl += `&autoplay=1`;
 
   // thumbnail عالية الجودة من YouTube

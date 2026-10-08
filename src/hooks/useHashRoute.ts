@@ -36,7 +36,8 @@ function parseRoute(hash: string, lessons: Lesson[]): RouteState {
     const idx = lessons.findIndex((l) => String(l.id) === id);
     if (idx !== -1) return { view: "reading", index: idx, lessonId: id, bookName: null, chapterName: null };
     // المسألة غير محمّلة بعد (البيانات في الحزمة المؤجلة) — نحتفظ بمعرفها لحلّها لاحقًا
-    return { view: "reading", index: 0, lessonId: id, bookName: null, chapterName: null };
+    // index = -1 حتى لا تُعرض مسألة خاطئة (الفهرس 0) قبل التحميل أو عند رابط غير صالح
+    return { view: "reading", index: -1, lessonId: id, bookName: null, chapterName: null };
   }
 
   const bookCh = hash.match(/^#\/book\/([^/]+)(?:\/chapter\/(.+))?$/);
@@ -104,15 +105,10 @@ export function useHashRoute(lessons: Lesson[]) {
   const pendingLessonIdRef = useRef<string | null>(
     initialRoute.view === "reading" ? initialRoute.lessonId : null,
   );
-  useEffect(() => {
-    if (pendingLessonIdRef.current == null || lessons.length === 0) return;
-    const idx = lessons.findIndex((l) => String(l.id) === pendingLessonIdRef.current);
-    if (idx !== -1) {
-      pendingLessonIdRef.current = null;
-      setCurrentIndex(idx);
-      setCurrentView("reading");
-    }
-  }, [lessons]);
+  // معرّف المسألة المعروضة حاليًا — لتثبيت الموضع عند تحديث البيانات (ترتيب جديد/حذف)
+  // تأثيرا الحلّ والتسجيل موضوعان أدناه بعد مزامنة المراجع: قاعدة react-hooks/immutability
+  // تمنع الكتابة في مرجع قُرئ في تأثير سابق، وحلّ المعرّف يجب أن يسبق تسجيله في نفس الدفعة
+  const readingLessonIdRef = useRef<string | null>(null);
 
   // لحفظ التبويب الأخير الذي كان به قائمة (للرجوع إليه)
   const lastListView = useRef<string>(
@@ -143,6 +139,46 @@ export function useHashRoute(lessons: Lesson[]) {
       lastListView.current = currentView;
     }
   }, [currentView]);
+
+  // حلّ المعرّف المعلّق وتثبيت موضع القراءة عند تغيّر البيانات — بعد مزامنة المراجع أعلاه
+  useEffect(() => {
+    if (lessons.length === 0) return;
+    // 1) رابط مباشر معلّق بانتظار البيانات
+    if (pendingLessonIdRef.current != null) {
+      const wanted = pendingLessonIdRef.current;
+      pendingLessonIdRef.current = null;
+      const idx = lessons.findIndex((l) => String(l.id) === wanted);
+      if (idx !== -1) {
+        setCurrentIndex(idx);
+        setCurrentView("reading");
+      } else if (currentViewRef.current === "reading") {
+        // معرّف غير موجود في البيانات — عودة آمنة للفهرس بدل عرض مسألة خاطئة
+        setCurrentView(lastListView.current);
+      }
+      return;
+    }
+    // 2) تحديث البيانات أثناء القراءة: أعد الحلّ بالمعرّف لا بالفهرس (قد يزيح الترتيب)
+    if (currentViewRef.current !== "reading") return;
+    const wantedId = readingLessonIdRef.current;
+    if (wantedId == null) return;
+    const idx = lessons.findIndex((l) => String(l.id) === wantedId);
+    if (idx !== -1) {
+      if (idx !== currentIndexRef.current) setCurrentIndex(idx);
+    } else {
+      // حُذفت المسألة المعروضة من البيانات — عودة آمنة بدل شاشة فارغة
+      setCurrentView(lastListView.current);
+    }
+  }, [lessons]);
+
+  // تسجيل معرّف المسألة الظاهرة — يعمل بعد تأثير الحلّ أعلاه (ترتيب الإعلان)
+  useEffect(() => {
+    if (currentView === "reading") {
+      const cur = currentIndex >= 0 ? lessons[currentIndex] : undefined;
+      readingLessonIdRef.current = cur ? String(cur.id) : null;
+    } else {
+      readingLessonIdRef.current = null;
+    }
+  }, [currentView, currentIndex, lessons]);
 
   const goToNextLesson = useCallback(() => {
     if (currentIndexRef.current < lessons.length - 1) {

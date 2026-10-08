@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { User } from 'firebase/auth';
-import { FiUser } from 'react-icons/fi';
+import { FiUser, FiAlertCircle } from 'react-icons/fi';
+import EmptyState from '../UI/EmptyState';
 import { motion, AnimatePresence } from 'framer-motion';
 import type {
   Lesson,
@@ -197,6 +198,22 @@ const AppLayout = ({
                   onOpenLessonById={openLessonById}
                   onOpenLogin={onOpenLogin}
                 />
+              )}
+
+              {currentView === 'reading' && !currentLesson && (
+                lessons.length === 0 ? (
+                  <ViewSpinner label="جارٍ تحميل المسألة..." />
+                ) : (
+                  <EmptyState
+                    icon={FiAlertCircle}
+                    title="المسألة غير موجودة"
+                    message="ربما حُذفت هذه المسألة أو الرابط غير صحيح."
+                  >
+                    <button className="btn btn-primary mt-1" onClick={() => setCurrentView('books')}>
+                      العودة إلى الكتب
+                    </button>
+                  </EmptyState>
+                )
               )}
 
               {currentView === 'reading' && currentLesson && (

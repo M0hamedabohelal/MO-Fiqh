@@ -11,29 +11,40 @@ export default function AdminAnnouncements() {
   const [loading, setLoading] = useState(false);
 
   const load = async (): Promise<void> => {
-    const data = await fetchAnnouncements();
-    setAnnouncements(data);
+    try {
+      const data = await fetchAnnouncements();
+      setAnnouncements(data);
+    } catch {
+      // تجاهل أخطاء الجلب — اللوحة تبقى عاملة بدل التعليق
+    }
   };
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
 
   const handleSend = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     if (!title.trim() || !body.trim()) return;
     setLoading(true);
-    await createAnnouncement({ title: title.trim(), body: body.trim() });
-    setTitle(''); setBody('');
-    await load();
-    setLoading(false);
+    try {
+      await createAnnouncement({ title: title.trim(), body: body.trim() });
+      setTitle(''); setBody('');
+      await load();
+    } finally {
+      // finally حتى لا يعلق الزر في وضع التعطيل أبدًا عند فشل الشبكة
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id: string): Promise<void> => {
     if (!window.confirm('حذف هذا الإشعار؟')) return;
     setLoading(true);
-    await deleteAnnouncement(id);
-    await load();
-    setLoading(false);
+    try {
+      await deleteAnnouncement(id);
+      await load();
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

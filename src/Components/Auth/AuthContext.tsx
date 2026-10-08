@@ -137,9 +137,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: true };
       } catch (popupErr) {
         // أخطاء تستوجب التحويل لـ Redirect
+        // ملاحظة: إغلاق المستخدم للنافذة بنفسه ليس فشلًا تقنيًا — يُعرض كرسالة إلغاء بدل سحبه لتدفق Redirect كامل
         const redirectCodes = [
           'auth/popup-blocked',
-          'auth/popup-closed-by-user',
           'auth/cancelled-popup-request',
           'auth/operation-not-supported-in-this-environment',
         ];

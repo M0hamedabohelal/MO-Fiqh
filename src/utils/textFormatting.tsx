@@ -49,7 +49,7 @@ export const formatBrackets = (
 ): ReactNode => {
   // تقسيم النص إلى آيات، أحاديث، عريض ** **، تنبيه !! !!، تظليل فسفوري * *، روابط [text](lesson:id)، وأقواس عادية
   // ملاحظة: ** قبل * حتى لا يلتبس العريض مع الفسفوري
-  const parts = textChunk.split(/(\{[^}]+\}|﴿[^﴾]+﴾|«[^»]*(?:»|$)|\[[^\]]+\]\(lesson:\d+\)|\([^)]*\)|\*\*[^*]+\*\*|\*[^*]+\*|!![^!]+!!)/g);
+  const parts = textChunk.split(/(\{[^}]+\}|﴿[^﴾]+﴾|«[^»]*(?:»|$)|\[[^\]]+\]\(lesson:[\w-]+\)|\([^)]*\)|\*\*[^*]+\*\*|\*[^*]+\*|!![^!]+!!)/g);
   
   return parts.map((part, index) => {
     // 1. الآيات القرآنية
@@ -74,7 +74,7 @@ export const formatBrackets = (
     }
 
     // 3. الإحالات الذكية
-    const linkMatch = part.match(/^\[([^\]]+)\]\(lesson:(\d+)\)$/);
+    const linkMatch = part.match(/^\[([^\]]+)\]\(lesson:([\w-]+)\)$/);
     if (linkMatch) {
       return (
         <a

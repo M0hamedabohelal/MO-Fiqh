@@ -32,7 +32,11 @@ export function useAnnouncements() {
 
   const markAsRead = () => {
     const allIds = announcements.map(a => a.id);
-    localStorage.setItem('readAnnouncements', JSON.stringify(allIds));
+    try {
+      localStorage.setItem('readAnnouncements', JSON.stringify(allIds));
+    } catch {
+      // التخزين غير متاح (تصفح خاص/امتلاء) — الحالة داخل الذاكرة تكفي للجلسة
+    }
     setUnreadCount(0);
   };
 

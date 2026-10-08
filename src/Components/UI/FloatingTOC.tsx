@@ -108,7 +108,8 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
                     </div>
                     <ul className="list-unstyled mb-0 px-2">
                       {issues.map(lesson => {
-                        const isActive = lesson.id === currentLesson.id;
+                        // المطابقة كنصوص — المعرف قد يأتي رقمًا من مصدر ونصًا من آخر
+                        const isActive = String(lesson.id) === String(currentLesson.id);
                         return (
                           <li key={lesson.id} className="mb-1">
                             <button 

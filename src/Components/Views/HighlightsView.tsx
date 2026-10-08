@@ -68,7 +68,8 @@ const HighlightsView = ({ highlights, notes, lessons, onDeleteHighlight, onOpenL
       ) : (
         <div className="d-flex flex-column gap-3">
           {highlights.slice().reverse().map((highlight) => {
-            const sourceLesson = lessons.find((l) => l.id === highlight.lessonId);
+            // المطابقة كنصوص دائمًا — المعرفات قد تأتي أرقامًا من مصدر ونصوصًا من آخر
+            const sourceLesson = lessons.find((l) => String(l.id) === String(highlight.lessonId));
             const highlightBookName = highlight.bookName || sourceLesson?.bookName || 'كتاب غير محدد';
             const highlightChapterName = highlight.chapterName || sourceLesson?.chapterName || 'باب غير محدد';
             const highlightTitle = highlight.title || sourceLesson?.title || 'مسألة غير محددة';

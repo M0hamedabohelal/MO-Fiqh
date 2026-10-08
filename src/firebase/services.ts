@@ -28,7 +28,9 @@ export async function createLesson(lessonData: Omit<Lesson, 'id' | '_docId'>): P
 
   // نحدد الـ id الجديد = أكبر id موجود + 1
   const existing = await fetchLessons();
-  const nextId = existing.length > 0 ? Math.max(...existing.map((l) => Number(l.id))) + 1 : 1;
+  // ترشيح القيم غير الرقمية — معرّف واحد فاسد كان يسمّم Math.max بـ NaN فينتج nextId=NaN
+  const numericIds = existing.map((l) => Number(l.id)).filter((n) => Number.isFinite(n));
+  const nextId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 1;
 
   const payload = { ...lessonData, id: nextId };
   await fs.setDoc(fs.doc(db, 'lessons', String(nextId)), payload);
@@ -40,7 +42,8 @@ export async function bulkCreateLessons(lessonsArray: Array<Omit<Lesson, 'id' | 
   const { db, fs } = await getDb();
 
   const existing = await fetchLessons();
-  let nextId = existing.length > 0 ? Math.max(...existing.map((l) => Number(l.id))) + 1 : 1;
+  const numericIds = existing.map((l) => Number(l.id)).filter((n) => Number.isFinite(n));
+  let nextId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 1;
 
   let uploaded = 0;
   for (const item of lessonsArray) {

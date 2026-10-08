@@ -109,7 +109,7 @@ const AdminPanel = ({ lessons, glossary, onDataChanged }: AdminPanelProps) => {
 
       {/* زر تحديث من السحابة */}
       <div className="text-center mt-5">
-        <button className="btn btn-sm btn-light text-muted d-flex align-items-center gap-2 mx-auto" onClick={async () => { setBusy(true); await onDataChanged(); setBusy(false); }} disabled={busy}>
+        <button className="btn btn-sm btn-light text-muted d-flex align-items-center gap-2 mx-auto" onClick={async () => { setBusy(true); try { await onDataChanged(); } finally { setBusy(false); } }} disabled={busy}>
           <FiRefreshCw size={14} /> تحديث البيانات من السحابة
         </button>
       </div>

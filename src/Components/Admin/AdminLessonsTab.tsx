@@ -61,6 +61,8 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
 
   // حالة نموذج المسألة
   const [editingDocId, setEditingDocId] = useState<string | null>(null); // null = إضافة جديدة، docId = تعديل
+  // المعرّف الرقمي الأصلي للمسألة — يُحفظ عند فتح التعديل ولا يُستنتج من docId (قد يكون غير رقمي في مستندات قديمة)
+  const [editingLessonId, setEditingLessonId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<LessonFormState>(EMPTY_LESSON);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -152,12 +154,15 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
 
   const openAddForm = (): void => {
     setEditingDocId(null);
+    setEditingLessonId(null);
     setForm(EMPTY_LESSON);
     setFormOpen(true);
   };
 
   const openEditForm = (lesson: Lesson): void => {
     setEditingDocId(lesson._docId || String(lesson.id));
+    const numericId = Number(lesson.id);
+    setEditingLessonId(Number.isFinite(numericId) ? numericId : null);
     setForm({
       bookName: lesson.bookName || '',
       chapterName: lesson.chapterName || '',
@@ -180,6 +185,7 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
   const closeForm = (): void => {
     setFormOpen(false);
     setEditingDocId(null);
+    setEditingLessonId(null);
     setForm(EMPTY_LESSON);
   };
 
@@ -207,7 +213,13 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
     setBusy(true);
     try {
       if (editingDocId) {
-        await updateLesson(editingDocId, { ...cleanedForm, id: Number(editingDocId) });
+        // لا نشتق id من docId أبدًا — مستند قديم بمعرّف غير رقمي كان يخزّن id: NaN ويفسد الترتيب والروابط
+        if (editingLessonId == null) {
+          setBusy(false);
+          flash('error', 'تعذّر تحديد معرّف المسألة — أغلق النموذج وأعد فتح التعديل.');
+          return;
+        }
+        await updateLesson(editingDocId, { ...cleanedForm, id: editingLessonId });
         flash('success', 'تم حفظ التعديلات بنجاح.');
       } else {
         await createLesson(cleanedForm);

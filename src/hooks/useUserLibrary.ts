@@ -188,7 +188,9 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
   }, []);
 
   const deleteHighlight = useCallback((highlightId: string | number) => {
-    setHighlights((prev) => prev.filter((h) => h.id !== highlightId));
+    // مقارنة كنصوص — المعرف قد يأتي رقمًا من مصدر ونصًا من آخر فيفشل الحذف بصمت
+    const key = String(highlightId);
+    setHighlights((prev) => prev.filter((h) => String(h.id) !== key));
   }, []);
 
   const saveNoteForLesson = useCallback((lessonId: string | number, text: string) => {

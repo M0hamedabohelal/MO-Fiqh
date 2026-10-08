@@ -17,7 +17,8 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
   const [saved, setSaved] = useState(false);
 
   // إعادة ضبط النص عند تغيير المسألة أو وصول القيمة المحدثة من السحابة
-  if (prevSnapshot.lessonId !== lessonId || prevSnapshot.note !== (note || '')) {
+  // المطابقة كنصوص — اختلاف النوع (رقم/نص) بين التحديثات كان يمسح مسودة المستخدم خطأً
+  if (String(prevSnapshot.lessonId) !== String(lessonId) || prevSnapshot.note !== (note || '')) {
     setPrevSnapshot({ lessonId, note: note || '' });
     setText(note || '');
   }
