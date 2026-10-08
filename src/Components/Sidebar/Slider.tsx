@@ -30,6 +30,9 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
             src={logo}
             alt="شعار الباحث الفقهي"
             className="sidebar-logo-img"
+            width="100"
+            height="100"
+            decoding="async"
           />
         </a>
         <span className="sidebar-tagline">دراسة وتدبر</span>

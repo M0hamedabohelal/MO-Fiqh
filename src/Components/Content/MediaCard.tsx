@@ -19,11 +19,12 @@ const MediaCard = ({ mediaUrl, mediaType }: MediaCardProps) => {
       </h5>
       
       {mediaType === 'image' ? (
-        <img 
-          src={mediaUrl} 
-          alt="مرفق المسألة" 
+        <img
+          src={mediaUrl}
+          alt="مرفق المسألة"
           loading="lazy"
-          style={{ maxWidth: '100%', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} 
+          decoding="async"
+          style={{ maxWidth: '100%', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
         />
       ) : mediaType === 'pdf' ? (
         <div style={{ height: '70vh', width: '100%', borderRadius: '10px', overflow: 'hidden' }}>

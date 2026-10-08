@@ -37,6 +37,10 @@ const SplashScreen = ({ visible }: SplashScreenProps) => (
           <img
             src={logo}
             alt="الباحث الفقهي"
+            width="110"
+            height="110"
+            decoding="async"
+            fetchPriority="high"
             style={{
               width: '110px',
               height: '110px',
