@@ -12,17 +12,22 @@ interface QuoteImageModalProps {
   onClose: () => void;
 }
 
+type CardFormat = 'post' | 'story';
+
 const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
-  // النصوص الطويلة جدًا تُقص حتى لا تخرج عن البطاقة (4:5)
+  const [format, setFormat] = useState<CardFormat>('post');
+  // الستوري أطول فيتسع لنص أطول بخط أصغر قليلًا
+  const maxChars = format === 'story' ? 850 : 600;
   const rawText = (text || '').trim();
-  const cleanText = rawText.length > 600 ? `${rawText.slice(0, 600).trim()}…` : rawText;
+  const cleanText = rawText.length > maxChars ? `${rawText.slice(0, maxChars).trim()}…` : rawText;
   // خط أصغر على شاشات الفون الضيقة حتى لا يتزاحم النص
   const isNarrow = typeof window !== 'undefined' && window.innerWidth < 420;
   // حجم نص الاقتباس داخل البطاقة (مثالي لكارت 4:5)
-  const quoteFontSize = cleanText.length > 220 ? (isNarrow ? 19 : 22) : (isNarrow ? 24 : 28);
+  const postSize = cleanText.length > 220 ? (isNarrow ? 19 : 22) : (isNarrow ? 24 : 28);
+  const quoteFontSize = format === 'story' ? Math.max(17, postSize - 2) : postSize;
 
   const handleDownload = useCallback(async () => {
     if (!cardRef.current || !cleanText) return;
@@ -30,13 +35,14 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
     try {
       const { toPng } = await import('html-to-image');
       // دقة أعلى من الكرت حتى تظهر حادة على الشاشات العادية
-      // عرض ثابت ~800px مهما كان حجم الشاشة (مهم للفون حيث البطاقة أصغر)
+      // عرض ثابت ~800px للمنشور و1080px للستوري مهما كان حجم الشاشة (مهم للفون حيث البطاقة أصغر)
+      const targetWidth = format === 'story' ? 1080 : 800;
       const cardWidth = cardRef.current.offsetWidth || 400;
-      const pixelRatio = Math.min(3, 800 / cardWidth);
+      const pixelRatio = Math.min(3, targetWidth / cardWidth);
       const dataUrl = await toPng(cardRef.current, { pixelRatio, cacheBust: true, backgroundColor: '#0b0f0f' });
       const a = document.createElement('a');
       a.href = dataUrl;
-      a.download = `فقهي-اقتباس-${Date.now()}.png`;
+      a.download = `فقهي-اقتباس-${format === 'story' ? 'ستوري-' : ''}${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -48,7 +54,7 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
     } finally {
       setGenerating(false);
     }
-  }, [cleanText]);
+  }, [cleanText, format]);
 
   return (
     <AnimatePresence>
@@ -76,8 +82,38 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
               </button>
             </div>
 
+            {/* اختيار المقاس: منشور مربع أو ستوري عمودي */}
+            <div className="d-flex gap-2 mb-3" role="group" aria-label="مقاس البطاقة">
+              {(['post', 'story'] as const).map((f) => {
+                const active = format === f;
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setFormat(f)}
+                    className="btn btn-sm flex-fill"
+                    style={{
+                      background: active ? 'linear-gradient(135deg, #c9a84c, #e6c875)' : 'var(--badge-bg)',
+                      color: active ? '#1a1a1a' : 'var(--text-main)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '10px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {f === 'post' ? 'مربع 4:5' : 'ستوري 9:16'}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* المعاينة — البطاقة التي تُحوَّل لصورة */}
-            <div ref={cardRef} style={cardStyle}>
+            <div
+              ref={cardRef}
+              style={{
+                ...cardStyle,
+                width: format === 'story' ? 'min(320px, 100%)' : 'min(400px, 100%)',
+                aspectRatio: format === 'story' ? '9 / 16' : '4 / 5',
+              }}
+            >
               <div style={{ fontFamily: "'Amiri', serif", color: '#d8b96c', fontSize: '22px', marginBottom: '10px', textAlign: 'center' }}>۞</div>
               <div
                 className="quote-text"

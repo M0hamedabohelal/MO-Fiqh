@@ -24,6 +24,7 @@ import VideoCard from '../Content/VideoCard';
 import NotesCard from '../Content/NotesCard';
 import MediaCard from '../Content/MediaCard';
 import ShareButton from '../UI/ShareButton';
+import ReadAloudButton from '../UI/ReadAloudButton';
 import BismillahHeader from '../UI/BismillahHeader';
 import { exportChapterPrint } from '../../utils/printExport';
 import ArabesqueDivider from '../UI/ArabesqueDivider';
@@ -409,6 +410,12 @@ const ReadingView = ({
             text={lesson.mainText}
             sheikhComment={lesson.sheikhExplanation}
           />
+
+          <div className="d-flex justify-content-center mt-2">
+            <ReadAloudButton
+              text={`${lesson.title}. ${lesson.mainText || ''} ${lesson.sheikhExplanation || ''}`}
+            />
+          </div>
 
           <ArabesqueDivider />
 

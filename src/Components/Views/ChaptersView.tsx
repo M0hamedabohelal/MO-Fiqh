@@ -1,4 +1,4 @@
-import { FiBook, FiList, FiChevronLeft } from 'react-icons/fi';
+import { FiBook, FiList, FiChevronLeft, FiHelpCircle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import EmptyState from '../UI/EmptyState';
@@ -36,9 +36,10 @@ interface ChaptersViewProps {
   onToggleChapter: (chapterName: string) => void;
   onSelectLesson: (lesson: LessonIssue) => void;
   newLessonIds?: Set<string>;
+  onStartQuiz?: (chapterName: string, issues: LessonIssue[]) => void;
 }
 
-const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, onSelectLesson, newLessonIds }: ChaptersViewProps) => (
+const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, onSelectLesson, newLessonIds, onStartQuiz }: ChaptersViewProps) => (
   <div className="mt-4">
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
       <FiList className="ms-2" /> {bookName} - الفصول
@@ -90,6 +91,18 @@ const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, on
                     transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
                     className="px-3 pb-3 overflow-hidden"
                   >
+                    {onStartQuiz && issues.length > 0 && (
+                      <div className="d-flex justify-content-start mb-3">
+                        <button
+                          className="btn btn-sm d-flex align-items-center shadow-sm"
+                          style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
+                          onClick={() => onStartQuiz(chapterName, issues)}
+                          title="اختبر نفسك في مسائل هذا الباب"
+                        >
+                          <FiHelpCircle className="ms-1" size={16} /> اختبر نفسك
+                        </button>
+                      </div>
+                    )}
                     {issues.map((lesson) => (
                       <LessonListItem
                         key={lesson.id}

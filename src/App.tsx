@@ -9,6 +9,9 @@ import SplashScreen   from './Components/UI/SplashScreen';
 import LoginModal     from './Components/Auth/LoginModal';
 import AppLayout      from './Components/Layout/AppLayout';
 import OnboardingSlides, { shouldShowOnboarding } from './Components/UI/OnboardingSlides';
+import QuizModal from './Components/UI/QuizModal';
+import type { QuizTarget } from './Components/UI/QuizModal';
+import MindMapModal from './Components/UI/MindMapModal';
 
 import { useAuth }             from './Components/Auth/AuthContext';
 import { useHashRoute }        from './hooks/useHashRoute';
@@ -53,6 +56,8 @@ function App() {
   const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
   const [lastReadLessonId, setLastReadLessonId]       = useState(() => localStorage.getItem('lastReadLessonId') || null);
   const [showSplash, setShowSplash]       = useState(true);
+  const [quizTarget, setQuizTarget]         = useState<QuizTarget | null>(null);
+  const [mindmapOpen, setMindmapOpen]       = useState(false);
   // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -358,6 +363,8 @@ function App() {
     booksWithStats, selectedBookName, selectedBookChapters,
     openChapterName, lastReadLessonId,
     setCurrentView, openBookChapters, toggleChapter,
+    openQuiz: (t: QuizTarget) => setQuizTarget(t),
+    openMindMap: () => setMindmapOpen(true),
     openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
     toggleBookmark, toggleReadLesson, saveNoteForLesson,
     deleteHighlight, createHighlightFromSelection,
@@ -379,6 +386,22 @@ function App() {
       {showOnboarding && <OnboardingSlides onDone={() => setShowOnboarding(false)} />}
 
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} data={lessons} onSelect={handleSearchResultSelect} />
+      {quizTarget && (
+        <QuizModal
+          target={quizTarget}
+          onClose={() => setQuizTarget(null)}
+          onSelectLesson={(id) => { setQuizTarget(null); openLessonById(id); }}
+        />
+      )}
+      {mindmapOpen && (
+        <MindMapModal
+          open={mindmapOpen}
+          onClose={() => setMindmapOpen(false)}
+          books={booksWithStats}
+          chapters={chaptersWithIssues}
+          onSelectLesson={openLessonById}
+        />
+      )}
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { if (currentView === 'hero') setCurrentView('books'); }} />
       <ShortcutsHelpModal open={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
 

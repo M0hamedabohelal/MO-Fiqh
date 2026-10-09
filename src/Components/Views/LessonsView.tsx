@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { FiBook, FiFileText, FiList, FiPrinter } from 'react-icons/fi';
+import { FiBook, FiFileText, FiList, FiPrinter, FiHelpCircle } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import EmptyState from '../UI/EmptyState';
@@ -27,10 +27,10 @@ interface LessonsViewProps {
   chapters: ChapterGroup[];
   onSelectLesson: (lesson: LessonIssue) => void;
   newLessonIds?: Set<string>;
+  onStartQuiz?: (chapterName: string, issues: LessonIssue[]) => void;
 }
 
-// شاشة فهرس المسائل الكامل للكتاب المختار (مجمعة حسب الأبواب)
-const LessonsView = memo(({ bookName, chapters, onSelectLesson, newLessonIds }: LessonsViewProps) => (
+const LessonsView = memo(({ bookName, chapters, onSelectLesson, newLessonIds, onStartQuiz }: LessonsViewProps) => (
   <div className="mt-4">
     <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <h3 className="mb-0 fw-bold" style={{ color: 'var(--primary-color)' }}>
@@ -58,14 +58,26 @@ const LessonsView = memo(({ bookName, chapters, onSelectLesson, newLessonIds }: 
             >
               <FiList className="ms-2" /> {chapterName}
             </h5>
-            <button
-              className="btn btn-sm d-flex align-items-center shadow-sm"
-              style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
-              onClick={() => exportChapterPrint({ chapterName, bookName, lessons: issues })}
-              title="طباعة أو تصدير كـ PDF"
-            >
-              <FiPrinter className="ms-1" size={16} /> طباعة الباب
-            </button>
+            <div className="d-flex gap-2">
+              <button
+                className="btn btn-sm d-flex align-items-center shadow-sm"
+                style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
+                onClick={() => exportChapterPrint({ chapterName, bookName, lessons: issues })}
+                title="طباعة أو تصدير كـ PDF"
+              >
+                <FiPrinter className="ms-1" size={16} /> طباعة الباب
+              </button>
+              {onStartQuiz && issues.length > 0 && (
+                <button
+                  className="btn btn-sm d-flex align-items-center shadow-sm"
+                  style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
+                  onClick={() => onStartQuiz(chapterName, issues)}
+                  title="اختبر نفسك في مسائل هذا الباب"
+                >
+                  <FiHelpCircle className="ms-1" size={16} /> اختبر نفسك
+                </button>
+              )}
+            </div>
           </div>
 
           <motion.div 

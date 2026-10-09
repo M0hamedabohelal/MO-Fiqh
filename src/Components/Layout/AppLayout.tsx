@@ -14,6 +14,7 @@ import type {
 
 import Topbar from '../Header/Topbar';
 import Slider from '../Sidebar/Slider';
+import type { QuizTarget } from '../UI/QuizModal';
 
 // شاشات التطبيق — lazy loaded
 const BooksView      = lazy(() => import('../Views/BooksView'));
@@ -68,6 +69,8 @@ interface AppLayoutProps {
   setCurrentView: (view: string) => void;
   openBookChapters: (bookName: string) => void;
   toggleChapter: (chapterName: string) => void;
+  openQuiz: (target: QuizTarget) => void;
+  openMindMap: () => void;
   openLessonById: (lessonId: string | number) => void;
   goToNextLesson: () => void;
   goToPrevLesson: () => void;
@@ -102,7 +105,7 @@ const AppLayout = ({
   booksWithStats, selectedBookName, selectedBookChapters,
   openChapterName, lastReadLessonId,
   setCurrentView, openBookChapters, toggleChapter,
-  openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
+  openQuiz, openMindMap, openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
   toggleBookmark, toggleReadLesson, saveNoteForLesson,
   deleteHighlight, createHighlightFromSelection,
   toggleStopMark,
@@ -149,7 +152,7 @@ const AppLayout = ({
             <Suspense fallback={<ViewSpinner />}>
 
               {currentView === 'books' && (
-                <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} />
+                <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} onOpenMindMap={openMindMap} />
               )}
 
               {currentView === 'chapters' && (
@@ -161,9 +164,10 @@ const AppLayout = ({
                     onToggleChapter={toggleChapter}
                     onSelectLesson={(lesson: Lesson) => openLessonById(lesson.id)}
                     newLessonIds={newLessonIds}
+                    onStartQuiz={(chapterName, issues) => openQuiz({ bookName: selectedBookName ?? '', chapterName, lessons: issues })}
                   />
                 ) : (
-                  <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} />
+                  <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} onOpenMindMap={openMindMap} />
                 )
               )}
 
@@ -174,9 +178,10 @@ const AppLayout = ({
                     chapters={selectedBookChapters}
                     onSelectLesson={(lesson: Lesson) => openLessonById(lesson.id)}
                     newLessonIds={newLessonIds}
+                    onStartQuiz={(chapterName, issues) => openQuiz({ bookName: selectedBookName ?? '', chapterName, lessons: issues })}
                   />
                 ) : (
-                  <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} />
+                  <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} onOpenMindMap={openMindMap} />
                 )
               )}
 
