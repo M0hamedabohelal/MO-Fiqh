@@ -2,7 +2,7 @@
 // على الموبايل: يعرض thumbnail مع زر تشغيل بدلاً من iframe مباشرة
 import { useState } from 'react';
 import type { SyntheticEvent } from 'react';
-import { FiHeadphones, FiPlay, FiExternalLink } from 'react-icons/fi';
+import { FiHeadphones, FiPlay, FiExternalLink, FiClock } from 'react-icons/fi';
 
 interface VideoCardProps {
   videoUrl?: string;
@@ -46,6 +46,11 @@ const VideoCard = ({ videoUrl, startTime, endTime }: VideoCardProps) => {
   const videoId = extractVideoId(videoUrl);
   const startSeconds = parseTime(startTime);
   const endSeconds = parseTime(endTime);
+  // نصوص العرض الأصلية (تُعرض كما أدخلها المشرف) — بشرط صلاحيتها رقميًا
+  const startLabel = (startTime || '').trim();
+  const endLabel = (endTime || '').trim();
+  const hasStart = startLabel !== '' && startSeconds > 0;
+  const hasEnd = endLabel !== '' && endSeconds > startSeconds;
 
   if (!videoId) return null;
 
@@ -92,6 +97,32 @@ const VideoCard = ({ videoUrl, startTime, endTime }: VideoCardProps) => {
           <FiHeadphones size={18} />
           اسمع شرح هذه المسألة
         </button>
+      )}
+
+      {/* ✅ شارة مدة المسألة في الفيديو (بداية ونهاية) */}
+      {(hasStart || hasEnd) && (
+        <div className="d-flex justify-content-center mb-3">
+          <span
+            className="d-inline-flex align-items-center gap-2 px-3 py-1 shadow-sm"
+            style={{
+              backgroundColor: 'var(--badge-bg)',
+              color: 'var(--text-main)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '20px',
+              fontSize: '0.82rem',
+              fontWeight: 'bold',
+            }}
+          >
+            <FiClock size={15} style={{ color: 'var(--accent-color)' }} />
+            {hasStart && hasEnd ? (
+              <span>من <bdi>{startLabel}</bdi> إلى <bdi>{endLabel}</bdi></span>
+            ) : hasEnd ? (
+              <span>ينتهي عند: <bdi>{endLabel}</bdi></span>
+            ) : (
+              <span>يبدأ عند: <bdi>{startLabel}</bdi></span>
+            )}
+          </span>
+        </div>
       )}
 
       {/* ✅ Video Player — Thumbnail + Lazy iframe لتجنب مشكلة الأيقونة الكسيرة على الموبايل */}
