@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiAward, FiChevronLeft, FiRefreshCw } from 'react-icons/fi';
 
 interface SettingsViewProps {
@@ -15,6 +15,25 @@ interface SettingsViewProps {
 const SettingsView = ({ canInstall, onInstall, isInstalled, onOpenAchievements, needRefresh, onApplyUpdate, onCheckForUpdates }: SettingsViewProps) => {
   const [checking, setChecking] = useState(false);
   const [checkedOnce, setCheckedOnce] = useState(false);
+  const timerRef = useRef<number | null>(null);
+
+  // لحظة ظهور تحديث حقيقي ننهي الفحص فورًا — زر التحديث يحل محل زر الفحص تلقائيًا
+  // مزامنة مقصودة مع حالة خارجية (الـ Service Worker) لا بديل تفاعلي لها
+  useEffect(() => {
+    if (needRefresh && checking) {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setChecking(false);
+      setCheckedOnce(true);
+    }
+  }, [needRefresh, checking]);
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
 
   const handleCheck = async (): Promise<void> => {
     if (checking) return;
@@ -23,11 +42,12 @@ const SettingsView = ({ canInstall, onInstall, isInstalled, onOpenAchievements, 
     try {
       await onCheckForUpdates?.();
     } finally {
-      // مهلة لوصول نتيجة الفحص من الـ Service Worker
-      setTimeout(() => {
+      // مهلة قصوى لاكتمال تنزيل النسخة الجديدة — رسالة "أحدث نسخة" لا تظهر إلا بعدها فعلًا
+      timerRef.current = window.setTimeout(() => {
+        timerRef.current = null;
         setChecking(false);
         setCheckedOnce(true);
-      }, 1500);
+      }, 10000);
     }
   };
 

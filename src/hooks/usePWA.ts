@@ -27,6 +27,20 @@ export function usePWA() {
 
   const updateSWRef = useRef<((reloadPage?: boolean) => Promise<void>) | null>(null);
 
+  // إجبار المتصفح على فحص الشبكة بحثًا عن Service Worker جديد —
+  // updateSW(false) وحده يرسل SKIP_WAITING فقط ولا يفحص الشبكة، فبدونه لا يُكتشف أي تحديث إلا بإعادة تحميل الصفحة
+  const forceUpdateCheck = useCallback(async (): Promise<void> => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        // sw.js يُقدَّم بلا كاش (no-cache) في الاستضافة فيُعاد التحقق منه دائمًا
+        await reg?.update();
+      }
+    } catch {
+      // تجاهل — الفحص التلقائي عند تحميل الصفحة يغطي
+    }
+  }, []);
+
   useEffect(() => {
     // تسجيل الـ Service Worker مع التحكم في لحظة التحديث
     updateSWRef.current = registerSW({
@@ -47,9 +61,13 @@ export function usePWA() {
     const goOffline = () => setIsOffline(true);
 
     // فحص دوري للتحديثات: عند عودة التركيز للتبويب وكل 30 دقيقة
-    // حتى يظهر زر "تحديث الموقع" فورًا بعد أي نشر حتى لو الصفحة مفتوحة
-    const onFocus = () => updateSWRef.current?.(false);
-    const updateInterval = setInterval(() => updateSWRef.current?.(false), 30 * 60 * 1000);
+    // حتى يظهر زر "تحديث الموقع" فورًا بعد أي نشر حتى لو الصفحة مفتوحة — دون الحاجة لإعادة التحميل
+    const checkNow = () => {
+      void forceUpdateCheck();
+      void updateSWRef.current?.(false);
+    };
+    const onFocus = () => checkNow();
+    const updateInterval = setInterval(checkNow, 30 * 60 * 1000);
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleInstalled);
@@ -64,7 +82,7 @@ export function usePWA() {
       window.removeEventListener('focus', onFocus);
       clearInterval(updateInterval);
     };
-  }, []);
+  }, [forceUpdateCheck]);
 
   // تشغيل نافذة تثبيت المتصفح من زرنا المخصص
   const promptInstall = useCallback(async () => {
@@ -88,12 +106,14 @@ export function usePWA() {
 
   // فحص يدوي لوجود تحديث (يُستخدم من زر "التحقق من التحديثات")
   const checkForUpdates = useCallback(async (): Promise<void> => {
+    // أولًا فحص الشبكة لاكتشاف نسخة جديدة، ثم تفعيل أي نسخة منتظرة
+    await forceUpdateCheck();
     try {
       await updateSWRef.current?.(false);
     } catch {
       // تجاهل — الفحص التلقائي عند التركيز يغطي
     }
-  }, []);
+  }, [forceUpdateCheck]);
 
   return {
     canInstall: Boolean(installPromptEvent) && !isInstalled,
