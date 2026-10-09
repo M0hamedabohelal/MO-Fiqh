@@ -47,27 +47,28 @@ const BooksView = memo(({ books, onOpenBook, newCount }: BooksViewProps) => (
                   <FiCheckCircle size={18} />
                 </span>
               )}
-            </div>
-            
-            <div className="book-meta-section">
-              <div className="book-meta-text" title={bookName}>
-                <span className="book-meta-text-title">{bookName}</span>
-                <span className="d-block text-muted small mt-1" style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>
-                  {issuesCount > 0 ? `${issuesCount} مسألة` : 'قريباً'}
-                </span>
-              </div>
-              {issuesCount > 0 && (
-                <div className="bk-progress mt-2">
-                  <span className="progress-track book-cover-track">
-                    <motion.span
-                      className="progress-fill"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progressPercent}%` }}
-                      transition={{ duration: 0.8, ease: 'easeOut' }}
-                    />
+
+              {/* معلومات الكتاب كطبقة فوق الغلاف — الغلاف يملأ البطاقة كاملة */}
+              <div className="book-cover-overlay">
+                <div className="book-meta-text" title={bookName}>
+                  <span className="book-meta-text-title">{bookName}</span>
+                  <span className="book-cover-count">
+                    {issuesCount > 0 ? `${issuesCount} مسألة` : 'قريباً'}
                   </span>
                 </div>
-              )}
+                {issuesCount > 0 && (
+                  <div className="bk-progress mt-2">
+                    <span className="progress-track book-cover-track">
+                      <motion.span
+                        className="progress-fill"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progressPercent}%` }}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                      />
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </button>
         </div>
