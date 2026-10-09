@@ -7,15 +7,20 @@ import LessonListItem from '../UI/LessonListItem';
 import { exportChapterPrint } from '../../utils/printExport';
 import type { ChapterGroup, LessonIssue } from '../../types';
 
+const REDUCE_LIST_ANIM =
+  typeof window !== 'undefined' && window.innerWidth < 768;
+
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+  show: { opacity: 1, transition: { staggerChildren: REDUCE_LIST_ANIM ? 0 : 0.05 } }
 };
 
-const itemVariants: Variants = {
-  hidden: { opacity: 0, x: 20 },
-  show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-};
+const itemVariants: Variants = REDUCE_LIST_ANIM
+  ? { hidden: { opacity: 0 }, show: { opacity: 1 } }
+  : {
+      hidden: { opacity: 0, x: 20 },
+      show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+    };
 
 interface LessonsViewProps {
   bookName: string;

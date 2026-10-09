@@ -17,6 +17,9 @@ dist-ssr
 public/books/
 public/lessons/
 
+# نسخ Firestore الاحتياطية (قد تكون كبيرة ومتكررة — تُحفظ خارج git)
+backups/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

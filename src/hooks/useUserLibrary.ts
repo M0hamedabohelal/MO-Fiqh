@@ -207,11 +207,6 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     );
   }, []);
 
-  const markLessonRead = useCallback((lessonId: string | number) => {
-    const key = String(lessonId);
-    setReadLessons((prev) => (prev.includes(key) ? prev : [...prev, key]));
-  }, []);
-
   return {
     bookmarks,
     highlights,
@@ -222,6 +217,5 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     deleteHighlight,
     saveNoteForLesson,
     toggleReadLesson,
-    markLessonRead,
   };
 }

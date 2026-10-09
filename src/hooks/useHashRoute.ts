@@ -29,7 +29,8 @@ interface RouteState {
 //   #/book/{bookName}                          → شاشة الأبواب لكتاب معين
 //   #/book/{bookName}/chapter/{chapterName}    → شاشة الأبواب مع فتح باب معين
 //   #/hero | #/books | #/lessons | #/bookmarks | #/highlights | #/achievements | #/admin
-function parseRoute(hash: string, lessons: Lesson[]): RouteState {
+// مُصدّرة للاختبارات فقط — المنطق نفسه المستخدم داخل الـ hook
+export function parseRoute(hash: string, lessons: Lesson[]): RouteState {
   const lessonMatch = hash.match(/^#\/lesson\/(\d+)/);
   if (lessonMatch) {
     const id = lessonMatch[1];

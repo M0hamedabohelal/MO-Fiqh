@@ -24,7 +24,16 @@ const ReadingProgressBar = () => {
     };
 
     compute();
-    window.addEventListener('scroll', compute, { passive: true });
+    // خنق تحديثات السكرول بإطار الرسم (حدث السكرول يطلق عشرات المرات للفريم الواحد)
+    let raf = 0;
+    const onScroll = (): void => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        compute();
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', compute);
     window.addEventListener('load', compute);
 
@@ -39,7 +48,8 @@ const ReadingProgressBar = () => {
     }
 
     return () => {
-      window.removeEventListener('scroll', compute);
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', compute);
       window.removeEventListener('load', compute);
       if (ro) ro.disconnect();

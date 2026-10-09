@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => ({
         orientation: 'portrait',
         // لون شاشة البداية يطابق الثيم الداكن الافتراضي (#101414) لمنع وميض أبيض عند الفتح
         background_color: '#101414',
-        theme_color: '#0f3d3e',
+        theme_color: '#101414',
         categories: ['education', 'books'],
         icons: [
           { src: '/icons/pwa-192.png', sizes: '192x192', type: 'image/png' },
@@ -37,7 +37,8 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         // كل ملفات التطبيق تُخزَّن مسبقاً للعمل أوفلاين (بدون PDF الكبير وصور المشاركة)
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        globIgnores: ['**/og-image.png'],
+        // حزمة الإدارة (~30KB) لغير المشرفين: تُحمَّل عند الطلب فقط (الإدارة تحتاج إنترنت أصلًا)
+        globIgnores: ['**/og-image.png', '**/AdminPanel-*.js'],
         navigateFallback: '/index.html',
         runtimeCaching: [
           {
