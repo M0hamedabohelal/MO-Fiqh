@@ -159,10 +159,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // تسجيل خروج
+  // تسجيل خروج — لا يرمي أبدًا حتى لا يعلق المتصل به (النافذة تُغلق دائمًا)
   const logout = useCallback(async () => {
-    const { auth, authMod } = await getAuthModule();
-    await authMod.signOut(auth);
+    try {
+      const { auth, authMod } = await getAuthModule();
+      await authMod.signOut(auth);
+    } catch (err) {
+      console.error('فشل تسجيل الخروج:', err);
+    }
   }, []);
 
   // جلب بيانات المستخدم من Firestore (المفضلة والفوائد والملاحظات)

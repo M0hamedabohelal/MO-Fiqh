@@ -40,16 +40,20 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
       return;
     }
     
-    const formattedText = text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\n/g, "<br>");
+    // تطهير كل المحتوى المحقون في HTML الطباعة — بما فيه العناوين لا النص وحده
+    const esc = (s: string): string =>
+      String(s ?? '')
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+    const formattedText = esc(text).replace(/\n/g, "<br>");
 
     const html = `
       <html dir="rtl" lang="ar">
         <head>
-          <title>ملاحظاتي - ${lessonTitle || 'الفقه'}</title>
+          <title>ملاحظاتي - ${esc(lessonTitle || 'الفقه')}</title>
           <style>
             body {
               font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -82,8 +86,8 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
         <body>
           <div class="header">
             <h2>ملاحظاتي وفوائدي الخاصة</h2>
-            ${(bookName || chapterName) ? `<div class="breadcrumb">${bookName ? bookName : ''}${bookName && chapterName ? ' / ' : ''}${chapterName ? chapterName : ''}</div>` : ''}
-            ${lessonTitle ? `<h4>${lessonTitle}</h4>` : ''}
+            ${(bookName || chapterName) ? `<div class="breadcrumb">${bookName ? esc(bookName) : ''}${bookName && chapterName ? ' / ' : ''}${chapterName ? esc(chapterName) : ''}</div>` : ''}
+            ${lessonTitle ? `<h4>${esc(lessonTitle)}</h4>` : ''}
           </div>
           <div class="content">${formattedText}</div>
           <script>

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { formatBrackets } from '../../utils/textFormatting';
 import { glossaryData as defaultGlossary } from '../../data/glossary';
 import { sortedGlossaryTerms, createGlossaryRenderer } from '../../utils/glossaryUtil';
+import { copyText } from '../../utils/clipboard';
 import type { GlossaryMap } from '../../types';
 
 interface ExplanationCardProps {
@@ -84,8 +85,12 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
   const wordCount = (explanation || '').trim().split(/\s+/).length;
   const isLongIssue = wordCount > 100;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(explanation);
+  const handleCopy = async (): Promise<void> => {
+    const ok = await copyText(explanation);
+    if (!ok) {
+      alert('تعذّر النسخ التلقائي — حدّد النص يدويًا وانسخه.');
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

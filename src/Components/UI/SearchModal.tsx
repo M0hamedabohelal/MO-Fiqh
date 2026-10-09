@@ -267,7 +267,7 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
             />
             
           </div>
-          <button className="btn text-muted ms-3" onClick={onClose} title="إغلاق">
+          <button className="btn text-muted ms-3" onClick={onClose} title="إغلاق" aria-label="إغلاق البحث">
             <FiX size={26} />
           </button>
         </div>

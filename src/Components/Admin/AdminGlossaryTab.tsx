@@ -105,10 +105,10 @@ const AdminGlossaryTab = ({ glossary, onDataChanged, flash }: AdminGlossaryTabPr
                 <span className="small">{definition}</span>
               </div>
               <div className="d-flex gap-2 flex-shrink-0">
-                <button className="btn btn-sm btn-light d-flex align-items-center gap-1" onClick={() => { setEditingTermKey(term); setEditingTermDef(definition); }} title="تعديل">
+                <button className="btn btn-sm btn-light d-flex align-items-center gap-1" onClick={() => { setEditingTermKey(term); setEditingTermDef(definition); }} title="تعديل" aria-label={`تعديل مصطلح ${term}`}>
                   <FiEdit2 size={14} />
                 </button>
-                <button className="btn btn-sm btn-outline-danger" disabled={busy} onClick={() => handleDeleteTerm(term)} title="حذف">
+                <button className="btn btn-sm btn-outline-danger" disabled={busy} onClick={() => handleDeleteTerm(term)} title="حذف" aria-label={`حذف مصطلح ${term}`}>
                   <FiTrash2 size={14} />
                 </button>
               </div>

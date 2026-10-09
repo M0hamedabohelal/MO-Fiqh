@@ -114,6 +114,7 @@ const PWABanners = ({
               className="btn btn-sm p-1 d-flex align-items-center"
               onClick={dismissOfflineReady}
               title="إخفاء"
+              aria-label="إخفاء التنبيه"
             >
               <FiX size={14} />
             </button>

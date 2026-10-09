@@ -67,6 +67,7 @@ const Topbar = ({ setFontSize, theme, toggleTheme, cloudStatus }: TopbarProps) =
         style={{ color: 'var(--text-main)', textDecoration: 'none' }}
         onClick={handleOpenAnnouncements}
         title="الإشعارات"
+        aria-label="فتح الإشعارات"
       >
         <FiBell size={20} />
         {unreadCount > 0 && (
@@ -81,6 +82,7 @@ const Topbar = ({ setFontSize, theme, toggleTheme, cloudStatus }: TopbarProps) =
         style={{ color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.85rem' }}
         onClick={cycleTheme}
         title={`الوضع الحالي: ${getThemeLabel()}`}
+        aria-label={`تبديل المظهر — الحالي: ${getThemeLabel()}`}
       >
         {getThemeIcon()}
         <span className="d-none d-md-inline">{getThemeLabel()}</span>

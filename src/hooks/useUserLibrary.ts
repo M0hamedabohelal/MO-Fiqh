@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
+import { safeSet } from '../utils/safeStorage';
 import type { HighlightItem, UserLibraryData } from '../types';
 import {
   syncBookmarks,
@@ -150,10 +151,10 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     if (user) return; // المسجل يتم حفظه في السحابة
     if (!isDataLoaded) return;
     
-    localStorage.setItem('guest_bookmarks', JSON.stringify(bookmarks));
-    localStorage.setItem('guest_highlights', JSON.stringify(highlights));
-    localStorage.setItem('guest_notes', JSON.stringify(notes));
-    localStorage.setItem('guest_readLessons', JSON.stringify(readLessons));
+    safeSet('guest_bookmarks', JSON.stringify(bookmarks));
+    safeSet('guest_highlights', JSON.stringify(highlights));
+    safeSet('guest_notes', JSON.stringify(notes));
+    safeSet('guest_readLessons', JSON.stringify(readLessons));
   }, [bookmarks, highlights, notes, readLessons, user, isDataLoaded]);
 
   // المزامنة مع السحابة دفعة واحدة بعد هدوء التغييرات (تجنّب كتابة لكل ضغطة متتالية)

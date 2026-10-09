@@ -162,7 +162,19 @@ const VideoCard = ({ videoUrl, startTime, endTime }: VideoCardProps) => {
           </>
         ) : (
           // قبل الضغط: Thumbnail مع زر تشغيل جميل
-          <div style={{ position: 'relative', width: '100%', height: '100%', cursor: 'pointer' }} onClick={handlePlay}>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="تشغيل فيديو الشرح"
+            style={{ position: 'relative', width: '100%', height: '100%', cursor: 'pointer' }}
+            onClick={handlePlay}
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handlePlay();
+              }
+            }}
+          >
             {/* Thumbnail */}
             <img
               src={thumbnailUrl}

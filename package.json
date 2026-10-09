@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "backup": "node scripts/backup-firestore.mjs",
+    "migrate": "node scripts/migrate-to-firestore.mjs",
+    "icons": "node scripts/generate-icons.mjs",
     "deploy:hosting": "npm run build && firebase deploy --only hosting"
   },
   "dependencies": {

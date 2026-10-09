@@ -373,7 +373,7 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
             <h5 className="fw-bold mb-0" style={{ color: 'var(--primary-color)' }}>
               {editingDocId ? 'تعديل مسألة' : 'مسألة جديدة'}
             </h5>
-            <button type="button" className="btn btn-sm text-muted" onClick={closeForm}>
+            <button type="button" className="btn btn-sm text-muted" onClick={closeForm} aria-label="إغلاق النموذج">
               <FiX size={22} />
             </button>
           </div>

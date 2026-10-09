@@ -22,6 +22,7 @@ import { useAppData }          from './hooks/useAppData';
 
 import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
+import { safeGet, safeSet, safeRemove } from './utils/safeStorage';
 import type { Lesson, ChapterGroup } from './types';
 
 // لقطة وقت تحميل التطبيق — للمقارنات الزمنية أثناء الرسم (أسبوع الشارة)
@@ -47,14 +48,14 @@ function App() {
   // ─── UI State ───
   const [fontSize, setFontSize]           = useState(16);
   const [theme, setTheme]                 = useState(() => {
-    const saved = localStorage.getItem('theme');
+    const saved = safeGet('theme');
     return (saved === 'sepia' || saved === 'dark') ? saved : 'dark';
   });
   const [isSearchOpen, setIsSearchOpen]   = useState(false);
   const [isLoginOpen, setIsLoginOpen]     = useState(false);
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');
   const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
-  const [lastReadLessonId, setLastReadLessonId]       = useState(() => localStorage.getItem('lastReadLessonId') || null);
+  const [lastReadLessonId, setLastReadLessonId]       = useState(() => safeGet('lastReadLessonId'));
   const [showSplash, setShowSplash]       = useState(true);
   const [quizTarget, setQuizTarget]         = useState<QuizTarget | null>(null);
   const [mindmapOpen, setMindmapOpen]       = useState(false);
@@ -75,7 +76,7 @@ function App() {
   // Theme & Font
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
+    safeSet('theme', theme);
   }, [theme]);
 
   useEffect(() => {
@@ -154,10 +155,10 @@ function App() {
     if (!id) return;
     if (lastReadLessonId === id) {
       setLastReadLessonId(null);
-      localStorage.removeItem('lastReadLessonId');
+      safeRemove('lastReadLessonId');
     } else {
       setLastReadLessonId(id);
-      localStorage.setItem('lastReadLessonId', id);
+      safeSet('lastReadLessonId', id);
     }
   };
 

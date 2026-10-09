@@ -24,7 +24,6 @@ import VideoCard from '../Content/VideoCard';
 import NotesCard from '../Content/NotesCard';
 import MediaCard from '../Content/MediaCard';
 import ShareButton from '../UI/ShareButton';
-import ReadAloudButton from '../UI/ReadAloudButton';
 import BismillahHeader from '../UI/BismillahHeader';
 import { exportChapterPrint } from '../../utils/printExport';
 import ArabesqueDivider from '../UI/ArabesqueDivider';
@@ -209,6 +208,7 @@ const ReadingView = ({
             transition={{ duration: 0.2 }}
             onClick={() => window.scrollTo({ top: 0 })}
             title="العودة لأعلى"
+            aria-label="العودة لأعلى الصفحة"
             className="reading-sticky-title"
           >
             {lesson.title}
@@ -326,6 +326,7 @@ const ReadingView = ({
             className={`bookmark-btn ${isBookmarked ? 'active' : ''}`}
             onClick={onToggleBookmark}
             title="حفظ في المفضلة"
+            aria-label={isBookmarked ? 'إزالة من المفضلة' : 'حفظ في المفضلة'}
           >
             <FiBookmark size={24} fill={isBookmarked ? 'currentColor' : 'none'} />
           </button>
@@ -410,12 +411,6 @@ const ReadingView = ({
             text={lesson.mainText}
             sheikhComment={lesson.sheikhExplanation}
           />
-
-          <div className="d-flex justify-content-center mt-2">
-            <ReadAloudButton
-              text={`${lesson.title}. ${lesson.mainText || ''} ${lesson.sheikhExplanation || ''}`}
-            />
-          </div>
 
           <ArabesqueDivider />
 

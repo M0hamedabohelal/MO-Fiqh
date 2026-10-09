@@ -86,6 +86,7 @@ const HighlightsView = ({ highlights, notes, lessons, onDeleteHighlight, onOpenL
                     style={{ width: '34px', height: '34px', minWidth: '34px', marginTop: '2px' }}
                     onClick={() => onDeleteHighlight(highlight.id)}
                     title="حذف الفائدة"
+                    aria-label="حذف الفائدة المقتبسة"
                   >
                     <FiTrash2 size={15} />
                   </button>

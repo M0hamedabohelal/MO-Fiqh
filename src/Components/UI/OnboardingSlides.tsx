@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiArrowLeft, FiArrowRight } from 'react-icons/fi';
+import { safeSet } from '../../utils/safeStorage';
 
 const SLIDES = [
   {
@@ -48,7 +49,7 @@ const OnboardingSlides = ({ onDone }: OnboardingSlidesProps) => {
   };
 
   const finish = () => {
-    localStorage.setItem(STORAGE_KEY, '1');
+    safeSet(STORAGE_KEY, '1');
     onDone();
   };
 
@@ -91,6 +92,7 @@ const OnboardingSlides = ({ onDone }: OnboardingSlidesProps) => {
             color: 'var(--text-muted)', padding: '4px',
           }}
           title="تخطي"
+          aria-label="تخطي الجولة التعريفية"
         >
           <FiX size={20} />
         </button>

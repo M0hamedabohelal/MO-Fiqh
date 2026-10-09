@@ -43,9 +43,13 @@ service cloud.firestore {
     }
 
     // ─── إحصائيات المشاهدات: قراءة للجميع، وتحديث تراكمي للجميع (تتبع مجهول من trackLessonView) ───
+    // القيد يمنع تضخيم المستند: الإنشاء بمفتاح واحد فقط، والتحديث بلا حذف ونمو مفتاح واحد لكل كتابة
+    // (العميل الشرعي يكتب مفتاح lesson_* واحدًا في كل مرة — أي إساءة أوسع تُرفض، والكتابة على مستند واحد مخنوقة سعريًا أصلًا)
     match /stats/views {
       allow read: if true;
-      allow create, update: if true;
+      allow create: if request.resource.data.keys().size() == 1;
+      allow update: if request.resource.data.diff(resource.data).removedKeys().size() == 0
+        && request.resource.data.keys().size() <= resource.data.keys().size() + 1;
       allow delete: if isAdmin();
     }
 

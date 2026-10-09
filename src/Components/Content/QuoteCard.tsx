@@ -6,6 +6,7 @@ import { FiCopy, FiCheck, FiBookOpen, FiLink } from 'react-icons/fi';
 import styles from './QuoteCard.module.css';
 import { glossaryData as defaultGlossary } from '../../data/glossary';
 import { formatBrackets } from '../../utils/textFormatting';
+import { copyText } from '../../utils/clipboard';
 import type { GlossaryMap } from '../../types';
 
 interface QuoteCardProps {
@@ -69,8 +70,12 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
   const wordCount = (text || '').trim().split(/\s+/).length;
   const isLongIssue = wordCount > 150;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(text);
+  const handleCopy = async (): Promise<void> => {
+    const ok = await copyText(text);
+    if (!ok) {
+      alert('تعذّر النسخ التلقائي — حدّد النص يدويًا وانسخه.');
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

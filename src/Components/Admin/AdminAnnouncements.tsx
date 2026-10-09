@@ -71,7 +71,7 @@ export default function AdminAnnouncements() {
               <p className='mb-1 small text-muted'>{ann.body}</p>
               <small style={{ fontSize: '0.7rem' }}>{new Date(ann.createdAt).toLocaleString('ar-EG')}</small>
             </div>
-            <button className='btn btn-outline-danger btn-sm rounded-circle p-2' onClick={() => handleDelete(ann.id)} disabled={loading}><FiTrash2/></button>
+            <button className='btn btn-outline-danger btn-sm rounded-circle p-2' onClick={() => handleDelete(ann.id)} disabled={loading} aria-label='حذف الإشعار'><FiTrash2/></button>
           </div>
         ))}
       </div>

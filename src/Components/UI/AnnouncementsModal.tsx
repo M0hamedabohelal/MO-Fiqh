@@ -30,7 +30,7 @@ const AnnouncementsModal = ({ announcements, onClose }: AnnouncementsModalProps)
             <h4 className='mb-0 fw-bold d-flex align-items-center' style={{ color: 'var(--primary-color)' }}>
               <FiBell className='ms-2' /> الإشعارات والتنبيهات
             </h4>
-            <button className='btn btn-light rounded-circle p-2 d-flex align-items-center justify-content-center' onClick={onClose}><FiX size={20} /></button>
+            <button className='btn btn-light rounded-circle p-2 d-flex align-items-center justify-content-center' onClick={onClose} aria-label='إغلاق الإشعارات'><FiX size={20} /></button>
           </div>
 
           {announcements.length === 0 ? (

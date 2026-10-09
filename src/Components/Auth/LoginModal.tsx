@@ -54,8 +54,11 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
   };
 
   const handleLogout = async (): Promise<void> => {
-    await logout();
-    onClose();
+    try {
+      await logout();
+    } finally {
+      onClose();
+    }
   };
 
   const switchMode = (): void => {

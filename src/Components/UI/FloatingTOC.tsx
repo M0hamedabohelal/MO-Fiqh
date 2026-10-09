@@ -57,6 +57,7 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
         onClick={() => setIsOpen(!isOpen)}
         className="btn shadow-lg d-flex align-items-center justify-content-center floating-toc-btn"
         title="شجرة الفقه"
+        aria-label="فتح شجرة الفقه"
         style={{
           position: 'fixed',
           left: '20px',
