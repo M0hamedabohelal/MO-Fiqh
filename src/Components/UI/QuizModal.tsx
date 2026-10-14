@@ -73,7 +73,7 @@ const QuizModal = ({ target, onClose, onSelectLesson }: QuizModalProps) => {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="position-fixed top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center"
-        style={{ zIndex: 1050, background: 'rgba(0,0,0,0.6)', padding: '16px' }}
+        style={{ zIndex: 'var(--z-modal)', background: 'rgba(0,0,0,0.6)', padding: '16px' }}
         onClick={onClose}
       >
         <motion.div

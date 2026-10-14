@@ -2,18 +2,12 @@ import { useMemo, useState } from 'react';
 import { FiBook, FiZap, FiAward, FiStar, FiEdit3, FiFileText, FiLock, FiTrendingUp, FiDownload } from 'react-icons/fi';
 import type { IconType } from 'react-icons';
 import CertificateModal from '../UI/CertificateModal';
-import type { BookStats, HighlightItem } from '../../types';
+import { useApp } from '../Layout/AppContext';
+import type { BookStats } from '../../types';
 
 const VISIT_DAYS_KEY = 'fiqh_visit_days';
 
-interface AchievementsViewProps {
-  readLessons: string[];
-  highlights: HighlightItem[];
-  notes: Record<string, string>;
-  booksWithStats: BookStats[];
-  lessonsCount: number;
-  userName: string;
-}
+
 
 interface Badge {
   icon: IconType;
@@ -56,7 +50,9 @@ function getStreak(): number {
 }
 
 // شاشة الإنجازات: سلسلة الأيام + شارات التقدم + حلقة الإتمام + الشهادات
-const AchievementsView = ({ readLessons, highlights, notes, booksWithStats, lessonsCount, userName }: AchievementsViewProps) => {
+const AchievementsView = () => {
+  const { readLessons, highlights, notes, booksWithStats, lessonsCount, user } = useApp();
+  const userName = user?.displayName || user?.email || 'طالب العلم';
   const streak = useMemo(() => getStreak(), []);
   const notesCount = useMemo(() => Object.keys(notes || {}).length, [notes]);
   const readCount = (readLessons || []).length;

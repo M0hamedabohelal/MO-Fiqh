@@ -1,30 +1,23 @@
 import { memo } from 'react';
 import { FiBook, FiCheckCircle, FiStar, FiGitBranch } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import type { BookStats } from '../../types';
-
-interface BooksViewProps {
-  books: BookStats[];
-  onOpenBook: (bookName: string) => void;
-  newCount: number;
-  onOpenMindMap?: () => void;
-}
+import { useApp } from '../Layout/AppContext';
 
 // شاشة فهرس الكتب — كل كتاب بغلاف بصري + إحصاءات التقدم
-const BooksView = memo(({ books, onOpenBook, newCount, onOpenMindMap }: BooksViewProps) => (
+const BooksView = memo(() => {
+  const { booksWithStats: books, newLessonsCount: newCount, openBookChapters: onOpenBook, openMindMap: onOpenMindMap } = useApp();
+  return (
   <div className="mt-4">
     <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
       <h3 className="mb-0 fw-bold" style={{ color: 'var(--primary-color)' }}><FiBook className="ms-2" /> فهرس الكتب</h3>
-      {onOpenMindMap && (
-        <button
-          className="btn btn-sm d-flex align-items-center shadow-sm"
-          style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
-          onClick={onOpenMindMap}
-          title="عرض خريطة الفقه الذهنية"
-        >
-          <FiGitBranch className="ms-1" size={16} /> الخريطة الذهنية
-        </button>
-      )}
+      <button
+        className="btn btn-sm d-flex align-items-center shadow-sm"
+        style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
+        onClick={onOpenMindMap}
+        title="عرض خريطة الفقه الذهنية"
+      >
+        <FiGitBranch className="ms-1" size={16} /> الخريطة الذهنية
+      </button>
     </div>
     {newCount > 0 && (
       <div className="custom-card p-3 mb-4 d-flex align-items-center gap-2 shadow-sm" style={{ borderRight: '4px solid var(--accent-color)' }}>
@@ -46,7 +39,7 @@ const BooksView = memo(({ books, onOpenBook, newCount, onOpenMindMap }: BooksVie
               <div className="book-ribbon">
                 <FiBook size={14} />
               </div>
-              
+
               {/* Inner Arch Frame */}
               <div className="book-arch-frame">
                 <div className="book-arch-inner">
@@ -54,7 +47,7 @@ const BooksView = memo(({ books, onOpenBook, newCount, onOpenMindMap }: BooksVie
                   <div className="book-main-title">{bookName}</div>
                 </div>
               </div>
-              
+
               {issuesCount > 0 && readCount === issuesCount && (
                 <span className="bk-seal" title="كتاب مُتمم">
                   <FiCheckCircle size={18} />
@@ -88,6 +81,7 @@ const BooksView = memo(({ books, onOpenBook, newCount, onOpenMindMap }: BooksVie
       ))}
     </div>
   </div>
-));
+  );
+});
 
 export default BooksView;

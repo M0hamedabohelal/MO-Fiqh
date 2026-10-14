@@ -30,29 +30,10 @@ import ArabesqueDivider from '../UI/ArabesqueDivider';
 import FloatingTOC from '../UI/FloatingTOC';
 import ReadingProgressBar from '../UI/ReadingProgressBar';
 import QuoteImageModal from '../UI/QuoteImageModal';
-import type { Lesson, GlossaryMap } from '../../types';
+import { useApp } from '../Layout/AppContext';
+import type { Lesson } from '../../types';
 
-interface ReadingViewProps {
-  lesson: Lesson;
-  allLessons: Lesson[];
-  glossary: GlossaryMap;
-  searchQuery: string;
-  noteValue: string;
-  onSaveNote: (lessonId: number | string, text: string) => void;
-  isRead: boolean;
-  onToggleRead: () => void;
-  isBookmarked: boolean;
-  onToggleBookmark: () => void;
-  canGoPrev: boolean;
-  canGoNext: boolean;
-  onPrev: () => void;
-  onNext: () => void;
-  isStopMarked: boolean;
-  onToggleStopMark: () => void;
-  onCreateHighlight: (text: string) => void;
-  onBackToIndex: () => void;
-  onSelectLesson: (lesson: Lesson) => void;
-}
+
 
 interface SelectionPopup {
   show: boolean;
@@ -68,29 +49,44 @@ interface QuoteImageState {
 }
 
 // شاشة القراءة: نص المسألة + شرح الشيخ + الفيديو + الملاحظات والأدوات التفاعلية
-const ReadingView = ({
-  lesson,
-  allLessons,
-  glossary,
-  searchQuery,
-  noteValue,
-  onSaveNote,
-  isRead,
-  onToggleRead,
-  isBookmarked,
-  onToggleBookmark,
-  canGoPrev,
-  canGoNext,
-  onPrev,
-  onNext,
-  isStopMarked,
-  onToggleStopMark,
-  onCreateHighlight,
-  onBackToIndex,
-  onSelectLesson,
-}: ReadingViewProps) => {
+const ReadingView = () => {
+  const {
+    currentLesson,
+    lessons: allLessons,
+    glossary,
+    currentSearchQuery: searchQuery,
+    notes,
+    saveNoteForLesson: onSaveNote,
+    readLessons,
+    toggleReadLesson,
+    bookmarks,
+    toggleBookmark,
+    currentIndex,
+    lessons,
+    goToPrevLesson: onPrev,
+    goToNextLesson: onNext,
+    lastReadLessonId,
+    toggleStopMark: onToggleStopMark,
+    createHighlightFromSelection: onCreateHighlight,
+    goBackToList: onBackToIndex,
+    openLessonById,
+  } = useApp();
+  const lesson = currentLesson;
+  // AppLayout لا يعرض هذه الشاشة أصلًا بلا مسألة — حارس دفاعي بعد كل الخطافات
+  const lessonId = lesson ? String(lesson.id) : '';
+  const noteValue = lesson ? (notes[lessonId] || '') : '';
+  const isRead = lesson ? readLessons.includes(lessonId) : false;
+  const isBookmarked = lesson ? bookmarks.includes(lessonId) : false;
+  const canGoPrev = currentIndex > 0;
+  const canGoNext = currentIndex < lessons.length - 1;
+  const isStopMarked = !!lesson && lastReadLessonId === lesson.id.toString();
+  const onToggleRead = (): void => { if (lesson) toggleReadLesson(lesson.id); };
+  const onToggleBookmark = (): void => { if (lesson) toggleBookmark(lessonId); };
+  const onSelectLesson = (l: Lesson): void => openLessonById(l.id);
+
   // طباعة الباب كاملاً
   const handlePrintChapter = (): void => {
+    if (!lesson) return;
     const chapterLessons = allLessons.filter(l => l.chapterName === lesson.chapterName && l.bookName === lesson.bookName);
     exportChapterPrint({ chapterName: lesson.chapterName, bookName: lesson.bookName, lessons: chapterLessons });
   };
@@ -195,6 +191,8 @@ const ReadingView = ({
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  if (!lesson) return null;
+
   return (
     <div onMouseUp={handleMouseUp} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {/* عنوان لاصق أعلى الشاشة عند السكرول (فون فقط) */}
@@ -232,7 +230,7 @@ const ReadingView = ({
               top: selectionPopup.y,
               left: selectionPopup.x,
               transform: selectionPopup.below ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
-              zIndex: 9999,
+              zIndex: 'var(--z-tooltip)',
               background: 'linear-gradient(135deg, #c9a84c 0%, #e6c875 50%, #c9a84c 100%)',
               color: isSmallScreen ? '#1a1a1a' : 'var(--text-main)',
               padding: '6px 8px',

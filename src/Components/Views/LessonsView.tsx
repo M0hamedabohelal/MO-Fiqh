@@ -5,7 +5,8 @@ import type { Variants } from 'framer-motion';
 import EmptyState from '../UI/EmptyState';
 import LessonListItem from '../UI/LessonListItem';
 import { exportChapterPrint } from '../../utils/printExport';
-import type { ChapterGroup, LessonIssue } from '../../types';
+import { useApp } from '../Layout/AppContext';
+import type { LessonIssue } from '../../types';
 
 const REDUCE_LIST_ANIM =
   typeof window !== 'undefined' && window.innerWidth < 768;
@@ -22,15 +23,20 @@ const itemVariants: Variants = REDUCE_LIST_ANIM
       show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
     };
 
-interface LessonsViewProps {
-  bookName: string;
-  chapters: ChapterGroup[];
-  onSelectLesson: (lesson: LessonIssue) => void;
-  newLessonIds?: Set<string>;
-  onStartQuiz?: (chapterName: string, issues: LessonIssue[]) => void;
-}
-
-const LessonsView = memo(({ bookName, chapters, onSelectLesson, newLessonIds, onStartQuiz }: LessonsViewProps) => (
+const LessonsView = memo(() => {
+  const {
+    selectedBookName: bookName,
+    selectedBookChapters: chapters,
+    openLessonById,
+    newLessonIds,
+    openQuiz,
+  } = useApp();
+  const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
+  const onStartQuiz = (chapterName: string, issues: LessonIssue[]): void => {
+    if (!bookName) return;
+    openQuiz({ bookName, chapterName, lessons: issues });
+  };
+  return (
   <div className="mt-4">
     <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <h3 className="mb-0 fw-bold" style={{ color: 'var(--primary-color)' }}>
@@ -62,12 +68,12 @@ const LessonsView = memo(({ bookName, chapters, onSelectLesson, newLessonIds, on
               <button
                 className="btn btn-sm d-flex align-items-center shadow-sm"
                 style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
-                onClick={() => exportChapterPrint({ chapterName, bookName, lessons: issues })}
+                onClick={() => exportChapterPrint({ chapterName, bookName: bookName ?? '', lessons: issues })}
                 title="طباعة أو تصدير كـ PDF"
               >
                 <FiPrinter className="ms-1" size={16} /> طباعة الباب
               </button>
-              {onStartQuiz && issues.length > 0 && (
+              {issues.length > 0 && (
                 <button
                   className="btn btn-sm d-flex align-items-center shadow-sm"
                   style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
@@ -102,6 +108,7 @@ const LessonsView = memo(({ bookName, chapters, onSelectLesson, newLessonIds, on
       ))}
     </div>
   </div>
-));
+  );
+});
 
 export default LessonsView;

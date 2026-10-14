@@ -8,6 +8,8 @@ import PWABanners     from './Components/UI/PWABanners';
 import SplashScreen   from './Components/UI/SplashScreen';
 import LoginModal     from './Components/Auth/LoginModal';
 import AppLayout      from './Components/Layout/AppLayout';
+import { AppProvider } from './Components/Layout/AppContext';
+import type { AppContextValue } from './Components/Layout/AppContext';
 import OnboardingSlides, { shouldShowOnboarding } from './Components/UI/OnboardingSlides';
 import QuizModal from './Components/UI/QuizModal';
 import type { QuizTarget } from './Components/UI/QuizModal';
@@ -23,10 +25,10 @@ import { useAppData }          from './hooks/useAppData';
 import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
 import { safeGet, safeSet, safeRemove } from './utils/safeStorage';
+import { useNewBadge }         from './hooks/useNewBadge';
+import { useVisitTracking }    from './hooks/useVisitTracking';
+import { useSplash }           from './hooks/useSplash';
 import type { Lesson, ChapterGroup } from './types';
-
-// لقطة وقت تحميل التطبيق — للمقارنات الزمنية أثناء الرسم (أسبوع الشارة)
-const APP_START = Date.now();
 
 function App() {
   // ─── Auth ───
@@ -56,22 +58,11 @@ function App() {
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');
   const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
   const [lastReadLessonId, setLastReadLessonId]       = useState(() => safeGet('lastReadLessonId'));
-  const [showSplash, setShowSplash]       = useState(true);
+  const showSplash = useSplash(authLoading);
   const [quizTarget, setQuizTarget]         = useState<QuizTarget | null>(null);
   const [mindmapOpen, setMindmapOpen]       = useState(false);
   // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
   const [showOnboarding, setShowOnboarding] = useState(false);
-
-  // شاشة التحميل
-  useEffect(() => {
-    const maxTimer = setTimeout(() => setShowSplash(false), 2000);
-    if (!authLoading) {
-      clearTimeout(maxTimer);
-      const minTimer = setTimeout(() => setShowSplash(false), 350);
-      return () => clearTimeout(minTimer);
-    }
-    return () => clearTimeout(maxTimer);
-  }, [authLoading]);
 
   // Theme & Font
   useEffect(() => {
@@ -209,124 +200,9 @@ function App() {
     }
   }, [user, authLoading]);
 
-  // ─── شارة "جديد": تظهر أسبوعًا من أول ظهور للمسألة ───
-  // (المسائل بلا تاريخ إضافة، فيُحفظ أول ظهور محليًا؛ والقديم منها لا يُوسم)
-  const NEW_BADGE_DAYS = 7;
-  const readFirstSeen = (): Record<string, number> => {
-    try {
-      return JSON.parse(localStorage.getItem('fiqh_lessons_first_seen') || '{}');
-    } catch {
-      return {};
-    }
-  };
-  const readSeenMax = (): number => {
-    try {
-      return Number(localStorage.getItem('fiqh_seen_max_lesson_id') || 0);
-    } catch {
-      return 0;
-    }
-  };
-  const { freshIds } = useMemo(() => {
-    const fresh = new Set<string>();
-    if (lessons.length === 0) return { freshIds: fresh };
-    const weekMs = NEW_BADGE_DAYS * 24 * 60 * 60 * 1000;
-    const records = readFirstSeen();
-    const seenMax = readSeenMax();
-    const isFirstRun = seenMax === 0 && Object.keys(records).length === 0;
-    lessons.forEach((l: Lesson) => {
-      const id = String(l.id);
-      const rec = records[id];
-      if (rec === undefined) {
-        // بلا سجل: جديدة فقط لو ظهرت بعد آخر معرف معروف (وليست أول تشغيل)
-        if (!isFirstRun && (Number(l.id) || 0) > seenMax) fresh.add(id);
-      } else if (rec > 0 && APP_START - rec < weekMs) {
-        fresh.add(id);
-      }
-    });
-    return { freshIds: fresh };
-  }, [lessons]);
-  // ختم الطوابع الزمنية للمسائل الجديدة + تحديث أعلى معرف + تنظيف المحذوف
-  useEffect(() => {
-    if (lessons.length === 0) return;
-    const now = Date.now();
-    const records = readFirstSeen();
-    const seenMax = readSeenMax();
-    const isFirstRun = seenMax === 0 && Object.keys(records).length === 0;
-    let changed = false;
-    let maxId = seenMax;
-    const alive = new Set<string>();
-    lessons.forEach((l: Lesson) => {
-      const id = String(l.id);
-      alive.add(id);
-      const numId = Number(l.id) || 0;
-      if (numId > maxId) maxId = numId;
-      if (records[id] === undefined && !isFirstRun && numId > seenMax) {
-        records[id] = now;
-        changed = true;
-      }
-    });
-    Object.keys(records).forEach((id) => {
-      if (!alive.has(id)) {
-        delete records[id];
-        changed = true;
-      }
-    });
-    try {
-      if (changed) localStorage.setItem('fiqh_lessons_first_seen', JSON.stringify(records));
-      if (maxId !== seenMax) localStorage.setItem('fiqh_seen_max_lesson_id', String(maxId));
-    } catch {
-      // التخزين المحلي غير متاح — نتجاهل بصمت
-    }
-  }, [lessons]);
-  const newLessonIds = freshIds;
-  const newLessonsCount = useMemo(
-    () => lessons.filter((l: Lesson) => freshIds.has(String(l.id)) && !readLessons.includes(String(l.id))).length,
-    [lessons, freshIds, readLessons],
-  );
-
-  // ─── تسجيل يوم الزيارة لسلسلة المواظبة (آخر 365 يومًا) + دمجها سحابيًا ───
-  useEffect(() => {
-    const key = 'fiqh_visit_days';
-    const readLocal = (): string[] => {
-      try {
-        const v = JSON.parse(localStorage.getItem(key) || '[]');
-        return Array.isArray(v) ? v : [];
-      } catch {
-        return [];
-      }
-    };
-    const saveLocal = (days: string[]) => {
-      try {
-        localStorage.setItem(key, JSON.stringify(days.slice(-365)));
-      } catch {
-        // التخزين المحلي غير متاح — نتجاهل بصمت
-      }
-    };
-    const now = new Date();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const today = `${now.getFullYear()}-${m}-${day}`;
-    const localDays = readLocal();
-    if (!localDays.includes(today)) {
-      localDays.push(today);
-      saveLocal(localDays);
-    }
-    if (!user || authLoading) return;
-    // دمج أيام الأجهزة الأخرى من السحابة حتى لا تصفر السلسلة بتغيير الجهاز
-    (async () => {
-      try {
-        const { fetchUserData, syncVisitDays } = await import('./firebase/services');
-        const cloud = await fetchUserData(user.uid);
-        const merged = Array.from(new Set([...(cloud.visits || []), ...readLocal()]))
-          .sort()
-          .slice(-365);
-        saveLocal(merged);
-        await syncVisitDays(user.uid, merged);
-      } catch {
-        // تجاهل الأخطاء المؤقتة — النسخة المحلية كافية
-      }
-    })();
-  }, [user, authLoading]);
+  // ─── شارة "جديد" + سلسلة المواظبة: منطق مستخرج لخطافات مستقلة ───
+  const { newLessonIds, newLessonsCount } = useNewBadge(lessons, readLessons);
+  useVisitTracking(user, authLoading);
 
   // ─── تسريع التنقل: تحميل شاشات التطبيق مسبقًا عند الخمول ───
   useEffect(() => {
@@ -352,8 +228,8 @@ function App() {
     if (isAdminUser) void import('./Components/Admin/AdminPanel');
   }, [isAdminUser]);
 
-  // Props مشتركة للـ AppLayout
-  const layoutProps = {
+  // قيمة السياق المشتركة — النوع الصارم يمنع نسيان أي حقل
+  const layoutProps: AppContextValue = {
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
     theme, setTheme, fontSize, setFontSize,
@@ -415,7 +291,9 @@ function App() {
           user={user}
         />
       ) : (
-        <AppLayout {...layoutProps} />
+        <AppProvider value={layoutProps}>
+          <AppLayout />
+        </AppProvider>
       )}
 
       <PWABanners isOffline={isOffline} needRefresh={needRefresh} applyUpdate={applyUpdate} offlineReady={offlineReady} dismissOfflineReady={dismissOfflineReady} />

@@ -3,20 +3,19 @@ import EmptyState from '../UI/EmptyState';
 import ShareButton from '../UI/ShareButton';
 import { exportNotesPrint } from '../../utils/printExport';
 import { useAuth } from '../Auth/AuthContext';
-import type { HighlightItem, Lesson } from '../../types';
-
-interface HighlightsViewProps {
-  highlights: HighlightItem[];
-  notes: Record<string, string>;
-  lessons: Lesson[];
-  onDeleteHighlight: (id: string | number) => void;
-  onOpenLessonById: (lessonId: string | number) => void;
-  onOpenLogin: () => void;
-}
+import { useApp } from '../Layout/AppContext';
 
 // شاشة الفوائد المقتبسة + تصديرها مع الملاحظات
-const HighlightsView = ({ highlights, notes, lessons, onDeleteHighlight, onOpenLessonById, onOpenLogin }: HighlightsViewProps) => {
+const HighlightsView = () => {
   const { user } = useAuth();
+  const {
+    highlights,
+    notes,
+    lessons,
+    deleteHighlight: onDeleteHighlight,
+    openLessonById: onOpenLessonById,
+    onOpenLogin,
+  } = useApp();
   const hasAnySavedContent =
     highlights.length > 0 || Object.values(notes).some((t) => t && String(t).trim());
 

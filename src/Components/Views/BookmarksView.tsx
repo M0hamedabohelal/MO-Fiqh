@@ -1,19 +1,19 @@
 import { FiBookmark, FiChevronLeft, FiCloud, FiBook } from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
 import { useAuth } from '../Auth/AuthContext';
-import type { Lesson } from '../../types';
-
-interface BookmarksViewProps {
-  bookmarks: string[];
-  lessons: Lesson[];
-  onOpenLessonById: (lessonId: string | number) => void;
-  onBrowse: () => void;
-  onOpenLogin: () => void;
-}
+import { useApp } from '../Layout/AppContext';
 
 // شاشة المسائل المحفوظة في المفضلة
-const BookmarksView = ({ bookmarks, lessons, onOpenLessonById, onBrowse, onOpenLogin }: BookmarksViewProps) => {
+const BookmarksView = () => {
   const { user } = useAuth();
+  const {
+    bookmarks,
+    lessons,
+    openLessonById: onOpenLessonById,
+    setCurrentView,
+    onOpenLogin,
+  } = useApp();
+  const onBrowse = (): void => setCurrentView('books');
   // المطابقة كنصوص دائمًا — المعرفات قد تأتي أرقامًا من مصدر ونصوصًا من آخر
   const bookmarkSet = new Set((bookmarks || []).map(String));
   const bookmarkedLessons = lessons.filter((l) => bookmarkSet.has(String(l.id)));

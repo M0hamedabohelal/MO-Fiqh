@@ -9,13 +9,7 @@ import AdminLessonsTab from './AdminLessonsTab';
 import AdminGlossaryTab from './AdminGlossaryTab';
 import AdminStatsTab from './AdminStatsTab';
 import AdminAnnouncements from './AdminAnnouncements';
-import type { GlossaryMap, Lesson } from '../../types';
-
-interface AdminPanelProps {
-  lessons: Lesson[];
-  glossary: GlossaryMap;
-  onDataChanged: () => Promise<void>;
-}
+import { useApp } from '../Layout/AppContext';
 
 type AdminTab = 'lessons' | 'glossary' | 'stats' | 'announcements';
 
@@ -24,7 +18,8 @@ interface StatusMessage {
   text: string;
 }
 
-const AdminPanel = ({ lessons, glossary, onDataChanged }: AdminPanelProps) => {
+const AdminPanel = () => {
+  const { lessons, glossary, reloadFromCloud: onDataChanged } = useApp();
   const [tab, setTab] = useState<AdminTab>('lessons'); // lessons | glossary | stats | announcements
   const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null); // { type: 'success'|'error', text }
   const [busy, setBusy] = useState(false);

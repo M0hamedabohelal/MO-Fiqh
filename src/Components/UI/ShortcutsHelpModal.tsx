@@ -14,7 +14,7 @@ const ShortcutsHelpModal = ({ open, onClose }: ShortcutsHelpModalProps) => (
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.45)', zIndex: 1200, padding: '20px' }}
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.45)', zIndex: 'var(--z-help)', padding: '20px' }}
         onClick={onClose}
       >
         <motion.div

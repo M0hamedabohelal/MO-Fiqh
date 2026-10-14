@@ -419,7 +419,7 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
               position: 'fixed',
               top: tooltipInfo.y,
               left: tooltipInfo.x,
-              zIndex: 9999,
+              zIndex: 'var(--z-tooltip)',
             }}
           >
             <div className="glossary-tooltip-content">

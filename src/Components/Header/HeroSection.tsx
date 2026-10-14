@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { FiChevronLeft, FiChevronRight, FiDownload, FiUser, FiYoutube, FiBookOpen } from 'react-icons/fi';
 import type { User } from 'firebase/auth';
 import logo from '../../assets/logo.webp';
-import './HeroSection.css';
+import styles from './HeroSection.module.css';
 
 const slides = [
   {
@@ -76,35 +76,35 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpen
   };
 
   return (
-    <section className={`hero-section ${isVisible ? 'hero-visible' : ''}`} id="hero-section">
+    <section className={`${styles['hero-section']} ${isVisible ? styles['hero-visible'] : ''}`} id="hero-section">
       {/* Dynamic Animated Background Patterns */}
-      <div className="hero-bg-layer hero-bg-pattern"></div>
-      <div className="hero-bg-layer hero-bg-gradient"></div>
+      <div className={`${styles['hero-bg-layer']} ${styles['hero-bg-pattern']}`}></div>
+      <div className={`${styles['hero-bg-layer']} ${styles['hero-bg-gradient']}`}></div>
 
       {/* Decorative Corner Ornaments */}
-      <div className="hero-corner hero-corner-tr"></div>
-      <div className="hero-corner hero-corner-bl"></div>
+      <div className={`${styles['hero-corner']} ${styles['hero-corner-tr']}`}></div>
+      <div className={`${styles['hero-corner']} ${styles['hero-corner-bl']}`}></div>
 
       {/* Login Button */}
-      <button className="hero-login-btn premium-glass" onClick={onOpenLogin} title={user ? `حساب: ${user.displayName || user.email}` : 'تسجيل الدخول'}>
-        <div className="login-btn-inner">
+      <button className={`${styles['hero-login-btn']} ${styles['premium-glass']}`} onClick={onOpenLogin} title={user ? `حساب: ${user.displayName || user.email}` : 'تسجيل الدخول'}>
+        <div className={styles['login-btn-inner']}>
           <FiUser size={18} />
           <span>{user ? (user.displayName || user.email || 'حسابي') : 'تسجيل الدخول'}</span>
         </div>
       </button>
 
-      <div className="hero-main-container">
+      <div className={styles['hero-main-container']}>
         {/* Arch Frame */}
-        <div className="hero-arch-frame">
-          <div className="hero-arch-inner">
+        <div className={styles['hero-arch-frame']}>
+          <div className={styles['hero-arch-inner']}>
 
             {/* Logo area with rotating mandala */}
-            <div className="hero-logo-showcase">
-              <div className="hero-mandala-bg"></div>
+            <div className={styles['hero-logo-showcase']}>
+              <div className={styles['hero-mandala-bg']}></div>
               <img
                 src={logo}
                 alt="شعار الباحث الفقهي"
-                className="hero-logo-img"
+                className={styles['hero-logo-img']}
                 width="150"
                 height="150"
                 fetchPriority="high"
@@ -113,71 +113,71 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpen
             </div>
 
             {/* Title with Gold separator */}
-            <div className="hero-title-area">
-              <h1 className="hero-title">الباحث الفقهي</h1>
-              <div className="hero-separator">
-                <span className="sep-line"></span>
-                <span className="sep-icon">✦</span>
-                <span className="sep-line"></span>
+            <div className={styles['hero-title-area']}>
+              <h1 className={styles['hero-title']}>الباحث الفقهي</h1>
+              <div className={styles['hero-separator']}>
+                <span className={styles['sep-line']}></span>
+                <span className={styles['sep-icon']}>✦</span>
+                <span className={styles['sep-line']}></span>
               </div>
             </div>
 
             {/* Elegant Slider */}
-            <div className="hero-slider-wrapper">
-              <button className="hero-nav-btn prev-btn" onClick={prevSlide} aria-label="السابق">
+            <div className={styles['hero-slider-wrapper']}>
+              <button className={`${styles['hero-nav-btn']} prev-btn`} onClick={prevSlide} aria-label="السابق">
                 <FiChevronRight size={24} />
               </button>
 
-              <div className="hero-slider-content premium-glass">
-                <div className="slider-border-ornament top-ornament"></div>
-                <div className={`slide-content-inner ${slideVisible ? 'slide-active' : 'slide-exit'}`}>
-                  <h2 className="slide-subtitle">{slides[currentSlide].subtitle}</h2>
-                  <p className="slide-desc">{slides[currentSlide].description}</p>
+              <div className={`${styles['hero-slider-content']} ${styles['premium-glass']}`}>
+                <div className={`${styles['slider-border-ornament']} ${styles['top-ornament']}`}></div>
+                <div className={`${styles['slide-content-inner']} ${slideVisible ? styles['slide-active'] : styles['slide-exit']}`}>
+                  <h2 className={styles['slide-subtitle']}>{slides[currentSlide].subtitle}</h2>
+                  <p className={styles['slide-desc']}>{slides[currentSlide].description}</p>
                 </div>
-                <div className="slider-border-ornament bottom-ornament"></div>
+                <div className={`${styles['slider-border-ornament']} ${styles['bottom-ornament']}`}></div>
               </div>
 
-              <button className="hero-nav-btn next-btn" onClick={nextSlide} aria-label="التالي">
+              <button className={`${styles['hero-nav-btn']} next-btn`} onClick={nextSlide} aria-label="التالي">
                 <FiChevronLeft size={24} />
               </button>
             </div>
 
             {/* Dots */}
-            <div className="hero-dots-container">
+            <div className={styles['hero-dots-container']}>
               {slides.map((_, index: number) => (
                 <button
                   key={index}
-                  className={`hero-dot ${index === currentSlide ? 'active' : ''}`}
+                  className={`${styles['hero-dot']} ${index === currentSlide ? styles['active'] : ''}`}
                   onClick={() => goToSlide(index)}
                   aria-label={`الشريحة ${index + 1}`}
                 >
-                  <span className="dot-inner"></span>
+                  <span className={styles['dot-inner']}></span>
                 </button>
               ))}
             </div>
 
             {/* Call to Actions */}
-            <div className="hero-actions-container">
-              <button className="hero-btn-primary" onClick={onStartBrowsing}>
-                <span className="btn-shine"></span>
-                <FiBookOpen className="btn-icon" size={22} />
-                <span className="btn-text">ابدأ التصفح الآن</span>
+            <div className={styles['hero-actions-container']}>
+              <button className={styles['hero-btn-primary']} onClick={onStartBrowsing}>
+                <span className={styles['btn-shine']}></span>
+                <FiBookOpen className={styles['btn-icon']} size={22} />
+                <span className={styles['btn-text']}>ابدأ التصفح الآن</span>
               </button>
 
-              <div className="hero-secondary-actions">
-                <a className="hero-btn-secondary" href="/fiqh-book.pdf" download="الفقه.pdf">
+              <div className={styles['hero-secondary-actions']}>
+                <a className={styles['hero-btn-secondary']} href="/fiqh-book.pdf" download="الفقه.pdf">
                   <FiDownload size={18} />
                   <span>تحميل الكتاب</span>
                 </a>
-                <a className="hero-btn-secondary" href="https://www.youtube.com/playlist?list=PL1i_D1Vw3d5P5Q6IHHW22JHrnLCwm60Bn" target="_blank" rel="noopener noreferrer">
+                <a className={styles['hero-btn-secondary']} href="https://www.youtube.com/playlist?list=PL1i_D1Vw3d5P5Q6IHHW22JHrnLCwm60Bn" target="_blank" rel="noopener noreferrer">
                   <FiYoutube size={18} />
                   <span>السلسلة المرئية</span>
                 </a>
               </div>
 
               {lastReadTitle && (
-                <button className="hero-btn-continue" onClick={onContinueReading}>
-                  <div className="pulse-dot"></div>
+                <button className={styles['hero-btn-continue']} onClick={onContinueReading}>
+                  <div className={styles['pulse-dot']}></div>
                   <span>أكمل القراءة: {lastReadTitle}</span>
                   <FiChevronLeft size={16} />
                 </button>

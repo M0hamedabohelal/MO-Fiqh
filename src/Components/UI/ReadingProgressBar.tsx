@@ -62,7 +62,7 @@ const ReadingProgressBar = () => {
         position: 'fixed',
         top: 0, left: 0, right: 0,
         height: '3px',
-        zIndex: 2000,
+        zIndex: 'var(--z-progress)',
         backgroundColor: 'rgba(0,0,0,0.08)',
         pointerEvents: 'none',
       }}

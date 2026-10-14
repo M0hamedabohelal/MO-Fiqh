@@ -32,7 +32,7 @@ const PWABanners = ({
           exit={{ y: -60, opacity: 0 }}
           className="position-fixed top-0 start-0 end-0 d-flex align-items-center justify-content-center gap-2 py-2 px-3"
           style={{
-            zIndex: 3000,
+            zIndex: 'var(--z-banner)',
             backgroundColor: '#856404',
             color: '#fff',
             fontSize: '0.9rem',
@@ -53,7 +53,7 @@ const PWABanners = ({
           exit={{ y: 100, opacity: 0, scale: 0.85 }}
           transition={{ type: 'spring', stiffness: 260, damping: 22 }}
           className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-center py-3 mb-5 mb-md-3"
-          style={{ zIndex: 3000, pointerEvents: 'none' }}
+          style={{ zIndex: 'var(--z-banner)', pointerEvents: 'none' }}
         >
           <motion.button
             onClick={applyUpdate}
@@ -97,7 +97,7 @@ const PWABanners = ({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
           className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-center py-2 px-3 mb-5 mb-md-0"
-          style={{ zIndex: 3000 }}
+          style={{ zIndex: 'var(--z-banner)' }}
         >
           <div
             className="d-flex align-items-center gap-2 px-3 py-2 shadow small"

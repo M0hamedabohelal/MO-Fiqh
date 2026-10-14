@@ -84,7 +84,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
   return (
     <div
       className="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
-      style={{ backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 1100, padding: '20px' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 'var(--z-auth)', padding: '20px' }}
       onClick={onClose}
     >
       <motion.div
@@ -95,7 +95,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
         className="w-100"
         style={{
           maxWidth: '440px',
-          zIndex: 1101,
+          zIndex: 'var(--z-auth-inner)',
           backgroundColor: 'var(--card-bg)',
           borderRadius: '16px',
           border: '1px solid var(--border-color)',

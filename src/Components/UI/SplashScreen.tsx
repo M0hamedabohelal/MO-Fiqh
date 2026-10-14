@@ -19,7 +19,7 @@ const SplashScreen = ({ visible }: SplashScreenProps) => (
         style={{
           position: 'fixed',
           inset: 0,
-          zIndex: 9999,
+          zIndex: 'var(--z-splash)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

@@ -1,9 +1,26 @@
 import { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
+import EmptyState from './Components/UI/EmptyState';
+import { FiAlertTriangle } from 'react-icons/fi';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
+  // واجهة بديلة مخصصة (لحدود الشاشات) — الافتراضي شاشة الخطأ التفصيلية الجذرية
+  fallback?: ReactNode;
 }
+
+// بطاقة ودية لأعطال الشاشات — زر واحد يعيد التحميل (يُنصح به بعد أي نشر جديد)
+export const ViewErrorFallback = () => (
+  <EmptyState
+    icon={FiAlertTriangle}
+    title="تعذّر عرض هذه الشاشة"
+    message="حدث خطأ غير متوقع — جرّب إعادة التحميل، وإن تكرر أبلغ المطور."
+  >
+    <button className="btn btn-primary mt-1" onClick={() => window.location.reload()}>
+      إعادة تحميل الصفحة
+    </button>
+  </EmptyState>
+);
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -28,6 +45,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) return <>{this.props.fallback}</>;
       return (
         <div style={{ padding: '40px', color: '#e74c3c', direction: 'ltr', textAlign: 'left', background: '#f8d7da', minHeight: '100vh' }}>
           <h2>عذراً، حدث خطأ غير متوقع!</h2>

@@ -1,18 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiAward, FiChevronLeft, FiRefreshCw } from 'react-icons/fi';
-
-interface SettingsViewProps {
-  canInstall: boolean;
-  onInstall: () => void;
-  isInstalled: boolean;
-  onOpenAchievements: () => void;
-  needRefresh?: boolean;
-  onApplyUpdate?: () => void;
-  onCheckForUpdates?: () => Promise<void>;
-}
+import { useApp } from '../Layout/AppContext';
 
 // شاشة الإعدادات وحول التطبيق
-const SettingsView = ({ canInstall, onInstall, isInstalled, onOpenAchievements, needRefresh, onApplyUpdate, onCheckForUpdates }: SettingsViewProps) => {
+const SettingsView = () => {
+  const {
+    canInstall,
+    promptInstall: onInstall,
+    isInstalled,
+    setCurrentView,
+    needRefresh,
+    applyUpdate: onApplyUpdate,
+    checkForUpdates: onCheckForUpdates,
+  } = useApp();
+  const onOpenAchievements = (): void => setCurrentView('achievements');
   const [checking, setChecking] = useState(false);
   const [checkedOnce, setCheckedOnce] = useState(false);
   const timerRef = useRef<number | null>(null);

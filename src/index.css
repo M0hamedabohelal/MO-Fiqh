@@ -1,6 +1,20 @@
 /* الخطوط تُحمَّل من index.html عبر link (أسرع) — لا تستخدم @import هنا */
 
 :root {
+  /* طبقات التراكب العامة — مصدر واحد بدل أرقام سحرية متناثرة (الترتيب محفوظ كما كان) */
+  --z-nav: 1000;
+  --z-fab: 1040;
+  --z-modal: 1050;
+  --z-modal-inner: 1051;
+  --z-announce: 1060;
+  --z-auth: 1100;
+  --z-auth-inner: 1101;
+  --z-help: 1200;
+  --z-progress: 2000;
+  --z-banner: 3000;
+  --z-tooltip: 9999;
+  --z-splash: 9999;
+  --z-overlay: 10000;
   --bg-color: #fafaf7;
   --primary-color: #0f3d3e;
   --accent-color: #fbdc99;
@@ -502,7 +516,7 @@ button:active:not(:disabled),
   justify-content: space-around;
   align-items: center;
   padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px));
-  z-index: 1000;
+  z-index: var(--z-nav);
   border-top: 1px solid var(--border-color);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);

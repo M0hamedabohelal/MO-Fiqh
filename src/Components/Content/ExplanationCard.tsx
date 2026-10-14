@@ -263,7 +263,7 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
         <div
           ref={tooltipRef}
           className="glossary-tooltip-popup"
-          style={{ position: 'fixed', top: tooltipInfo.y, left: tooltipInfo.x, zIndex: 9999 }}
+          style={{ position: 'fixed', top: tooltipInfo.y, left: tooltipInfo.x, zIndex: 'var(--z-tooltip)' }}
         >
           <div className="glossary-tooltip-content">
             <strong className="d-block mb-1" style={{ color: 'var(--accent-color)', fontSize: '0.95rem' }}>

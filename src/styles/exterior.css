@@ -274,7 +274,7 @@
   position: fixed;
   right: 16px;
   bottom: calc(78px + env(safe-area-inset-bottom, 0px));
-  z-index: 1040;
+  z-index: var(--z-fab);
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -756,7 +756,7 @@
   top: 0;
   right: 0;
   left: 0;
-  z-index: 1000;
+  z-index: var(--z-nav);
   border: none;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--card-bg);

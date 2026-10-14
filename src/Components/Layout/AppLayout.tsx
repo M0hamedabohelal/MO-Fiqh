@@ -1,20 +1,12 @@
 import { lazy, Suspense } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
-import type { User } from 'firebase/auth';
 import { FiUser, FiAlertCircle } from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
 import { motion, AnimatePresence } from 'framer-motion';
-import type {
-  Lesson,
-  ChapterGroup,
-  BookStats,
-  GlossaryMap,
-  HighlightItem,
-} from '../../types';
 
 import Topbar from '../Header/Topbar';
 import Slider from '../Sidebar/Slider';
-import type { QuizTarget } from '../UI/QuizModal';
+import { useApp } from './AppContext';
+import { ErrorBoundary, ViewErrorFallback } from '../../ErrorBoundary';
 
 // شاشات التطبيق — lazy loaded
 const BooksView      = lazy(() => import('../Views/BooksView'));
@@ -38,83 +30,23 @@ const ViewSpinner = ({ label = 'جارٍ التحميل...' }: ViewSpinnerProps)
   </div>
 );
 
-interface AppLayoutProps {
-  currentView: string;
-  currentIndex: number;
-  currentLesson: Lesson | undefined;
-  lessons: Lesson[];
-  user: User | null;
-  isAdminUser: boolean;
-  theme: string;
-  setTheme: Dispatch<SetStateAction<string>>;
-  fontSize: number;
-  setFontSize: Dispatch<SetStateAction<number>>;
-  cloudStatus: string;
-  canInstall: boolean;
-  isInstalled: boolean;
-  promptInstall: () => void;
-  needRefresh: boolean;
-  applyUpdate: () => void;
-  checkForUpdates: () => Promise<void>;
-  glossary: GlossaryMap;
-  notes: Record<string, string>;
-  bookmarks: string[];
-  highlights: HighlightItem[];
-  readLessons: string[];
-  booksWithStats: BookStats[];
-  selectedBookName: string | null;
-  selectedBookChapters: ChapterGroup[];
-  openChapterName: string | null;
-  lastReadLessonId: string | null;
-  setCurrentView: (view: string) => void;
-  openBookChapters: (bookName: string) => void;
-  toggleChapter: (chapterName: string) => void;
-  openQuiz: (target: QuizTarget) => void;
-  openMindMap: () => void;
-  openLessonById: (lessonId: string | number) => void;
-  goToNextLesson: () => void;
-  goToPrevLesson: () => void;
-  goBackToList: () => void;
-  toggleBookmark: (lessonId: string | number) => void;
-  toggleReadLesson: (lessonId: string | number) => void;
-  saveNoteForLesson: (lessonId: string | number, text: string) => void;
-  deleteHighlight: (highlightId: string | number) => void;
-  createHighlightFromSelection: (text: string) => void;
-  toggleStopMark: () => void;
-  onOpenSearch: () => void;
-  onOpenLogin: () => void;
-  reloadFromCloud: () => Promise<void>;
-  currentSearchQuery: string;
-  newLessonIds: Set<string>;
-  newLessonsCount: number;
-  lessonsCount: number;
-}
-
 /**
  * AppLayout — هيكل التطبيق الداخلي (بعد Hero)
  * يحتوي على: Sidebar + Topbar + حاوية الشاشات المتحركة
+ * الشاشات تسحب حاجتها مباشرة من useApp() بدل تمرير عشرات الخصائص
  */
-const AppLayout = ({
-  currentView, currentIndex, currentLesson, lessons,
-  user, isAdminUser,
-  theme, setTheme, setFontSize,
-  cloudStatus,
-  canInstall, isInstalled, promptInstall,
-  needRefresh, applyUpdate, checkForUpdates,
-  glossary, notes, bookmarks, highlights, readLessons,
-  booksWithStats, selectedBookName, selectedBookChapters,
-  openChapterName, lastReadLessonId,
-  setCurrentView, openBookChapters, toggleChapter,
-  openQuiz, openMindMap, openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
-  toggleBookmark, toggleReadLesson, saveNoteForLesson,
-  deleteHighlight, createHighlightFromSelection,
-  toggleStopMark,
-  onOpenSearch, onOpenLogin, reloadFromCloud,
-  currentSearchQuery,
-  newLessonIds,
-  newLessonsCount,
-  lessonsCount,
-}: AppLayoutProps) => (
+const AppLayout = () => {
+  const {
+    currentView, currentIndex, currentLesson, lessons,
+    user, isAdminUser,
+    theme, setTheme, setFontSize,
+    cloudStatus,
+    canInstall, promptInstall,
+    selectedBookName,
+    setCurrentView,
+    onOpenSearch, onOpenLogin,
+  } = useApp();
+  return (
   <div className="row g-0">
 
     {/* الشريط الجانبي */}
@@ -152,58 +84,41 @@ const AppLayout = ({
             <Suspense fallback={<ViewSpinner />}>
 
               {currentView === 'books' && (
-                <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} onOpenMindMap={openMindMap} />
+                <ErrorBoundary fallback={<ViewErrorFallback />}>
+                  <BooksView />
+                </ErrorBoundary>
               )}
 
               {currentView === 'chapters' && (
-                selectedBookName ? (
-                  <ChaptersView
-                    bookName={selectedBookName}
-                    chapters={selectedBookChapters}
-                    openChapterName={openChapterName}
-                    onToggleChapter={toggleChapter}
-                    onSelectLesson={(lesson: Lesson) => openLessonById(lesson.id)}
-                    newLessonIds={newLessonIds}
-                    onStartQuiz={(chapterName, issues) => openQuiz({ bookName: selectedBookName ?? '', chapterName, lessons: issues })}
-                  />
-                ) : (
-                  <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} onOpenMindMap={openMindMap} />
-                )
+                <ErrorBoundary fallback={<ViewErrorFallback />}>
+                  {selectedBookName ? (
+                    <ChaptersView />
+                  ) : (
+                    <BooksView />
+                  )}
+                </ErrorBoundary>
               )}
 
               {currentView === 'lessons' && (
-                selectedBookName ? (
-                  <LessonsView
-                    bookName={selectedBookName}
-                    chapters={selectedBookChapters}
-                    onSelectLesson={(lesson: Lesson) => openLessonById(lesson.id)}
-                    newLessonIds={newLessonIds}
-                    onStartQuiz={(chapterName, issues) => openQuiz({ bookName: selectedBookName ?? '', chapterName, lessons: issues })}
-                  />
-                ) : (
-                  <BooksView books={booksWithStats} onOpenBook={openBookChapters} newCount={newLessonsCount} onOpenMindMap={openMindMap} />
-                )
+                <ErrorBoundary fallback={<ViewErrorFallback />}>
+                  {selectedBookName ? (
+                    <LessonsView />
+                  ) : (
+                    <BooksView />
+                  )}
+                </ErrorBoundary>
               )}
 
               {currentView === 'bookmarks' && (
-                <BookmarksView
-                  bookmarks={bookmarks}
-                  lessons={lessons}
-                  onOpenLessonById={openLessonById}
-                  onBrowse={() => setCurrentView('books')}
-                  onOpenLogin={onOpenLogin}
-                />
+                <ErrorBoundary fallback={<ViewErrorFallback />}>
+                  <BookmarksView />
+                </ErrorBoundary>
               )}
 
               {currentView === 'highlights' && (
-                <HighlightsView
-                  highlights={highlights}
-                  notes={notes}
-                  lessons={lessons}
-                  onDeleteHighlight={deleteHighlight}
-                  onOpenLessonById={openLessonById}
-                  onOpenLogin={onOpenLogin}
-                />
+                <ErrorBoundary fallback={<ViewErrorFallback />}>
+                  <HighlightsView />
+                </ErrorBoundary>
               )}
 
               {currentView === 'reading' && !currentLesson && (
@@ -223,32 +138,16 @@ const AppLayout = ({
               )}
 
               {currentView === 'reading' && currentLesson && (
-                <ReadingView
-                  lesson={currentLesson}
-                  allLessons={lessons}
-                  glossary={glossary}
-                  searchQuery={currentSearchQuery}
-                  noteValue={notes[String(currentLesson.id)] || ''}
-                  onSaveNote={saveNoteForLesson}
-                  isRead={readLessons.includes(String(currentLesson.id))}
-                  onToggleRead={() => toggleReadLesson(currentLesson.id)}
-                  isBookmarked={bookmarks.includes(String(currentLesson.id))}
-                  onToggleBookmark={() => toggleBookmark(String(currentLesson.id))}
-                  canGoPrev={currentIndex > 0}
-                  canGoNext={currentIndex < lessons.length - 1}
-                  onPrev={goToPrevLesson}
-                  onNext={goToNextLesson}
-                  isStopMarked={lastReadLessonId === currentLesson.id.toString()}
-                  onToggleStopMark={toggleStopMark}
-                  onCreateHighlight={createHighlightFromSelection}
-                  onBackToIndex={goBackToList}
-                  onSelectLesson={(lesson: Lesson) => openLessonById(lesson.id)}
-                />
+                <ErrorBoundary fallback={<ViewErrorFallback />}>
+                  <ReadingView />
+                </ErrorBoundary>
               )}
 
               {currentView === 'admin' && (
                 isAdminUser ? (
-                  <AdminPanel lessons={lessons} glossary={glossary} onDataChanged={reloadFromCloud} />
+                  <ErrorBoundary fallback={<ViewErrorFallback />}>
+                    <AdminPanel />
+                  </ErrorBoundary>
                 ) : (
                   <div className="mt-4 mb-5">
                     <div className="custom-card p-5 text-center shadow-sm">
@@ -261,26 +160,15 @@ const AppLayout = ({
               )}
 
               {currentView === 'settings' && (
-                <SettingsView
-                  canInstall={canInstall}
-                  onInstall={promptInstall}
-                  isInstalled={isInstalled}
-                  onOpenAchievements={() => setCurrentView('achievements')}
-                  needRefresh={needRefresh}
-                  onApplyUpdate={applyUpdate}
-                  onCheckForUpdates={checkForUpdates}
-                />
+                <ErrorBoundary fallback={<ViewErrorFallback />}>
+                  <SettingsView />
+                </ErrorBoundary>
               )}
 
               {currentView === 'achievements' && (
-                <AchievementsView
-                  readLessons={readLessons}
-                  highlights={highlights}
-                  notes={notes}
-                  booksWithStats={booksWithStats}
-                  lessonsCount={lessonsCount}
-                  userName={user?.displayName || user?.email || 'طالب العلم'}
-                />
+                <ErrorBoundary fallback={<ViewErrorFallback />}>
+                  <AchievementsView />
+                </ErrorBoundary>
               )}
 
             </Suspense>
@@ -289,6 +177,7 @@ const AppLayout = ({
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default AppLayout;

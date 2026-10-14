@@ -50,7 +50,7 @@ const CertificateModal = ({ show, bookName, userName, lessonsCount, dateLabel, o
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="position-fixed top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center"
-          style={{ zIndex: 10000, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)' }}
+          style={{ zIndex: 'var(--z-overlay)', background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)' }}
           onClick={onClose}
         >
           <motion.div

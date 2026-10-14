@@ -67,7 +67,7 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
           backgroundColor: 'var(--card-bg)',
           border: '2px solid var(--accent-color)',
           color: 'var(--primary-color)',
-          zIndex: 1051,
+          zIndex: 'var(--z-modal-inner)',
           transition: 'all 0.3s'
         }}
       >
@@ -90,7 +90,7 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
               width: '280px', 
               height: 'calc(100vh - 120px)',
               maxHeight: '600px',
-              zIndex: 1050 
+              zIndex: 'var(--z-modal)' 
             }}
           >
             <div className="shadow-lg h-100 d-flex flex-column parchment-texture" style={{ backgroundColor: 'var(--card-bg)', borderRadius: '16px', border: '2px solid var(--border-color)', overflow: 'hidden' }}>

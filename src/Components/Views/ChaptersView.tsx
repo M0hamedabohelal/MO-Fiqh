@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import EmptyState from '../UI/EmptyState';
 import LessonListItem from '../UI/LessonListItem';
-import type { ChapterGroup, LessonIssue } from '../../types';
+import { useApp } from '../Layout/AppContext';
+import type { LessonIssue } from '../../types';
 
 const REDUCE_LIST_ANIM =
   typeof window !== 'undefined' && window.innerWidth < 768;
@@ -29,17 +30,22 @@ const ORDINALS = [
 const ordinalOf = (n: number): string => (n >= 1 && n <= ORDINALS.length ? ORDINALS[n - 1] : `رقم ${n}`);
 
 // شاشة أبواب الكتاب الواحد — صفحة كتاب شرعي: ترويسة مزخرفة + فهرس بالنقاط
-interface ChaptersViewProps {
-  bookName: string;
-  chapters: ChapterGroup[];
-  openChapterName: string | null;
-  onToggleChapter: (chapterName: string) => void;
-  onSelectLesson: (lesson: LessonIssue) => void;
-  newLessonIds?: Set<string>;
-  onStartQuiz?: (chapterName: string, issues: LessonIssue[]) => void;
-}
-
-const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, onSelectLesson, newLessonIds, onStartQuiz }: ChaptersViewProps) => (
+const ChaptersView = () => {
+  const {
+    selectedBookName: bookName,
+    selectedBookChapters: chapters,
+    openChapterName,
+    toggleChapter: onToggleChapter,
+    openLessonById,
+    newLessonIds,
+    openQuiz,
+  } = useApp();
+  const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
+  const onStartQuiz = (chapterName: string, issues: LessonIssue[]): void => {
+    if (!bookName) return;
+    openQuiz({ bookName, chapterName, lessons: issues });
+  };
+  return (
   <div className="mt-4">
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
       <FiList className="ms-2" /> {bookName} - الفصول
@@ -91,7 +97,7 @@ const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, on
                     transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
                     className="px-3 pb-3 overflow-hidden"
                   >
-                    {onStartQuiz && issues.length > 0 && (
+                    {issues.length > 0 && (
                       <div className="d-flex justify-content-start mb-3">
                         <button
                           className="btn btn-sm d-flex align-items-center shadow-sm"
@@ -123,6 +129,7 @@ const ChaptersView = ({ bookName, chapters, openChapterName, onToggleChapter, on
       </motion.div>
     )}
   </div>
-);
+  );
+};
 
 export default ChaptersView;
