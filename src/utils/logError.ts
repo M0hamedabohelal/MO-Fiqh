@@ -36,6 +36,8 @@ export function logError(scope: string, err: unknown, extra?: Record<string, unk
         extra: extra ?? null,
         url: location.href,
         at: Date.now(),
+        // انتهاء تلقائي بعد 30 يومًا عبر سياسة TTL على هذا الحقل (تُفعَّل من الكونسول)
+        expireAt: fsMod.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
       });
     } catch {
       /* تجاهل — التسجيل لا يجب أن يكسر التطبيق */

@@ -4,9 +4,13 @@ import { MotionConfig } from 'framer-motion';
 import App from './App';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AuthProvider } from './Components/Auth/AuthContext';
+import { initAppCheck } from './firebase/config';
 import 'bootstrap/dist/css/bootstrap.rtl.min.css';
 import './index.css';
 import './styles/exterior.css';
+
+// App Check (حماية من البوتات): تهيئة مبكرة غير حاجبة — تُتخطى بصمت بلا مفتاح
+void initAppCheck();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

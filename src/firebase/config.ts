@@ -3,9 +3,11 @@
 import type { FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
 import type { Auth } from 'firebase/auth';
+import type { AppCheck } from 'firebase/app-check';
 import type * as AppMod from 'firebase/app';
 import type * as FsMod from 'firebase/firestore';
 import type * as AuthMod from 'firebase/auth';
+import type * as AcMod from 'firebase/app-check';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -64,4 +66,40 @@ export function getAuthModule(): Promise<{ app: FirebaseApp; auth: Auth; authMod
     }));
   }
   return authPromise;
+}
+
+let appCheckPromise: Promise<AppCheck> | null = null;
+// ─── App Check (reCAPTCHA v3): يحمي نقاط الكتابة العامة من البوتات ───
+// يُستدعى مرة واحدة عند الإقلاع (fire-and-forget) — لا يرمي أبدًا ولا يحجب التطبيق.
+// بلا مفتاح (VITE_FIREBASE_APPCHECK_KEY) يُتخطى بصمت ويبقى السلوك الحالي كما هو.
+// ملاحظة: التفعيل في القواعد (appCheck.token) خطوة لاحقة بعد خبز المفتاح في بناء الإنتاج
+// وإلا انكسرت كتابات العملاء وسكربت SEO (بلا توكن) — لا تُفعَّل قبلها.
+export function initAppCheck(): Promise<AppCheck | null> {
+  if (appCheckPromise) return appCheckPromise.then((ac) => ac).catch(() => null);
+  const siteKey = import.meta.env.VITE_FIREBASE_APPCHECK_KEY as string | undefined;
+  if (!isFirebaseConfigured || !siteKey) {
+    appCheckPromise = Promise.reject(new Error('AppCheck غير مهيأ'));
+    // رفض مُلتقط داخليًا — المتصلون يستخدمون void/call آمن
+    appCheckPromise.catch(() => {});
+    return Promise.resolve(null);
+  }
+  appCheckPromise = Promise.all([getApp(), import('firebase/app-check')]).then(
+    ([{ app }, acMod]: [{ app: FirebaseApp }, typeof AcMod]) => {
+      // وضع التطوير: توكن تصحيح من الكونسول عبر VITE_FIREBASE_APPCHECK_DEBUG_TOKEN
+      // (على localhost فقط — وإلا تُرفض الطلبات عند تفعيل الإنفاذ لاحقًا)
+      const host = globalThis.location?.hostname ?? '';
+      if (host === 'localhost' || host === '127.0.0.1') {
+        const debugToken = import.meta.env.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN as string | undefined;
+        if (debugToken) {
+          (globalThis as unknown as Record<string, unknown>).FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
+        }
+      }
+      return acMod.initializeAppCheck(app, {
+        provider: new acMod.ReCaptchaV3Provider(siteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    },
+  );
+  appCheckPromise.catch(() => {});
+  return appCheckPromise.catch(() => null);
 }

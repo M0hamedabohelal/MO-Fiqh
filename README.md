@@ -22,6 +22,19 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 ```
 
+اختياري — App Check (حماية نقاط الكتابة من البوتات)، من Firebase Console ←‏ App Check ←‏ سجّل تطبيق الويب (reCAPTCHA v3):
+
+```
+VITE_FIREBASE_APPCHECK_KEY=...
+# للتطوير على localhost بعد تفعيل الإنفاذ: توكن التصحيح من الكونسول
+VITE_FIREBASE_APPCHECK_DEBUG_TOKEN=...
+```
+
+> ملاحظة: إنفاذ App Check في `firestore.rules` خطوة لاحقة — تُفعَّل **بعد** خبز المفتاح في بناء
+> الإنتاج وإعادة النشر، وإلا انكسرت كتابات العملاء وسكربت SEO (بلا توكن).
+> سياسة الاحتفاظ بسجل الأخطاء: فعّل TTL من الكونسول على مجموعة `client_errors` للحقل
+> `expireAt` (يحذف تلقائيًا بعد 30 يومًا) — من Firestore ←‏ TTL policies.
+
 بدون المفاتيح يعمل التطبيق بالبيانات المحلية فقط (قراءة عامة، بلا مزامنة).
 
 ## الأوامر
