@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { FiBarChart2, FiAlertTriangle, FiTrash2 } from 'react-icons/fi';
-import { fetchLessonViews, fetchClientErrors, deleteClientError } from '../../firebase/services';
+import { fetchLessonViews, fetchClientErrors, deleteClientError, pruneOldClientErrors } from '../../firebase/services';
 import type { ClientErrorItem } from '../../firebase/services';
 import type { Lesson } from '../../types';
 
@@ -24,6 +24,9 @@ const AdminStatsTab = ({ lessons }: AdminStatsTabProps) => {
   // سجل أخطاء العملاء — للمراقبة (يُجمَع تلقائيًا من الأجهزة، مخنوقًا)
   const [clientErrors, setClientErrors] = useState<ClientErrorItem[] | null>(null);
   const [clearingId, setClearingId] = useState<string | null>(null);
+  // تنظيف الأخطاء القديمة دفعة واحدة (بديل سياسة TTL التي تتطلب فوترة)
+  const [pruning, setPruning] = useState(false);
+  const [pruneMsg, setPruneMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +49,22 @@ const AdminStatsTab = ({ lessons }: AdminStatsTabProps) => {
       setClientErrors((prev) => (prev || []).filter((e) => e.id !== id));
     } finally {
       setClearingId(null);
+    }
+  };
+
+  // حذف كل الأخطاء الأقدم من 30 يومًا ثم تحديث القائمة المعروضة
+  const handlePruneOld = async (): Promise<void> => {
+    setPruning(true);
+    setPruneMsg(null);
+    try {
+      const removed = await pruneOldClientErrors();
+      const items = await fetchClientErrors(30);
+      setClientErrors(items);
+      setPruneMsg(removed > 0 ? `تم حذف ${removed} خطأ قديم (أقدم من 30 يومًا).` : 'لا توجد أخطاء أقدم من 30 يومًا.');
+    } catch {
+      setPruneMsg('تعذّر التنظيف — تحقق من الاتصال وحاول مجددًا.');
+    } finally {
+      setPruning(false);
     }
   };
 
@@ -136,7 +155,23 @@ const AdminStatsTab = ({ lessons }: AdminStatsTabProps) => {
             <span className="badge bg-danger" style={{ fontSize: '0.7rem' }}>{clientErrors.length}</span>
           )}
         </h5>
-        <small className="text-muted d-block mb-3">تُجمَع تلقائيًا (حدث واحد كل دقيقة لكل جهاز كحد أقصى) — امسح ما عالجته.</small>
+        <small className="text-muted d-block mb-2">تُجمَع تلقائيًا (حدث واحد كل دقيقة لكل جهاز كحد أقصى) — امسح ما عالجته.</small>
+        <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+          <button
+            className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+            onClick={handlePruneOld}
+            disabled={pruning || clientErrors === null}
+            title="حذف كل الأخطاء الأقدم من 30 يومًا دفعة واحدة"
+          >
+            {pruning ? (
+              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+            ) : (
+              <FiTrash2 size={13} />
+            )}
+            {pruning ? 'جارٍ التنظيف...' : 'تنظيف الأقدم من 30 يومًا'}
+          </button>
+          {pruneMsg && <small className="text-muted">{pruneMsg}</small>}
+        </div>
         {clientErrors === null ? (
           <div className="text-center p-3"><div className="spinner-border spinner-border-sm" style={{ color: 'var(--primary-color)' }} /></div>
         ) : clientErrors.length === 0 ? (

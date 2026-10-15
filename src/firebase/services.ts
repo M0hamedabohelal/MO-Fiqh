@@ -432,6 +432,29 @@ export async function deleteClientError(id: string): Promise<void> {
   await fs.deleteDoc(fs.doc(db, 'client_errors', String(id)));
 }
 
+// حذف الأخطاء الأقدم من مدة معينة دفعة واحدة — بديل سياسة TTL (التي تتطلب تفعيل الفوترة)
+// يُستدعى من زر صريح في لوحة الإدارة فقط (القراءة/الحذف للأدمن أصلًا) — حد أقصى لكل ضغطة أمانًا
+export async function pruneOldClientErrors(
+  olderThanMs = 30 * 24 * 60 * 60 * 1000,
+  batchLimit = 200,
+): Promise<number> {
+  const { db, fs } = await getDb();
+  const cutoff = Date.now() - olderThanMs;
+  const snapshot = await fs.getDocs(
+    fs.query(fs.collection(db, 'client_errors'), fs.where('at', '<', cutoff), fs.limit(batchLimit)),
+  );
+  if (snapshot.empty) return 0;
+  // دفعات من 400 (حد Firestore الآمن 500 عملية لكل batch)
+  const CHUNK = 400;
+  const docs = snapshot.docs;
+  for (let i = 0; i < docs.length; i += CHUNK) {
+    const batch = fs.writeBatch(db);
+    docs.slice(i, i + CHUNK).forEach((d) => { batch.delete(d.ref); });
+    await batch.commit();
+  }
+  return docs.length;
+}
+
 /* ==================== الترحيل الأولي (Migration) ==================== */
 // رفع الداتا المحلية للـ Firestore مرة واحدة فقط
 
