@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FiEdit3, FiSave, FiDownload } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
@@ -15,6 +15,16 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
   const [text, setText] = useState(note || '');
   const [prevSnapshot, setPrevSnapshot] = useState<{ lessonId: number | string; note: string }>({ lessonId, note: note || '' });
   const [saved, setSaved] = useState(false);
+  // تنبيه داخلي بدل alert() — يظهر داخل البطاقة ويختفي تلقائيًا
+  const [notice, setNotice] = useState<string | null>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (noticeTimer.current) clearTimeout(noticeTimer.current); }, []);
+
+  const flashNotice = (msg: string) => {
+    setNotice(msg);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(null), 3500);
+  };
 
   // إعادة ضبط النص عند تغيير المسألة أو وصول القيمة المحدثة من السحابة
   // المطابقة كنصوص — اختلاف النوع (رقم/نص) بين التحديثات كان يمسح مسودة المستخدم خطأً
@@ -32,12 +42,12 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
 
   const handleExportPDF = () => {
     if (!text.trim()) {
-      alert("الملاحظة فارغة! لا يوجد شيء لتصديره.");
+      flashNotice('الملاحظة فارغة! لا يوجد شيء لتصديره.');
       return;
     }
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      alert('يرجى السماح بالنوافذ المنبثقة (Pop-ups) لتحميل الـ PDF.');
+      flashNotice('يرجى السماح بالنوافذ المنبثقة (Pop-ups) لتحميل الـ PDF.');
       return;
     }
     
@@ -126,6 +136,12 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
           <FiDownload /> تصدير PDF
         </button>
       </div>
+
+      {notice && (
+        <div className="alert alert-warning py-2 small mb-3" role="alert" style={{ borderRadius: '10px' }}>
+          {notice}
+        </div>
+      )}
       
       <textarea 
         className="form-control mb-3 p-3" 

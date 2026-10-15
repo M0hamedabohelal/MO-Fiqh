@@ -50,20 +50,35 @@ service cloud.firestore {
     }
 
     // ─── إحصائيات المشاهدات: قراءة للجميع، وتحديث تراكمي للجميع (تتبع مجهول من trackLessonView) ───
-    // القيد يمنع تضخيم المستند: الإنشاء بمفتاح واحد فقط، والتحديث بلا حذف ونمو مفتاح واحد لكل كتابة
-    // (العميل الشرعي يكتب مفتاح lesson_* واحدًا في كل مرة — أي إساءة أوسع تُرفض، والكتابة على مستند واحد مخنوقة سعريًا أصلًا)
+    // القيد يمنع العبث الواسع: الإنشاء بمفتاح واحد فقط، وكل تحديث يمس مفتاحًا واحدًا
+    // بالضبط (بلا حذف، ونمو مفتاح واحد كحد أقصى لكل كتابة). العميل الشرعي يكتب مفتاحًا
+    // واحدًا في كل مرة (increment) فيبقى متوافقًا، وأي كتابة تمس عدة عدادات دفعة واحدة تُرفض.
+    // (متبقٍّ معلوم: قيمة المفتاح الواحد نفسه لا يمكن تقييدها بزيادة +1 لأن أسماء المفاتيح ديناميكية)
     match /stats/views {
       allow read: if true;
       allow create: if request.resource.data.keys().size() == 1;
       allow update: if request.resource.data.diff(resource.data).removedKeys().size() == 0
+        && request.resource.data.diff(resource.data).affectedKeys().size() == 1
         && request.resource.data.keys().size() <= resource.data.keys().size() + 1;
       allow delete: if isAdmin();
     }
 
-    // ─── سجل أخطاء العميل: إنشاء للمسجلين فقط (مخنوق من العميل)، قراءة/حذف للأدمن ───
+    // ─── سجل أخطاء العميل: إنشاء للمسجلين فقط بصيغة مقيدة، قراءة/حذف للأدمن ───
+    // التقييد يمنع تحويل المجموعة لمخزن بيانات مجاني: حقول ثابتة وأطوال قصوى فقط،
+    // وتتوافق تمامًا مع ما يكتبه logError.ts (scope/message/at/url/extra — والرسالة ≤300 أصلًا)
     match /client_errors/{docId} {
       allow read, delete: if isAdmin();
-      allow create: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['scope', 'message', 'extra', 'url', 'at'])
+        && request.resource.data.scope is string
+        && request.resource.data.scope.size() <= 100
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 300
+        && request.resource.data.url is string
+        && request.resource.data.url.size() <= 500
+        && request.resource.data.at is number
+        && (request.resource.data.extra == null
+          || (request.resource.data.extra is map && request.resource.data.extra.size() <= 10));
       allow update: if false;
     }
 

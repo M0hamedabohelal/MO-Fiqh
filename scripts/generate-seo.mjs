@@ -103,6 +103,9 @@ const { BOOKS_LIST } = await import('../src/data/books.ts');
 
 // مساعدة: اسم آمن للمجلد (ترميز عربي URL-صديق)
 const enc = (s) => encodeURIComponent((s || '').trim());
+// ترميز معرف المسألة للروابط — دفاعيًا (المعرفات رقمية عادةً فلا يتغير شيء فعليًا،
+// لكن معرفًا غريبًا قد يحقن علامات في href/canonical)
+const encId = (id) => encodeURIComponent(String(id ?? ''));
 
 // تجميع المسائل حسب الكتاب، مع ترتيب الكتب حسب الفهرس الرسمي
 const bookOrder = {};
@@ -209,7 +212,7 @@ function bookPage(name, lessons) {
 ${chLessons
   .map(
     (l) =>
-      `<li><a href="/lessons/${l.id}/">${escapeHtml(l.title)}</a></li>`,
+      `<li><a href="/lessons/${encId(l.id)}/">${escapeHtml(l.title)}</a></li>`,
   )
   .join('')}
 </ul>`,
@@ -228,7 +231,7 @@ ${chaptersHtml}` +
 
 // ← توليد صفحات المسائل
 function lessonPage(l) {
-  const url = `${BASE}/lessons/${l.id}/`;
+  const url = `${BASE}/lessons/${encId(l.id)}/`;
   const bookName = l.bookName || '';
   const desc = snippet(l.mainText, 155);
   const jsonld = {
@@ -254,7 +257,7 @@ function lessonPage(l) {
 <pre>${mainText}</pre>
 ${l.audioUrl ? (() => { const s = toSeconds(l.startTime); const e = toSeconds(l.endTime); const frag = s > 0 ? `#t=${s}${e > s ? `,${e}` : ''}` : ''; return `<div class="exp"><h3>🎧 استمع للدرس</h3><audio controls preload="none" src="${escapeHtml(l.audioUrl)}${frag}" style="width:100%"></audio><br><a href="${escapeHtml(l.audioUrl)}${frag}" rel="noopener">تحميل الصوت (MP3)</a></div>`; })() : ''}
 ${l.sheikhExplanation ? `<div class="exp"><h3>📖 تعليق الشيخ</h3><pre>${escapeHtml(l.sheikhExplanation)}</pre></div>` : ''}` +
-    foot(`/#/lesson/${l.id}`)
+    foot(`/#/lesson/${encId(l.id)}`)
   );
 }
 
@@ -291,7 +294,7 @@ for (const l of lessonsData) {
 // ── sitemap شامل ──
 const urls = [`${BASE}/`];
 bookNames.forEach((n) => urls.push(`${BASE}/books/${enc(n)}/`));
-lessonsData.forEach((l) => urls.push(`${BASE}/lessons/${l.id}/`));
+lessonsData.forEach((l) => urls.push(`${BASE}/lessons/${encId(l.id)}/`));
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((u) => `  <url><loc>${u}</loc><changefreq>weekly</changefreq></url>`).join('\n')}

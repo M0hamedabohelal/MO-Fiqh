@@ -23,6 +23,7 @@ import { useAppData }          from './hooks/useAppData';
 import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
 import { safeGet, safeSet, safeRemove } from './utils/safeStorage';
+import { recordStopMarkTouch, pickLatestStopMarkId, readStopMarkTouchedAt } from './utils/stopMarkRecency';
 import { useNewBadge }         from './hooks/useNewBadge';
 import { useVisitTracking }    from './hooks/useVisitTracking';
 import { useSplash }           from './hooks/useSplash';
@@ -99,7 +100,8 @@ function App() {
       return;
     }
     if (!lastReadLessonId || !markIds.includes(lastReadLessonId)) {
-      const latest = markIds[markIds.length - 1];
+      // الأحدث زمنيًا (بختم اللمسة المحلي)، وعند غياب السجل نرجع لآخر قيمة كالسابق
+      const latest = pickLatestStopMarkId(stopMarks, readStopMarkTouchedAt()) ?? markIds[markIds.length - 1];
       setLastReadLessonId(latest);
       safeSet('lastReadLessonId', latest);
     }
@@ -202,6 +204,7 @@ function App() {
       }
     } else {
       setStopMarks((prev) => ({ ...prev, [book]: id }));
+      recordStopMarkTouch(book);
       setLastReadLessonId(id);
       safeSet('lastReadLessonId', id);
     }

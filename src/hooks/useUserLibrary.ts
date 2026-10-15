@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { SetStateAction } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
 import { safeSet, safeRemove } from '../utils/safeStorage';
+import { clearStopMarkTouchedAt } from '../utils/stopMarkRecency';
 import { mergeLibraries, mergeTombs, emptyTombs, cleanTombs, applyTombsToMerged, pruneTombs } from '../utils/mergeLibrary';
 import type { TombstoneMap } from '../utils/mergeLibrary';
 import { logError } from '../utils/logError';
@@ -121,6 +122,8 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
         // (باقي البيانات تُعزل أصلًا بمفاتيح guest_* المحذوفة عند الدخول)
         prevUidRef.current = null;
         safeRemove('stopMarks');
+        // سجل حداثة العلامات محلي أيضًا — يُمسح معها لنفس السبب
+        clearStopMarkTouchedAt();
         dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false };
         lastWrittenRef.current = null;
         // الشواهد في الذاكرة تُصفَّر (النسخة المحفوظة لكل حساب تبقى للولوج التالي من نفس الحساب)

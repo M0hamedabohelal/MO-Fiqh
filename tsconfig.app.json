@@ -19,10 +19,10 @@
     /* Type checking — تدريجي: ملفات JS مسموحة وبلا فحص حتى تُحوَّل */
     "strict": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": false,
+    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "verbatimModuleSyntax": true,
-    "allowJs": true,
+    "allowJs": false,
     "checkJs": false,
     "forceConsistentCasingInFileNames": true
   },
