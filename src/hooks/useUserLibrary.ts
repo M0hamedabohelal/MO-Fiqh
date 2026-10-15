@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import type { SetStateAction } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
 import { safeSet, safeRemove } from '../utils/safeStorage';
-import { mergeLibraries } from '../utils/mergeLibrary';
+import { mergeLibraries, mergeTombs, emptyTombs, cleanTombs, applyTombsToMerged, pruneTombs } from '../utils/mergeLibrary';
+import type { TombstoneMap } from '../utils/mergeLibrary';
 import { logError } from '../utils/logError';
 import type { HighlightItem, UserLibraryData } from '../types';
 import {
@@ -20,6 +22,43 @@ function readJsonStorage<T>(key: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+// مقارنات مجموعات (بلا ترتيب) — لاكتشاف "هل تغيّر القسم فعلًا؟" ومنع الرفع الصدى
+function strArrEqual(a: string[], b: string[]): boolean {
+  const na = a.map(String);
+  const nb = b.map(String);
+  return na.length === nb.length && na.every((x) => nb.includes(x));
+}
+
+function highlightsEqual(a: HighlightItem[], b: HighlightItem[]): boolean {
+  if (a.length !== b.length) return false;
+  const mb = new Map(b.map((h) => [String(h.id ?? h.text), JSON.stringify(h)]));
+  return a.every((h) => mb.get(String(h.id ?? h.text)) === JSON.stringify(h));
+}
+
+function mapEqual(a: Record<string, string>, b: Record<string, string>): boolean {
+  const ka = Object.keys(a);
+  const kb = Object.keys(b);
+  return ka.length === kb.length && ka.every((k) => b[k] === a[k]);
+}
+
+interface LibrarySnapshot {
+  bookmarks: string[];
+  highlights: HighlightItem[];
+  notes: Record<string, string>;
+  readLessons: string[];
+  stopMarks: Record<string, string>;
+}
+
+function snapshotsEqual(a: LibrarySnapshot, b: LibrarySnapshot): boolean {
+  return (
+    strArrEqual(a.bookmarks, b.bookmarks) &&
+    highlightsEqual(a.highlights, b.highlights) &&
+    mapEqual(a.notes, b.notes) &&
+    strArrEqual(a.readLessons, b.readLessons) &&
+    mapEqual(a.stopMarks, b.stopMarks)
+  );
 }
 
 /**
@@ -41,6 +80,30 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
   const isSyncReady = Boolean(user) && isDataLoaded;
   // تتبّع الجلسة لمنع تسرب علامات مستخدم خرج للتو إلى ضيف جديد على نفس الجهاز
   const prevUidRef = useRef<string | null>(null);
+  // وسم "معدّل محليًا" لكل قسم — القسم النظيف تُستبدل قيمته بما يصل من الأجهزة الأخرى
+  // (فينتشر التعديل والحذف)، والقسم المعدّل يُدمج إضافيًا فقط حمايةً لمسودة المستخدم
+  const dirtyRef = useRef({ bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false });
+  // آخر حالة كُتبت بنجاح — تطابقها مع الحالية يعني "لا جديد للرفع" (يمنع الرفع الصدى)
+  const lastWrittenRef = useRef<LibrarySnapshot | null>(null);
+  // شواهد الحذف — تسجيل صريح "حُذف هذا المفتاح عمدًا" يُزامن سحابيًا:
+  // أي عنصر مشهود بحذفه يُسقط من كل دمج قادم (مستمع/رفع/دخول) ولا يعود أبدًا
+  // إلا بإعادة إضافته صراحةً (الوجود المحلي يفوز دائمًا ويُلغي الشاهد).
+  // تُحفظ نسخة لكل حساب محليًا للعمل أوفلاين، وتُدمج مع سحابة الشواهد عند الدخول.
+  const tombRef = useRef<TombstoneMap>(emptyTombs());
+  const tombStorageKey = (uid: string): string => `tombs_${uid}`;
+  const persistTombs = useCallback((uid: string): void => {
+    safeSet(tombStorageKey(uid), JSON.stringify(tombRef.current));
+  }, []);
+  const loadPersistedTombs = (uid: string): TombstoneMap =>
+    cleanTombs(readJsonStorage(`tombs_${uid}`, {}));
+  const recordTomb = (section: keyof TombstoneMap, key: string | number): void => {
+    const k = String(key);
+    if (!tombRef.current[section][k]) tombRef.current[section][k] = Date.now();
+  };
+  const clearTomb = (section: keyof TombstoneMap, key: string | number): void => {
+    const k = String(key);
+    if (k in tombRef.current[section]) delete tombRef.current[section][k];
+  };
 
   // عند تسجيل الدخول أو الخروج
   useEffect(() => {
@@ -58,6 +121,10 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
         // (باقي البيانات تُعزل أصلًا بمفاتيح guest_* المحذوفة عند الدخول)
         prevUidRef.current = null;
         safeRemove('stopMarks');
+        dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false };
+        lastWrittenRef.current = null;
+        // الشواهد في الذاكرة تُصفَّر (النسخة المحفوظة لكل حساب تبقى للولوج التالي من نفس الحساب)
+        tombRef.current = emptyTombs();
         setStopMarks({});
       } else {
         setStopMarks(asMarks(readJsonStorage('stopMarks', {})));
@@ -87,8 +154,13 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
         readLessons: [],
         visits: [],
         stopMarks: {},
+        tombs: emptyTombs(),
       };
       if (cancelled) return;
+
+      // شواهد الحذف: اتحاد سحابة الشواهد مع المحفوظة محليًا لهذا الحساب (للعمل أوفلاين)
+      tombRef.current = mergeTombs(cleanTombs(cloudData.tombs), loadPersistedTombs(user.uid));
+      persistTombs(user.uid);
 
       // جلب بيانات الضيف المحلية لدمجها (إذا كان لديه بيانات قبل تسجيل الدخول)
       const guestBookmarks = readJsonStorage<string[]>('guest_bookmarks', []);
@@ -97,67 +169,101 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       const guestReadLessons = readJsonStorage<string[]>('guest_readLessons', []);
       const guestStopMarks = readJsonStorage<Record<string, string>>('stopMarks', {});
 
-      // الدمج الذكي (المعرفات كنصوص لتوحيد النوع بين المصادر)
-      const merged = mergeLibraries(
-        {
-          bookmarks: cloudData.bookmarks || [],
-          highlights: cloudData.highlights || [],
-          notes: cloudData.notes || {},
-          readLessons: cloudData.readLessons || [],
-          stopMarks: cloudData.stopMarks || {},
-        },
-        { bookmarks: guestBookmarks, highlights: guestHighlights, notes: guestNotes, readLessons: guestReadLessons, stopMarks: guestStopMarks },
-      );
-      const mergedBookmarks = merged.bookmarks;
-      const mergedHighlights = merged.highlights;
-      const mergedNotes = merged.notes;
-      const mergedReadLessons = merged.readLessons;
-      const mergedStopMarks = merged.stopMarks;
+      const hasGuestData =
+        guestBookmarks.length > 0 ||
+        guestHighlights.length > 0 ||
+        Object.keys(guestNotes).length > 0 ||
+        guestReadLessons.length > 0 ||
+        Object.keys(guestStopMarks).length > 0;
 
-      // تحديث الحالة المحلية
-      setBookmarks(mergedBookmarks);
-      setHighlights(mergedHighlights);
-      setNotes(mergedNotes);
-      setReadLessons(mergedReadLessons);
-      setStopMarks(mergedStopMarks);
+      let initialBookmarks = cloudData.bookmarks || [];
+      let initialHighlights = cloudData.highlights || [];
+      let initialNotes = cloudData.notes || {};
+      let initialReadLessons = cloudData.readLessons || [];
+      let initialStopMarks = cloudData.stopMarks || {};
 
-      // رفع البيانات المدمجة للسحابة
-      // ⚠️ حذف بيانات الضيف من الجهاز يتم فقط بعد نجاح الرفع — وإلا ضاعت نهائيًا
-      let uploaded = false;
-      try {
-        await Promise.all([
-          syncBookmarks(user.uid, mergedBookmarks),
-          syncHighlights(user.uid, mergedHighlights),
-          syncAllNotes(user.uid, mergedNotes),
-          syncReadLessons(user.uid, mergedReadLessons),
-          syncStopMarks(user.uid, mergedStopMarks),
-        ]);
-        uploaded = true;
-      } catch (err) {
-        // تجاهل الأخطاء المؤقتة — تبقى نسخة الضيف محفوظة للدمج في المرة القادمة
-        logError('userLibrary.mergeUpload', err);
+      // رفع بيانات الضيف المدمجة — الحذف من الجهاز فقط بعد نجاح الرفع
+      let mergeUploaded = !hasGuestData; // بلا بيانات ضيف: السحابة مطابقة أصلًا
+      if (hasGuestData) {
+        const merged = mergeLibraries(
+          {
+            bookmarks: initialBookmarks,
+            highlights: initialHighlights,
+            notes: initialNotes,
+            readLessons: initialReadLessons,
+            stopMarks: initialStopMarks,
+          },
+          {
+            bookmarks: guestBookmarks,
+            highlights: guestHighlights,
+            notes: guestNotes,
+            readLessons: guestReadLessons,
+            stopMarks: guestStopMarks,
+          },
+        );
+        // إسقاط المشهود بحذفه — إلا ما أعاده الضيف صراحةً (الوجود يلغي الشاهد)
+        const guestLocal = {
+          bookmarks: guestBookmarks,
+          highlights: guestHighlights,
+          notes: guestNotes,
+          readLessons: guestReadLessons,
+          stopMarks: guestStopMarks,
+        };
+        const dropped = applyTombsToMerged(merged, guestLocal, tombRef.current);
+        initialBookmarks = dropped.bookmarks;
+        initialHighlights = dropped.highlights;
+        initialNotes = dropped.notes;
+        initialReadLessons = dropped.readLessons;
+        initialStopMarks = dropped.stopMarks;
+        tombRef.current = pruneTombs(tombRef.current, {
+          bookmarks: initialBookmarks,
+          highlights: initialHighlights,
+          notes: initialNotes,
+          readLessons: initialReadLessons,
+          stopMarks: initialStopMarks,
+        });
+        persistTombs(user.uid);
+        try {
+          await Promise.all([
+            syncBookmarks(user.uid, initialBookmarks),
+            syncHighlights(user.uid, initialHighlights),
+            syncAllNotes(user.uid, initialNotes),
+            syncReadLessons(user.uid, initialReadLessons),
+            syncStopMarks(user.uid, initialStopMarks),
+          ]);
+          mergeUploaded = true;
+          safeRemove('guest_bookmarks');
+          safeRemove('guest_highlights');
+          safeRemove('guest_notes');
+          safeRemove('guest_readLessons');
+        } catch (err) {
+          // تبقى نسخة الضيف محفوظة للدمج في المرة القادمة — وlastWritten فارغ فيُعاد الرفع تلقائيًا
+          logError('userLibrary.mergeUpload', err);
+        }
       }
 
-      if (!uploaded) {
-        setIsDataLoaded(true);
-        onStatus?.('offline');
-        return;
-      }
+      setBookmarks(initialBookmarks);
+      setHighlights(initialHighlights);
+      setNotes(initialNotes);
+      setReadLessons(initialReadLessons);
+      setStopMarks(initialStopMarks);
 
-      // بعد الدمج والرفع بنجاح، نحذف بيانات الضيف من الجهاز
-      // لضمان عدم ظهورها لمستخدم آخر يسجل دخوله من نفس الجهاز
-      // (عبر safeRemove — التخزين المحظور/الممتلئ لا يجب أن يعلق التحميل)
-      safeRemove('guest_bookmarks');
-      safeRemove('guest_highlights');
-      safeRemove('guest_notes');
-      safeRemove('guest_readLessons');
+      const initialSnapshot = {
+        bookmarks: initialBookmarks,
+        highlights: initialHighlights,
+        notes: initialNotes,
+        readLessons: initialReadLessons,
+        stopMarks: initialStopMarks,
+      };
+      // آخر كتابة ناجحة تُسجَّل فقط عند تطابق السحابة فعليًا — الفشل يُبقي الباب مفتوحًا لإعادة الرفع
+      lastWrittenRef.current = mergeUploaded ? initialSnapshot : null;
+      dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false };
 
       // إزالة البيانات القديمة المتبقية من الإصدارات السابقة (تنظيف)
       safeRemove('bookmarks');
       safeRemove('highlights');
       safeRemove('notesMap');
       safeRemove('readLessons');
-      // جمع المفاتيح أولًا ثم حذفها — الحذف أثناء التكرار يُزيح الفهارس ويُفوّت مفاتيح
       try {
         const staleKeys = [];
         for (let i = 0; i < localStorage.length; i += 1) {
@@ -168,7 +274,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       } catch { /* تجاهل — التنظيف لا يعلق التحميل */ }
 
       setIsDataLoaded(true);
-      onStatus?.('synced');
+      onStatus?.(mergeUploaded ? 'synced' : 'offline');
     })();
 
     return () => { cancelled = true; };
@@ -188,24 +294,177 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
   }, [bookmarks, highlights, notes, readLessons, stopMarks, user, isDataLoaded]);
 
   // المزامنة مع السحابة دفعة واحدة بعد هدوء التغييرات (تجنّب كتابة لكل ضغطة متتالية)
-  // دمج عند الكتابة: تُقرأ النسخة الأحدث وتُدمج قبل الرفع فلا تمحو تعديلات جهاز آخر
+  // دمج عند الكتابة: تُقرأ النسخة الأحدث وتُدمج قبل الرفع فلا تمحو تعديلات جهاز آخر.
+  // تطابق الحالة مع آخر كتابة ناجحة = لا جديد (يمنع الرفع الصدى بعد استبدال قادم من مستمع).
+  // diff-first: مفاتيح اختفت منذ آخر كتابة = حذف عمدًا (شاهد)، ومفاتيح عادت = إلغاء الشاهد.
+  // بهذا تُسجَّل الشواهد مركزيًا من أي مسار (زر/تقليم/ترحيل) دون تتبع كل استدعاء.
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!isSyncReady || !user) return;
     const uid = user.uid;
     const snapshot = { bookmarks, highlights, notes, readLessons, stopMarks };
+    if (lastWrittenRef.current && snapshotsEqual(snapshot, lastWrittenRef.current)) return;
+    if (lastWrittenRef.current) {
+      const prev = lastWrittenRef.current;
+      const diffSection = (
+        section: keyof TombstoneMap,
+        prevIds: string[],
+        curIds: string[],
+        curMap: (id: string) => boolean,
+      ): void => {
+        prevIds.forEach((id) => {
+          if (!curMap(id)) recordTomb(section, id);
+          else clearTomb(section, id);
+        });
+        curIds.forEach((id) => clearTomb(section, id));
+      };
+      const sIds = (a: string[]): string[] => a.map(String);
+      diffSection('bookmarks', sIds(prev.bookmarks), sIds(snapshot.bookmarks), (id) => sIds(snapshot.bookmarks).includes(id));
+      diffSection('readLessons', sIds(prev.readLessons), sIds(snapshot.readLessons), (id) => sIds(snapshot.readLessons).includes(id));
+      diffSection(
+        'highlightIds',
+        prev.highlights.map((h) => String(h.id ?? h.text)),
+        snapshot.highlights.map((h) => String(h.id ?? h.text)),
+        (id) => snapshot.highlights.some((h) => String(h.id ?? h.text) === id),
+      );
+      diffSection('noteKeys', Object.keys(prev.notes), Object.keys(snapshot.notes), (k) => k in snapshot.notes);
+      diffSection('stopMarkKeys', Object.keys(prev.stopMarks), Object.keys(snapshot.stopMarks), (k) => k in snapshot.stopMarks);
+      persistTombs(uid);
+    }
+    const tombs = tombRef.current;
     if (syncTimer.current) clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(() => {
-      mergeAndSyncLibrary(uid, snapshot).catch((e) => logError('userLibrary.sync', e, { section: 'merge' }));
-    }, 800);
+      onStatus?.('syncing');
+      mergeAndSyncLibrary(uid, snapshot, tombs)
+        .then(({ data, tombs }) => {
+          tombRef.current = tombs;
+          persistTombs(uid);
+          lastWrittenRef.current = data;
+          dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false };
+          onStatus?.('synced');
+        })
+        .catch((e) => {
+          logError('userLibrary.sync', e, { section: 'merge' });
+          onStatus?.('offline');
+        });
+    }, 600);
     return () => {
       if (syncTimer.current) clearTimeout(syncTimer.current);
     };
-  }, [bookmarks, highlights, notes, readLessons, stopMarks, isSyncReady, user]);
+  }, [bookmarks, highlights, notes, readLessons, stopMarks, isSyncReady, user, onStatus, persistTombs]);
+
+  // اشتراك لحظي: الرفع وحده لا يكفي — الجهاز الآخر المفتوح أصلًا لا يعيد الجلب إلا عند الدخول.
+  // هذا المستمع يلتقط تعديلات الأجهزة الأخرى فور وصولها (علامة وُضعت على الفون تظهر على اللاب المفتوح).
+  // القسم النظيف (بلا مسودات محلية) يُستبدل بالوارد — فينتشر التعديل والحذف معًا.
+  // القسم المعدّل محليًا يُدمج إضافيًا فقط حمايةً للمسودة. المقارنة تمنع حلقات المزامنة.
+  useEffect(() => {
+    if (!isSyncReady || !user) return;
+    let cancelled = false;
+    let unsub: (() => void) | null = null;
+    (async () => {
+      try {
+        const { getFirestore } = await import('../firebase/config');
+        const { db, fsMod } = await getFirestore();
+        if (cancelled) return;
+        const colRef = fsMod.collection(db, 'users', user.uid, 'data');
+        unsub = fsMod.onSnapshot(colRef, (snap) => {
+          const cloud: { bookmarks: string[]; highlights: HighlightItem[]; notes: Record<string, string>; readLessons: string[]; stopMarks: Record<string, string> } =
+            { bookmarks: [], highlights: [], notes: {}, readLessons: [], stopMarks: {} };
+          snap.forEach((d) => {
+            const v = d.data() as Record<string, unknown>;
+            if (d.id === 'bookmarks' && Array.isArray(v.items)) cloud.bookmarks = (v.items as unknown[]).map(String);
+            else if (d.id === 'highlights' && Array.isArray(v.items)) cloud.highlights = v.items as HighlightItem[];
+            else if (d.id === 'notes' && v.notes && typeof v.notes === 'object') cloud.notes = v.notes as Record<string, string>;
+            else if (d.id === 'readLessons' && Array.isArray(v.items)) cloud.readLessons = (v.items as unknown[]).map(String);
+            else if (d.id === 'stopMarks' && v.marks && typeof v.marks === 'object') cloud.stopMarks = v.marks as Record<string, string>;
+          });
+
+          // منع حلقة الصدى: إذا كانت البيانات القادمة من السحابة مطابقة لما كتبناه للتو، نتجاهلها
+          if (lastWrittenRef.current && snapshotsEqual(cloud, lastWrittenRef.current)) {
+            return;
+          }
+
+          // تحديث قادم من جهاز آخر: نحدّث lastWrittenRef لمنع إعادة الرفع الصدى
+          lastWrittenRef.current = cloud;
+          // المشهود بحذفه لا يعود أبدًا — حتى لو ما زال في السحابة (جهاز آخر لم يحذف بعد)
+          const T = tombRef.current;
+          const notTombedArr = (section: keyof TombstoneMap, ids: string[], localIds: string[]): string[] =>
+            ids.filter((id) => localIds.includes(id) || !T[section][id]);
+          const notTombedMap = (section: keyof TombstoneMap, obj: Record<string, string>, localObj: Record<string, string>): Record<string, string> =>
+            Object.fromEntries(Object.entries(obj).filter(([k]) => k in localObj || !T[section][k]));
+          const notTombedHl = (items: HighlightItem[], localItems: HighlightItem[]): HighlightItem[] =>
+            items.filter((h) => {
+              const id = String(h.id ?? h.text);
+              return localItems.some((l) => String(l.id ?? l.text) === id) || !T.highlightIds[id];
+            });
+
+          setBookmarks((prev) => {
+            const prevNorm = prev.map(String);
+            const admitted = notTombedArr('bookmarks', cloud.bookmarks, prevNorm);
+            if (strArrEqual(prev, admitted)) return prev;
+            if (dirtyRef.current.bookmarks) {
+              return Array.from(new Set([...prevNorm, ...admitted.filter((k) => !prevNorm.includes(k))]));
+            }
+            return admitted;
+          });
+
+          setReadLessons((prev) => {
+            const prevNorm = prev.map(String);
+            const admitted = notTombedArr('readLessons', cloud.readLessons, prevNorm);
+            if (strArrEqual(prev, admitted)) return prev;
+            if (dirtyRef.current.readLessons) {
+              return Array.from(new Set([...prevNorm, ...admitted.filter((k) => !prevNorm.includes(k))]));
+            }
+            return admitted;
+          });
+
+          setHighlights((prev) => {
+            const admitted = notTombedHl(cloud.highlights, prev);
+            if (highlightsEqual(prev, admitted)) return prev;
+            if (dirtyRef.current.highlights) {
+              const map = new Map(prev.map((h) => [String(h.id ?? h.text), h] as const));
+              admitted.forEach((h) => { if (h) map.set(String(h.id ?? h.text), h); });
+              return Array.from(map.values());
+            }
+            return admitted;
+          });
+
+          setNotes((prev) => {
+            const admitted = notTombedMap('noteKeys', cloud.notes, prev);
+            if (mapEqual(prev, admitted)) return prev;
+            if (dirtyRef.current.notes) {
+              const next = { ...prev };
+              Object.entries(admitted).forEach(([k, v]) => { if (!(k in next)) next[k] = v; });
+              return next;
+            }
+            return { ...admitted };
+          });
+
+          setStopMarks((prev) => {
+            const admitted = notTombedMap('stopMarkKeys', cloud.stopMarks, prev);
+            if (mapEqual(prev, admitted)) return prev;
+            if (dirtyRef.current.stopMarks) {
+              const next = { ...prev };
+              Object.entries(admitted).forEach(([k, v]) => { if (!(k in next)) next[k] = v; });
+              return next;
+            }
+            return { ...admitted };
+          });
+
+          onStatus?.('synced');
+        });
+      } catch {
+        // بلا اتصال: يبقى الجلب عند الدخول هو المصدر — لا كسر
+      }
+    })();
+    return () => { cancelled = true; if (unsub) unsub(); };
+  }, [user, isSyncReady, onStatus]);
 
   // الدوال المساعدة للتحكم بالبيانات (المعرفات كنصوص دائمًا)
+  // كل تعديل صادر عن المستخدم يوسم قسمه "معدّلًا" — فيُحمى من الاستبدال القادم من مستمع الأجهزة
   const toggleBookmark = useCallback((lessonId: string | number) => {
     const key = String(lessonId);
+    dirtyRef.current.bookmarks = true;
     setBookmarks((prev) => {
       const normalized = prev.map(String);
       return normalized.includes(key)
@@ -215,22 +474,37 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
   }, []);
 
   const addHighlight = useCallback((highlight: HighlightItem) => {
+    dirtyRef.current.highlights = true;
     setHighlights((prev) => [...prev, highlight]);
   }, []);
 
   const deleteHighlight = useCallback((highlightId: string | number) => {
     // مقارنة كنصوص — المعرف قد يأتي رقمًا من مصدر ونصًا من آخر فيفشل الحذف بصمت
     const key = String(highlightId);
+    dirtyRef.current.highlights = true;
     setHighlights((prev) => prev.filter((h) => String(h.id) !== key));
   }, []);
 
   const saveNoteForLesson = useCallback((lessonId: string | number, text: string) => {
     const key = String(lessonId);
-    setNotes((prev) => ({ ...prev, [key]: text }));
-    if (user && isSyncReady) syncNote(user.uid, key, text).catch((e) => logError('userLibrary.sync', e, { section: 'note' }));
+    dirtyRef.current.notes = true;
+    const cleanText = text.trim();
+    setNotes((prev) => {
+      const next = { ...prev };
+      if (!cleanText) {
+        delete next[key];
+      } else {
+        next[key] = text;
+      }
+      return next;
+    });
+    if (user && isSyncReady) {
+      syncNote(user.uid, key, cleanText).catch((e) => logError('userLibrary.sync', e, { section: 'note' }));
+    }
   }, [user, isSyncReady]);
 
   const toggleReadLesson = useCallback((lessonId: string | number) => {
+    dirtyRef.current.readLessons = true;
     setReadLessons((prev) =>
       prev.includes(String(lessonId))
         ? prev.filter((id) => id !== String(lessonId))
@@ -238,14 +512,22 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     );
   }, []);
 
+  // نسخة مغلفة من setStopMarks للمستهلكين (App/الاستعادة) — توسم القسم معدلًا
+  const setStopMarksDirty = useCallback((updater: SetStateAction<Record<string, string>>) => {
+    dirtyRef.current.stopMarks = true;
+    setStopMarks(updater);
+  }, []);
+
   // استعادة نسخة احتياطية (دمج مع الحالي بدون فقد)
   const restoreLibrary = useCallback((data: {
     bookmarks?: string[]; highlights?: HighlightItem[]; notes?: Record<string, string>; readLessons?: string[]; stopMarks?: Record<string, string>;
   }) => {
     if (Array.isArray(data.bookmarks)) {
+      dirtyRef.current.bookmarks = true;
       setBookmarks((prev) => Array.from(new Set([...prev.map(String), ...data.bookmarks!.map(String)])));
     }
     if (Array.isArray(data.highlights)) {
+      dirtyRef.current.highlights = true;
       setHighlights((prev) => {
         const map = new Map(prev.map((h) => [String(h.id ?? h.text), h] as const));
         data.highlights!.forEach((h) => { if (h) map.set(String(h.id ?? h.text), h); });
@@ -253,13 +535,16 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       });
     }
     if (data.notes && typeof data.notes === 'object') {
+      dirtyRef.current.notes = true;
       setNotes((prev) => ({ ...prev, ...data.notes }));
     }
     if (Array.isArray(data.readLessons)) {
+      dirtyRef.current.readLessons = true;
       setReadLessons((prev) => Array.from(new Set([...prev.map(String), ...data.readLessons!.map(String)])));
     }
     if (data.stopMarks && typeof data.stopMarks === 'object') {
       // الاستعادة تُغلّب النسخة (كملاحظاتها تمامًا) — وإلا بدت الاستعادة وكأنها لم تفعل شيئًا
+      dirtyRef.current.stopMarks = true;
       setStopMarks((prev) => ({ ...prev, ...data.stopMarks }));
     }
   }, []);
@@ -270,7 +555,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     notes,
     readLessons,
     stopMarks,
-    setStopMarks,
+    setStopMarks: setStopMarksDirty,
     toggleBookmark,
     addHighlight,
     deleteHighlight,

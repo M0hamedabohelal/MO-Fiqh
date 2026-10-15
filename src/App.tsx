@@ -75,16 +75,35 @@ function App() {
     safeSet('fontSize', String(fontSize));
   }, [fontSize]);
 
-  // ترحيل لمرة واحدة: العلامة الواحدة القديمة → خريطة لكل كتاب (بعد تحميل الدروس لمعرفة الكتاب)
+  // ترحيل لمرة واحدة: العلامة الواحدة القديمة للضيف → خريطة لكل كتاب (بعد تحميل الدروس لمعرفة الكتاب)
   useEffect(() => {
-    if (Object.keys(stopMarks).length > 0 || lessons.length === 0) return;
+    if (user || Object.keys(stopMarks).length > 0 || lessons.length === 0) return;
     const oldId = safeGet('lastReadLessonId');
     if (!oldId) return;
     const lesson = lessons.find((l: Lesson) => String(l.id) === oldId);
     if (lesson?.bookName) {
       setStopMarks({ [lesson.bookName.trim()]: oldId });
     }
-  }, [lessons]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [lessons, user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // مزامنة lastReadLessonId مع علامات التوقف النشطة (لتحديث زر أكمل القراءة فوراً عبر الأجهزة)
+  // ضبط متزامن مقصود مع حالة خارجية (السحابة عبر stopMarks) — يتوقف ذاتيًا خلال دورتين كحد أقصى
+  useEffect(() => {
+    const markIds = Object.values(stopMarks).filter(Boolean);
+    if (markIds.length === 0) {
+      if (lastReadLessonId && user) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLastReadLessonId(null);
+        safeRemove('lastReadLessonId');
+      }
+      return;
+    }
+    if (!lastReadLessonId || !markIds.includes(lastReadLessonId)) {
+      const latest = markIds[markIds.length - 1];
+      setLastReadLessonId(latest);
+      safeSet('lastReadLessonId', latest);
+    }
+  }, [stopMarks, lastReadLessonId, user]);
 
   // تنظيف: إسقاط علامات تشير لمسائل حُذفت (بعد تحميل الدروس فقط حتى لا نمسح الكل خطأً)
   useEffect(() => {

@@ -83,7 +83,12 @@ const ReadingView = () => {
   const isBookmarked = lesson ? bookmarks.includes(lessonId) : false;
   const canGoPrev = currentIndex > 0;
   const canGoNext = currentIndex < lessons.length - 1;
-  const isStopMarked = !!lesson && (stopMarks?.[(lesson.bookName || '').trim()] === String(lesson.id) || lastReadLessonId === String(lesson.id));
+  const bookMark = lesson ? stopMarks?.[(lesson.bookName || '').trim()] : undefined;
+  const isStopMarked = !!lesson && (
+    bookMark !== undefined
+      ? bookMark === String(lesson.id)
+      : lastReadLessonId === String(lesson.id)
+  );
   const onToggleRead = (): void => { if (lesson) toggleReadLesson(lesson.id); };
   const onToggleBookmark = (): void => { if (lesson) toggleBookmark(lessonId); };
   const onSelectLesson = (l: Lesson): void => openLessonById(l.id);

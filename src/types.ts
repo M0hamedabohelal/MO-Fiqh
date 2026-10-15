@@ -73,6 +73,14 @@ export interface UserLibraryData {
   visits: string[];
   // علامات التوقف لكل كتاب { bookName: lessonId } — تُزامن سحابيًا لتظهر على كل الأجهزة
   stopMarks: Record<string, string>;
+  // شواهد الحذف { section: { key: timestamp } } — تمنع عودة المحذوف من جهاز آخر للأبد
+  tombs: {
+    bookmarks: Record<string, number>;
+    readLessons: Record<string, number>;
+    highlightIds: Record<string, number>;
+    noteKeys: Record<string, number>;
+    stopMarkKeys: Record<string, number>;
+  };
 }
 
 export interface AnnouncementItem {

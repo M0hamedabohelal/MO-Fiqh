@@ -1,7 +1,8 @@
 // طبقة الخدمات — كل التعامل مع Firestore في مكان واحد
 // يبدأ بمسار البيانات فقط (firestore) — لا يُسحب auth معه
 import { getFirestore, isFirebaseConfigured } from './config';
-import { mergeLibraries } from '../utils/mergeLibrary';
+import { applyTombsToMerged, pruneTombs, mergeTombs, cleanTombs } from '../utils/mergeLibrary';
+import type { TombstoneMap } from '../utils/mergeLibrary';
 import type { Firestore } from 'firebase/firestore';
 import type * as FsMod from 'firebase/firestore';
 import type { Lesson, GlossaryMap, UserLibraryData, AnnouncementItem, HighlightItem } from '../types';
@@ -199,11 +200,11 @@ async function userRoot(db: Firestore, fs: typeof FsMod, uid: string) {
   return fs.collection(db, 'users', uid, 'data');
 }
 
-// جلب كل بيانات المستخدم: bookmarks / highlights / notes / readLessons / visits / stopMarks
+// جلب كل بيانات المستخدم: bookmarks / highlights / notes / readLessons / visits / stopMarks / tombstones
 export async function fetchUserData(uid: string): Promise<UserLibraryData> {
   const { db, fs } = await getDb();
   const snapshot = await fs.getDocs(await userRoot(db, fs, uid));
-  const data: UserLibraryData = { bookmarks: [], highlights: [], notes: {}, readLessons: [], visits: [], stopMarks: {} };
+  const data: UserLibraryData = { bookmarks: [], highlights: [], notes: {}, readLessons: [], visits: [], stopMarks: {}, tombs: { bookmarks: {}, readLessons: {}, highlightIds: {}, noteKeys: {}, stopMarkKeys: {} } };
   snapshot.forEach((d) => {
     const value = d.data();
     switch (d.id) {
@@ -224,6 +225,9 @@ export async function fetchUserData(uid: string): Promise<UserLibraryData> {
         break;
       case 'stopMarks':
         data.stopMarks = value.marks && typeof value.marks === 'object' ? value.marks : {};
+        break;
+      case 'tombstones':
+        data.tombs = cleanTombs(value.tombs);
         break;
       default:
         break;
@@ -261,8 +265,9 @@ export async function syncStopMarks(uid: string, marks: Record<string, string>):
 // ─── الدمج عند الكتابة: يمنع ضياع تعديلات جهاز آخر ───
 // بدل الكتابة العمياء للقسم كاملًا (الأخير يمحو ما كتبه الجهاز الآخر)،
 // نقرأ الأحدث أولًا وندمج على مستوى العنصر ثم نكتب. نافذة السباق المتبقية
-// أجزاء من الثانية بدل الجلسة كاملة. القيد المعروف: الحذف قد يعود في حالة
-// نادرة (جهاز حذف بينما آخر أضاف قبل المزامنة) — يُحذف مجددًا وانتهى.
+// أجزاء من الثانية بدل الجلسة كاملة.
+// tombs: شواهد الحذف المتفق عليها سحابيًا — المشهود بحذفه يُسقط نهائيًا
+// (لا يعود عبر أي جهاز) إلا بإعادة إضافته صراحةً محليًا. تُحفظ مع البيانات.
 export async function mergeAndSyncLibrary(
   uid: string,
   local: {
@@ -272,32 +277,60 @@ export async function mergeAndSyncLibrary(
     readLessons: string[];
     stopMarks: Record<string, string>;
   },
-): Promise<void> {
+  inputTombs?: TombstoneMap,
+): Promise<{
+  data: {
+    bookmarks: string[];
+    highlights: HighlightItem[];
+    notes: Record<string, string>;
+    readLessons: string[];
+    stopMarks: Record<string, string>;
+  };
+  tombs: TombstoneMap;
+}> {
   const cloud = await fetchUserData(uid);
-  const merged = mergeLibraries(
-    {
-      bookmarks: cloud.bookmarks || [],
-      highlights: cloud.highlights || [],
-      notes: cloud.notes || {},
-      readLessons: cloud.readLessons || [],
-      stopMarks: cloud.stopMarks || {},
-    },
-    {
-      bookmarks: local.bookmarks || [],
-      highlights: local.highlights || [],
-      notes: local.notes || {},
-      readLessons: local.readLessons || [],
-      stopMarks: local.stopMarks || {},
-    },
-  );
+  const tombs = mergeTombs(cleanTombs(cloud.tombs), cleanTombs(inputTombs));
+  const str = (v: unknown): string => String(v);
+
+  // اتحاد، المحلي يفوز، مع تقليم الفارغ (سلوك معتمد: الملاحظة الفارغة = محذوفة)
+  const unionBookmarks = Array.from(new Set([
+    ...(local.bookmarks || []).map(str),
+    ...(cloud.bookmarks || []).map(str),
+  ]));
+  const unionRead = Array.from(new Set([
+    ...(local.readLessons || []).map(str),
+    ...(cloud.readLessons || []).map(str),
+  ]));
+  const hlMap = new Map<string, HighlightItem>();
+  [...(local.highlights || []), ...(cloud.highlights || [])].forEach((h) => {
+    if (h) hlMap.set(str(h.id ?? h.text), h);
+  });
+  const unionNotes: Record<string, string> = {};
+  Object.entries(local.notes || {}).forEach(([k, v]) => { if (v && v.trim()) unionNotes[k] = v; });
+  Object.entries(cloud.notes || {}).forEach(([k, v]) => {
+    if (!(k in unionNotes) && v && v.trim()) unionNotes[k] = v;
+  });
+  const unionMarks: Record<string, string> = {};
+  Object.entries(local.stopMarks || {}).forEach(([k, v]) => { if (v && str(v).trim()) unionMarks[k] = str(v).trim(); });
+  Object.entries(cloud.stopMarks || {}).forEach(([k, v]) => {
+    if (!(k in unionMarks) && v && str(v).trim()) unionMarks[k] = str(v).trim();
+  });
+
+  // إسقاط المشهود بحذفه (إلا ما أُعيد محليًا) ثم تنظيف شواهد العائدين
+  const merged = { bookmarks: unionBookmarks, highlights: Array.from(hlMap.values()), notes: unionNotes, readLessons: unionRead, stopMarks: unionMarks };
+  const finalData = applyTombsToMerged(merged, local, tombs);
+  const prunedTombs = pruneTombs(tombs, finalData);
+
   const { db, fs } = await getDb();
   await Promise.all([
-    saveUserDataSection(db, fs, uid, 'bookmarks', { items: merged.bookmarks }),
-    saveUserDataSection(db, fs, uid, 'highlights', { items: merged.highlights }),
-    saveUserDataSection(db, fs, uid, 'notes', { notes: merged.notes }),
-    saveUserDataSection(db, fs, uid, 'readLessons', { items: merged.readLessons }),
-    saveUserDataSection(db, fs, uid, 'stopMarks', { marks: merged.stopMarks }),
+    saveUserDataSection(db, fs, uid, 'bookmarks', { items: finalData.bookmarks }),
+    saveUserDataSection(db, fs, uid, 'highlights', { items: finalData.highlights }),
+    saveUserDataSection(db, fs, uid, 'notes', { notes: finalData.notes }),
+    saveUserDataSection(db, fs, uid, 'readLessons', { items: finalData.readLessons }),
+    saveUserDataSection(db, fs, uid, 'stopMarks', { marks: finalData.stopMarks }),
+    saveUserDataSection(db, fs, uid, 'tombstones', { tombs: prunedTombs }),
   ]);
+  return { data: finalData, tombs: prunedTombs };
 }
 
 // مزامنة قائمة المسائل المقروءة (تتبع التقدم)
@@ -345,8 +378,12 @@ export async function fetchLessonViews(): Promise<Record<string, number>> {
 export async function syncNote(uid: string, lessonId: string, noteText: string): Promise<void> {
   const { db, fs } = await getDb();
   const notesSnap = await fs.getDoc(fs.doc(await userRoot(db, fs, uid), 'notes'));
-  const currentNotes = notesSnap.exists() ? notesSnap.data().notes || {} : {};
-  currentNotes[lessonId] = noteText;
+  const currentNotes = notesSnap.exists() ? (notesSnap.data().notes as Record<string, string>) || {} : {};
+  if (!noteText || !noteText.trim()) {
+    delete currentNotes[lessonId];
+  } else {
+    currentNotes[lessonId] = noteText.trim();
+  }
   await saveUserDataSection(db, fs, uid, 'notes', { notes: currentNotes });
 }
 
