@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
-import { safeSet } from '../utils/safeStorage';
+import { safeSet, safeRemove } from '../utils/safeStorage';
+import { mergeLibraries } from '../utils/mergeLibrary';
+import { logError } from '../utils/logError';
 import type { HighlightItem, UserLibraryData } from '../types';
 import {
   syncBookmarks,
@@ -8,6 +10,8 @@ import {
   syncNote,
   syncAllNotes,
   syncReadLessons,
+  syncStopMarks,
+  mergeAndSyncLibrary,
 } from '../firebase/services';
 
 function readJsonStorage<T>(key: string, fallback: T): T {
@@ -30,9 +34,13 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
   const [highlights, setHighlights] = useState<HighlightItem[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [readLessons, setReadLessons] = useState<string[]>([]);
+  // علامات التوقف لكل كتاب — ضيف: محلية فقط، مسجل: تُزامن سحابيًا فتظهر على كل الأجهزة
+  const [stopMarks, setStopMarks] = useState<Record<string, string>>({});
 
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const isSyncReady = Boolean(user) && isDataLoaded;
+  // تتبّع الجلسة لمنع تسرب علامات مستخدم خرج للتو إلى ضيف جديد على نفس الجهاز
+  const prevUidRef = useRef<string | null>(null);
 
   // عند تسجيل الدخول أو الخروج
   useEffect(() => {
@@ -43,6 +51,17 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       // نحمّل بيانات الضيف المحفوظة محلياً أو نصفّرها
       // المعرفات تُوحَّد كنصوص دائمًا حتى لا تفشل المطابقة بين رقم ونص
       const asStringArray = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
+      const asMarks = (v: unknown): Record<string, string> =>
+        v && typeof v === 'object' ? (v as Record<string, string>) : {};
+      if (prevUidRef.current) {
+        // كان مسجلًا وخرج للتو — امسح مخبأ علاماته حتى لا يتسرب لضيف/مستخدم آخر على نفس الجهاز
+        // (باقي البيانات تُعزل أصلًا بمفاتيح guest_* المحذوفة عند الدخول)
+        prevUidRef.current = null;
+        safeRemove('stopMarks');
+        setStopMarks({});
+      } else {
+        setStopMarks(asMarks(readJsonStorage('stopMarks', {})));
+      }
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setBookmarks(asStringArray(readJsonStorage('guest_bookmarks', [])));
       setHighlights(readJsonStorage('guest_highlights', []));
@@ -55,6 +74,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     // المستخدم مسجل الدخول
     let cancelled = false;
     setIsDataLoaded(false);
+    prevUidRef.current = user.uid;
 
     (async () => {
       onStatus?.('syncing');
@@ -66,6 +86,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
         notes: {},
         readLessons: [],
         visits: [],
+        stopMarks: {},
       };
       if (cancelled) return;
 
@@ -74,29 +95,31 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       const guestHighlights = readJsonStorage<HighlightItem[]>('guest_highlights', []);
       const guestNotes = readJsonStorage<Record<string, string>>('guest_notes', {});
       const guestReadLessons = readJsonStorage<string[]>('guest_readLessons', []);
+      const guestStopMarks = readJsonStorage<Record<string, string>>('stopMarks', {});
 
       // الدمج الذكي (المعرفات كنصوص لتوحيد النوع بين المصادر)
-      const mergedBookmarks = Array.from(
-        new Set([...(cloudData.bookmarks || []), ...guestBookmarks].map(String))
+      const merged = mergeLibraries(
+        {
+          bookmarks: cloudData.bookmarks || [],
+          highlights: cloudData.highlights || [],
+          notes: cloudData.notes || {},
+          readLessons: cloudData.readLessons || [],
+          stopMarks: cloudData.stopMarks || {},
+        },
+        { bookmarks: guestBookmarks, highlights: guestHighlights, notes: guestNotes, readLessons: guestReadLessons, stopMarks: guestStopMarks },
       );
-
-      const highlightMap = new Map<string, HighlightItem>();
-      [...guestHighlights, ...(cloudData.highlights || [])].forEach((h) => {
-        highlightMap.set(String(h.id ?? h.text), h);
-      });
-      const mergedHighlights = Array.from(highlightMap.values());
-
-      const mergedNotes = { ...guestNotes, ...(cloudData.notes || {}) };
-
-      const mergedReadLessons = Array.from(
-        new Set([...guestReadLessons, ...(cloudData.readLessons || [])].map(String))
-      );
+      const mergedBookmarks = merged.bookmarks;
+      const mergedHighlights = merged.highlights;
+      const mergedNotes = merged.notes;
+      const mergedReadLessons = merged.readLessons;
+      const mergedStopMarks = merged.stopMarks;
 
       // تحديث الحالة المحلية
       setBookmarks(mergedBookmarks);
       setHighlights(mergedHighlights);
       setNotes(mergedNotes);
       setReadLessons(mergedReadLessons);
+      setStopMarks(mergedStopMarks);
 
       // رفع البيانات المدمجة للسحابة
       // ⚠️ حذف بيانات الضيف من الجهاز يتم فقط بعد نجاح الرفع — وإلا ضاعت نهائيًا
@@ -107,10 +130,12 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
           syncHighlights(user.uid, mergedHighlights),
           syncAllNotes(user.uid, mergedNotes),
           syncReadLessons(user.uid, mergedReadLessons),
+          syncStopMarks(user.uid, mergedStopMarks),
         ]);
         uploaded = true;
-      } catch {
+      } catch (err) {
         // تجاهل الأخطاء المؤقتة — تبقى نسخة الضيف محفوظة للدمج في المرة القادمة
+        logError('userLibrary.mergeUpload', err);
       }
 
       if (!uploaded) {
@@ -121,23 +146,26 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
 
       // بعد الدمج والرفع بنجاح، نحذف بيانات الضيف من الجهاز
       // لضمان عدم ظهورها لمستخدم آخر يسجل دخوله من نفس الجهاز
-      localStorage.removeItem('guest_bookmarks');
-      localStorage.removeItem('guest_highlights');
-      localStorage.removeItem('guest_notes');
-      localStorage.removeItem('guest_readLessons');
-      
+      // (عبر safeRemove — التخزين المحظور/الممتلئ لا يجب أن يعلق التحميل)
+      safeRemove('guest_bookmarks');
+      safeRemove('guest_highlights');
+      safeRemove('guest_notes');
+      safeRemove('guest_readLessons');
+
       // إزالة البيانات القديمة المتبقية من الإصدارات السابقة (تنظيف)
-      localStorage.removeItem('bookmarks');
-      localStorage.removeItem('highlights');
-      localStorage.removeItem('notesMap');
-      localStorage.removeItem('readLessons');
+      safeRemove('bookmarks');
+      safeRemove('highlights');
+      safeRemove('notesMap');
+      safeRemove('readLessons');
       // جمع المفاتيح أولًا ثم حذفها — الحذف أثناء التكرار يُزيح الفهارس ويُفوّت مفاتيح
-      const staleKeys = [];
-      for (let i = 0; i < localStorage.length; i += 1) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('note_lesson_')) staleKeys.push(key);
-      }
-      staleKeys.forEach((key) => localStorage.removeItem(key));
+      try {
+        const staleKeys = [];
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('note_lesson_')) staleKeys.push(key);
+        }
+        staleKeys.forEach((key) => safeRemove(key));
+      } catch { /* تجاهل — التنظيف لا يعلق التحميل */ }
 
       setIsDataLoaded(true);
       onStatus?.('synced');
@@ -146,32 +174,34 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     return () => { cancelled = true; };
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // حفظ محلي لبيانات الضيف (Guest) فقط
+  // حفظ محلي لبيانات الضيف (Guest) فقط + مخبأ علامات التوقف للمسجل (أوفلاين)
   useEffect(() => {
-    if (user) return; // المسجل يتم حفظه في السحابة
     if (!isDataLoaded) return;
-    
-    safeSet('guest_bookmarks', JSON.stringify(bookmarks));
-    safeSet('guest_highlights', JSON.stringify(highlights));
-    safeSet('guest_notes', JSON.stringify(notes));
-    safeSet('guest_readLessons', JSON.stringify(readLessons));
-  }, [bookmarks, highlights, notes, readLessons, user, isDataLoaded]);
+    if (!user) {
+      safeSet('guest_bookmarks', JSON.stringify(bookmarks));
+      safeSet('guest_highlights', JSON.stringify(highlights));
+      safeSet('guest_notes', JSON.stringify(notes));
+      safeSet('guest_readLessons', JSON.stringify(readLessons));
+    }
+    // علامات التوقف تُخبَّأ محليًا دائمًا (للضيف هي الأصل، وللمسجل مخبأ أوفلاين يُمسح عند الخروج)
+    safeSet('stopMarks', JSON.stringify(stopMarks));
+  }, [bookmarks, highlights, notes, readLessons, stopMarks, user, isDataLoaded]);
 
   // المزامنة مع السحابة دفعة واحدة بعد هدوء التغييرات (تجنّب كتابة لكل ضغطة متتالية)
+  // دمج عند الكتابة: تُقرأ النسخة الأحدث وتُدمج قبل الرفع فلا تمحو تعديلات جهاز آخر
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!isSyncReady || !user) return;
     const uid = user.uid;
+    const snapshot = { bookmarks, highlights, notes, readLessons, stopMarks };
     if (syncTimer.current) clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(() => {
-      syncBookmarks(uid, bookmarks).catch(() => {});
-      syncHighlights(uid, highlights).catch(() => {});
-      syncReadLessons(uid, readLessons).catch(() => {});
+      mergeAndSyncLibrary(uid, snapshot).catch((e) => logError('userLibrary.sync', e, { section: 'merge' }));
     }, 800);
     return () => {
       if (syncTimer.current) clearTimeout(syncTimer.current);
     };
-  }, [bookmarks, highlights, readLessons, isSyncReady, user]);
+  }, [bookmarks, highlights, notes, readLessons, stopMarks, isSyncReady, user]);
 
   // الدوال المساعدة للتحكم بالبيانات (المعرفات كنصوص دائمًا)
   const toggleBookmark = useCallback((lessonId: string | number) => {
@@ -197,7 +227,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
   const saveNoteForLesson = useCallback((lessonId: string | number, text: string) => {
     const key = String(lessonId);
     setNotes((prev) => ({ ...prev, [key]: text }));
-    if (user && isSyncReady) syncNote(user.uid, key, text).catch(() => {});
+    if (user && isSyncReady) syncNote(user.uid, key, text).catch((e) => logError('userLibrary.sync', e, { section: 'note' }));
   }, [user, isSyncReady]);
 
   const toggleReadLesson = useCallback((lessonId: string | number) => {
@@ -208,15 +238,44 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     );
   }, []);
 
+  // استعادة نسخة احتياطية (دمج مع الحالي بدون فقد)
+  const restoreLibrary = useCallback((data: {
+    bookmarks?: string[]; highlights?: HighlightItem[]; notes?: Record<string, string>; readLessons?: string[]; stopMarks?: Record<string, string>;
+  }) => {
+    if (Array.isArray(data.bookmarks)) {
+      setBookmarks((prev) => Array.from(new Set([...prev.map(String), ...data.bookmarks!.map(String)])));
+    }
+    if (Array.isArray(data.highlights)) {
+      setHighlights((prev) => {
+        const map = new Map(prev.map((h) => [String(h.id ?? h.text), h] as const));
+        data.highlights!.forEach((h) => { if (h) map.set(String(h.id ?? h.text), h); });
+        return Array.from(map.values());
+      });
+    }
+    if (data.notes && typeof data.notes === 'object') {
+      setNotes((prev) => ({ ...prev, ...data.notes }));
+    }
+    if (Array.isArray(data.readLessons)) {
+      setReadLessons((prev) => Array.from(new Set([...prev.map(String), ...data.readLessons!.map(String)])));
+    }
+    if (data.stopMarks && typeof data.stopMarks === 'object') {
+      // الاستعادة تُغلّب النسخة (كملاحظاتها تمامًا) — وإلا بدت الاستعادة وكأنها لم تفعل شيئًا
+      setStopMarks((prev) => ({ ...prev, ...data.stopMarks }));
+    }
+  }, []);
+
   return {
     bookmarks,
     highlights,
     notes,
     readLessons,
+    stopMarks,
+    setStopMarks,
     toggleBookmark,
     addHighlight,
     deleteHighlight,
     saveNoteForLesson,
     toggleReadLesson,
+    restoreLibrary,
   };
 }

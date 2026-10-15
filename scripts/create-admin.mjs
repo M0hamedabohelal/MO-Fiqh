@@ -1,5 +1,6 @@
 // إنشاء حساب مشرف وإضافته لمجموعة الأدمن في Firestore
 // الاستخدام: node scripts/create-admin.mjs "email@example.com" "كلمة_المرور"
+// الأأمن: كلمة المرور عبر متغير البيئة ADMIN_PASSWORD حتى لا تُحفظ في سجل الأوامر
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -24,10 +25,11 @@ function loadEnv() {
 }
 
 const email = process.argv[2];
-const password = process.argv[3];
+const password = process.argv[3] || process.env.ADMIN_PASSWORD;
 
 if (!email || !password) {
   console.error('❌ الاستخدام: node scripts/create-admin.mjs "الإيميل" "كلمة_المرور"');
+  console.error('   أو: ADMIN_PASSWORD=xxx node scripts/create-admin.mjs "الإيميل"');
   process.exit(1);
 }
 if (password.length < 6) {

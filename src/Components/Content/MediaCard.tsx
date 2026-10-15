@@ -3,9 +3,10 @@ import { FiImage, FiFileText } from 'react-icons/fi';
 interface MediaCardProps {
   mediaUrl?: string;
   mediaType?: string;
+  title?: string;
 }
 
-const MediaCard = ({ mediaUrl, mediaType }: MediaCardProps) => {
+const MediaCard = ({ mediaUrl, mediaType, title }: MediaCardProps) => {
   if (!mediaUrl) return null;
 
   return (
@@ -21,7 +22,7 @@ const MediaCard = ({ mediaUrl, mediaType }: MediaCardProps) => {
       {mediaType === 'image' ? (
         <img
           src={mediaUrl}
-          alt="مرفق المسألة"
+          alt={title ? `صورة مرفقة لمسألة: ${title}` : 'صورة مرفقة للمسألة'}
           loading="lazy"
           decoding="async"
           style={{ maxWidth: '100%', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}

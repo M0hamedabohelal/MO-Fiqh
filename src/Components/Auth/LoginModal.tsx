@@ -1,7 +1,8 @@
 // نافذة تسجيل الدخول / إنشاء حساب
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { CSSProperties, FormEvent } from 'react';
 import { motion } from 'framer-motion';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { FiX, FiLogIn, FiUserPlus, FiMail, FiLock, FiUser, FiLogOut, FiArrowLeft } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 import { useAuth } from './AuthContext';
@@ -22,6 +23,9 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
   const [displayName, setDisplayName] = useState('');
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
+
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -88,6 +92,11 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
       onClick={onClose}
     >
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب'}
+        tabIndex={-1}
         initial={{ scale: 0.95, opacity: 0, y: 10 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0 }}
@@ -116,6 +125,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
             className="btn p-1 d-flex align-items-center justify-content-center"
             onClick={onClose}
             title="إغلاق"
+            aria-label="إغلاق نافذة الدخول"
             style={{
               position: 'absolute',
               top: '14px',
@@ -206,6 +216,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
                     type="text"
                     className="login-input"
                     placeholder="اسمك (اختياري)"
+                    aria-label="الاسم (اختياري)"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     style={inputStyle}
@@ -224,6 +235,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
                   type="email"
                   className="login-input"
                   placeholder="البريد الإلكتروني"
+                  aria-label="البريد الإلكتروني"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -243,6 +255,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
                   type="password"
                   className="login-input"
                   placeholder="كلمة المرور (6 حروف على الأقل)"
+                  aria-label="كلمة المرور"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

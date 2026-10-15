@@ -9,6 +9,7 @@ import {
 import {
   createLesson, updateLesson, deleteLessonById, bulkCreateLessons,
 } from '../../firebase/services';
+import { validateLessonForm, cleanLessonForm, filterValidBulkLessons } from '../../utils/validateLesson';
 import QuoteCard from '../Content/QuoteCard';
 import ExplanationCard from '../Content/ExplanationCard';
 import { inputStyle } from './AdminStyles';
@@ -26,6 +27,7 @@ interface LessonFormState {
   videoUrl: string;
   startTime: string;
   endTime: string;
+  audioUrl: string;
   mediaUrl: string;
   mediaType: string;
   adminNote: string;
@@ -51,6 +53,7 @@ const EMPTY_LESSON: LessonFormState = {
   videoUrl: '',
   startTime: '',
   endTime: '',
+  audioUrl: '',
   mediaUrl: '',
   mediaType: '',
   adminNote: '',
@@ -90,10 +93,13 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
       try {
         const parsed: unknown = JSON.parse(reader.result as string);
         if (!Array.isArray(parsed)) throw new Error('الملف يجب أن يحتوي على مصفوفة مسائل');
-        const valid = (parsed as Array<Partial<Lesson>>).filter((x) => x && String(x.title || '').trim()) as BulkLessonInput[];
+        const { valid, rejected, reasons } = filterValidBulkLessons(parsed as Array<Partial<Lesson>>);
         if (valid.length === 0) {
-          setBulkError('لا توجد مسائل صالحة في الملف (تأكد أن كل عنصر له "title").');
+          setBulkError('لا توجد مسائل صالحة في الملف (تأكد أن كل عنصر له title و bookName ونص).');
           return;
+        }
+        if (rejected > 0) {
+          setBulkError(`تم قبول ${valid.length} وتجاهل ${rejected} عناصر فاسدة. ${reasons.join(' • ')}`);
         }
         setBulkItems(valid);
       } catch (err) {
@@ -159,6 +165,34 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
     setFormOpen(true);
   };
 
+  // رفع ملف صوتي (MP3 بجودة عالية) إلى Cloudinary — نفس حساب المرفقات، يُحفظ الرابط الأصلي بدون ضغط
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const uploadAudioToCloudinary = async (e: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAudio(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'fiqh_preset');
+    try {
+      const res = await fetch('https://api.cloudinary.com/v1_1/dzk4hgpq/auto/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data: { secure_url?: string } = await res.json();
+      if (data.secure_url) {
+        setForm((prev) => ({ ...prev, audioUrl: data.secure_url as string }));
+        flash('success', 'تم رفع الملف الصوتي بنجاح!');
+      } else {
+        flash('error', 'فشل رفع الصوت، تأكد من إعدادات Cloudinary.');
+      }
+    } catch (err) {
+      flash('error', `خطأ في رفع الصوت: ${(err as Error).message}`);
+    } finally {
+      setUploadingAudio(false);
+    }
+  };
+
   const openEditForm = (lesson: Lesson): void => {
     setEditingDocId(lesson._docId || String(lesson.id));
     const numericId = Number(lesson.id);
@@ -175,6 +209,7 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
       videoUrl: lesson.videoUrl || '',
       startTime: lesson.startTime || '',
       endTime: lesson.endTime || '',
+      audioUrl: lesson.audioUrl || '',
       mediaUrl: lesson.mediaUrl || '',
       mediaType: lesson.mediaType || '',
       adminNote: lesson.adminNote || '',
@@ -195,20 +230,15 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
 
   const handleSaveLesson = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    const trimmedTitle = (form.title || '').trim();
-    const trimmedBookName = (form.bookName || '').trim();
-
-    if (!trimmedTitle || !trimmedBookName) {
-      flash('error', 'اسم الكتاب وعنوان المسألة حقول إلزامية.');
+    const validationErrors = validateLessonForm(form);
+    if (validationErrors.length > 0) {
+      flash('error', validationErrors[0]);
       return;
     }
 
-    const cleanedForm: LessonFormState = {
+    const cleanedForm: LessonFormState = cleanLessonForm({
       ...form,
-      title: trimmedTitle,
-      bookName: trimmedBookName,
-      chapterName: (form.chapterName || '').trim(),
-    };
+    });
 
     setBusy(true);
     try {
@@ -416,6 +446,53 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
               <input type="text" className="form-control" dir="ltr" placeholder="00:00:00" value={form.endTime} onChange={handleFieldChange('endTime')} style={inputStyle} />
             </div>
             <div className="col-12">
+              <label className="form-label small fw-bold">🎧 صوت الدرس (MP3 — اختياري)</label>
+              <div className="d-flex flex-wrap gap-2 align-items-center">
+                <input
+                  type="file"
+                  className="form-control"
+                  accept="audio/*,.mp3,.m4a,.wav"
+                  onChange={uploadAudioToCloudinary}
+                  style={{ ...inputStyle, maxWidth: '250px' }}
+                  disabled={uploadingAudio}
+                  id="audioFileInput"
+                />
+                <input
+                  type="url"
+                  className="form-control flex-grow-1"
+                  dir="ltr"
+                  placeholder="أو ضع رابط MP3 مباشر هنا..."
+                  value={form.audioUrl}
+                  onChange={handleFieldChange('audioUrl')}
+                  style={inputStyle}
+                />
+                {form.audioUrl && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger btn-sm px-3"
+                    style={{ borderRadius: '8px' }}
+                    onClick={() => {
+                      setForm((prev) => ({ ...prev, audioUrl: '' }));
+                      const el = document.getElementById('audioFileInput') as HTMLInputElement | null;
+                      if (el) el.value = '';
+                    }}
+                  >
+                    <FiTrash2 className="me-1" /> إزالة
+                  </button>
+                )}
+              </div>
+              {uploadingAudio ? (
+                <small className="text-info d-block mt-2">⏳ جاري رفع الصوت... يرجى الانتظار.</small>
+              ) : (
+                <small className="text-muted d-block mt-2">
+                  لجودة جيدة: ارفع MP3 بمعدل 128kbps على الأقل (ساعة ≈ 60MB). يُحفظ الرابط الأصلي بدون أي ضغط — الجودة = جودة ملفك.
+                </small>
+              )}
+              {form.audioUrl && (
+                <audio controls preload="metadata" src={form.audioUrl} className="w-100 mt-2" style={{ maxWidth: '400px' }} />
+              )}
+            </div>
+            <div className="col-12">
               <label className="form-label small fw-bold">إرفاق صورة أو PDF (اختياري)</label>
               <div className="d-flex flex-wrap gap-2 align-items-center">
                 <input
@@ -590,7 +667,7 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
                     <button className="btn btn-sm btn-light d-flex align-items-center gap-1" onClick={() => openEditForm(lesson)} title="تعديل">
                       <FiEdit2 size={14} /> تعديل
                     </button>
-                    <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" disabled={busy} onClick={() => setShowDeleteConfirm(lesson._docId || String(lesson.id))} title="حذف">
+                    <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" disabled={busy} onClick={() => setShowDeleteConfirm(lesson._docId || String(lesson.id))} title="حذف" aria-label={`حذف مسألة ${lesson.title}`}>
                       <FiTrash2 size={14} />
                     </button>
                   </div>

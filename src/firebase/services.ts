@@ -1,6 +1,7 @@
 // طبقة الخدمات — كل التعامل مع Firestore في مكان واحد
 // يبدأ بمسار البيانات فقط (firestore) — لا يُسحب auth معه
 import { getFirestore, isFirebaseConfigured } from './config';
+import { mergeLibraries } from '../utils/mergeLibrary';
 import type { Firestore } from 'firebase/firestore';
 import type * as FsMod from 'firebase/firestore';
 import type { Lesson, GlossaryMap, UserLibraryData, AnnouncementItem, HighlightItem } from '../types';
@@ -14,6 +15,8 @@ async function getDb(): Promise<{ db: Firestore; fs: typeof FsMod }> {
 /* ==================== المسائل (Lessons) ==================== */
 
 // جلب كل المسائل مرتبة حسب id
+// ملاحظة أداء: للمجموعات الصغيرة (< ~2000) الجلب الكامل مقبول ومخزّن محليًا.
+// للمجموعات الكبيرة استخدم fetchLessonsPaged بالأسفل (ترقيم + startAfter).
 export async function fetchLessons(): Promise<Lesson[]> {
   const { db, fs } = await getDb();
   const snapshot = await fs.getDocs(fs.collection(db, 'lessons'));
@@ -22,11 +25,83 @@ export async function fetchLessons(): Promise<Lesson[]> {
     .sort((a, b) => Number(a.id) - Number(b.id));
 }
 
+// جلب مرقّم للمسائل (للتوسع المستقبلي — لا يكسر السلوك الحالي)
+// يُستخدم مع orderBy('id') + limit لتجنّب جلب آلاف المستندات دفعة واحدة.
+export async function fetchLessonsPaged(
+  pageSize = 50,
+  cursorId?: number,
+): Promise<{ items: Lesson[]; lastId: number | null; hasMore: boolean }> {
+  const { db, fs } = await getDb();
+  const constraints: unknown[] = [fs.orderBy('id', 'asc'), fs.limit(pageSize + 1)];
+  // startAfter يحتاج DocumentSnapshot في الـ SDK — نبنيه عبر استعلام تمهيدي رخيص بالـ id
+  let q = fs.query(fs.collection(db, 'lessons'), ...(constraints as never[]));
+  if (cursorId != null) {
+    const cursorSnap = await fs.getDocs(
+      fs.query(fs.collection(db, 'lessons'), fs.where('id', '==', cursorId), fs.limit(1)),
+    );
+    const cursorDoc = cursorSnap.docs[0];
+    // مؤشر مفقود (مسألة حُذفت) → صفحة فارغة بدل تكرار الصفحة الأولى خطأً
+    if (!cursorDoc) return { items: [], lastId: cursorId, hasMore: false };
+    q = fs.query(
+      fs.collection(db, 'lessons'),
+      fs.orderBy('id', 'asc'),
+      fs.startAfter(cursorDoc),
+      fs.limit(pageSize + 1),
+    );
+  }
+  const snapshot = await fs.getDocs(q);
+  const all = snapshot.docs.map((d) => ({ ...d.data(), _docId: d.id }) as Lesson);
+  const hasMore = all.length > pageSize;
+  const items = hasMore ? all.slice(0, pageSize) : all;
+  const lastId = items.length > 0 ? Number(items[items.length - 1].id) : null;
+  return { items, lastId, hasMore };
+}
+
+// ─── عدّاد ذري لمعرّفات المسائل — يمنع race بين مشرفَين ───
+// counters/lessons = { value: number } — يُنشأ تلقائيًا من max(id) الحالي عند أول استخدام.
+async function reserveLessonIds(count: number): Promise<number[] | null> {
+  try {
+    const { db, fs } = await getDb();
+    const counterRef = fs.doc(db, 'counters', 'lessons');
+    // بذر أول مرة: لو لا يوجد عدّاد، احسب max الحالي مرة واحدة فقط
+    const existing = await fs.getDoc(counterRef);
+    if (!existing.exists()) {
+      const lessons = await fetchLessons();
+      const numericIds = lessons.map((l) => Number(l.id)).filter((n) => Number.isFinite(n));
+      const maxId = numericIds.length > 0 ? Math.max(...numericIds) : 0;
+      await fs.setDoc(counterRef, { value: maxId, updatedAt: Date.now() }, { merge: true });
+    }
+    let start = 0;
+    await fs.runTransaction(db, async (tx) => {
+      const snap = await tx.get(counterRef);
+      const current = snap.exists() ? Number((snap.data() as { value?: unknown }).value) || 0 : 0;
+      start = current + 1;
+      tx.set(counterRef, { value: current + count, updatedAt: Date.now() }, { merge: true });
+    });
+    return Array.from({ length: count }, (_, i) => start + i);
+  } catch (err) {
+    // سقوط آمن للمنطق القديم — مع تسجيل السبب (صلاحيات/أوفلاين) للمراقبة
+    try {
+      const { logError } = await import('../utils/logError');
+      logError('lessons.reserveIds', err, { count });
+    } catch { /* تجاهل */ }
+    return null;
+  }
+}
+
 // إضافة مسألة جديدة (لوحة الإدارة)
 export async function createLesson(lessonData: Omit<Lesson, 'id' | '_docId'>): Promise<Lesson> {
   const { db, fs } = await getDb();
 
-  // نحدد الـ id الجديد = أكبر id موجود + 1
+  // المسار الجديد: حجز ذري — مشرفان يضيفان معًا يحصل كلٌّ على id مختلف
+  const reserved = await reserveLessonIds(1);
+  if (reserved) {
+    const payload = { ...lessonData, id: reserved[0] };
+    await fs.setDoc(fs.doc(db, 'lessons', String(reserved[0])), payload);
+    return payload;
+  }
+
+  // Fallback القديم (أوفلاين / counters غير متاح)
   const existing = await fetchLessons();
   // ترشيح القيم غير الرقمية — معرّف واحد فاسد كان يسمّم Math.max بـ NaN فينتج nextId=NaN
   const numericIds = existing.map((l) => Number(l.id)).filter((n) => Number.isFinite(n));
@@ -38,9 +113,30 @@ export async function createLesson(lessonData: Omit<Lesson, 'id' | '_docId'>): P
 }
 
 // استيراد بالجملة — رفع مصفوفة مسائل دفعة واحدة بمعرفات متسلسلة تلقائياً
+// يستخدم حجزًا ذريًا + WriteBatch (كتابة واحدة بدل N كتابات متتالية)
 export async function bulkCreateLessons(lessonsArray: Array<Omit<Lesson, 'id' | '_docId'>>): Promise<number> {
   const { db, fs } = await getDb();
 
+  const reserved = await reserveLessonIds(lessonsArray.length);
+  if (reserved) {
+    // دفعات من 400 (حد Firestore الآمن 500 عملية لكل batch)
+    const CHUNK = 400;
+    for (let i = 0; i < lessonsArray.length; i += CHUNK) {
+      const batch = fs.writeBatch(db);
+      const slice = lessonsArray.slice(i, i + CHUNK);
+      slice.forEach((item, j) => {
+        const id = reserved[i + j];
+        const cleanItem: Record<string, unknown> = { ...item };
+        delete cleanItem._docId;
+        delete cleanItem.id;
+        batch.set(fs.doc(db, 'lessons', String(id)), { ...cleanItem, id });
+      });
+      await batch.commit();
+    }
+    return lessonsArray.length;
+  }
+
+  // Fallback القديم
   const existing = await fetchLessons();
   const numericIds = existing.map((l) => Number(l.id)).filter((n) => Number.isFinite(n));
   let nextId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 1;
@@ -103,11 +199,11 @@ async function userRoot(db: Firestore, fs: typeof FsMod, uid: string) {
   return fs.collection(db, 'users', uid, 'data');
 }
 
-// جلب كل بيانات المستخدم: bookmarks / highlights / notes / readLessons / visits
+// جلب كل بيانات المستخدم: bookmarks / highlights / notes / readLessons / visits / stopMarks
 export async function fetchUserData(uid: string): Promise<UserLibraryData> {
   const { db, fs } = await getDb();
   const snapshot = await fs.getDocs(await userRoot(db, fs, uid));
-  const data: UserLibraryData = { bookmarks: [], highlights: [], notes: {}, readLessons: [], visits: [] };
+  const data: UserLibraryData = { bookmarks: [], highlights: [], notes: {}, readLessons: [], visits: [], stopMarks: {} };
   snapshot.forEach((d) => {
     const value = d.data();
     switch (d.id) {
@@ -125,6 +221,9 @@ export async function fetchUserData(uid: string): Promise<UserLibraryData> {
         break;
       case 'visits':
         data.visits = value.items || [];
+        break;
+      case 'stopMarks':
+        data.stopMarks = value.marks && typeof value.marks === 'object' ? value.marks : {};
         break;
       default:
         break;
@@ -153,6 +252,54 @@ export async function syncHighlights(uid: string, highlightsArray: HighlightItem
   await saveUserDataSection(db, fs, uid, 'highlights', { items: highlightsArray });
 }
 
+// مزامنة علامات التوقف لكل كتاب — لتظهر على كل أجهزة المستخدم
+export async function syncStopMarks(uid: string, marks: Record<string, string>): Promise<void> {
+  const { db, fs } = await getDb();
+  await saveUserDataSection(db, fs, uid, 'stopMarks', { marks });
+}
+
+// ─── الدمج عند الكتابة: يمنع ضياع تعديلات جهاز آخر ───
+// بدل الكتابة العمياء للقسم كاملًا (الأخير يمحو ما كتبه الجهاز الآخر)،
+// نقرأ الأحدث أولًا وندمج على مستوى العنصر ثم نكتب. نافذة السباق المتبقية
+// أجزاء من الثانية بدل الجلسة كاملة. القيد المعروف: الحذف قد يعود في حالة
+// نادرة (جهاز حذف بينما آخر أضاف قبل المزامنة) — يُحذف مجددًا وانتهى.
+export async function mergeAndSyncLibrary(
+  uid: string,
+  local: {
+    bookmarks: string[];
+    highlights: HighlightItem[];
+    notes: Record<string, string>;
+    readLessons: string[];
+    stopMarks: Record<string, string>;
+  },
+): Promise<void> {
+  const cloud = await fetchUserData(uid);
+  const merged = mergeLibraries(
+    {
+      bookmarks: cloud.bookmarks || [],
+      highlights: cloud.highlights || [],
+      notes: cloud.notes || {},
+      readLessons: cloud.readLessons || [],
+      stopMarks: cloud.stopMarks || {},
+    },
+    {
+      bookmarks: local.bookmarks || [],
+      highlights: local.highlights || [],
+      notes: local.notes || {},
+      readLessons: local.readLessons || [],
+      stopMarks: local.stopMarks || {},
+    },
+  );
+  const { db, fs } = await getDb();
+  await Promise.all([
+    saveUserDataSection(db, fs, uid, 'bookmarks', { items: merged.bookmarks }),
+    saveUserDataSection(db, fs, uid, 'highlights', { items: merged.highlights }),
+    saveUserDataSection(db, fs, uid, 'notes', { notes: merged.notes }),
+    saveUserDataSection(db, fs, uid, 'readLessons', { items: merged.readLessons }),
+    saveUserDataSection(db, fs, uid, 'stopMarks', { marks: merged.stopMarks }),
+  ]);
+}
+
 // مزامنة قائمة المسائل المقروءة (تتبع التقدم)
 export async function syncReadLessons(uid: string, readLessonIds: string[]): Promise<void> {
   const { db, fs } = await getDb();
@@ -176,8 +323,14 @@ export async function trackLessonView(lessonId: string | number): Promise<void> 
       { [`lesson_${lessonId}`]: fs.increment(1) },
       { merge: true }
     );
-  } catch {
-    // تجاهل أخطاء التتبع — ليست حرجة
+  } catch (err) {
+    // تجاهل أخطاء التتبع — ليست حرجة (تُسجَّل محليًا فقط وبخنق)
+    try {
+      const { logError } = await import('../utils/logError');
+      logError('stats.trackLessonView', err, { lessonId: String(lessonId) });
+    } catch {
+      /* تجاهل */
+    }
   }
 }
 
@@ -215,6 +368,31 @@ export async function isAdmin(uid: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/* ==================== سجل أخطاء العملاء (للمشرف فقط) ==================== */
+
+export interface ClientErrorItem {
+  id: string;
+  scope: string;
+  message: string;
+  url?: string;
+  at: number;
+}
+
+// أحدث أخطاء العملاء (القواعد: قراءة/حذف للأدمن فقط)
+export async function fetchClientErrors(limitCount = 30): Promise<ClientErrorItem[]> {
+  const { db, fs } = await getDb();
+  const snapshot = await fs.getDocs(
+    fs.query(fs.collection(db, 'client_errors'), fs.orderBy('at', 'desc'), fs.limit(limitCount)),
+  );
+  return snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ClientErrorItem, 'id'>) }));
+}
+
+// مسح خطأ واحد بعد معالجته
+export async function deleteClientError(id: string): Promise<void> {
+  const { db, fs } = await getDb();
+  await fs.deleteDoc(fs.doc(db, 'client_errors', String(id)));
 }
 
 /* ==================== الترحيل الأولي (Migration) ==================== */

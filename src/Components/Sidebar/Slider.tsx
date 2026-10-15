@@ -20,11 +20,12 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
     <div className="sidebar-wrapper">
 
       <div className="sidebar-logo-section">
-        <a
-          href="#"
-          onClick={(e) => { e.preventDefault(); setActiveView('hero'); }}
+        <button
+          onClick={() => setActiveView('hero')}
           className="sidebar-logo-link"
           title="الرجوع للصفحة الرئيسية"
+          aria-label="الرجوع للصفحة الرئيسية"
+          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
         >
           <img
             src={logo}
@@ -34,7 +35,7 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
             height="100"
             decoding="async"
           />
-        </a>
+        </button>
         <span className="sidebar-tagline">دراسة وتدبر</span>
       </div>
 

@@ -31,6 +31,13 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // ─── عدّادات التسلسل (counters/lessons): قراءة للجميع، كتابة للأدمن فقط ───
+    // تُستخدم لحجز معرفات المسائل ذريًا ومنع التعارض بين مشرفَين
+    match /counters/{counterId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     // ─── سجل المشرفين: كل مستخدم يقرأ سجله فقط (لفحص الصلاحية)، ولا كتابة من العميل ───
     match /admins/{uid} {
       allow read: if isSignedIn() && request.auth.uid == uid;
@@ -51,6 +58,13 @@ service cloud.firestore {
       allow update: if request.resource.data.diff(resource.data).removedKeys().size() == 0
         && request.resource.data.keys().size() <= resource.data.keys().size() + 1;
       allow delete: if isAdmin();
+    }
+
+    // ─── سجل أخطاء العميل: إنشاء للمسجلين فقط (مخنوق من العميل)، قراءة/حذف للأدمن ───
+    match /client_errors/{docId} {
+      allow read, delete: if isAdmin();
+      allow create: if isSignedIn();
+      allow update: if false;
     }
 
     // ─── افتراضي: منع أي مسار آخر ───

@@ -4,6 +4,7 @@ import { useRef, useState, useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiDownload, FiX, FiImage, FiCheck } from 'react-icons/fi';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 interface QuoteImageModalProps {
   show: boolean;
@@ -16,6 +17,8 @@ type CardFormat = 'post' | 'story';
 
 const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, show, onClose);
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
   const [format, setFormat] = useState<CardFormat>('post');
@@ -68,6 +71,11 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
           onClick={onClose}
         >
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="بطاقة مقتبسة مصوّرة"
+            tabIndex={-1}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.92, opacity: 0, y: 20 }}

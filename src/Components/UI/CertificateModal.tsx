@@ -2,6 +2,7 @@ import { useRef, useState, useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiDownload, FiX, FiImage, FiCheck } from 'react-icons/fi';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 // CertificateModal — شهادة إتمام مخطوطة فاخرة (PNG) باسم القارئ والكتاب المُتمم
 interface CertificateModalProps {
@@ -15,6 +16,8 @@ interface CertificateModalProps {
 
 const CertificateModal = ({ show, bookName, userName, lessonsCount, dateLabel, onClose }: CertificateModalProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, show, onClose);
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -54,6 +57,11 @@ const CertificateModal = ({ show, bookName, userName, lessonsCount, dateLabel, o
           onClick={onClose}
         >
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="شهادة الإتمام"
+            tabIndex={-1}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.92, opacity: 0, y: 20 }}

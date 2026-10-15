@@ -1,20 +1,16 @@
 import { useState } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
 import { FiMoon, FiBell } from 'react-icons/fi';
 import { BsBook } from 'react-icons/bs';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import AnnouncementsModal from '../UI/AnnouncementsModal';
 
 interface TopbarProps {
-  setFontSize: Dispatch<SetStateAction<number>>;
   theme: string;
   toggleTheme: (theme: string) => void;
   cloudStatus: string;
 }
 
-const Topbar = ({ setFontSize, theme, toggleTheme, cloudStatus }: TopbarProps) => {
-  const increaseFont = () => setFontSize(prev => Math.min(prev + 2, 24));
-  const decreaseFont = () => setFontSize(prev => Math.max(prev - 2, 14));
+const Topbar = ({ theme, toggleTheme, cloudStatus }: TopbarProps) => {
   const { announcements, unreadCount, markAsRead, refresh } = useAnnouncements();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -59,9 +55,6 @@ const Topbar = ({ setFontSize, theme, toggleTheme, cloudStatus }: TopbarProps) =
   return (
     <>
     <div className="topbar-row d-flex justify-content-start align-items-center mb-3 gap-1 flex-wrap">
-      <button className="btn btn-link text-decoration-none" style={{ color: 'var(--text-main)' }} onClick={decreaseFont}>A-</button>
-      <button className="btn btn-link text-decoration-none fw-bold fs-5" style={{ color: 'var(--text-main)' }} onClick={increaseFont}>A+</button>
-
       <button
         className="btn btn-link d-flex align-items-center gap-1 position-relative"
         style={{ color: 'var(--text-main)', textDecoration: 'none' }}

@@ -1,8 +1,9 @@
-// تبويب الإحصائيات — أكثر المسائل قراءةً وإجمالي المشاهدات
+// تبويب الإحصائيات — أكثر المسائل قراءةً وإجمالي المشاهدات + سجل أخطاء العملاء
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { FiBarChart2 } from 'react-icons/fi';
-import { fetchLessonViews } from '../../firebase/services';
+import { FiBarChart2, FiAlertTriangle, FiTrash2 } from 'react-icons/fi';
+import { fetchLessonViews, fetchClientErrors, deleteClientError } from '../../firebase/services';
+import type { ClientErrorItem } from '../../firebase/services';
 import type { Lesson } from '../../types';
 
 interface AdminStatsTabProps {
@@ -20,6 +21,9 @@ interface StatsRow {
 const AdminStatsTab = ({ lessons }: AdminStatsTabProps) => {
   const [viewStats, setViewStats] = useState<Record<string, number> | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  // سجل أخطاء العملاء — للمراقبة (يُجمَع تلقائيًا من الأجهزة، مخنوقًا)
+  const [clientErrors, setClientErrors] = useState<ClientErrorItem[] | null>(null);
+  const [clearingId, setClearingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,8 +33,21 @@ const AdminStatsTab = ({ lessons }: AdminStatsTabProps) => {
       .then((m) => { if (!cancelled) setViewStats(m || {}); })
       .catch(() => { if (!cancelled) setViewStats({}); })
       .finally(() => { if (!cancelled) setStatsLoading(false); });
+    fetchClientErrors(30)
+      .then((items) => { if (!cancelled) setClientErrors(items); })
+      .catch(() => { if (!cancelled) setClientErrors([]); });
     return () => { cancelled = true; };
   }, []);
+
+  const handleClearError = async (id: string): Promise<void> => {
+    setClearingId(id);
+    try {
+      await deleteClientError(id);
+      setClientErrors((prev) => (prev || []).filter((e) => e.id !== id));
+    } finally {
+      setClearingId(null);
+    }
+  };
 
   const statsRows: StatsRow[] = useMemo(() => {
     if (!viewStats) return [];
@@ -111,6 +128,47 @@ const AdminStatsTab = ({ lessons }: AdminStatsTabProps) => {
           </div>
         </div>
       )}
+      {/* سجل أخطاء العملاء — أحدث 30 خطأً مسجلًا من أجهزة المستخدمين */}
+      <div className="custom-card p-3 p-md-4 shadow-sm mt-4">
+        <h5 className="fw-bold mb-1 d-flex align-items-center gap-2" style={{ color: 'var(--primary-color)' }}>
+          <FiAlertTriangle /> أخطاء العملاء
+          {clientErrors !== null && clientErrors.length > 0 && (
+            <span className="badge bg-danger" style={{ fontSize: '0.7rem' }}>{clientErrors.length}</span>
+          )}
+        </h5>
+        <small className="text-muted d-block mb-3">تُجمَع تلقائيًا (حدث واحد كل دقيقة لكل جهاز كحد أقصى) — امسح ما عالجته.</small>
+        {clientErrors === null ? (
+          <div className="text-center p-3"><div className="spinner-border spinner-border-sm" style={{ color: 'var(--primary-color)' }} /></div>
+        ) : clientErrors.length === 0 ? (
+          <p className="text-muted mb-0 small">✅ لا أخطاء مسجلة — كل الأجهزة تعمل بسلاسة.</p>
+        ) : (
+          <div className="d-flex flex-column gap-2">
+            {clientErrors.map((err) => (
+              <div key={err.id} className="d-flex align-items-start gap-2 p-2 rounded" style={{ backgroundColor: 'var(--badge-bg)' }}>
+                <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                  <div className="small fw-bold text-truncate">
+                    <span className="badge bg-secondary me-2" style={{ fontSize: '0.65rem' }}>{err.scope}</span>
+                    {err.message}
+                  </div>
+                  <small className="text-muted d-block">
+                    {err.at ? new Date(err.at).toLocaleString('ar-EG') : '—'}
+                    {err.url ? ` • ${String(err.url).slice(0, 60)}` : ''}
+                  </small>
+                </div>
+                <button
+                  className="btn btn-sm btn-outline-danger flex-shrink-0"
+                  onClick={() => handleClearError(err.id)}
+                  disabled={clearingId === err.id}
+                  aria-label="مسح هذا الخطأ بعد معالجته"
+                  title="مسح بعد المعالجة"
+                >
+                  <FiTrash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </>
   );
 };

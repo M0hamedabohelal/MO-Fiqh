@@ -11,8 +11,6 @@ import AppLayout      from './Components/Layout/AppLayout';
 import { AppProvider } from './Components/Layout/AppContext';
 import type { AppContextValue } from './Components/Layout/AppContext';
 import OnboardingSlides, { shouldShowOnboarding } from './Components/UI/OnboardingSlides';
-import QuizModal from './Components/UI/QuizModal';
-import type { QuizTarget } from './Components/UI/QuizModal';
 import MindMapModal from './Components/UI/MindMapModal';
 
 import { useAuth }             from './Components/Auth/AuthContext';
@@ -40,15 +38,18 @@ function App() {
   // ─── بيانات المحتوى ───
   const { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud } = useAppData({ isOffline });
 
-  // ─── المكتبة الشخصية ───
-  const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson } = useUserLibrary({ onStatus: setCloudStatus });
+  // ─── المكتبة الشخصية (تُزامن سحابيًا للمسجل — فتظهر علامات التوقف على كل الأجهزة) ───
+  const { bookmarks, highlights, notes, readLessons, stopMarks, setStopMarks, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary } = useUserLibrary({ onStatus: setCloudStatus });
 
   // ─── التوجيه الهاشي ───
   const { currentView, setCurrentView, currentIndex, setCurrentIndex, selectedBookName, setSelectedBookName, openChapterName, setOpenChapterName, goToNextLesson, goToPrevLesson, goBackToList } = useHashRoute(lessons);
   const currentLesson = lessons[currentIndex];
 
   // ─── UI State ───
-  const [fontSize, setFontSize]           = useState(16);
+  const [fontSize, setFontSize]           = useState(() => {
+    const saved = Number(safeGet('fontSize'));
+    return Number.isFinite(saved) && saved >= 14 && saved <= 24 ? saved : 16;
+  });
   const [theme, setTheme]                 = useState(() => {
     const saved = safeGet('theme');
     return (saved === 'sepia' || saved === 'dark') ? saved : 'dark';
@@ -59,7 +60,6 @@ function App() {
   const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
   const [lastReadLessonId, setLastReadLessonId]       = useState(() => safeGet('lastReadLessonId'));
   const showSplash = useSplash(authLoading);
-  const [quizTarget, setQuizTarget]         = useState<QuizTarget | null>(null);
   const [mindmapOpen, setMindmapOpen]       = useState(false);
   // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -72,7 +72,32 @@ function App() {
 
   useEffect(() => {
     document.documentElement.style.setProperty('--base-font-size', `${fontSize}px`);
+    safeSet('fontSize', String(fontSize));
   }, [fontSize]);
+
+  // ترحيل لمرة واحدة: العلامة الواحدة القديمة → خريطة لكل كتاب (بعد تحميل الدروس لمعرفة الكتاب)
+  useEffect(() => {
+    if (Object.keys(stopMarks).length > 0 || lessons.length === 0) return;
+    const oldId = safeGet('lastReadLessonId');
+    if (!oldId) return;
+    const lesson = lessons.find((l: Lesson) => String(l.id) === oldId);
+    if (lesson?.bookName) {
+      setStopMarks({ [lesson.bookName.trim()]: oldId });
+    }
+  }, [lessons]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // تنظيف: إسقاط علامات تشير لمسائل حُذفت (بعد تحميل الدروس فقط حتى لا نمسح الكل خطأً)
+  useEffect(() => {
+    if (lessons.length === 0 || Object.keys(stopMarks).length === 0) return;
+    const validIds = new Set(lessons.map((l: Lesson) => String(l.id)));
+    const pruned = Object.fromEntries(
+      Object.entries(stopMarks).filter(([, id]) => validIds.has(String(id))),
+    );
+    if (Object.keys(pruned).length !== Object.keys(stopMarks).length) {
+      setStopMarks(pruned);
+    }
+    // يُعاد عند وصول علامات السحابة متأخرةً أيضًا — يتوقف ذاتيًا عند عدم وجود فرق
+  }, [lessons, stopMarks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── بيانات مشتقة للفهرس ───
   const chaptersWithIssues = useMemo(() => {
@@ -143,11 +168,21 @@ function App() {
 
   const toggleStopMark = () => {
     const id = currentLesson?.id?.toString();
-    if (!id) return;
-    if (lastReadLessonId === id) {
-      setLastReadLessonId(null);
-      safeRemove('lastReadLessonId');
+    const book = (currentLesson?.bookName || '').trim();
+    if (!id || !book) return;
+    // إزالة إذا كانت هذه علامة الكتاب الحالية، وإلا تعيينها (لا تمس علامات الكتب الأخرى)
+    if (stopMarks[book] === id) {
+      setStopMarks((prev) => {
+        const next = { ...prev };
+        delete next[book];
+        return next;
+      });
+      if (lastReadLessonId === id) {
+        setLastReadLessonId(null);
+        safeRemove('lastReadLessonId');
+      }
     } else {
+      setStopMarks((prev) => ({ ...prev, [book]: id }));
       setLastReadLessonId(id);
       safeSet('lastReadLessonId', id);
     }
@@ -238,14 +273,13 @@ function App() {
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
     booksWithStats, selectedBookName, selectedBookChapters,
-    openChapterName, lastReadLessonId,
+    openChapterName, lastReadLessonId, stopMarks, setStopMarks,
     setCurrentView, openBookChapters, toggleChapter,
-    openQuiz: (t: QuizTarget) => setQuizTarget(t),
     openMindMap: () => setMindmapOpen(true),
     openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
     toggleBookmark, toggleReadLesson, saveNoteForLesson,
     deleteHighlight, createHighlightFromSelection,
-    toggleStopMark,
+    toggleStopMark, restoreLibrary,
     onOpenSearch: () => setIsSearchOpen(true),
     onOpenLogin: () => setIsLoginOpen(true),
     reloadFromCloud,
@@ -263,13 +297,6 @@ function App() {
       {showOnboarding && <OnboardingSlides onDone={() => setShowOnboarding(false)} />}
 
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} data={lessons} onSelect={handleSearchResultSelect} />
-      {quizTarget && (
-        <QuizModal
-          target={quizTarget}
-          onClose={() => setQuizTarget(null)}
-          onSelectLesson={(id) => { setQuizTarget(null); openLessonById(id); }}
-        />
-      )}
       {mindmapOpen && (
         <MindMapModal
           open={mindmapOpen}

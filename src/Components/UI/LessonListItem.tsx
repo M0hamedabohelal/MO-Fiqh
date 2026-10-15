@@ -22,7 +22,7 @@ const LessonListItem = ({ title, pageNumber, isRead, isNew, onClick, variant }: 
           {title}
         </span>
         <span className="toc-dots" aria-hidden="true" />
-        <span className="toc-page">ص {pageNumber}</span>
+        <span className="toc-page">{pageNumber ? `ص ${pageNumber}` : ''}</span>
       </button>
     );
   }
@@ -37,7 +37,7 @@ const LessonListItem = ({ title, pageNumber, isRead, isNew, onClick, variant }: 
       {title}
     </span>
     <span className="d-flex align-items-center gap-3">
-      <span className="text-muted small">ص {pageNumber}</span>
+      {pageNumber && <span className="text-muted small">ص {pageNumber}</span>}
       <FiChevronLeft style={{ color: 'var(--accent-color)' }} />
     </span>
   </button>

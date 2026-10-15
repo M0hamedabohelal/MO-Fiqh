@@ -39,7 +39,7 @@ const AppLayout = () => {
   const {
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
-    theme, setTheme, setFontSize,
+    theme, setTheme,
     cloudStatus,
     canInstall, promptInstall,
     selectedBookName,
@@ -66,7 +66,6 @@ const AppLayout = () => {
     {/* المنطقة الرئيسية */}
     <div className="col-lg-10 col-md-9 px-4 py-3 pb-5 pb-md-3">
       <Topbar
-        setFontSize={setFontSize}
         theme={theme}
         toggleTheme={setTheme}
         cloudStatus={cloudStatus}

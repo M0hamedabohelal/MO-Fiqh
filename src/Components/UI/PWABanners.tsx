@@ -27,6 +27,8 @@ const PWABanners = ({
     <AnimatePresence>
       {isOffline && (
         <motion.div
+          role="status"
+          aria-live="polite"
           initial={{ y: -60, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -60, opacity: 0 }}

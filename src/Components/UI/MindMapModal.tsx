@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiChevronRight } from 'react-icons/fi';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import type { BookStats, ChapterGroup } from '../../types';
 
 interface MindMapModalProps {
@@ -35,6 +36,8 @@ function ringPositions(n: number, r: number): Array<{ x: number; y: number }> {
 // خريطة ذهنية تفاعلية: كتب ← أبواب ← مسائل — SVG خالص بلا مكتبات، والتنقل بالضغط للداخل
 const MindMapModal = ({ open, onClose, books, chapters, onSelectLesson }: MindMapModalProps) => {
   const [path, setPath] = useState<Path>({});
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, open, onClose);
 
   if (!open) return null;
 
@@ -103,6 +106,11 @@ const MindMapModal = ({ open, onClose, books, chapters, onSelectLesson }: MindMa
         onClick={onClose}
       >
         <motion.div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="الخريطة الذهنية للفقه"
+          tabIndex={-1}
           initial={{ scale: 0.94, opacity: 0, y: 16 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.94, opacity: 0, y: 16 }}
@@ -146,7 +154,15 @@ const MindMapModal = ({ open, onClose, books, chapters, onSelectLesson }: MindMa
                 const n = nodes[i];
                 const color = n.done ? '#27ae60' : n.partial ? 'var(--accent-color)' : 'var(--border-color)';
                 return (
-                  <g key={n.key} onClick={() => onNode(n.key)} style={{ cursor: 'pointer' }}>
+                  <g
+                    key={n.key}
+                    onClick={() => onNode(n.key)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNode(n.key); } }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={n.label}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <title>{n.label}</title>
                     <line x1={CX} y1={CY} x2={p.x} y2={p.y} stroke={color} strokeWidth={2} opacity={0.55} />
                     <circle cx={p.x} cy={p.y} r={level === 2 ? 17 : 24} fill="var(--card-bg)" stroke={color} strokeWidth={2.5} />

@@ -1,6 +1,6 @@
 // كارد الفيديو — مع زر تشغيل مباشر من الوقت المحدد للمسألة
 // على الموبايل: يعرض thumbnail مع زر تشغيل بدلاً من iframe مباشرة
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { SyntheticEvent } from 'react';
 import { FiHeadphones, FiPlay, FiExternalLink, FiClock } from 'react-icons/fi';
 
@@ -8,12 +8,14 @@ interface VideoCardProps {
   videoUrl?: string;
   startTime?: string;
   endTime?: string;
+  title?: string;
 }
 
-const VideoCard = ({ videoUrl, startTime, endTime }: VideoCardProps) => {
+const VideoCard = ({ videoUrl, startTime, endTime, title }: VideoCardProps) => {
   // حالة التشغيل المباشر — لما المستخدم يدوس "اسمع من هنا" نشغّل الصوت تلقائيًا
   const [autoPlay, setAutoPlay] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   // Extract the videoId from the YouTube URL
   const extractVideoId = (url: string | undefined): string | null => {
@@ -70,8 +72,7 @@ const VideoCard = ({ videoUrl, startTime, endTime }: VideoCardProps) => {
     setAutoPlay(true);
     setIframeLoaded(false);
     setTimeout(() => {
-      const el = document.querySelector('.video-ratio-wrapper');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      wrapperRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
   };
 
@@ -127,6 +128,7 @@ const VideoCard = ({ videoUrl, startTime, endTime }: VideoCardProps) => {
 
       {/* ✅ Video Player — Thumbnail + Lazy iframe لتجنب مشكلة الأيقونة الكسيرة على الموبايل */}
       <div
+        ref={wrapperRef}
         className="video-ratio-wrapper"
         style={{ borderRadius: '10px', overflow: 'hidden', position: 'relative', aspectRatio: '16/9', backgroundColor: '#000' }}
       >
@@ -144,7 +146,7 @@ const VideoCard = ({ videoUrl, startTime, endTime }: VideoCardProps) => {
             <iframe
               key="playing"
               src={embedUrl}
-              title="YouTube video player"
+              title={title ? `فيديو شرح: ${title}` : 'فيديو شرح الدرس'}
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -178,7 +180,7 @@ const VideoCard = ({ videoUrl, startTime, endTime }: VideoCardProps) => {
             {/* Thumbnail */}
             <img
               src={thumbnailUrl}
-              alt="video thumbnail"
+              alt={title ? `صورة فيديو شرح: ${title}` : 'صورة فيديو الشرح'}
               loading="lazy"
               decoding="async"
               style={{

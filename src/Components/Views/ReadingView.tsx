@@ -21,6 +21,7 @@ import Breadcrumb from '../Header/Breadcrumb';
 import QuoteCard from '../Content/QuoteCard';
 import ExplanationCard from '../Content/ExplanationCard';
 import VideoCard from '../Content/VideoCard';
+import AudioCard from '../Content/AudioCard';
 import NotesCard from '../Content/NotesCard';
 import MediaCard from '../Content/MediaCard';
 import ShareButton from '../UI/ShareButton';
@@ -66,10 +67,13 @@ const ReadingView = () => {
     goToPrevLesson: onPrev,
     goToNextLesson: onNext,
     lastReadLessonId,
+    stopMarks,
     toggleStopMark: onToggleStopMark,
     createHighlightFromSelection: onCreateHighlight,
     goBackToList: onBackToIndex,
     openLessonById,
+    fontSize,
+    setFontSize,
   } = useApp();
   const lesson = currentLesson;
   // AppLayout لا يعرض هذه الشاشة أصلًا بلا مسألة — حارس دفاعي بعد كل الخطافات
@@ -79,7 +83,7 @@ const ReadingView = () => {
   const isBookmarked = lesson ? bookmarks.includes(lessonId) : false;
   const canGoPrev = currentIndex > 0;
   const canGoNext = currentIndex < lessons.length - 1;
-  const isStopMarked = !!lesson && lastReadLessonId === lesson.id.toString();
+  const isStopMarked = !!lesson && (stopMarks?.[(lesson.bookName || '').trim()] === String(lesson.id) || lastReadLessonId === String(lesson.id));
   const onToggleRead = (): void => { if (lesson) toggleReadLesson(lesson.id); };
   const onToggleBookmark = (): void => { if (lesson) toggleBookmark(lessonId); };
   const onSelectLesson = (l: Lesson): void => openLessonById(l.id);
@@ -317,8 +321,38 @@ const ReadingView = () => {
             onClick={handlePrintChapter}
             title="طباعة الباب كاملاً"
           >
-            <FiPrinter size={18} /> <span className="ms-1">الباب كامل</span>
+            <FiPrinter size={18} /> <span className="ms-1 d-none d-sm-inline">الباب كامل</span>
           </button>
+
+          {/* التحكم في حجم الخط داخل القراءة — واضح للفون وكبار السن */}
+          <div
+            className="d-flex align-items-center shadow-sm"
+            role="group"
+            aria-label="حجم الخط"
+            style={{ backgroundColor: 'var(--badge-bg)', border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}
+          >
+            <button
+              className="btn btn-sm fw-bold px-2"
+              style={{ color: 'var(--text-main)' }}
+              onClick={() => setFontSize((p) => Math.max(p - 2, 14))}
+              disabled={fontSize <= 14}
+              title="تصغير الخط"
+              aria-label="تصغير الخط"
+            >
+              A−
+            </button>
+            <span className="px-1 small fw-bold" style={{ color: 'var(--text-muted)' }} aria-hidden="true">{fontSize}</span>
+            <button
+              className="btn btn-sm fw-bold px-2"
+              style={{ color: 'var(--text-main)' }}
+              onClick={() => setFontSize((p) => Math.min(p + 2, 24))}
+              disabled={fontSize >= 24}
+              title="تكبير الخط"
+              aria-label="تكبير الخط"
+            >
+              A+
+            </button>
+          </div>
 
           <button
             className={`bookmark-btn ${isBookmarked ? 'active' : ''}`}
@@ -382,10 +416,10 @@ const ReadingView = () => {
                 color: isStopMarked ? 'var(--text-on-primary)' : 'var(--text-main)',
               }}
               onClick={onToggleStopMark}
-              title="تحديد كعلامة توقف للعودة إليها لاحقاً"
+              title="علامة توقف خاصة بهذا الكتاب — لكل كتاب علامته"
             >
               <FiFlag className="ms-2" style={{ color: 'var(--accent-color)' }} />
-              {isStopMarked ? 'علامة وقوفك الحالية' : 'ضع علامة وقوف'}
+              {isStopMarked ? 'علامة وقوف هذا الكتاب' : 'ضع علامة وقوف'}
             </button>
           </div>
 
@@ -416,11 +450,13 @@ const ReadingView = () => {
             <ExplanationCard explanation={lesson.sheikhExplanation || ''} searchQuery={searchQuery} glossary={glossary} />
           )}
           
-          <MediaCard mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} />
-          <VideoCard videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} />
+          <MediaCard mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} title={lesson.title} />
+          <AudioCard key={`audio-${lessonId}`} audioUrl={lesson.audioUrl} title={lesson.title} startTime={lesson.startTime} endTime={lesson.endTime} />
+          <VideoCard videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} title={lesson.title} />
 
           {/* الميزات التفاعلية */}
-          <NotesCard 
+          <NotesCard
+            key={`notes-${lessonId}`}
             lessonId={lesson.id} 
             lessonTitle={lesson.title} 
             bookName={lesson.bookName}

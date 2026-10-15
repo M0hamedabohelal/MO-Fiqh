@@ -1,4 +1,5 @@
-import { FiBookmark, FiChevronLeft, FiCloud, FiBook } from 'react-icons/fi';
+import { useState } from 'react';
+import { FiBookmark, FiChevronLeft, FiCloud, FiBook, FiSearch } from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
 import { useAuth } from '../Auth/AuthContext';
 import { useApp } from '../Layout/AppContext';
@@ -14,9 +15,14 @@ const BookmarksView = () => {
     onOpenLogin,
   } = useApp();
   const onBrowse = (): void => setCurrentView('books');
+  const [query, setQuery] = useState('');
   // المطابقة كنصوص دائمًا — المعرفات قد تأتي أرقامًا من مصدر ونصوصًا من آخر
   const bookmarkSet = new Set((bookmarks || []).map(String));
   const bookmarkedLessons = lessons.filter((l) => bookmarkSet.has(String(l.id)));
+  const q = query.trim();
+  const visibleLessons = q
+    ? bookmarkedLessons.filter((l) => `${l.title} ${l.bookName} ${l.chapterName}`.includes(q))
+    : bookmarkedLessons;
 
   return (
     <div className="mt-4 mb-5">
@@ -51,7 +57,25 @@ const BookmarksView = () => {
         </EmptyState>
       ) : (
         <div className="d-flex flex-column gap-3">
-          {bookmarkedLessons.map((lesson) => (
+          {bookmarkedLessons.length > 3 && (
+            <div className="position-relative">
+              <FiSearch className="position-absolute top-50 translate-middle-y" size={16} style={{ right: '12px', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                className="form-control"
+                placeholder="ابحث في مفضلتك..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                style={{ paddingRight: '36px', borderRadius: '10px' }}
+                aria-label="البحث في المفضلة"
+              />
+            </div>
+          )}
+          {visibleLessons.length === 0 ? (
+            <div className="text-center text-muted py-4">
+              لا نتائج مطابقة لـ "{q}" — <button className="btn btn-link btn-sm" onClick={() => setQuery('')}>مسح البحث</button>
+            </div>
+          ) : visibleLessons.map((lesson) => (
             <button
               key={lesson.id}
               className="btn w-100 text-end p-4 shadow-sm d-flex justify-content-between align-items-center list-btn mb-3"

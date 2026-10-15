@@ -1,4 +1,4 @@
-import { FiBook, FiList, FiChevronLeft, FiHelpCircle } from 'react-icons/fi';
+import { FiBook, FiList, FiChevronLeft } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import EmptyState from '../UI/EmptyState';
@@ -38,13 +38,8 @@ const ChaptersView = () => {
     toggleChapter: onToggleChapter,
     openLessonById,
     newLessonIds,
-    openQuiz,
   } = useApp();
   const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
-  const onStartQuiz = (chapterName: string, issues: LessonIssue[]): void => {
-    if (!bookName) return;
-    openQuiz({ bookName, chapterName, lessons: issues });
-  };
   return (
   <div className="mt-4">
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
@@ -97,18 +92,6 @@ const ChaptersView = () => {
                     transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
                     className="px-3 pb-3 overflow-hidden"
                   >
-                    {issues.length > 0 && (
-                      <div className="d-flex justify-content-start mb-3">
-                        <button
-                          className="btn btn-sm d-flex align-items-center shadow-sm"
-                          style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
-                          onClick={() => onStartQuiz(chapterName, issues)}
-                          title="اختبر نفسك في مسائل هذا الباب"
-                        >
-                          <FiHelpCircle className="ms-1" size={16} /> اختبر نفسك
-                        </button>
-                      </div>
-                    )}
                     {issues.map((lesson) => (
                       <LessonListItem
                         key={lesson.id}

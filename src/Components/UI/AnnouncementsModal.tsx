@@ -1,5 +1,7 @@
+import { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiBell, FiX, FiClock } from 'react-icons/fi';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import type { AnnouncementItem } from '../../types';
 
 interface AnnouncementsModalProps {
@@ -8,6 +10,9 @@ interface AnnouncementsModalProps {
 }
 
 const AnnouncementsModal = ({ announcements, onClose }: AnnouncementsModalProps) => {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  // ملاحظة: onClose مُعلن كـ void في الواجهة — يُستدعى كدالة فعليًا من كل الاستدعاءات
+  useFocusTrap(dialogRef, true, onClose as unknown as () => void);
   return (
     <AnimatePresence>
       <motion.div
@@ -19,6 +24,11 @@ const AnnouncementsModal = ({ announcements, onClose }: AnnouncementsModalProps)
         onClick={onClose}
       >
         <motion.div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="الإشعارات والتنبيهات"
+          tabIndex={-1}
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 50, opacity: 0 }}

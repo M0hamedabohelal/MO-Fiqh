@@ -197,6 +197,7 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
             onClick={handleCopy}
             className="btn btn-sm d-flex align-items-center justify-content-center"
             title="نسخ النص"
+            aria-label="نسخ شرح الشيخ"
             style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)' }}
           >
             {copied ? <FiCheck color="green" size={20} /> : <FiCopy size={20} />}

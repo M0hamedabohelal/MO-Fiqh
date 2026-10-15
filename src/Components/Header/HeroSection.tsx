@@ -38,16 +38,23 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpen
     return () => clearTimeout(timer);
   }, []);
 
-  // Auto-slide with fade transition
+  // Auto-slide with fade transition — يُحترم تفضيل تقليل الحركة، ويُمسح المؤقت الداخلي عند التنظيف
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    let inner: ReturnType<typeof setTimeout> | undefined;
     const interval = setInterval(() => {
       setSlideVisible(false);
-      setTimeout(() => {
+      inner = setTimeout(() => {
         setCurrentSlide((prev) => (prev + 1) % slides.length);
         setSlideVisible(true);
       }, 600); // slightly longer for the new elegant transition
     }, 6000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (inner) clearTimeout(inner);
+    };
   }, []);
 
   const goToSlide = (index: number) => {

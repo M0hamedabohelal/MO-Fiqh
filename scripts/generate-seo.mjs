@@ -1,7 +1,7 @@
 // سكربت بريرندرينج — يولّد صفحات HTML ثابتة (SEO) لكل كتاب ومسألة
 // بمحتوى كامل + ميتا + JSON-LD في مسارات نظيفة، تُنسَخ تلقائيًا مع البناء.
 // الاستخدام: node scripts/generate-seo.mjs  (يُشغَّل تلقائيًا قبل vite build)
-import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,8 +10,95 @@ const root = join(__dirname, '..');
 const PUBLIC = join(root, 'public');
 const BASE = 'https://www.fqh.me';
 
-// ── البيانات ──
-const { lessonsData } = await import('../src/data/lessons.ts');
+// ── البيانات: السحابة الحية أولًا، ثم أحدث نسخة احتياطية، ثم المحلية ──
+// بهذا تعكس صفحات SEO تعديلات لوحة الإدارة لحظة البناء بدل التأخر بعمر النسخة.
+function loadEnvLocal() {
+  try {
+    const env = {};
+    for (const line of readFileSync(join(root, '.env.local'), 'utf8').split('\n')) {
+      const t = line.trim();
+      if (!t || t.startsWith('#')) continue;
+      const i = t.indexOf('=');
+      if (i === -1) continue;
+      env[t.slice(0, i).trim()] = t.slice(i + 1).trim();
+    }
+    return env;
+  } catch {
+    return {};
+  }
+}
+
+// تحقق شكلي: مصفوفة غير فارغة وكل عنصر له id وعنوان — نسخة فاسدة تُرفض للاحتياطي التالي
+function validLessons(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return null;
+  const clean = arr.filter((l) => l && l.id != null && String(l.title || '').trim());
+  if (clean.length === 0) return null;
+  if (clean.length < arr.length) {
+    console.warn(`⚠️ SEO: تجاهل ${arr.length - clean.length} عناصر فاسدة بلا id/عنوان.`);
+  }
+  return clean.map(({ _docId, ...rest }) => rest);
+}
+
+async function loadLiveLessons() {
+  try {
+    const env = loadEnvLocal();
+    if (!env.VITE_FIREBASE_API_KEY || !env.VITE_FIREBASE_PROJECT_ID || !env.VITE_FIREBASE_APP_ID) {
+      return null; // بلا مفاتيح — للاحتياطي التالي
+    }
+    const { initializeApp } = await import('firebase/app');
+    const { getFirestore, collection, getDocs } = await import('firebase/firestore');
+    const app = initializeApp({
+      apiKey: env.VITE_FIREBASE_API_KEY,
+      authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId: env.VITE_FIREBASE_PROJECT_ID,
+      storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+      appId: env.VITE_FIREBASE_APP_ID,
+    });
+    const snap = await getDocs(collection(getFirestore(app), 'lessons'));
+    // القراءة العامة مسموحة للجميع (firestore.rules) — لا حاجة لمصادقة
+    const lessons = validLessons(snap.docs.map((d) => ({ _docId: d.id, ...d.data() })));
+    if (lessons) console.log(`🌐 SEO: استخدام السحابة الحية (${lessons.length} مسألة)`);
+    return lessons;
+  } catch (e) {
+    console.warn('⚠️ SEO: تعذّر القراءة الحية — للاحتياطي التالي:', e?.message);
+    return null;
+  }
+}
+
+function loadBackupLessons() {
+  try {
+    const backupsDir = join(root, 'backups');
+    if (!existsSync(backupsDir)) return null;
+    const files = readdirSync(backupsDir)
+      .filter((f) => f.startsWith('firestore-backup-') && f.endsWith('.json'))
+      .map((f) => {
+        // الأحدث باسم الطابع الزمني أولًا (مستقر ضد عبث أوقات الملفات)، ثم mtime
+        const m = f.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})/);
+        const stamp = m ? `${m[1]}${m[2]}${m[3]}${m[4]}${m[5]}` : '';
+        return { f, stamp, mtime: statSync(join(backupsDir, f)).mtimeMs };
+      })
+      .sort((a, b) => (b.stamp.localeCompare(a.stamp)) || (b.mtime - a.mtime));
+    for (const { f } of files) {
+      const payload = JSON.parse(readFileSync(join(backupsDir, f), 'utf8'));
+      const lessons = validLessons(payload?.collections?.lessons);
+      if (lessons) {
+        console.log(`📦 SEO: استخدام ${f} (${lessons.length} مسألة من نسخة احتياطية)`);
+        return lessons;
+      }
+      console.warn(`⚠️ SEO: نسخة ${f} فاسدة — تجاوزها للتالية.`);
+    }
+  } catch (e) {
+    console.warn('⚠️ SEO: تعذّر قراءة backups:', e?.message);
+  }
+  return null;
+}
+
+const liveLessons = await loadLiveLessons();
+const backupLessons = liveLessons ? null : loadBackupLessons();
+const { lessonsData: localLessons } = await import('../src/data/lessons.ts');
+const lessonsData = liveLessons ?? backupLessons ?? localLessons;
+if (!liveLessons && !backupLessons) console.log('📄 SEO: استخدام البيانات المحلية.');
 const { BOOKS_LIST } = await import('../src/data/books.ts');
 
 // مساعدة: اسم آمن للمجلد (ترميز عربي URL-صديق)
@@ -33,6 +120,19 @@ const bookNames = Object.keys(byBook).sort(
 // مقتطف النص للوصف
 const snippet = (t, n = 150) =>
   (t || '').replace(/\s+/g, ' ').trim().replace(/[\u064B-\u0652\u0670\u0640]/g, '').slice(0, n);
+
+// توقيت "hh:mm:ss" → ثوانٍ لجزء #t= (يبدأ الصوت/الفيديو من موضع المسألة حتى في الصفحة الثابتة)
+const toSeconds = (t) => {
+  if (!t) return 0;
+  const s = String(t).trim();
+  if (!s) return 0;
+  if (!s.includes(':')) { const n = parseInt(s, 10); return Number.isFinite(n) && n >= 0 ? n : 0; }
+  const p = s.split(':').map(Number);
+  if (p.some((n) => !Number.isFinite(n) || n < 0)) return 0;
+  if (p.length === 2) return p[0] * 60 + p[1];
+  if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+  return 0;
+};
 
 function escapeHtml(s) {
   return String(s ?? '')
@@ -152,6 +252,7 @@ function lessonPage(l) {
     head(`${l.title} — ${bookName} — الباحث الفقهي`, desc, url, jsonld) +
     `<div class="breadcrumb"><a href="/">الرئيسية</a> › <a href="/books/${enc(bookName)}/">${escapeHtml(bookName)}</a> › ${escapeHtml(l.title)}</div>
 <pre>${mainText}</pre>
+${l.audioUrl ? (() => { const s = toSeconds(l.startTime); const e = toSeconds(l.endTime); const frag = s > 0 ? `#t=${s}${e > s ? `,${e}` : ''}` : ''; return `<div class="exp"><h3>🎧 استمع للدرس</h3><audio controls preload="none" src="${escapeHtml(l.audioUrl)}${frag}" style="width:100%"></audio><br><a href="${escapeHtml(l.audioUrl)}${frag}" rel="noopener">تحميل الصوت (MP3)</a></div>`; })() : ''}
 ${l.sheikhExplanation ? `<div class="exp"><h3>📖 تعليق الشيخ</h3><pre>${escapeHtml(l.sheikhExplanation)}</pre></div>` : ''}` +
     foot(`/#/lesson/${l.id}`)
   );

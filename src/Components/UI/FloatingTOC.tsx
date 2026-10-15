@@ -22,8 +22,18 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
       if (btnRef.current && btnRef.current.contains(e.target as Node)) return;
       setIsOpen(false);
     };
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        btnRef.current?.focus();
+      }
+    };
     document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onEscape);
+    };
   }, [isOpen]);
 
   const bookName = currentLesson?.bookName;
@@ -57,7 +67,8 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
         onClick={() => setIsOpen(!isOpen)}
         className="btn shadow-lg d-flex align-items-center justify-content-center floating-toc-btn"
         title="شجرة الفقه"
-        aria-label="فتح شجرة الفقه"
+        aria-label={isOpen ? 'إغلاق شجرة الفقه' : 'فتح شجرة الفقه'}
+        aria-expanded={isOpen}
         style={{
           position: 'fixed',
           left: '20px',
@@ -79,6 +90,8 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
         {isOpen && (
           <motion.div
             ref={panelRef}
+            role="dialog"
+            aria-label="شجرة الفقه — التنقل بين مسائل الكتاب"
             initial={{ opacity: 0, x: -50, scale: 0.9 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -50, scale: 0.9 }}

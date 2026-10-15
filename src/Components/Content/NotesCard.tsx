@@ -18,6 +18,7 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
 
   // إعادة ضبط النص عند تغيير المسألة أو وصول القيمة المحدثة من السحابة
   // المطابقة كنصوص — اختلاف النوع (رقم/نص) بين التحديثات كان يمسح مسودة المستخدم خطأً
+  // ضبط مشتق أثناء الريندر (النمط الموصى به من React لهذه الحالة) — مع key من الأب لكل مسألة
   if (String(prevSnapshot.lessonId) !== String(lessonId) || prevSnapshot.note !== (note || '')) {
     setPrevSnapshot({ lessonId, note: note || '' });
     setText(note || '');
@@ -130,6 +131,7 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
         className="form-control mb-3 p-3" 
         rows={4} 
         placeholder="اكتب فوائدك وملاحظاتك حول هذه المسألة هنا لتحتفظ بها..."
+        aria-label="ملاحظاتك حول هذه المسألة"
         value={text}
         onChange={(e) => setText(e.target.value)}
         style={{ 

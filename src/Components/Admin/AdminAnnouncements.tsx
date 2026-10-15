@@ -9,6 +9,8 @@ export default function AdminAnnouncements() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
+  // تأكيد حذف بخطوتين داخل الواجهة (بدل نافذة المتصفح المحجوبة التي تُربك الفون)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const load = async (): Promise<void> => {
     try {
@@ -37,7 +39,13 @@ export default function AdminAnnouncements() {
   };
 
   const handleDelete = async (id: string): Promise<void> => {
-    if (!window.confirm('حذف هذا الإشعار؟')) return;
+    // الخطوة الأولى تُسلّح الزر فقط — التنفيذ عند الضغطة الثانية
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      setTimeout(() => setConfirmDeleteId((cur) => (cur === id ? null : cur)), 4000);
+      return;
+    }
+    setConfirmDeleteId(null);
     setLoading(true);
     try {
       await deleteAnnouncement(id);
@@ -71,7 +79,15 @@ export default function AdminAnnouncements() {
               <p className='mb-1 small text-muted'>{ann.body}</p>
               <small style={{ fontSize: '0.7rem' }}>{new Date(ann.createdAt).toLocaleString('ar-EG')}</small>
             </div>
-            <button className='btn btn-outline-danger btn-sm rounded-circle p-2' onClick={() => handleDelete(ann.id)} disabled={loading} aria-label='حذف الإشعار'><FiTrash2/></button>
+            <button
+              className={`btn btn-sm d-flex align-items-center gap-1 ${confirmDeleteId === ann.id ? 'btn-danger' : 'btn-outline-danger rounded-circle p-2'}`}
+              onClick={() => handleDelete(ann.id)}
+              disabled={loading}
+              aria-label={confirmDeleteId === ann.id ? 'اضغط مجددًا لتأكيد حذف الإشعار' : 'حذف الإشعار'}
+              title={confirmDeleteId === ann.id ? 'اضغط مجددًا للتأكيد' : 'حذف الإشعار'}
+            >
+              <FiTrash2 />{confirmDeleteId === ann.id ? ' تأكيد؟' : ''}
+            </button>
           </div>
         ))}
       </div>

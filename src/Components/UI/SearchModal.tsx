@@ -1,9 +1,26 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ReactNode, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { FiSearch, FiX, FiFileText, FiFilter, FiList } from 'react-icons/fi';
 import Fuse from 'fuse.js';
 import type { FuseSearchOptions } from 'fuse.js';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { safeGet, safeSet, safeParse } from '../../utils/safeStorage';
 import type { Lesson } from '../../types';
+
+const RECENT_KEY = 'recent_searches';
+const MAX_RECENT = 8;
+
+function readRecent(): string[] {
+  return safeParse<string[]>(safeGet(RECENT_KEY), []).filter((s) => typeof s === 'string' && s.trim()).slice(0, MAX_RECENT);
+}
+
+function pushRecent(term: string): string[] {
+  const t = term.trim();
+  if (t.length < 2) return readRecent();
+  const next = [t, ...readRecent().filter((s) => s !== t)].slice(0, MAX_RECENT);
+  safeSet(RECENT_KEY, JSON.stringify(next));
+  return next;
+}
 
 interface SearchDoc extends Lesson {
   nTitle: string;
@@ -94,6 +111,8 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
   // فلاتر النتائج — حصر النتائج في كتاب معين ثم باب معين
   const [filterBook, setFilterBook] = useState('');
   const [filterChapter, setFilterChapter] = useState('');
+  // سجل البحث المحلي (خصوصية: على الجهاز فقط)
+  const [recent, setRecent] = useState<string[]>(() => readRecent());
 
   // نسخة للبحث تحمل حقولاً مُطبعَة عربيًا (تُستخدم للمطابقة فقط، والعرض من الحقول الأصلية)
   const searchDocs: SearchDoc[] = useMemo(
@@ -159,8 +178,18 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
       setActiveIndex(0);
       setFilterBook('');
       setFilterChapter('');
+      setRecent(readRecent());
     }
   }, [isOpen]);
+
+  // اقتراحات سريعة: كتب/أبواب تطابق بداية الاستعلام (قبل اكتمال البحث)
+  const suggestions = useMemo(() => {
+    const t = debouncedQuery.trim();
+    if (t.length < 2) return [] as string[];
+    const books = [...new Set(data.map((d) => (d.bookName || '').trim()).filter(Boolean))];
+    const chapters = [...new Set(data.map((d) => (d.chapterName || '').trim()).filter(Boolean))];
+    return [...books, ...chapters].filter((s) => s.includes(t) && s !== t).slice(0, 5);
+  }, [debouncedQuery, data]);
 
   // الكتب والأبواب الموجودة فعليًا في النتائج الحالية
   const availableBooks = useMemo(
@@ -195,6 +224,7 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
   const safeActiveIndex = Math.min(activeIndex, Math.max(visibleResults.length - 1, 0));
 
   const handleSelectLesson = (lesson: Lesson): void => {
+    setRecent(pushRecent(debouncedQuery));
     onSelect(lesson, debouncedQuery);
     setQuery('');
     setActiveIndex(0);
@@ -224,15 +254,9 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
     }
   };
 
-  // إغلاق النافذة إذا ضغطت Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const onEscape = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onEscape);
-    return () => window.removeEventListener('keydown', onEscape);
-  }, [isOpen, onClose]);
+  // إغلاق النافذة إذا ضغطت Escape + حبس التركيز داخلها (a11y)
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -245,6 +269,11 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
 
       {/* جسم النافذة */}
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="البحث في المسائل"
+        tabIndex={-1}
         className="custom-card w-100 p-4"
         style={{ maxWidth: '600px', zIndex: 'var(--z-modal-inner)' }}
         onClick={(e) => e.stopPropagation()}
@@ -327,7 +356,45 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
 
         {/* عرض النتائج */}
         <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-          {debouncedQuery && searchResults.length === 0 && (
+          {debouncedQuery.trim() === '' && recent.length > 0 && (
+            <div className="mb-2">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <small className="text-muted fw-bold">عمليات بحث سابقة (على جهازك فقط)</small>
+                <button
+                  type="button"
+                  className="btn btn-link btn-sm text-muted p-0"
+                  onClick={() => { safeSet(RECENT_KEY, '[]'); setRecent([]); }}
+                >
+                  مسح السجل
+                </button>
+              </div>
+              <div className="d-flex gap-2 flex-wrap">
+                {recent.map((term) => (
+                  <button key={term} type="button" className="chip-btn" onClick={() => setQuery(term)}>
+                    🕘 {term}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {debouncedQuery.trim() === '' && recent.length === 0 && (
+            <div className="text-center text-muted p-4 small">
+              اكتب كلمة للبحث في عناوين المسائل ونصوصها — مثال: "الطهارة"، "الصلاة"، "الزكاة".
+            </div>
+          )}
+          {suggestions.length > 0 && searchResults.length === 0 && (
+            <div className="mb-2">
+              <small className="text-muted fw-bold d-block mb-2">اقتراحات:</small>
+              <div className="d-flex gap-2 flex-wrap">
+                {suggestions.map((s) => (
+                  <button key={s} type="button" className="chip-btn" onClick={() => setQuery(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {debouncedQuery && searchResults.length === 0 && suggestions.length === 0 && (
             <div className="text-center text-muted p-4">لا توجد نتائج مطابقة لبحثك.</div>
           )}
           

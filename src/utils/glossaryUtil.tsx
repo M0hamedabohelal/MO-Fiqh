@@ -91,10 +91,22 @@ export function createGlossaryRenderer(
           <span
             key={`${baseKey}-g-${k}`}
             className="glossary-term"
+            role="button"
+            tabIndex={0}
+            aria-label={`تعريف مصطلح: ${best.term}`}
             onMouseEnter={(e) => onHover(e, best.term)}
             onClick={(e) => onClick(e, best.term)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                // لوحة المفاتيح بلا إحداثيات مؤشر — نمركز نافذة التعريف تحت المصطلح نفسه
+                const rect = (e.currentTarget as unknown as HTMLElement).getBoundingClientRect();
+                onClick({ clientX: rect.left + rect.width / 2, clientY: rect.bottom + 8 } as unknown as MouseEvent, best.term);
+              }
+            }}
             onMouseMove={onMove ? (e) => onMove(e) : undefined}
             onMouseLeave={onLeave}
+            onBlur={onLeave}
           >
             {plainText.slice(origStart, origEnd)}
           </span>,

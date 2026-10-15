@@ -13,9 +13,10 @@ interface MobileBottomNavProps {
 // شريط التنقل السفلي للموبايل + زر بحث عائم (يظهر على الشاشات الصغيرة فقط)
 const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLogin, onOpenSearch }: MobileBottomNavProps) => (
   <>
-  <div className="mobile-bottom-nav">
+  <nav aria-label="التنقل الرئيسي" className="mobile-bottom-nav">
     <button
       className={`nav-item ${currentView === 'hero' ? 'active' : ''}`}
+      aria-current={currentView === 'hero' ? 'page' : undefined}
       onClick={() => onNavigate('hero')}
     >
       <FiHome size={20} />
@@ -23,6 +24,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
     </button>
     <button
       className={`nav-item ${['books', 'chapters', 'lessons', 'reading'].includes(currentView) ? 'active' : ''}`}
+      aria-current={['books', 'chapters', 'lessons', 'reading'].includes(currentView) ? 'page' : undefined}
       onClick={() => onNavigate('books')}
     >
       <FiBook size={20} />
@@ -30,6 +32,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
     </button>
     <button
       className={`nav-item ${currentView === 'bookmarks' ? 'active' : ''}`}
+      aria-current={currentView === 'bookmarks' ? 'page' : undefined}
       onClick={() => onNavigate('bookmarks')}
     >
       <FiBookmark size={20} />
@@ -37,6 +40,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
     </button>
     <button
       className={`nav-item ${currentView === 'highlights' ? 'active' : ''}`}
+      aria-current={currentView === 'highlights' ? 'page' : undefined}
       onClick={() => onNavigate('highlights')}
     >
       <FiEdit3 size={20} />
@@ -45,6 +49,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
     {isAdminUser && (
       <button
         className={`nav-item ${currentView === 'admin' ? 'active' : ''}`}
+        aria-current={currentView === 'admin' ? 'page' : undefined}
         onClick={() => onNavigate('admin')}
       >
         <FiShield size={20} />
@@ -53,6 +58,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
     )}
     <button
       className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
+      aria-current={currentView === 'settings' ? 'page' : undefined}
       onClick={() => onNavigate('settings')}
     >
       <FiList size={20} />
@@ -65,7 +71,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
       <FiUser size={20} />
       <span>{user ? (user.displayName || 'حسابي') : 'دخول'}</span>
     </button>
-  </div>
+  </nav>
 
   {/* زر البحث العائم — للفون فقط (مخفي على الشاشات الكبيرة) */}
   <button

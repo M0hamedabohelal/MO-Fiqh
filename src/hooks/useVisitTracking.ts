@@ -25,18 +25,29 @@ export function useVisitTracking(user: { uid: string } | null, authLoading: bool
     }
     if (!user || authLoading) return;
     // دمج أيام الأجهزة الأخرى من السحابة حتى لا تصفر السلسلة بتغيير الجهاز
+    const uid = user.uid;
+    let cancelled = false;
     (async () => {
       try {
         const { fetchUserData, syncVisitDays } = await import('../firebase/services');
-        const cloud = await fetchUserData(user.uid);
+        const cloud = await fetchUserData(uid);
+        if (cancelled) return;
         const merged = Array.from(new Set([...(cloud.visits || []), ...readLocal()]))
           .sort()
           .slice(-MAX_DAYS);
         saveLocal(merged);
-        await syncVisitDays(user.uid, merged);
-      } catch {
-        // تجاهل الأخطاء المؤقتة — النسخة المحلية كافية
+        await syncVisitDays(uid, merged);
+      } catch (err) {
+        // النسخة المحلية كافية للعرض — نسجّل الخطأ للمراقبة فقط
+        try {
+          const { logError } = await import('../utils/logError');
+          logError('visits.sync', err);
+        } catch { /* تجاهل */ }
       }
     })();
+    // إلغاء الدمج المتأخر عند تبديل المستخدم — حتى لا تلوّث أيام حساب قديم بيانات الجديد
+    return () => {
+      cancelled = true;
+    };
   }, [user, authLoading]);
 }

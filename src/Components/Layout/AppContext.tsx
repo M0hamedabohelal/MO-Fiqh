@@ -8,7 +8,6 @@ import type {
   GlossaryMap,
   HighlightItem,
 } from '../../types';
-import type { QuizTarget } from '../UI/QuizModal';
 
 // قيمة سياق التطبيق — نفس شكل layoutProps سابقًا (مصدر واحد للحقيقة بدل ~40 prop متناثرة)
 export interface AppContextValue {
@@ -39,10 +38,11 @@ export interface AppContextValue {
   selectedBookChapters: ChapterGroup[];
   openChapterName: string | null;
   lastReadLessonId: string | null;
+  stopMarks: Record<string, string>;
+  setStopMarks: Dispatch<SetStateAction<Record<string, string>>>;
   setCurrentView: (view: string) => void;
   openBookChapters: (bookName: string) => void;
   toggleChapter: (chapterName: string) => void;
-  openQuiz: (target: QuizTarget) => void;
   openMindMap: () => void;
   openLessonById: (lessonId: string | number) => void;
   goToNextLesson: () => void;
@@ -54,6 +54,12 @@ export interface AppContextValue {
   deleteHighlight: (highlightId: string | number) => void;
   createHighlightFromSelection: (text: string) => void;
   toggleStopMark: () => void;
+  restoreLibrary: (data: {
+    bookmarks?: string[];
+    notes?: Record<string, string>;
+    readLessons?: string[];
+    highlights?: HighlightItem[];
+  }) => void;
   onOpenSearch: () => void;
   onOpenLogin: () => void;
   reloadFromCloud: () => Promise<void>;

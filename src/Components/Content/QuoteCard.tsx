@@ -155,8 +155,8 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
   };
 
   const parseCrossLinks = (plainText: string, baseKey: string): ReactNode => {
-    // نبحث عن نمط: [نص](lesson:123)
-    const regex = /\[([^\]]+)\]\(lesson:(\d+)\)/g;
+    // نبحث عن نمط: [نص](lesson:123) — نفس صيغة textFormatting (تدعم المعرفات النصية أيضًا)
+    const regex = /\[([^\]]+)\]\(lesson:([\w-]+)\)/g;
     const parts: CrossLinkPart[] = [];
     let lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -235,10 +235,21 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
           <span
             key={`${baseKey}-g-${k}`}
             className="glossary-term"
+            role="button"
+            tabIndex={0}
+            aria-label={`تعريف مصطلح: ${matched.term}`}
             onMouseEnter={(e) => handleTermHover(e, matched.term)}
             onClick={(e) => handleTermClick(e, matched.term)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                handleTermClick({ clientX: rect.left + rect.width / 2, clientY: rect.bottom + 8 } as unknown as MouseEvent, matched.term);
+              }
+            }}
             onMouseMove={(e) => handleTermMove(e)}
             onMouseLeave={handleTermLeave}
+            onBlur={handleTermLeave}
           >
             {plainText.slice(origStart, origEnd)}
           </span>
@@ -354,6 +365,7 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
             onClick={handleCopy}
             className={`btn btn-sm d-flex align-items-center justify-content-center ${styles.copyButton}`}
             title="نسخ النص"
+            aria-label="نسخ نص المسألة"
           >
             {copied ? <FiCheck color="green" size={20} /> : <FiCopy size={20} />}
           </button>

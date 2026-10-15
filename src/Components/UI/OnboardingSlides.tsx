@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiArrowLeft, FiArrowRight } from 'react-icons/fi';
-import { safeSet } from '../../utils/safeStorage';
+import { safeGet, safeSet } from '../../utils/safeStorage';
 
 const SLIDES = [
   {
@@ -146,15 +146,28 @@ const OnboardingSlides = ({ onDone }: OnboardingSlidesProps) => {
             <button
               key={i}
               onClick={() => { setDirection(i > index ? 1 : -1); setIndex(i); }}
+              aria-label={`الشريحة ${i + 1} من ${SLIDES.length}`}
+              aria-current={i === index ? 'true' : undefined}
               style={{
                 width: i === index ? '24px' : '8px',
                 height: '8px',
-                borderRadius: '4px',
-                background: i === index ? slide.color : 'var(--border-color)',
+                padding: '10px 0',
+                background: 'transparent',
                 border: 'none', cursor: 'pointer',
-                transition: 'all 0.3s ease',
               }}
-            />
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: 'block',
+                  width: i === index ? '24px' : '8px',
+                  height: '8px',
+                  borderRadius: '4px',
+                  background: i === index ? slide.color : 'var(--border-color)',
+                  transition: 'all 0.3s ease',
+                }}
+              />
+            </button>
           ))}
         </div>
 
@@ -204,7 +217,8 @@ const OnboardingSlides = ({ onDone }: OnboardingSlidesProps) => {
 // يُصدَّر hook لتحديد ما إذا يجب عرض الـ onboarding
 // eslint-disable-next-line react-refresh/only-export-components -- دالة مساعدة مشتركة صغيرة
 export function shouldShowOnboarding() {
-  return !localStorage.getItem(STORAGE_KEY);
+  // التخزين المحظور يُعامل كـ "تم العرض" — أفضل من كسر الريندر
+  return !safeGet(STORAGE_KEY);
 }
 
 export default OnboardingSlides;

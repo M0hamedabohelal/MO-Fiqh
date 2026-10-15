@@ -14,6 +14,8 @@ export interface Lesson {
   videoUrl?: string;
   startTime?: string;
   endTime?: string;
+  // صوت الدرس المستضاف (MP3 بجودة عالية على Cloudinary) — اختياري، يُشغَّل بسرعات + أوفلاين
+  audioUrl?: string;
   mediaUrl?: string;
   mediaType?: string;
   adminNote?: string;
@@ -69,6 +71,8 @@ export interface UserLibraryData {
   notes: Record<string, string>;
   readLessons: string[];
   visits: string[];
+  // علامات التوقف لكل كتاب { bookName: lessonId } — تُزامن سحابيًا لتظهر على كل الأجهزة
+  stopMarks: Record<string, string>;
 }
 
 export interface AnnouncementItem {
