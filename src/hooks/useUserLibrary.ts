@@ -297,6 +297,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
   }, [bookmarks, highlights, notes, readLessons, stopMarks, user, isDataLoaded]);
 
   // المزامنة مع السحابة دفعة واحدة بعد هدوء التغييرات (تجنّب كتابة لكل ضغطة متتالية)
+  // مهلة قصيرة (250ms) تكفي لدمج النقرات المزدوجة مع استجابة أسرع.
   // دمج عند الكتابة: تُقرأ النسخة الأحدث وتُدمج قبل الرفع فلا تمحو تعديلات جهاز آخر.
   // تطابق الحالة مع آخر كتابة ناجحة = لا جديد (يمنع الرفع الصدى بعد استبدال قادم من مستمع).
   // diff-first: مفاتيح اختفت منذ آخر كتابة = حذف عمدًا (شاهد)، ومفاتيح عادت = إلغاء الشاهد.
@@ -350,7 +351,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
           logError('userLibrary.sync', e, { section: 'merge' });
           onStatus?.('offline');
         });
-    }, 600);
+    }, 250);
     return () => {
       if (syncTimer.current) clearTimeout(syncTimer.current);
     };
