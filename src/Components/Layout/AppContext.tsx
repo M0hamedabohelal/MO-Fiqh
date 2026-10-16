@@ -22,6 +22,7 @@ export interface AppContextValue {
   fontSize: number;
   setFontSize: Dispatch<SetStateAction<number>>;
   cloudStatus: string;
+  cloudLessonsLoaded: boolean;
   canInstall: boolean;
   isInstalled: boolean;
   promptInstall: () => void;

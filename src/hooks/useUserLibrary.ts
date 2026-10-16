@@ -336,15 +336,23 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       persistTombs(uid);
     }
     const tombs = tombRef.current;
+    // base للدمج الثلاثي: آخر حالة مكتوبة بنجاح (غيابها = أول رفع: كل المحلي جديد)
+    const base = lastWrittenRef.current ?? { bookmarks: [], highlights: [], notes: {}, readLessons: [], stopMarks: {} };
     if (syncTimer.current) clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(() => {
       onStatus?.('syncing');
-      mergeAndSyncLibrary(uid, snapshot, tombs)
+      mergeAndSyncLibrary(uid, snapshot, base, tombs)
         .then(({ data, tombs }) => {
           tombRef.current = tombs;
           persistTombs(uid);
           lastWrittenRef.current = data;
           dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false };
+          // محاذاة: الدمج الثلاثي قد يغلّب السحابة (الأحدث) على قيمة محلية قديمة —
+          // نعكس النتيجة على الحالة حتى لا يعرض الجهاز قيمة تجاوزها الدمج
+          // (الحارس يمنع الصدى: الحالة المطابقة لآخر كتابة لا تُعاد كتابتها)
+          if (!mapEqual(snapshot.stopMarks, data.stopMarks)) {
+            setStopMarks(data.stopMarks);
+          }
           onStatus?.('synced');
         })
         .catch((e) => {

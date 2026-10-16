@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeLibraries, emptyTombs, mergeTombs, applyTombsToMerged, pruneTombs } from './mergeLibrary';
+import { mergeLibraries, emptyTombs, mergeTombs, applyTombsToMerged, pruneTombs, threeWayMergeMaps } from './mergeLibrary';
 
 describe('mergeLibraries', () => {
   it('يوحّد المعرفات رقم/نص ويزيل التكرار', () => {
@@ -37,6 +37,36 @@ describe('mergeLibraries', () => {
       { stopMarks: { 'الطهارة': '11', 'الزكاة': '30' } },
     );
     expect(merged.stopMarks).toEqual({ 'الطهارة': '10', 'الصلاة': '20', 'الزكاة': '30' });
+  });
+});
+
+describe('threeWayMergeMaps', () => {
+  it('بلا تغييرات: تُحفظ القيم', () => {
+    expect(threeWayMergeMaps({ 'أ': '1' }, { 'أ': '1' }, { 'أ': '1' })).toEqual({ 'أ': '1' });
+  });
+
+  it('تغيير محلي فقط: المحلية تفوز', () => {
+    expect(threeWayMergeMaps({ 'أ': '1' }, { 'أ': '2' }, { 'أ': '1' })).toEqual({ 'أ': '2' });
+  });
+
+  it('تغيير سحابي فقط (جهاز قديم يزامن): السحابة تفوز ولا تُمحى', () => {
+    expect(threeWayMergeMaps({ 'أ': '1' }, { 'أ': '1' }, { 'أ': '2' })).toEqual({ 'أ': '2' });
+  });
+
+  it('تعارض حقيقي (الجهتان غيّرتا): المحلية تفوز حتميًا', () => {
+    expect(threeWayMergeMaps({ 'أ': '1' }, { 'أ': '2' }, { 'أ': '3' })).toEqual({ 'أ': '2' });
+  });
+
+  it('حذف محلي مع ثبات السحابة: يُحذف', () => {
+    expect(threeWayMergeMaps({ 'أ': '1' }, {}, { 'أ': '1' })).toEqual({});
+  });
+
+  it('حذف سحابي مع ثبات المحلية: يُحذف', () => {
+    expect(threeWayMergeMaps({ 'أ': '1' }, { 'أ': '1' }, {})).toEqual({});
+  });
+
+  it('مفتاح جديد من أي جهة يُقبل', () => {
+    expect(threeWayMergeMaps({}, { 'أ': '1' }, { 'ب': '2' })).toEqual({ 'أ': '1', 'ب': '2' });
   });
 });
 

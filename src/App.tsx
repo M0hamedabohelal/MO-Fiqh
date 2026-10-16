@@ -37,7 +37,7 @@ function App() {
   const { canInstall, isInstalled, promptInstall, needRefresh, applyUpdate, checkForUpdates, offlineReady, dismissOfflineReady, isOffline } = usePWA();
 
   // ─── بيانات المحتوى ───
-  const { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud } = useAppData({ isOffline });
+  const { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded } = useAppData({ isOffline });
 
   // ─── المكتبة الشخصية (تُزامن سحابيًا للمسجل — فتظهر علامات التوقف على كل الأجهزة) ───
   const { bookmarks, highlights, notes, readLessons, stopMarks, setStopMarks, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary } = useUserLibrary({ onStatus: setCloudStatus });
@@ -107,8 +107,10 @@ function App() {
     }
   }, [stopMarks, lastReadLessonId, user]);
 
-  // تنظيف: إسقاط علامات تشير لمسائل حُذفت (بعد تحميل الدروس فقط حتى لا نمسح الكل خطأً)
+  // تنظيف: إسقاط علامات تشير لمسائل حُذفت — فقط بعد تحميل سحابي مؤكد،
+  // فالتقليم على لقطة محلية قديمة كان يحذف علامات صحيحة (لمسائل أُضيفت سحابيًا) ويسمّمها بالشواهد
   useEffect(() => {
+    if (!cloudLessonsLoaded) return;
     if (lessons.length === 0 || Object.keys(stopMarks).length === 0) return;
     const validIds = new Set(lessons.map((l: Lesson) => String(l.id)));
     const pruned = Object.fromEntries(
@@ -118,7 +120,7 @@ function App() {
       setStopMarks(pruned);
     }
     // يُعاد عند وصول علامات السحابة متأخرةً أيضًا — يتوقف ذاتيًا عند عدم وجود فرق
-  }, [lessons, stopMarks]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [lessons, stopMarks, cloudLessonsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── بيانات مشتقة للفهرس ───
   const chaptersWithIssues = useMemo(() => {
@@ -294,7 +296,7 @@ function App() {
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
     theme, setTheme, fontSize, setFontSize,
-    cloudStatus,
+    cloudStatus, cloudLessonsLoaded,
     canInstall, isInstalled, promptInstall,
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,

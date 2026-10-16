@@ -12,6 +12,9 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   const [rawLessons, setRawLessons] = useState<Lesson[]>([]);
   const [glossary, setGlossary] = useState<GlossaryMap>({});
   const [cloudStatus, setCloudStatus] = useState(isFirebaseConfigured ? 'syncing' : 'local');
+  // هل اكتمل جلب سحابي واحد بنجاح؟ قبلها قائمة المسائل قد تكون لقطة محلية قديمة —
+  // لا يُبنى عليها أي حذف (تقليم علامات التوقف) حتى تُؤكَّد بالسحابة
+  const [cloudLessonsLoaded, setCloudLessonsLoaded] = useState(false);
 
   // ترتيب المسائل حسب الكتاب → الباب → الترتيب الأبجدي
   const lessons = useMemo(() => {
@@ -66,6 +69,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
         setGlossary((prev) => ({ ...prev, ...cloudGlossary }));
       }
+      setCloudLessonsLoaded(true);
       setCloudStatus('synced');
     } catch {
       setCloudStatus('offline');
@@ -100,5 +104,5 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     return () => { cancelled = true; };
   }, []);
 
-  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud };
+  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded };
 }

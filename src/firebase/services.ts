@@ -1,7 +1,7 @@
 // طبقة الخدمات — كل التعامل مع Firestore في مكان واحد
 // يبدأ بمسار البيانات فقط (firestore) — لا يُسحب auth معه
 import { getFirestore, isFirebaseConfigured } from './config';
-import { applyTombsToMerged, pruneTombs, mergeTombs, cleanTombs } from '../utils/mergeLibrary';
+import { applyTombsToMerged, pruneTombs, mergeTombs, cleanTombs, threeWayMergeMaps } from '../utils/mergeLibrary';
 import type { TombstoneMap } from '../utils/mergeLibrary';
 import type { Firestore } from 'firebase/firestore';
 import type * as FsMod from 'firebase/firestore';
@@ -277,6 +277,14 @@ export async function mergeAndSyncLibrary(
     readLessons: string[];
     stopMarks: Record<string, string>;
   },
+  // base = آخر حالة مكتوبة بنجاح (مرجع الدمج الثلاثي لعلامات التوقف) — تُمرَّر من المتصل
+  base: {
+    bookmarks: string[];
+    highlights: HighlightItem[];
+    notes: Record<string, string>;
+    readLessons: string[];
+    stopMarks: Record<string, string>;
+  },
   inputTombs?: TombstoneMap,
 ): Promise<{
   data: {
@@ -310,14 +318,12 @@ export async function mergeAndSyncLibrary(
   Object.entries(cloud.notes || {}).forEach(([k, v]) => {
     if (!(k in unionNotes) && v && v.trim()) unionNotes[k] = v;
   });
-  const unionMarks: Record<string, string> = {};
-  Object.entries(local.stopMarks || {}).forEach(([k, v]) => { if (v && str(v).trim()) unionMarks[k] = str(v).trim(); });
-  Object.entries(cloud.stopMarks || {}).forEach(([k, v]) => {
-    if (!(k in unionMarks) && v && str(v).trim()) unionMarks[k] = str(v).trim();
-  });
+  // علامات التوقف: دمج ثلاثي الاتجاهات (base/local/cloud) بدل "المحلي يفوز" —
+  // يمنع جهازًا قديمًا من محو علامة أحدث وُضعت على جهاز آخر (انظر threeWayMergeMaps)
+  const threeWayMarks = threeWayMergeMaps(base.stopMarks || {}, local.stopMarks || {}, cloud.stopMarks || {});
 
   // إسقاط المشهود بحذفه (إلا ما أُعيد محليًا) ثم تنظيف شواهد العائدين
-  const merged = { bookmarks: unionBookmarks, highlights: Array.from(hlMap.values()), notes: unionNotes, readLessons: unionRead, stopMarks: unionMarks };
+  const merged = { bookmarks: unionBookmarks, highlights: Array.from(hlMap.values()), notes: unionNotes, readLessons: unionRead, stopMarks: threeWayMarks };
   const finalData = applyTombsToMerged(merged, local, tombs);
   const prunedTombs = pruneTombs(tombs, finalData);
 

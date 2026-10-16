@@ -44,6 +44,44 @@ export function mergeLibraries(
   };
 }
 
+// ─── الدمج الثلاثي الاتجاهات لعلامات التوقف (three-way merge) ───
+// المشكلة: الدمج السابق كان "المحلي يفوز دائمًا عند التعارض"، فأي مزامنة صادرة
+// من جهاز يحمل قيمة قديمة (مفتوحة منذ زمن/عائدة من أوفلاين/بعد استعادة نسخة)
+// كانت تمحو القيمة الأحدث على السحابة، فيلتقطها الجهاز الآخر وتتقاربان على القديم.
+// الحل بلا طوابع زمنية: آخر حالة مكتوبة بنجاح (base) هي المرجع —
+// لكل كتاب: لم يتغير محليًا (يساوي base) ← تُؤخذ السحابة،
+//           لم يتغير سحابيًا (يساوي base) ← تُؤخذ المحلية،
+//           تغيّر في الجهتين (تعارض حقيقي نادر) ← المحلية (نية صريحة لهذا الجهاز
+//           كالاستعادة، وتقارب حتمي على آخر جهازٍزامن).
+// الغائب يُعامل كقيمة: حذف من جهة واحدة مع ثبات الأخرى = حذف (تؤكده الشواهد لاحقًا).
+export function threeWayMergeMaps(
+  base: Record<string, string>,
+  local: Record<string, string>,
+  cloud: Record<string, string>,
+): Record<string, string> {
+  const b = base || {};
+  const l = local || {};
+  const c = cloud || {};
+  const out: Record<string, string> = {};
+  const keys = new Set([...Object.keys(b), ...Object.keys(l), ...Object.keys(c)]);
+  keys.forEach((k) => {
+    const bv = b[k];
+    const lv = l[k];
+    const cv = c[k];
+    if (lv === cv) {
+      if (lv !== undefined) out[k] = String(lv);
+    } else if (lv === bv) {
+      if (cv !== undefined) out[k] = String(cv);
+    } else if (cv === bv) {
+      if (lv !== undefined) out[k] = String(lv);
+    } else {
+      // تعارض حقيقي: الجهتان غيّرتا نفس الكتاب منذ آخر مزامنة — المحلية تفوز
+      if (lv !== undefined) out[k] = String(lv);
+    }
+  });
+  return out;
+}
+
 // ─── شواهد الحذف (tombstones): الحل الجذري لعودة المحذوف ───
 // المشكلة: "معروف سابقًا" لا يميّز "جديد من جهاز آخر" عن "محذوف عمدًا هنا"،
 // فيعود المحذوف عبر المستمع اللحظي للأبد عند أي تعديل متزامن على جهاز آخر.
