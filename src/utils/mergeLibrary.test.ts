@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeLibraries, emptyTombs, mergeTombs, applyTombsToMerged, pruneTombs, threeWayMergeMaps } from './mergeLibrary';
+import { mergeLibraries, emptyTombs, mergeTombs, applyTombsToMerged, pruneTombs, threeWayMergeMaps, normalizeNoteMap } from './mergeLibrary';
 
 describe('mergeLibraries', () => {
   it('يوحّد المعرفات رقم/نص ويزيل التكرار', () => {
@@ -67,6 +67,24 @@ describe('threeWayMergeMaps', () => {
 
   it('مفتاح جديد من أي جهة يُقبل', () => {
     expect(threeWayMergeMaps({}, { 'أ': '1' }, { 'ب': '2' })).toEqual({ 'أ': '1', 'ب': '2' });
+  });
+
+  it('نص ملاحظة أحدث سحابيًا يفوز على نص محلي قديم (بعد التطبيع)', () => {
+    const base = normalizeNoteMap({ '5': 'قديمة' });
+    const local = normalizeNoteMap({ '5': 'قديمة' });
+    const cloud = normalizeNoteMap({ '5': 'محدّثة من جهاز آخر  ' });
+    expect(threeWayMergeMaps(base, local, cloud)).toEqual({ '5': 'محدّثة من جهاز آخر' });
+  });
+});
+
+describe('normalizeNoteMap', () => {
+  it('يقلّم النصوص ويسقط الفارغ وغير النصي', () => {
+    expect(normalizeNoteMap({ '1': '  نص  ', '2': '   ', '3': '', '4': 5 as unknown as string })).toEqual({ '1': 'نص' });
+  });
+
+  it('مدخلات فارغة تعطي خريطة فارغة آمنة', () => {
+    expect(normalizeNoteMap({})).toEqual({});
+    expect(normalizeNoteMap(null as unknown as Record<string, unknown>)).toEqual({});
   });
 });
 

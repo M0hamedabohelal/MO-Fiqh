@@ -1,7 +1,7 @@
 // طبقة الخدمات — كل التعامل مع Firestore في مكان واحد
 // يبدأ بمسار البيانات فقط (firestore) — لا يُسحب auth معه
 import { getFirestore, isFirebaseConfigured } from './config';
-import { applyTombsToMerged, pruneTombs, mergeTombs, cleanTombs, threeWayMergeMaps } from '../utils/mergeLibrary';
+import { applyTombsToMerged, pruneTombs, mergeTombs, cleanTombs, threeWayMergeMaps, normalizeNoteMap } from '../utils/mergeLibrary';
 import type { TombstoneMap } from '../utils/mergeLibrary';
 import type { Firestore } from 'firebase/firestore';
 import type * as FsMod from 'firebase/firestore';
@@ -313,17 +313,19 @@ export async function mergeAndSyncLibrary(
   [...(local.highlights || []), ...(cloud.highlights || [])].forEach((h) => {
     if (h) hlMap.set(str(h.id ?? h.text), h);
   });
-  const unionNotes: Record<string, string> = {};
-  Object.entries(local.notes || {}).forEach(([k, v]) => { if (v && v.trim()) unionNotes[k] = v; });
-  Object.entries(cloud.notes || {}).forEach(([k, v]) => {
-    if (!(k in unionNotes) && v && v.trim()) unionNotes[k] = v;
-  });
+  // الملاحظات: دمج ثلاثي بعد التطبيع (الفارغة = محذوفة) — نفس حماية علامات التوقف:
+  // نص أحدث على السحابة لا يمحوه جهاز يحمل نصًا قديمًا
+  const threeWayNotes = threeWayMergeMaps(
+    normalizeNoteMap(base.notes || {}),
+    normalizeNoteMap(local.notes || {}),
+    normalizeNoteMap(cloud.notes || {}),
+  );
   // علامات التوقف: دمج ثلاثي الاتجاهات (base/local/cloud) بدل "المحلي يفوز" —
   // يمنع جهازًا قديمًا من محو علامة أحدث وُضعت على جهاز آخر (انظر threeWayMergeMaps)
   const threeWayMarks = threeWayMergeMaps(base.stopMarks || {}, local.stopMarks || {}, cloud.stopMarks || {});
 
   // إسقاط المشهود بحذفه (إلا ما أُعيد محليًا) ثم تنظيف شواهد العائدين
-  const merged = { bookmarks: unionBookmarks, highlights: Array.from(hlMap.values()), notes: unionNotes, readLessons: unionRead, stopMarks: threeWayMarks };
+  const merged = { bookmarks: unionBookmarks, highlights: Array.from(hlMap.values()), notes: threeWayNotes, readLessons: unionRead, stopMarks: threeWayMarks };
   const finalData = applyTombsToMerged(merged, local, tombs);
   const prunedTombs = pruneTombs(tombs, finalData);
 

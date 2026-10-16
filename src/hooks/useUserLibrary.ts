@@ -353,6 +353,9 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
           if (!mapEqual(snapshot.stopMarks, data.stopMarks)) {
             setStopMarks(data.stopMarks);
           }
+          if (!mapEqual(snapshot.notes, data.notes)) {
+            setNotes(data.notes);
+          }
           onStatus?.('synced');
         })
         .catch((e) => {
