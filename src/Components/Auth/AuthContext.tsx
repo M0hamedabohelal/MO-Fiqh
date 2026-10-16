@@ -67,15 +67,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
 
-        unsubscribe = authMod.onAuthStateChanged(auth, async (firebaseUser: User | null) => {
+        unsubscribe = authMod.onAuthStateChanged(auth, (firebaseUser: User | null) => {
           setUser(firebaseUser);
+          // لا نحجب التطبيق على فحص المشرف (رحلة شبكة كاملة) — يُفحص في الخلفية
+          // وتبويب الإدارة يظهر فور وصول النتيجة؛ المكتبة والمحتوى يبدآن فورًا
+          if (!cancelled) setAuthLoading(false);
           if (firebaseUser) {
-            const adminStatus = await checkAdmin(firebaseUser.uid);
-            if (!cancelled) setIsAdminUser(adminStatus);
+            checkAdmin(firebaseUser.uid).then((adminStatus) => {
+              if (!cancelled) setIsAdminUser(adminStatus);
+            });
           } else if (!cancelled) {
             setIsAdminUser(false);
           }
-          if (!cancelled) setAuthLoading(false);
         });
       })
       .catch(() => {

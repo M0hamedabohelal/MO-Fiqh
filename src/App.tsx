@@ -271,6 +271,10 @@ function App() {
       void import('./Components/Views/BookmarksView');
       void import('./Components/Views/HighlightsView');
       void import('./Components/Views/SettingsView');
+      // حزم Firebase (الأثقل ~118KB مضغوطًا) تُحمَّل وتُحلَّل مبكرًا عند الخمول،
+      // فلا تنتظرها أول مزامنة/أول دخول — نفس المقاطع المعاد استخدامها لاحقًا بلا تحميل مكرر
+      void import('firebase/firestore');
+      void import('firebase/auth');
     };
     if (window.requestIdleCallback) {
       const id = window.requestIdleCallback(preload, { timeout: 3000 });

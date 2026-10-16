@@ -73,7 +73,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   }, []);
 
   // تحميل البيانات من السحابة مؤجّلاً بحيث لا ينافس أول رسم للشاشة
-  // (يُجدول بعد ~1.2 ثانية، ويُعاد عند تغيّر حالة الاتصال)
+  // (يُجدول بعد ~0.6 ثانية — بعد اكتمال أول رسم عادةً — ويُعاد عند تغيّر حالة الاتصال)
   useEffect(() => {
     // بلا اتصال: الحالة الأولية 'syncing' كانت تعلق للأبد — نعلنها بصراحة
     // مزامنة مقصودة مع حالة خارجية (الاتصال) لا بديل تفاعلي لها
@@ -82,7 +82,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       setCloudStatus(isFirebaseConfigured ? 'offline' : 'local');
       return;
     }
-    const t = setTimeout(() => { reloadFromCloud(); }, 1200);
+    const t = setTimeout(() => { reloadFromCloud(); }, 600);
     return () => clearTimeout(t);
   }, [isOffline, reloadFromCloud]);
 
