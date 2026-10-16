@@ -5,7 +5,7 @@ import { useApp } from '../Layout/AppContext';
 
 // شاشة فهرس الكتب — كل كتاب بغلاف بصري + إحصاءات التقدم
 const BooksView = memo(() => {
-  const { booksWithStats: books, lessons, newLessonsCount: newCount, openBookChapters: onOpenBook, openMindMap: onOpenMindMap, stopMarks, openLessonById } = useApp();
+  const { booksWithStats: books, lessons, newLessonsCount: newCount, openBookChapters: onOpenBook, openMindMap: onOpenMindMap, stopMarks, openLessonById, cloudStatus } = useApp();
   const lessonTitle = (id: string | undefined): string | null => {
     if (!id) return null;
     const l = lessons.find((x) => String(x.id) === String(id));
@@ -63,7 +63,7 @@ const BooksView = memo(() => {
                 <div className="book-meta-text" title={bookName}>
                   <span className="book-meta-text-title">{bookName}</span>
                   <span className="book-cover-count">
-                    {issuesCount > 0 ? `${issuesCount} مسألة` : 'قريباً'}
+                    {issuesCount > 0 ? `${issuesCount} مسألة` : (cloudStatus === 'syncing' ? 'جارٍ التحميل…' : 'قريباً')}
                   </span>
                 </div>
                 {issuesCount > 0 && (

@@ -38,6 +38,7 @@ const ChaptersView = () => {
     toggleChapter: onToggleChapter,
     openLessonById,
     newLessonIds,
+    cloudStatus,
   } = useApp();
   const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
   return (
@@ -47,11 +48,18 @@ const ChaptersView = () => {
     </h3>
 
     {chapters.length === 0 ? (
-      <EmptyState
-        icon={FiBook}
-        title="هذا الكتاب فارغ حالياً"
-        message="لم تتم إضافة فصول أو مسائل لهذا الكتاب بعد."
-      />
+      cloudStatus === 'syncing' ? (
+        <div className="custom-card p-5 text-center shadow-sm">
+          <div className="spinner-border mb-3" style={{ color: 'var(--primary-color)' }} role="status" aria-hidden="true" />
+          <p className="text-muted mb-0 small">جارٍ تحميل مسائل الكتاب من السحابة...</p>
+        </div>
+      ) : (
+        <EmptyState
+          icon={FiBook}
+          title="هذا الكتاب فارغ حالياً"
+          message="لم تتم إضافة فصول أو مسائل لهذا الكتاب بعد."
+        />
+      )
     ) : (
       <motion.div 
         className="d-flex flex-column gap-3"
