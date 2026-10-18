@@ -1,15 +1,13 @@
 import { useRef, useState } from 'react';
-import { FiEdit3, FiTrash2, FiBook, FiChevronLeft, FiPrinter, FiCloud, FiSearch, FiDownload, FiUpload, FiCopy } from 'react-icons/fi';
+import { FiEdit3, FiTrash2, FiBook, FiChevronLeft, FiPrinter, FiSearch, FiDownload, FiUpload, FiCopy } from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
 import ShareButton from '../UI/ShareButton';
 import { exportNotesPrint } from '../../utils/printExport';
 import { buildBackup, downloadBackup, parseBackupFile, backupToText } from '../../utils/libraryBackup';
-import { useAuth } from '../Auth/AuthContext';
 import { useApp } from '../Layout/AppContext';
 
 // شاشة الفوائد المقتبسة + تصديرها مع الملاحظات
 const HighlightsView = () => {
-  const { user } = useAuth();
   const {
     bookmarks,
     readLessons,
@@ -18,7 +16,6 @@ const HighlightsView = () => {
     lessons,
     deleteHighlight: onDeleteHighlight,
     openLessonById: onOpenLessonById,
-    onOpenLogin,
     stopMarks,
     restoreLibrary,
   } = useApp();
@@ -84,11 +81,6 @@ const HighlightsView = () => {
           <FiEdit3 className="ms-2" /> الفوائد المقتبسة
         </h3>
         <div className="d-flex gap-2 flex-wrap">
-          {!user && (
-            <button onClick={onOpenLogin} className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
-              <FiCloud /> حفظ سحابي
-            </button>
-          )}
           {hasAnySavedContent && (
             <button
               className="btn btn-sm d-flex align-items-center shadow-sm"
@@ -152,13 +144,6 @@ const HighlightsView = () => {
             style={{ paddingRight: '36px', borderRadius: '10px' }}
             aria-label="البحث في الفوائد والملاحظات"
           />
-        </div>
-      )}
-
-      {!user && hasAnySavedContent && (
-        <div className="alert alert-warning py-2 small d-flex align-items-center gap-2" role="alert">
-          <FiCloud size={18} />
-          <span>أنت تتصفح كضيف. <a href="#" onClick={(e) => { e.preventDefault(); onOpenLogin(); }} className="alert-link">سجّل الدخول</a> لحفظ فوائدك سحابياً.</span>
         </div>
       )}
 

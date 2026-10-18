@@ -1,18 +1,15 @@
 import { useState } from 'react';
-import { FiBookmark, FiChevronLeft, FiCloud, FiBook, FiSearch } from 'react-icons/fi';
+import { FiBookmark, FiChevronLeft, FiBook, FiSearch } from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
-import { useAuth } from '../Auth/AuthContext';
 import { useApp } from '../Layout/AppContext';
 
 // شاشة المسائل المحفوظة في المفضلة
 const BookmarksView = () => {
-  const { user } = useAuth();
   const {
     bookmarks,
     lessons,
     openLessonById: onOpenLessonById,
     setCurrentView,
-    onOpenLogin,
   } = useApp();
   const onBrowse = (): void => setCurrentView('books');
   const [query, setQuery] = useState('');
@@ -30,19 +27,7 @@ const BookmarksView = () => {
         <h3 className="mb-0 fw-bold" style={{ color: 'var(--primary-color)' }}>
           <FiBookmark className="ms-2" /> المفضلة
         </h3>
-        {!user && (
-          <button onClick={onOpenLogin} className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
-            <FiCloud /> حفظ سحابي
-          </button>
-        )}
       </div>
-
-      {!user && bookmarks.length > 0 && (
-        <div className="alert alert-warning py-2 small d-flex align-items-center gap-2" role="alert">
-          <FiCloud size={18} />
-          <span>أنت تتصفح كضيف. <a href="#" onClick={(e) => { e.preventDefault(); onOpenLogin(); }} className="alert-link">سجّل الدخول</a> لحفظ مفضلتك سحابياً.</span>
-        </div>
-      )}
 
       {bookmarkedLessons.length === 0 ? (
         <EmptyState
