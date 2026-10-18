@@ -111,38 +111,55 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     if (authLoading) return; // ننتظر حتى تنتهي حالة التحميل
 
     if (!user) {
-      // المستخدم كضيف (غير مسجل الدخول) أو قام بتسجيل الخروج للتو
-      // نحمّل بيانات الضيف المحفوظة محلياً أو نصفّرها
+      // المستخدم ضيف أو خرج للتو. بعد الخروج نمسح حالة المكتبة الظاهرة والضيف
+      // حتى لا تتحول بيانات الحساب السابق إلى بيانات محلية تُدمج مع حساب لاحق.
       // المعرفات تُوحَّد كنصوص دائمًا حتى لا تفشل المطابقة بين رقم ونص
       const asStringArray = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
       const asMarks = (v: unknown): Record<string, string> =>
         v && typeof v === 'object' ? (v as Record<string, string>) : {};
+      safeRemove('stopMarks'); // مفتاح قديم غير معزول حسب الحساب
       if (prevUidRef.current) {
-        // كان مسجلًا وخرج للتو — امسح مخبأ علاماته حتى لا يتسرب لضيف/مستخدم آخر على نفس الجهاز
-        // (باقي البيانات تُعزل أصلًا بمفاتيح guest_* المحذوفة عند الدخول)
+        // خرج من حساب — لا نعرض بيانات الضيف القديمة ولا نرحّلها لحساب آخر لاحقًا.
         prevUidRef.current = null;
-        safeRemove('stopMarks');
-        // سجل حداثة العلامات محلي أيضًا — يُمسح معها لنفس السبب
+        ['guest_bookmarks', 'guest_highlights', 'guest_notes', 'guest_readLessons', 'guest_stopMarks']
+          .forEach(safeRemove);
         clearStopMarkTouchedAt();
         dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false };
         lastWrittenRef.current = null;
-        // الشواهد في الذاكرة تُصفَّر (النسخة المحفوظة لكل حساب تبقى للولوج التالي من نفس الحساب)
         tombRef.current = emptyTombs();
+        setBookmarks([]);
+        setHighlights([]);
+        setNotes({});
+        setReadLessons([]);
         setStopMarks({});
       } else {
-        setStopMarks(asMarks(readJsonStorage('stopMarks', {})));
+        setStopMarks(asMarks(readJsonStorage('guest_stopMarks', {})));
+        setBookmarks(asStringArray(readJsonStorage('guest_bookmarks', [])));
+        setHighlights(readJsonStorage('guest_highlights', []));
+        setNotes(readJsonStorage('guest_notes', {}));
+        setReadLessons(asStringArray(readJsonStorage('guest_readLessons', [])));
       }
+      // Sync loaded auth/guest state into the hook after the auth transition.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setBookmarks(asStringArray(readJsonStorage('guest_bookmarks', [])));
-      setHighlights(readJsonStorage('guest_highlights', []));
-      setNotes(readJsonStorage('guest_notes', {}));
-      setReadLessons(asStringArray(readJsonStorage('guest_readLessons', [])));
       setIsDataLoaded(true);
       return;
     }
 
     // المستخدم مسجل الدخول
     let cancelled = false;
+    const previousUid = prevUidRef.current;
+    if (previousUid && previousUid !== user.uid) {
+      // تبديل مباشر بين حسابين: أخفِ فورًا مكتبة الحساب السابق أثناء جلب الجديدة.
+      dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false };
+      lastWrittenRef.current = null;
+      tombRef.current = emptyTombs();
+      clearStopMarkTouchedAt();
+      setBookmarks([]);
+      setHighlights([]);
+      setNotes({});
+      setReadLessons([]);
+      setStopMarks({});
+    }
     setIsDataLoaded(false);
     prevUidRef.current = user.uid;
 
@@ -170,7 +187,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       const guestHighlights = readJsonStorage<HighlightItem[]>('guest_highlights', []);
       const guestNotes = readJsonStorage<Record<string, string>>('guest_notes', {});
       const guestReadLessons = readJsonStorage<string[]>('guest_readLessons', []);
-      const guestStopMarks = readJsonStorage<Record<string, string>>('stopMarks', {});
+      const guestStopMarks = readJsonStorage<Record<string, string>>('guest_stopMarks', {});
 
       const hasGuestData =
         guestBookmarks.length > 0 ||
@@ -239,6 +256,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
           safeRemove('guest_highlights');
           safeRemove('guest_notes');
           safeRemove('guest_readLessons');
+          safeRemove('guest_stopMarks');
         } catch (err) {
           // تبقى نسخة الضيف محفوظة للدمج في المرة القادمة — وlastWritten فارغ فيُعاد الرفع تلقائيًا
           logError('userLibrary.mergeUpload', err);
@@ -283,7 +301,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     return () => { cancelled = true; };
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // حفظ محلي لبيانات الضيف (Guest) فقط + مخبأ علامات التوقف للمسجل (أوفلاين)
+  // حفظ محلي لبيانات الضيف فقط. علامات الحساب المسجل مصدرها مسار Firestore الخاص به.
   useEffect(() => {
     if (!isDataLoaded) return;
     if (!user) {
@@ -292,8 +310,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       safeSet('guest_notes', JSON.stringify(notes));
       safeSet('guest_readLessons', JSON.stringify(readLessons));
     }
-    // علامات التوقف تُخبَّأ محليًا دائمًا (للضيف هي الأصل، وللمسجل مخبأ أوفلاين يُمسح عند الخروج)
-    safeSet('stopMarks', JSON.stringify(stopMarks));
+    if (!user) safeSet('guest_stopMarks', JSON.stringify(stopMarks));
   }, [bookmarks, highlights, notes, readLessons, stopMarks, user, isDataLoaded]);
 
   // المزامنة مع السحابة دفعة واحدة بعد هدوء التغييرات (تجنّب كتابة لكل ضغطة متتالية)

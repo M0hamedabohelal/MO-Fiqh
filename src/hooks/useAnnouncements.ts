@@ -1,24 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchAnnouncements } from '../firebase/services';
 import { isFirebaseConfigured } from '../firebase/config';
+import { useAuth } from '../Components/Auth/AuthContext';
+import { logError } from '../utils/logError';
 import type { AnnouncementItem } from '../types';
 
+const readKey = (uid?: string): string => uid ? `readAnnouncements_${uid}` : 'readAnnouncements';
+
+function readLocalIds(key: string): string[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 export function useAnnouncements() {
+  const { user } = useAuth();
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [readIds, setReadIds] = useState<string[]>([]);
+  const key = readKey(user?.uid);
+  const unreadCount = announcements.filter((item) => !readIds.includes(item.id)).length;
 
   const load = useCallback(async () => {
     if (!isFirebaseConfigured) return;
     try {
-      const data = await fetchAnnouncements();
-      setAnnouncements(data);
-      let readIds = [];
-      try {
-        readIds = JSON.parse(localStorage.getItem('readAnnouncements') || '[]');
-      } catch {
-        readIds = [];
-      }
-      setUnreadCount(data.filter(a => !readIds.includes(a.id)).length);
+      setAnnouncements(await fetchAnnouncements());
     } catch {
       // تجاهل أخطاء الجلب — التنبيهات ليست حرجة
     }
@@ -27,18 +35,73 @@ export function useAnnouncements() {
   useEffect(() => {
     // جلب أولي عند التحميل — مقصود (لا بديل تفاعلي له)
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReadIds(readLocalIds(key));
     load();
-  }, [load]);
+  }, [key, load]);
 
-  const markAsRead = () => {
-    const allIds = announcements.map(a => a.id);
-    try {
-      localStorage.setItem('readAnnouncements', JSON.stringify(allIds));
-    } catch {
-      // التخزين غير متاح (تصفح خاص/امتلاء) — الحالة داخل الذاكرة تكفي للجلسة
+  useEffect(() => {
+    const uid = user?.uid;
+    if (!uid || !isFirebaseConfigured) return undefined;
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+    const localKey = readKey(uid);
+    void (async () => {
+      try {
+        const [{ getFirestore }, fs] = await Promise.all([
+          import('../firebase/config'),
+          import('firebase/firestore'),
+        ]);
+        const { db } = await getFirestore();
+        if (cancelled) return;
+        const readsRef = fs.doc(db, 'users', uid, 'data', 'announcementReads');
+        unsubscribe = fs.onSnapshot(readsRef, (snapshot) => {
+          if (cancelled) return;
+          const cloudIds = snapshot.exists() && Array.isArray(snapshot.data().items)
+            ? (snapshot.data().items as unknown[]).filter((id): id is string => typeof id === 'string')
+            : [];
+          const localIds = readLocalIds(localKey);
+          const merged = Array.from(new Set([...cloudIds, ...localIds]));
+          setReadIds(merged);
+          try { localStorage.setItem(localKey, JSON.stringify(merged)); } catch { /* الذاكرة تكفي للجلسة */ }
+          if (!snapshot.exists() || merged.length !== cloudIds.length) {
+            void fs.setDoc(readsRef, { items: merged, updatedAt: Date.now() }, { merge: true })
+              .catch((error) => logError('announcements.sync', error));
+          }
+        }, (error) => {
+          if (!cancelled) logError('announcements.listen', error);
+        });
+      } catch (error) {
+        if (!cancelled) logError('announcements.listen', error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [user?.uid]);
+
+  const markAsRead = useCallback(() => {
+    const allIds = announcements.map((item) => item.id);
+    setReadIds(allIds);
+    try { localStorage.setItem(key, JSON.stringify(allIds)); } catch { /* الحالة داخل الذاكرة تكفي للجلسة */ }
+    if (user && isFirebaseConfigured) {
+      void (async () => {
+        try {
+          const [{ getFirestore }, fs] = await Promise.all([
+            import('../firebase/config'),
+            import('firebase/firestore'),
+          ]);
+          const { db } = await getFirestore();
+          await fs.setDoc(fs.doc(db, 'users', user.uid, 'data', 'announcementReads'), {
+            items: allIds,
+            updatedAt: Date.now(),
+          }, { merge: true });
+        } catch (error) {
+          logError('announcements.sync', error);
+        }
+      })();
     }
-    setUnreadCount(0);
-  };
+  }, [announcements, key, user]);
 
   return { announcements, unreadCount, markAsRead, refresh: load };
 }

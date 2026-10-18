@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
 import HeroSection    from './Components/Header/HeroSection';
 import SearchModal    from './Components/UI/SearchModal';
@@ -26,8 +26,11 @@ import { safeGet, safeSet, safeRemove } from './utils/safeStorage';
 import { recordStopMarkTouch, pickLatestStopMarkId, readStopMarkTouchedAt } from './utils/stopMarkRecency';
 import { useNewBadge }         from './hooks/useNewBadge';
 import { useVisitTracking }    from './hooks/useVisitTracking';
+import { useSyncedPreferences } from './hooks/useSyncedPreferences';
 import { useSplash }           from './hooks/useSplash';
 import type { Lesson, ChapterGroup } from './types';
+
+const lastReadStorageKey = (uid?: string): string => uid ? `lastReadLessonId_${uid}` : 'lastReadLessonId_guest';
 
 function App() {
   // ─── Auth ───
@@ -59,11 +62,36 @@ function App() {
   const [isLoginOpen, setIsLoginOpen]     = useState(false);
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');
   const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
-  const [lastReadLessonId, setLastReadLessonId]       = useState(() => safeGet('lastReadLessonId'));
+  const [lastReadLessonId, setLastReadLessonId]       = useState(() => safeGet('lastReadLessonId_guest'));
   const showSplash = useSplash(authLoading);
   const [mindmapOpen, setMindmapOpen]       = useState(false);
   // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // المظهر وحجم الخط يتبعان الحساب نفسه على كل أجهزته، مع استمرار التخزين المحلي للضيف.
+  useSyncedPreferences(user?.uid, authLoading, theme, setTheme, fontSize, setFontSize, lastReadLessonId, setLastReadLessonId);
+
+  // تبديل الحساب يمسح حالة الاستمرار المحلية ويعود للبداية بعد الخروج؛ لكل حساب مخبأ مستقل.
+  const previousUidRef = useRef<string | null>(user?.uid ?? null);
+  useEffect(() => {
+    if (authLoading) return;
+    const uid = user?.uid ?? null;
+    const previousUid = previousUidRef.current;
+    if (uid === previousUid) return;
+    previousUidRef.current = uid;
+    setLastReadLessonId(uid ? safeGet(lastReadStorageKey(uid)) : null);
+    safeRemove('lastReadLessonId'); // مفتاح قديم مشترك بين الحسابات
+    if (previousUid) {
+      setIsLoginOpen(false);
+      setCurrentView('hero');
+    }
+  }, [user?.uid, authLoading, setCurrentView]);
+
+  useEffect(() => {
+    const key = lastReadStorageKey(user?.uid);
+    if (lastReadLessonId) safeSet(key, lastReadLessonId);
+    else safeRemove(key);
+  }, [lastReadLessonId, user?.uid]);
 
   // Theme & Font
   useEffect(() => {
@@ -79,7 +107,7 @@ function App() {
   // ترحيل لمرة واحدة: العلامة الواحدة القديمة للضيف → خريطة لكل كتاب (بعد تحميل الدروس لمعرفة الكتاب)
   useEffect(() => {
     if (user || Object.keys(stopMarks).length > 0 || lessons.length === 0) return;
-    const oldId = safeGet('lastReadLessonId');
+    const oldId = safeGet('lastReadLessonId_guest');
     if (!oldId) return;
     const lesson = lessons.find((l: Lesson) => String(l.id) === oldId);
     if (lesson?.bookName) {
@@ -107,18 +135,15 @@ function App() {
   useEffect(() => {
     const markIds = Object.values(validStopMarks).filter(Boolean);
     if (markIds.length === 0) {
-      if (lastReadLessonId && user) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLastReadLessonId(null);
-        safeRemove('lastReadLessonId');
-      }
       return;
     }
     if (!lastReadLessonId || !markIds.includes(lastReadLessonId)) {
       // الأحدث زمنيًا (بختم اللمسة المحلي)، وعند غياب السجل نرجع لآخر قيمة كالسابق
       const latest = pickLatestStopMarkId(validStopMarks, readStopMarkTouchedAt()) ?? markIds[markIds.length - 1];
+      // مواءمة حالة الاستمرار مع علامة التوقف الواردة من السحابة.
+      // الحفظ يتم عبر lastReadStorageKey(uid) أعلاه — لا مفتاح مشترك قديم.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLastReadLessonId(latest);
-      safeSet('lastReadLessonId', latest);
     }
   }, [validStopMarks, lastReadLessonId, user]);
 
@@ -202,13 +227,11 @@ function App() {
       });
       if (lastReadLessonId === id) {
         setLastReadLessonId(null);
-        safeRemove('lastReadLessonId');
       }
     } else {
       setStopMarks((prev) => ({ ...prev, [book]: id }));
       recordStopMarkTouch(book);
       setLastReadLessonId(id);
-      safeSet('lastReadLessonId', id);
     }
   };
 

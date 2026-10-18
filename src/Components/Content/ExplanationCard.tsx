@@ -118,8 +118,8 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
         </div>
       );
     }
-    if (/^##\s+/.test(trimmed)) {
-      const headingText = trimmed.replace(/^##\s+/, '');
+    if (/^##(?!#)\s*\S/.test(trimmed)) {
+      const headingText = trimmed.replace(/^##\s*/, '');
       return (
         <div key={index} className="mid-heading">
           <span className="mid-heading-text">{formatBrackets(headingText, searchQuery, (text: string, key: string | number) => renderGlossary(text, String(key)))}</span>

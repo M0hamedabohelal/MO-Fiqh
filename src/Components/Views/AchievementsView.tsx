@@ -4,8 +4,8 @@ import type { IconType } from 'react-icons';
 import CertificateModal from '../UI/CertificateModal';
 import { useApp } from '../Layout/AppContext';
 import type { BookStats } from '../../types';
-
-const VISIT_DAYS_KEY = 'fiqh_visit_days';
+import { useEffect } from 'react';
+import { readVisitDays, visitDaysStorageKey, VISIT_DAYS_UPDATED_EVENT } from '../../hooks/useVisitTracking';
 
 
 
@@ -32,28 +32,39 @@ function localDay(offset = 0): string {
 }
 
 // عدد الأيام المتتالية حتى اليوم
-function getStreak(): number {
-  try {
-    const set = new Set<string>(JSON.parse(localStorage.getItem(VISIT_DAYS_KEY) || '[]') as string[]);
-    let streak = 0;
-    for (let back = 0; back < 365; back += 1) {
-      if (set.has(localDay(-back))) {
-        streak += 1;
-      } else {
-        break;
-      }
+function getStreak(days: string[]): number {
+  const set = new Set(days);
+  let streak = 0;
+  for (let back = 0; back < 365; back += 1) {
+    if (set.has(localDay(-back))) {
+      streak += 1;
+    } else {
+      break;
     }
-    return streak;
-  } catch {
-    return 0;
   }
+  return streak;
 }
 
 // شاشة الإنجازات: سلسلة الأيام + شارات التقدم + حلقة الإتمام + الشهادات
 const AchievementsView = () => {
   const { readLessons, highlights, notes, booksWithStats, lessonsCount, user } = useApp();
   const userName = user?.displayName || user?.email || 'طالب العلم';
-  const streak = useMemo(() => getStreak(), []);
+  const [visitDays, setVisitDays] = useState<string[]>(() => readVisitDays(visitDaysStorageKey(user?.uid)));
+  useEffect(() => {
+    const key = visitDaysStorageKey(user?.uid);
+    const refresh = (event?: Event): void => {
+      if (event instanceof CustomEvent && event.detail?.key !== key) return;
+      setVisitDays(readVisitDays(key));
+    };
+    window.addEventListener(VISIT_DAYS_UPDATED_EVENT, refresh);
+    window.addEventListener('storage', refresh);
+    refresh();
+    return () => {
+      window.removeEventListener(VISIT_DAYS_UPDATED_EVENT, refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, [user?.uid]);
+  const streak = useMemo(() => getStreak(visitDays), [visitDays]);
   const notesCount = useMemo(() => Object.keys(notes || {}).length, [notes]);
   const readCount = (readLessons || []).length;
   const totalLessons = useMemo(

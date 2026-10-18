@@ -290,8 +290,8 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
         </div>
       );
     }
-    if (/^##\s+/.test(trimmed)) {
-      const headingText = trimmed.replace(/^##\s+/, '');
+    if (/^##(?!#)\s*\S/.test(trimmed)) {
+      const headingText = trimmed.replace(/^##\s*/, '');
       return (
         <div key={index} className="mid-heading">
           <span className="mid-heading-text">{formatBrackets(headingText, searchQuery, renderGlossary)}</span>

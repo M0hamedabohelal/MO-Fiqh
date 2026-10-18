@@ -541,7 +541,9 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
             <div className="col-12">
               <label className="form-label small fw-bold">متن المسألة</label>
               <textarea rows={7} className="form-control" value={form.mainText} onChange={handleFieldChange('mainText')} style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.8' }} />
-              <small className="text-muted d-block mt-1">تلميح: لإنشاء رابط ذكي لمسألة أخرى، استخدم الصيغة: <code dir="ltr" style={{ color: 'var(--accent-color)' }}>[نص الرابط](lesson:رقم_المسألة)</code> (مثال: <code dir="ltr" style={{ color: 'var(--accent-color)' }}>[الوضوء](lesson:5)</code>).</small>
+              <small className="text-muted d-block mt-1" style={{ lineHeight: '2' }}>
+                تنسيق يظهر للقارئ: <code dir="ltr">## عنوان رئيسي</code> لعنوان وسطي، <code dir="ltr">العنوان الفرعي:</code> لتمييز بداية فقرة، <code dir="ltr">**نص عريض**</code>، <code dir="ltr">*تظليل*</code>، <code dir="ltr">!!تنبيه!!</code>، و<code dir="ltr">***</code> لفاصل زخرفي. لإنشاء رابط لمسألة أخرى استخدم <code dir="ltr" style={{ color: 'var(--accent-color)' }}>[نص الرابط](lesson:رقم_المسألة)</code> مثل <code dir="ltr" style={{ color: 'var(--accent-color)' }}>[الوضوء](lesson:5)</code>.
+              </small>
             </div>
             <div className="col-12">
               <label className="form-label small fw-bold">شرح الشيخ</label>

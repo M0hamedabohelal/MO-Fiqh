@@ -1,53 +1,86 @@
 import { useEffect } from 'react';
 import { safeGet, safeSet, safeParse } from '../utils/safeStorage';
+import { logError } from '../utils/logError';
 
-const VISIT_DAYS_KEY = 'fiqh_visit_days';
+const LEGACY_VISIT_DAYS_KEY = 'fiqh_visit_days';
+const VISIT_DAYS_EVENT = 'fiqh:visit-days-updated';
 const MAX_DAYS = 365;
 
-// تسجيل يوم الزيارة لسلسلة المواظبة (آخر 365 يومًا) + دمجها سحابيًا
+export const visitDaysStorageKey = (uid?: string): string =>
+  uid ? `${LEGACY_VISIT_DAYS_KEY}_${uid}` : `${LEGACY_VISIT_DAYS_KEY}_guest`;
+
+export function readVisitDays(key: string): string[] {
+  const value = safeParse<unknown>(safeGet(key), []);
+  return Array.isArray(value) ? value.filter((day): day is string => typeof day === 'string') : [];
+}
+
+function saveVisitDays(key: string, days: string[]): void {
+  const normalized = Array.from(new Set(days)).sort().slice(-MAX_DAYS);
+  safeSet(key, JSON.stringify(normalized));
+  window.dispatchEvent(new CustomEvent(VISIT_DAYS_EVENT, { detail: { key } }));
+}
+
+// Track the local calendar day, keep account history separate, and merge changes from other devices live.
 export function useVisitTracking(user: { uid: string } | null, authLoading: boolean): void {
   useEffect(() => {
-    const readLocal = (): string[] => {
-      const v = safeParse<unknown>(safeGet(VISIT_DAYS_KEY) || '[]', []);
-      return Array.isArray(v) ? (v as string[]) : [];
-    };
-    const saveLocal = (days: string[]): void => {
-      safeSet(VISIT_DAYS_KEY, JSON.stringify(days.slice(-MAX_DAYS)));
-    };
-    const now = new Date();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const today = `${now.getFullYear()}-${m}-${day}`;
-    const localDays = readLocal();
-    if (!localDays.includes(today)) {
-      localDays.push(today);
-      saveLocal(localDays);
+    if (authLoading) return undefined;
+
+    const uid = user?.uid;
+    const key = visitDaysStorageKey(uid);
+    const localDays = readVisitDays(key);
+    // One-time migration from the old device-wide key. It must run for guests too,
+    // otherwise a guest's streak silently resets to zero on the first load.
+    const migratedKey = 'fiqh_visit_days_migrated';
+    if (safeGet(migratedKey) !== '1') {
+      const legacyDays = readVisitDays(LEGACY_VISIT_DAYS_KEY);
+      if (legacyDays.length) localDays.push(...legacyDays);
+      safeSet(migratedKey, '1');
     }
-    if (!user || authLoading) return;
-    // دمج أيام الأجهزة الأخرى من السحابة حتى لا تصفر السلسلة بتغيير الجهاز
-    const uid = user.uid;
+
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${now.getFullYear()}-${month}-${day}`;
+    if (!localDays.includes(today)) localDays.push(today);
+    saveVisitDays(key, localDays);
+
+    if (!uid) return undefined;
+
     let cancelled = false;
-    (async () => {
+    let unsubscribe: (() => void) | undefined;
+    void (async () => {
       try {
-        const { fetchUserData, syncVisitDays } = await import('../firebase/services');
-        const cloud = await fetchUserData(uid);
+        const [{ getFirestore }, fs] = await Promise.all([
+          import('../firebase/config'),
+          import('firebase/firestore'),
+        ]);
+        const { db } = await getFirestore();
         if (cancelled) return;
-        const merged = Array.from(new Set([...(cloud.visits || []), ...readLocal()]))
-          .sort()
-          .slice(-MAX_DAYS);
-        saveLocal(merged);
-        await syncVisitDays(uid, merged);
-      } catch (err) {
-        // النسخة المحلية كافية للعرض — نسجّل الخطأ للمراقبة فقط
-        try {
-          const { logError } = await import('../utils/logError');
-          logError('visits.sync', err);
-        } catch { /* تجاهل */ }
+        const visitsRef = fs.doc(db, 'users', uid, 'data', 'visits');
+        unsubscribe = fs.onSnapshot(visitsRef, (snapshot) => {
+          if (cancelled) return;
+          const cloudDays = snapshot.exists() && Array.isArray(snapshot.data().items)
+            ? (snapshot.data().items as unknown[]).filter((value): value is string => typeof value === 'string')
+            : [];
+          const merged = Array.from(new Set([...readVisitDays(key), ...cloudDays])).sort().slice(-MAX_DAYS);
+          saveVisitDays(key, merged);
+          if (!snapshot.exists() || merged.length !== cloudDays.length || merged.some((value, index) => value !== cloudDays[index])) {
+            void fs.setDoc(visitsRef, { items: merged }, { merge: true })
+              .catch((error) => logError('visits.sync', error));
+          }
+        }, (error) => {
+          if (!cancelled) logError('visits.listen', error);
+        });
+      } catch (error) {
+        if (!cancelled) logError('visits.listen', error);
       }
     })();
-    // إلغاء الدمج المتأخر عند تبديل المستخدم — حتى لا تلوّث أيام حساب قديم بيانات الجديد
+
     return () => {
       cancelled = true;
+      unsubscribe?.();
     };
-  }, [user, authLoading]);
+  }, [user?.uid, authLoading]);
 }
+
+export const VISIT_DAYS_UPDATED_EVENT = VISIT_DAYS_EVENT;
