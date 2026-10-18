@@ -190,6 +190,7 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
+        data-selectable="body-text"
         className="custom-card p-4 p-md-5 mb-4 shadow-sm explanation-card position-relative parchment-texture"
       >
         <div className="position-absolute top-0 start-0 m-3 d-flex gap-2">

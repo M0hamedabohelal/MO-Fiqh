@@ -358,6 +358,7 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        data-selectable="body-text"
         className={`custom-card p-4 p-md-5 mb-4 position-relative shadow-sm manuscript-frame parchment-texture ${styles.cardContainer}`}
       >
         <div className="position-absolute top-0 start-0 m-3 d-flex gap-2">

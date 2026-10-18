@@ -49,6 +49,18 @@ interface QuoteImageState {
   text: string;
 }
 
+// البوب-أب (حفظ كفائدة / صورة) لا يظهر إلا داخل نص المتن أو تعليق الشيخ،
+// لا في عناوين الصفحة أو الشارات أو الملاحظات أو بطاقات الأدوات.
+const BODY_TEXT_SELECTOR = '[data-selectable="body-text"]';
+
+function isInsideBodyText(range: Range): boolean {
+  const toElement = (node: Node): Element | null =>
+    node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+  const start = toElement(range.startContainer);
+  const end = toElement(range.endContainer);
+  return Boolean(start?.closest(BODY_TEXT_SELECTOR) && end?.closest(BODY_TEXT_SELECTOR));
+}
+
 // شاشة القراءة: نص المسألة + شرح الشيخ + الفيديو + الملاحظات والأدوات التفاعلية
 const ReadingView = () => {
   const {
@@ -109,7 +121,7 @@ const ReadingView = () => {
     const text = selection ? selection.toString().trim() : '';
     if (text.length > 5) {
       const range = selection ? selection.getRangeAt(0) : null;
-      if (!range) {
+      if (!range || !isInsideBodyText(range)) {
         setSelectionPopup({ show: false, text: '', x: 0, y: 0, below: false });
         return;
       }
