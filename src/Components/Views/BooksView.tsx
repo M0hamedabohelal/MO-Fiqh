@@ -1,11 +1,11 @@
 import { memo } from 'react';
-import { FiBook, FiCheckCircle, FiStar, FiGitBranch, FiFlag } from 'react-icons/fi';
+import { FiBook, FiCheckCircle, FiGitBranch, FiFlag } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useApp } from '../Layout/AppContext';
 
 // شاشة فهرس الكتب — كل كتاب بغلاف بصري + إحصاءات التقدم
 const BooksView = memo(() => {
-  const { booksWithStats: books, lessons, newLessonsCount: newCount, openBookChapters: onOpenBook, openMindMap: onOpenMindMap, stopMarks, openLessonById, cloudStatus } = useApp();
+  const { booksWithStats: books, lessons, openBookChapters: onOpenBook, openMindMap: onOpenMindMap, stopMarks, openLessonById, cloudStatus } = useApp();
   const lessonTitle = (id: string | undefined): string | null => {
     if (!id) return null;
     const l = lessons.find((x) => String(x.id) === String(id));
@@ -24,14 +24,6 @@ const BooksView = memo(() => {
         <FiGitBranch className="ms-1" size={16} /> الخريطة الذهنية
       </button>
     </div>
-    {newCount > 0 && (
-      <div className="custom-card p-3 mb-4 d-flex align-items-center gap-2 shadow-sm" style={{ borderRight: '4px solid var(--accent-color)' }}>
-        <FiStar size={20} className="flex-shrink-0" style={{ color: 'var(--accent-color)' }} />
-        <span className="small fw-bold" style={{ color: 'var(--text-main)' }}>
-          {newCount} {newCount === 1 ? 'مسألة جديدة' : newCount === 2 ? 'مسألتان جديدتان' : 'مسائل جديدة'} أُضيفت خلال آخر أسبوع
-        </span>
-      </div>
-    )}
     <div className="row px-1">
       {books.map(({ bookName, issuesCount, readCount, progressPercent }) => (
         <div className="col-6 col-md-4 mb-4 px-2" key={bookName}>
