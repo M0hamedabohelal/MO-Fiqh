@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiAward, FiChevronLeft, FiRefreshCw } from 'react-icons/fi';
 import { useApp } from '../Layout/AppContext';
+import GuestAccountCard from '../UI/GuestAccountCard';
 
 // شاشة الإعدادات وحول التطبيق
 const SettingsView = () => {
@@ -54,6 +55,7 @@ const SettingsView = () => {
 
   return (
   <div className="mt-4 mb-5 text-center">
+    <GuestAccountCard />
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
       حول التطبيق والإعدادات
     </h3>

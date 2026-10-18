@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { FiBook, FiCheckCircle, FiGitBranch, FiFlag } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useApp } from '../Layout/AppContext';
+import GuestAccountCard from '../UI/GuestAccountCard';
 
 // شاشة فهرس الكتب — كل كتاب بغلاف بصري + إحصاءات التقدم
 const BooksView = memo(() => {
@@ -13,6 +14,7 @@ const BooksView = memo(() => {
   };
   return (
   <div className="mt-4">
+    <GuestAccountCard />
     <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
       <h3 className="mb-0 fw-bold" style={{ color: 'var(--primary-color)' }}><FiBook className="ms-2" /> فهرس الكتب</h3>
       <button
