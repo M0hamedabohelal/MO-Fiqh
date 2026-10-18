@@ -1,6 +1,6 @@
 import { FiBook, FiList, FiFileText, FiSearch, FiSettings, FiBookmark, FiEdit3, FiUser, FiShield, FiDownload, FiAward } from 'react-icons/fi';
 import type { User } from 'firebase/auth';
-import logo from '../../assets/logo.webp';
+import logo from '../../assets/logo-circle.webp';
 import './Slider.css';
 
 interface SliderProps {

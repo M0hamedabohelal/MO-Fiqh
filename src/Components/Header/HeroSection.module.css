@@ -234,6 +234,7 @@
   position: relative;
   z-index: 2;
   object-fit: contain;
+  border-radius: 50%;
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.08));
   animation: floatLogo 6s ease-in-out infinite;
 }

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import logo from '../../assets/logo.webp';
+import logo from '../../assets/logo-circle.webp';
 
 interface SplashScreenProps {
   visible: boolean;
@@ -44,7 +44,7 @@ const SplashScreen = ({ visible }: SplashScreenProps) => (
             style={{
               width: '110px',
               height: '110px',
-              borderRadius: '24px',
+              borderRadius: '50%',
               boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
               objectFit: 'contain',
             }}

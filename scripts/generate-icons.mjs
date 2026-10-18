@@ -1,24 +1,28 @@
-// توليد أيقونات PWA من اللوجو SVG (يُنفذ مرة واحدة: npm run icons)
+// توليد أيقونات PWA من الشعار الدائري (يُنفذ مرة واحدة: npm run icons)
+// المصدر يُنتَج من scripts/build-brand-assets.mjs
 import sharp from 'sharp';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const src = join(root, 'public', 'favicon.svg');
+const src = join(root, 'src', 'assets', 'logo-circle.webp');
 const outDir = join(root, 'public', 'icons');
+
+// خلفية داكنة مطابقة لثيم التطبيق (#101414) بدل الأبيض
+const DARK = '#101414';
 
 await mkdir(outDir, { recursive: true });
 
 const jobs = [
-  // أيقونات عادية بخلفية شفافة
+  // أيقونات عادية بخلفية شفافة (الشعار دائري فتظهر زوايا شفافة)
   { name: 'pwa-192.png', size: 192, background: undefined },
   { name: 'pwa-512.png', size: 512, background: undefined },
-  // أيقونات maskable بخلفية بيضاء وشعار مصغّر في منطقة الأمان
-  { name: 'maskable-192.png', size: 192, background: '#ffffff', scale: 0.72 },
-  { name: 'maskable-512.png', size: 512, background: '#ffffff', scale: 0.72 },
+  // أيقونات maskable: خلفية داكنة + الشعار داخل منطقة الأمان (80%)
+  { name: 'maskable-192.png', size: 192, background: DARK, scale: 0.72 },
+  { name: 'maskable-512.png', size: 512, background: DARK, scale: 0.72 },
   // أيقونة iOS (لا تدعم الشفافية)
-  { name: 'apple-touch-icon.png', size: 180, background: '#ffffff', scale: 0.84 },
+  { name: 'apple-touch-icon.png', size: 180, background: DARK, scale: 0.84 },
 ];
 
 for (const { name, size, background, scale = 1 } of jobs) {

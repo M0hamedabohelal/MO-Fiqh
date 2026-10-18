@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FiChevronLeft, FiChevronRight, FiDownload, FiUser, FiYoutube, FiBookOpen } from 'react-icons/fi';
 import type { User } from 'firebase/auth';
-import logo from '../../assets/logo.webp';
+import logo from '../../assets/logo-circle.webp';
 import styles from './HeroSection.module.css';
 
 const slides = [
