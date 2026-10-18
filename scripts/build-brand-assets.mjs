@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(root, 'src', 'assets', 'logo1.jpg');
 const OUT_LOGO = join(root, 'src', 'assets', 'logo-circle.webp');
-const OUT_OG = join(root, 'public', 'og-image.png');
+const OUT_OG = join(root, 'public', 'og-image.jpg');
 
 const DARK_BG = { r: 16, g: 20, b: 20, alpha: 1 }; // #101414 — نفس theme-color
 
@@ -98,12 +98,12 @@ const roundOg = await sharp(SRC)
 
 await sharp({ create: { width: OG, height: OG, channels: 4, background: DARK_BG } })
   .composite([{ input: roundOg, top: Math.round((OG - OG_LOGO) / 2), left: Math.round((OG - OG_LOGO) / 2) }])
-  .png({ compressionLevel: 9 })
+  .jpeg({ quality: 82 })
   .toFile(OUT_OG);
-console.log('✓ og-image.png');
+console.log('✓ og-image.jpg');
 
 // ─── ٤) أيقونة المتصفح SVG (الشعار مدمج base64 — يعمل بلا ملفات إضافية) ───
-const FAV = 128;
+const FAV = 64;
 const favPng = await sharp(SRC)
   .extract(crop)
   .resize(FAV, FAV, { fit: 'cover' })

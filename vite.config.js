@@ -38,7 +38,8 @@ export default defineConfig(({ mode }) => ({
         // كل ملفات التطبيق تُخزَّن مسبقاً للعمل أوفلاين (بدون PDF الكبير وصور المشاركة)
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // حزمة الإدارة (~30KB) لغير المشرفين: تُحمَّل عند الطلب فقط (الإدارة تحتاج إنترنت أصلًا)
-        globIgnores: ['**/og-image.png', '**/AdminPanel-*.js'],
+        // أيقونتا 512 تُجلبان من المانيفست عند التثبيت فقط — استثناؤهما يوفّر ~660KB من الـ precache
+        globIgnores: ['**/og-image.jpg', '**/icons/pwa-512.png', '**/icons/maskable-512.png', '**/AdminPanel-*.js'],
         navigateFallback: '/index.html',
         runtimeCaching: [
           {
