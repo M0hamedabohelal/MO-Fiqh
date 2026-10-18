@@ -24,7 +24,6 @@ import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
 import { safeGet, safeSet, safeRemove } from './utils/safeStorage';
 import { recordStopMarkTouch, pickLatestStopMarkId, readStopMarkTouchedAt } from './utils/stopMarkRecency';
-import { useNewBadge }         from './hooks/useNewBadge';
 import { useVisitTracking }    from './hooks/useVisitTracking';
 import { useSyncedPreferences } from './hooks/useSyncedPreferences';
 import { useSplash }           from './hooks/useSplash';
@@ -282,8 +281,7 @@ function App() {
     }
   }, [user, authLoading]);
 
-  // ─── شارة "جديد" + سلسلة المواظبة: منطق مستخرج لخطافات مستقلة ───
-  const { newLessonIds, newLessonsCount } = useNewBadge(lessons, readLessons);
+  // ─── سلسلة المواظبة: منطق مستخرج لخطاف مستقل ───
   useVisitTracking(user, authLoading);
 
   // ─── تسريع التنقل: تحميل شاشات التطبيق مسبقًا عند الخمول ───
@@ -335,8 +333,6 @@ function App() {
     onOpenLogin: () => setIsLoginOpen(true),
     reloadFromCloud,
     currentSearchQuery,
-    newLessonIds,
-    newLessonsCount,
     lessonsCount: lessons.length,
   };
 

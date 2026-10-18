@@ -730,26 +730,6 @@
   }
 }
 
-/* ==================== شارة "جديد" للمسائل المضافة حديثًا ==================== */
-.new-badge {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-weight: 800;
-  font-family: var(--font-ui);
-  color: #fff;
-  background: linear-gradient(135deg, #27ae60, #2ecc71);
-  padding: 1px 10px 3px;
-  border-radius: 999px;
-  line-height: 1.6;
-  box-shadow: 0 2px 6px rgba(39, 174, 96, 0.4);
-  white-space: nowrap;
-}
-
-[data-theme="dark"] .new-badge {
-  color: #06281a;
-  background: linear-gradient(135deg, #2ecc71, #7bed9f);
-}
-
 /* ==================== عنوان القراءة اللاصق (فون) ==================== */
 .reading-sticky-title {
   position: fixed;

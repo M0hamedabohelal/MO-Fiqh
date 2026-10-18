@@ -28,7 +28,6 @@ const LessonsView = memo(() => {
     selectedBookName: bookName,
     selectedBookChapters: chapters,
     openLessonById,
-    newLessonIds,
   } = useApp();
   const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
   return (
@@ -83,7 +82,6 @@ const LessonsView = memo(() => {
                   title={lesson.title}
                   pageNumber={lesson.pageNumber}
                   isRead={lesson.isRead}
-                  isNew={newLessonIds && newLessonIds.has(String(lesson.id))}
                   onClick={() => onSelectLesson(lesson)}
                 />
               </motion.div>

@@ -5,20 +5,18 @@ interface LessonListItemProps {
   title: string;
   pageNumber?: string;
   isRead?: boolean;
-  isNew?: boolean;
   onClick: () => void;
   variant?: 'toc';
 }
 
-// زر المسألة الموحد في فهرس الأبواب والمسائل (شارة مقروء + شارة جديد + عنوان + رقم صفحة)
+// زر المسألة الموحد في فهرس الأبواب والمسائل (شارة مقروء + عنوان + رقم صفحة)
 // variant="toc": صف فهرس تراثي (عنوان + نقاط + رقم الصفحة) لصفحة الأبواب
-const LessonListItem = ({ title, pageNumber, isRead, isNew, onClick, variant }: LessonListItemProps) => {
+const LessonListItem = ({ title, pageNumber, isRead, onClick, variant }: LessonListItemProps) => {
   if (variant === 'toc') {
     return (
       <button className="toc-row" onClick={onClick}>
         <span className="toc-title">
           {isRead && <FiCheckCircle size={15} className="lesson-read-badge flex-shrink-0" />}
-          {isNew && !isRead && <span className="new-badge flex-shrink-0">جديد</span>}
           {title}
         </span>
         <span className="toc-dots" aria-hidden="true" />
@@ -33,7 +31,6 @@ const LessonListItem = ({ title, pageNumber, isRead, isNew, onClick, variant }: 
   >
     <span className="d-flex align-items-center gap-2">
       {isRead && <FiCheckCircle size={16} className="lesson-read-badge flex-shrink-0" />}
-      {isNew && !isRead && <span className="new-badge flex-shrink-0">جديد</span>}
       {title}
     </span>
     <span className="d-flex align-items-center gap-3">

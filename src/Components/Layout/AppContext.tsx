@@ -65,8 +65,6 @@ export interface AppContextValue {
   onOpenLogin: () => void;
   reloadFromCloud: () => Promise<void>;
   currentSearchQuery: string;
-  newLessonIds: Set<string>;
-  newLessonsCount: number;
   lessonsCount: number;
 }
 

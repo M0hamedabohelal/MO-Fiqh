@@ -37,7 +37,6 @@ const ChaptersView = () => {
     openChapterName,
     toggleChapter: onToggleChapter,
     openLessonById,
-    newLessonIds,
     cloudStatus,
   } = useApp();
   const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
@@ -107,7 +106,6 @@ const ChaptersView = () => {
                         title={lesson.title}
                         pageNumber={lesson.pageNumber}
                         isRead={lesson.isRead}
-                        isNew={newLessonIds && newLessonIds.has(String(lesson.id))}
                         onClick={() => onSelectLesson(lesson)}
                       />
                     ))}
