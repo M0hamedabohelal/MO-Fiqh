@@ -3,7 +3,7 @@ import type { SetStateAction } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
 import { safeSet, safeRemove } from '../utils/safeStorage';
 import { clearStopMarkTouchedAt } from '../utils/stopMarkRecency';
-import { mergeLibraries, mergeTombs, emptyTombs, cleanTombs, applyTombsToMerged, pruneTombs } from '../utils/mergeLibrary';
+import { mergeLibraries, mergeTombs, emptyTombs, cleanTombs, applyTombsToMerged, pruneTombs, dropStaleTombs } from '../utils/mergeLibrary';
 import type { TombstoneMap } from '../utils/mergeLibrary';
 import { logError } from '../utils/logError';
 import type { HighlightItem, UserLibraryData } from '../types';
@@ -385,6 +385,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
         unsub = fsMod.onSnapshot(colRef, (snap) => {
           const cloud: { bookmarks: string[]; highlights: HighlightItem[]; notes: Record<string, string>; readLessons: string[]; stopMarks: Record<string, string> } =
             { bookmarks: [], highlights: [], notes: {}, readLessons: [], stopMarks: {} };
+          let cloudTombs: unknown = null;
           snap.forEach((d) => {
             const v = d.data() as Record<string, unknown>;
             if (d.id === 'bookmarks' && Array.isArray(v.items)) cloud.bookmarks = (v.items as unknown[]).map(String);
@@ -392,7 +393,18 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
             else if (d.id === 'notes' && v.notes && typeof v.notes === 'object') cloud.notes = v.notes as Record<string, string>;
             else if (d.id === 'readLessons' && Array.isArray(v.items)) cloud.readLessons = (v.items as unknown[]).map(String);
             else if (d.id === 'stopMarks' && v.marks && typeof v.marks === 'object') cloud.stopMarks = v.marks as Record<string, string>;
+            else if (d.id === 'tombstones' && v.tombs && typeof v.tombs === 'object') cloudTombs = v.tombs;
           });
+
+          // شواهد السحابة تُحدَّث لحظيًا أيضًا — لا تُقرأ عند الدخول فقط.
+          // ثم نُسقط الشواهد "العالقة": شاهد يعيق عنصرًا ما زال في السحابة = بلا أساس
+          // (أُلغيت إعادته من جهاز آخر) — بدونه يستمر الجهاز بإسقاط الوارد ثم يعيد
+          // تسجيل حذفه ويدمّر ما رفعه الآخر: بالضبط علامة التوقف "التي لا تنتقل".
+          if (cloudTombs) {
+            tombRef.current = mergeTombs(tombRef.current, cleanTombs(cloudTombs));
+          }
+          tombRef.current = dropStaleTombs(tombRef.current, cloud);
+          persistTombs(user.uid);
 
           // منع حلقة الصدى: إذا كانت البيانات القادمة من السحابة مطابقة لما كتبناه للتو، نتجاهلها
           if (lastWrittenRef.current && snapshotsEqual(cloud, lastWrittenRef.current)) {
@@ -473,7 +485,7 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       }
     })();
     return () => { cancelled = true; if (unsub) unsub(); };
-  }, [user, isSyncReady, onStatus]);
+  }, [user, isSyncReady, onStatus, persistTombs]);
 
   // الدوال المساعدة للتحكم بالبيانات (المعرفات كنصوص دائمًا)
   // كل تعديل صادر عن المستخدم يوسم قسمه "معدّلًا" — فيُحمى من الاستبدال القادم من مستمع الأجهزة

@@ -87,10 +87,25 @@ function App() {
     }
   }, [lessons, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // علامات التوقف المؤهلة للعرض فقط: ما يشير إلى مسألة موجودة فعلًا.
+  // ملاحظة حرجة: نُصفّي هنا ولا نحذف من `stopMarks` — الحذف يُحوَّل إلى "شاهد حذف" دائم
+  // يُزامن سحابيًا فيُفقد العلامة على كل الأجهزة بلا رجعة. الإسقاط عرضي، والسحابة تنظف نفسها.
+  const validStopMarks = useMemo(() => {
+    if (lessons.length === 0) return stopMarks;
+    const validIds = new Set(lessons.map((l: Lesson) => String(l.id)));
+    let dropped = false;
+    const out: Record<string, string> = {};
+    Object.entries(stopMarks || {}).forEach(([book, id]) => {
+      if (validIds.has(String(id))) out[book] = id;
+      else dropped = true;
+    });
+    return dropped ? out : stopMarks;
+  }, [lessons, stopMarks]);
+
   // مزامنة lastReadLessonId مع علامات التوقف النشطة (لتحديث زر أكمل القراءة فوراً عبر الأجهزة)
   // ضبط متزامن مقصود مع حالة خارجية (السحابة عبر stopMarks) — يتوقف ذاتيًا خلال دورتين كحد أقصى
   useEffect(() => {
-    const markIds = Object.values(stopMarks).filter(Boolean);
+    const markIds = Object.values(validStopMarks).filter(Boolean);
     if (markIds.length === 0) {
       if (lastReadLessonId && user) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -101,26 +116,11 @@ function App() {
     }
     if (!lastReadLessonId || !markIds.includes(lastReadLessonId)) {
       // الأحدث زمنيًا (بختم اللمسة المحلي)، وعند غياب السجل نرجع لآخر قيمة كالسابق
-      const latest = pickLatestStopMarkId(stopMarks, readStopMarkTouchedAt()) ?? markIds[markIds.length - 1];
+      const latest = pickLatestStopMarkId(validStopMarks, readStopMarkTouchedAt()) ?? markIds[markIds.length - 1];
       setLastReadLessonId(latest);
       safeSet('lastReadLessonId', latest);
     }
-  }, [stopMarks, lastReadLessonId, user]);
-
-  // تنظيف: إسقاط علامات تشير لمسائل حُذفت — فقط بعد تحميل سحابي مؤكد،
-  // فالتقليم على لقطة محلية قديمة كان يحذف علامات صحيحة (لمسائل أُضيفت سحابيًا) ويسمّمها بالشواهد
-  useEffect(() => {
-    if (!cloudLessonsLoaded) return;
-    if (lessons.length === 0 || Object.keys(stopMarks).length === 0) return;
-    const validIds = new Set(lessons.map((l: Lesson) => String(l.id)));
-    const pruned = Object.fromEntries(
-      Object.entries(stopMarks).filter(([, id]) => validIds.has(String(id))),
-    );
-    if (Object.keys(pruned).length !== Object.keys(stopMarks).length) {
-      setStopMarks(pruned);
-    }
-    // يُعاد عند وصول علامات السحابة متأخرةً أيضًا — يتوقف ذاتيًا عند عدم وجود فرق
-  }, [lessons, stopMarks, cloudLessonsLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [validStopMarks, lastReadLessonId, user]);
 
   // ─── بيانات مشتقة للفهرس ───
   const chaptersWithIssues = useMemo(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeLibraries, emptyTombs, mergeTombs, applyTombsToMerged, pruneTombs, threeWayMergeMaps, normalizeNoteMap } from './mergeLibrary';
+import { mergeLibraries, emptyTombs, mergeTombs, applyTombsToMerged, pruneTombs, threeWayMergeMaps, normalizeNoteMap, dropStaleTombs } from './mergeLibrary';
 
 describe('mergeLibraries', () => {
   it('يوحّد المعرفات رقم/نص ويزيل التكرار', () => {
@@ -131,5 +131,56 @@ describe('tombstones', () => {
     const tombs = { ...emptyTombs(), bookmarks: { '1': 1, '9': 2 } };
     const pruned = pruneTombs(tombs, { ...base, bookmarks: ['1'] });
     expect(pruned.bookmarks).toEqual({ '9': 2 });
+  });
+});
+
+describe('dropStaleTombs', () => {
+  const present = {
+    bookmarks: ['1'],
+    highlights: [],
+    notes: { 'م': 'ملاحظة' },
+    readLessons: [],
+    stopMarks: { 'الطهارة': '5' },
+  };
+
+  it('يسقط الشاهد الذي يعيق عنصرًا ما زال قائمًا في السحابة (عالق بلا أساس)', () => {
+    const now = Date.now();
+    const tombs = {
+      ...emptyTombs(),
+      bookmarks: { '1': now - 60000 },
+      stopMarkKeys: { 'الطهارة': now - 60000 },
+      noteKeys: { 'م': now - 60000 },
+    };
+    const out = dropStaleTombs(tombs, present, 10000, now);
+    expect(out.bookmarks).toEqual({});
+    expect(out.stopMarkKeys).toEqual({});
+    expect(out.noteKeys).toEqual({});
+  });
+
+  it('يحترم الشاهد الحديث (حذفة محلية لم تُرفع بعد) فلا يُلغى', () => {
+    const now = Date.now();
+    const tombs = { ...emptyTombs(), bookmarks: { '1': now - 1000 } };
+    const out = dropStaleTombs(tombs, present, 10000, now);
+    expect(out.bookmarks).toEqual({ '1': now - 1000 });
+  });
+
+  it('يُبقي الشواهد التي لا يعيقها عنصر قائم (حذف صحيح)', () => {
+    const now = Date.now();
+    const tombs = { ...emptyTombs(), bookmarks: { '2': now - 60000 } };
+    const out = dropStaleTombs(tombs, present, 10000, now);
+    expect(out.bookmarks).toEqual({ '2': now - 60000 });
+  });
+
+  it('يطابق أقسام الخرائط والمصفوفات معًا', () => {
+    const now = Date.now();
+    const tombs = {
+      ...emptyTombs(),
+      readLessons: { '7': now - 60000 },
+      highlightIds: { 'h1': now - 60000 },
+    };
+    const withHl = { ...present, readLessons: ['7'], highlights: [{ id: 'h1', lessonId: '7', text: 'نص' }] as never[] };
+    const out = dropStaleTombs(tombs, withHl, 10000, now);
+    expect(out.readLessons).toEqual({});
+    expect(out.highlightIds).toEqual({});
   });
 });

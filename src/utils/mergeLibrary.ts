@@ -148,6 +148,35 @@ export function mergeTombs(a: TombstoneMap, b: TombstoneMap): TombstoneMap {
   return out;
 }
 
+// ─── إسقاط الشواهد "العالقة" ───
+// المشكلة: شاهد حذف مسجَّل يبقى عالقًا في ذاكرة جهاز، فيستمر بإسقاط عنصر قادم من
+// جهاز آخر (كعلامة توقف "لا تنتقل") ثم يعيد تسجيل حذفه ويُعيد ما رفعه الجهاز الأول —
+// حلقة محو ذاتية. العلامة: الشاهد يعيق عنصرًا ما زال قائمًا في السحابة = بلا أساس
+// (أُلغيت إعادته من جهاز آخر فنُزع شاهده هنالك).
+// تُحترم الشواهد الحديثة (أقل من graceMs) حتى لا تُلغى حذفة محلية لم تُرفع بعد
+// (نافذة الـ250ms قبل الرفع) فتعود بالخطأ.
+export function dropStaleTombs(
+  tombs: TombstoneMap,
+  present: LibraryState,
+  graceMs = 10000,
+  now = Date.now(),
+): TombstoneMap {
+  const t = cleanTombs(tombs);
+  const sets = {
+    bookmarks: new Set(asStrings(present.bookmarks)),
+    readLessons: new Set(asStrings(present.readLessons)),
+    highlightIds: new Set((present.highlights || []).map((h) => String(h.id ?? h.text))),
+    noteKeys: new Set(Object.keys(present.notes || {})),
+    stopMarkKeys: new Set(Object.keys(present.stopMarks || {})),
+  };
+  (Object.keys(t) as Array<keyof TombstoneMap>).forEach((section) => {
+    Object.entries(t[section]).forEach(([k, ts]) => {
+      if (sets[section].has(k) && now - ts > graceMs) delete t[section][k];
+    });
+  });
+  return t;
+}
+
 // إسقاط المشهود بحذفه من المدمج — إلا ما هو موجود محليًا (إعادة إضافة تُلغي الشاهد)
 export function applyTombsToMerged(merged: LibraryState, local: LibraryState, tombs: TombstoneMap): LibraryState {
   const t = cleanTombs(tombs);
