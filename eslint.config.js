@@ -31,4 +31,17 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: ['**/*.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: globals.node,
+    },
+    rules: {
+      // نمط إسقاط مفاتيح عبر الباقي (const { _docId, ...rest } = obj) — يشيع في السكربتات
+      'no-unused-vars': ['error', { ignoreRestSiblings: true }],
+    },
+  },
 ])

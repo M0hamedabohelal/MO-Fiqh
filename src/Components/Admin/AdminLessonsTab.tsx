@@ -10,6 +10,7 @@ import {
   createLesson, updateLesson, deleteLessonById, bulkCreateLessons,
 } from '../../firebase/services';
 import { validateLessonForm, cleanLessonForm, filterValidBulkLessons } from '../../utils/validateLesson';
+import { CLOUDINARY_UPLOAD_URL, CLOUDINARY_UPLOAD_PRESET, validateUploadFile } from '../../utils/cloudinary';
 import QuoteCard from '../Content/QuoteCard';
 import ExplanationCard from '../Content/ExplanationCard';
 import { inputStyle } from './AdminStyles';
@@ -130,13 +131,20 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const invalid = validateUploadFile(file);
+    if (invalid) {
+      flash('error', invalid);
+      e.target.value = '';
+      return;
+    }
+
     setUploadingMedia(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "fiqh_preset");
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
 
     try {
-      const res = await fetch("https://api.cloudinary.com/v1_1/dzk4hgpq/auto/upload", {
+      const res = await fetch(CLOUDINARY_UPLOAD_URL, {
         method: "POST",
         body: formData,
       });
@@ -170,12 +178,18 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
   const uploadAudioToCloudinary = async (e: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const invalid = validateUploadFile(file);
+    if (invalid) {
+      flash('error', invalid);
+      e.target.value = '';
+      return;
+    }
     setUploadingAudio(true);
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'fiqh_preset');
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     try {
-      const res = await fetch('https://api.cloudinary.com/v1_1/dzk4hgpq/auto/upload', {
+      const res = await fetch(CLOUDINARY_UPLOAD_URL, {
         method: 'POST',
         body: formData,
       });
@@ -525,7 +539,8 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
                     style={{ borderRadius: '8px' }}
                     onClick={() => {
                       setForm(prev => ({ ...prev, mediaUrl: '', mediaType: '' }));
-                      (document.getElementById('cloudinaryFileInput') as HTMLInputElement).value = '';
+                      const input = document.getElementById('cloudinaryFileInput');
+                      if (input instanceof HTMLInputElement) input.value = '';
                     }}
                   >
                     <FiTrash2 className="me-1" /> إزالة

@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import { glossaryData } from '../src/data/glossary.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 function loadEnv() {
@@ -46,15 +45,13 @@ let titleOccurrences = 0;
 
 for (const l of lessons) {
   const text = l.mainText || '';
-  for (const [pi, paragraphRaw] of text.split('\n').entries()) {
+  for (const paragraphRaw of text.split('\n')) {
     const paragraph = (paragraphRaw || '').trim();
     if (!paragraph) continue;
     const colonIndex = paragraph.indexOf(':');
     let titlePart = '';
-    let bodyPart = paragraph;
     if (colonIndex !== -1 && colonIndex < 80) {
       titlePart = paragraph.substring(0, colonIndex + 1);
-      bodyPart = paragraph.substring(colonIndex + 1);
     }
     for (const term of terms) {
       const nterm = norm(term);

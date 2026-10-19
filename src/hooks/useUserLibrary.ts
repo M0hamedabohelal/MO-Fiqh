@@ -10,7 +10,6 @@ import type { HighlightItem, UserLibraryData } from '../types';
 import {
   syncBookmarks,
   syncHighlights,
-  syncNote,
   syncAllNotes,
   syncReadLessons,
   syncStopMarks,
@@ -356,10 +355,13 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     // base للدمج الثلاثي: آخر حالة مكتوبة بنجاح (غيابها = أول رفع: كل المحلي جديد)
     const base = lastWrittenRef.current ?? { bookmarks: [], highlights: [], notes: {}, readLessons: [], stopMarks: {} };
     if (syncTimer.current) clearTimeout(syncTimer.current);
+    let cancelled = false;
     syncTimer.current = setTimeout(() => {
       onStatus?.('syncing');
       mergeAndSyncLibrary(uid, snapshot, base, tombs)
         .then(({ data, tombs }) => {
+          // حارس تبديل الحساب/الإلغاء: نتيجة حساب سابق لا تلوّث حالة/مرجع حساب آخر
+          if (cancelled || prevUidRef.current !== uid) return;
           tombRef.current = tombs;
           persistTombs(uid);
           lastWrittenRef.current = data;
@@ -376,11 +378,13 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
           onStatus?.('synced');
         })
         .catch((e) => {
+          if (cancelled || prevUidRef.current !== uid) return;
           logError('userLibrary.sync', e, { section: 'merge' });
           onStatus?.('offline');
         });
     }, 250);
     return () => {
+      cancelled = true;
       if (syncTimer.current) clearTimeout(syncTimer.current);
     };
   }, [bookmarks, highlights, notes, readLessons, stopMarks, isSyncReady, user, onStatus, persistTombs]);
@@ -532,20 +536,16 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
   const saveNoteForLesson = useCallback((lessonId: string | number, text: string) => {
     const key = String(lessonId);
     dirtyRef.current.notes = true;
-    const cleanText = text.trim();
     setNotes((prev) => {
       const next = { ...prev };
-      if (!cleanText) {
+      if (!text.trim()) {
         delete next[key];
       } else {
         next[key] = text;
       }
       return next;
     });
-    if (user && isSyncReady) {
-      syncNote(user.uid, key, cleanText).catch((e) => logError('userLibrary.sync', e, { section: 'note' }));
-    }
-  }, [user, isSyncReady]);
+  }, []);
 
   const toggleReadLesson = useCallback((lessonId: string | number) => {
     dirtyRef.current.readLessons = true;

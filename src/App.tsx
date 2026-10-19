@@ -24,6 +24,7 @@ import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
 import { safeGet, safeSet, safeRemove } from './utils/safeStorage';
 import { recordStopMarkTouch, pickLatestStopMarkId, readStopMarkTouchedAt } from './utils/stopMarkRecency';
+import { createUniqueId } from './utils/uniqueId';
 import { useVisitTracking }    from './hooks/useVisitTracking';
 import { useSyncedPreferences } from './hooks/useSyncedPreferences';
 import { useSplash }           from './hooks/useSplash';
@@ -210,7 +211,7 @@ function App() {
 
   const createHighlightFromSelection = useCallback((text: string) => {
     if (!currentLesson) return;
-    addHighlight({ id: Date.now(), lessonId: currentLesson.id, bookName: currentLesson.bookName, chapterName: currentLesson.chapterName, title: currentLesson.title, text });
+    addHighlight({ id: createUniqueId('hl'), lessonId: currentLesson.id, bookName: currentLesson.bookName, chapterName: currentLesson.chapterName, title: currentLesson.title, text });
   }, [currentLesson, addHighlight]);
 
   const toggleStopMark = () => {

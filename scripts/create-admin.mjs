@@ -1,27 +1,42 @@
-// إنشاء حساب مشرف وإضافته لمجموعة الأدمن في Firestore
-// الاستخدام: node scripts/create-admin.mjs "email@example.com" "كلمة_المرور"
-// الأأمن: كلمة المرور عبر متغير البيئة ADMIN_PASSWORD حتى لا تُحفظ في سجل الأوامر
-import { readFileSync } from 'node:fs';
+// إنشاء حساب مشرف وإضافته لمجموعة الأدمن في Firestore — عبر Firebase Admin SDK.
+// السبب: قواعد Firestore ترفض كتابة مجموعة admins من العميل (allow create: if false)،
+// فالحساب يُنشأ ويُوسَم من الخادم بمفتاح حساب خدمة (يتجاوز القواعد).
+//
+// المتطلبات (مرة واحدة):
+//   1) Firebase Console ← Project Settings ← Service accounts ← Generate new private key
+//   2) احفظ الملف باسم scripts/service-account.json (مستثنى من git) — أو ضع مساره في
+//      متغير البيئة GOOGLE_APPLICATION_CREDENTIALS.
+//
+// الاستخدام:
+//   node scripts/create-admin.mjs "email@example.com" "كلمة_المرور"
+// الأأمن لكلمة المرور: مرّرها عبر ADMIN_PASSWORD بدل سطر الأوامر
+//   $env:ADMIN_PASSWORD="xxx"; node scripts/create-admin.mjs "email@example.com"
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function loadEnv() {
-  const envPath = join(__dirname, '..', '.env.local');
-  const content = readFileSync(envPath, 'utf8');
-  const env = {};
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIndex = trimmed.indexOf('=');
-    if (eqIndex === -1) continue;
-    env[trimmed.slice(0, eqIndex).trim()] = trimmed.slice(eqIndex + 1).trim();
+function loadServiceAccount() {
+  const envPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const defaultPath = join(__dirname, 'service-account.json');
+  const keyPath = envPath && existsSync(envPath) ? envPath : defaultPath;
+  if (!existsSync(keyPath)) {
+    console.error('❌ لم يُعثر على مفتاح حساب الخدمة.');
+    console.error('   نزّله من Firebase Console ← Project Settings ← Service accounts ← Generate new private key');
+    console.error(`   واحفظه في: ${defaultPath}`);
+    console.error('   أو ضع مساره في متغير البيئة GOOGLE_APPLICATION_CREDENTIALS.');
+    process.exit(1);
   }
-  return env;
+  try {
+    return JSON.parse(readFileSync(keyPath, 'utf8'));
+  } catch (err) {
+    console.error('❌ تعذّر قراءة مفتاح حساب الخدمة (JSON غير صالح؟):', err.message);
+    process.exit(1);
+  }
 }
 
 const email = process.argv[2];
@@ -32,33 +47,41 @@ if (!email || !password) {
   console.error('   أو: ADMIN_PASSWORD=xxx node scripts/create-admin.mjs "الإيميل"');
   process.exit(1);
 }
-if (password.length < 6) {
-  console.error('❌ كلمة المرور يجب ألا تقل عن 6 حروف');
+if (password.length < 8) {
+  console.error('❌ كلمة المرور يجب ألا تقل عن 8 حروف.');
   process.exit(1);
 }
 
-const env = loadEnv();
-const app = initializeApp({
-  apiKey: env.VITE_FIREBASE_API_KEY,
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: env.VITE_FIREBASE_APP_ID,
-});
+const serviceAccount = loadServiceAccount();
 
-const auth = getAuth(app);
-const db = getFirestore(app);
+if (getApps().length === 0) {
+  initializeApp({ credential: cert(serviceAccount), projectId: serviceAccount.project_id });
+}
+const auth = getAuth();
+const db = getFirestore();
 
 try {
-  const cred = await createUserWithEmailAndPassword(auth, email, password);
-  await setDoc(doc(db, 'admins', cred.user.uid), {
-    email,
-    createdAt: new Date().toISOString(),
-  });
-  console.log('✅ تم إنشاء حساب المشرف بنجاح!');
+  let uid;
+  try {
+    const existing = await auth.getUserByEmail(email);
+    uid = existing.uid;
+    await auth.updateUser(uid, { password });
+    console.log('ℹ️  المستخدم موجود مسبقًا — حُدّثت كلمة المرور.');
+  } catch (err) {
+    if (err.code !== 'auth/user-not-found') throw err;
+    const cred = await auth.createUser({ email, password });
+    uid = cred.uid;
+    console.log('✅ أُنشئ مستخدم جديد.');
+  }
+
+  await db.collection('admins').doc(uid).set(
+    { email, createdAt: new Date().toISOString() },
+    { merge: true },
+  );
+
+  console.log('✅ تم تجهيز حساب المشرف بنجاح!');
   console.log('📧 الإيميل:', email);
-  console.log('🆔 UID:', cred.user.uid);
+  console.log('🆔 UID:', uid);
   process.exit(0);
 } catch (err) {
   console.error('❌ فشل الإنشاء:', err.message);

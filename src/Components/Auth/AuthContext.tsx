@@ -1,6 +1,6 @@
 // سياق المصادقة — إدارة تسجيل الدخول وحالة المستخدم في كل التطبيق
 // الـ SDK يُحمَّل مؤجلاً — أول شاشة لا تنتظر Firebase
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from 'firebase/auth';
 import { getAuthModule, isFirebaseConfigured } from '../../firebase/config';
@@ -38,6 +38,8 @@ export const useAuth = (): AuthContextValue => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  // مرجع آخر uid فعّال — يمنع نتيجة فحص مشرف متأخرة لحساب سابق من تلويث حالة الحساب الجديد
+  const currentUidRef = useRef<string | null>(null);
   // لو Firebase مش مهيأ من البداية مفيش انتظار
   const [authLoading, setAuthLoading] = useState(isFirebaseConfigured);
   const [authError, setAuthError] = useState('');
@@ -69,14 +71,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         unsubscribe = authMod.onAuthStateChanged(auth, (firebaseUser: User | null) => {
           setUser(firebaseUser);
+          currentUidRef.current = firebaseUser?.uid ?? null;
           // لا نحجب التطبيق على فحص المشرف (رحلة شبكة كاملة) — يُفحص في الخلفية
           // وتبويب الإدارة يظهر فور وصول النتيجة؛ المكتبة والمحتوى يبدآن فورًا
           if (!cancelled) setAuthLoading(false);
           if (firebaseUser) {
-            checkAdmin(firebaseUser.uid).then((adminStatus) => {
-              if (!cancelled) setIsAdminUser(adminStatus);
+            const uidAtCheck = firebaseUser.uid;
+            // إعادة تعيين فورية تمنع ظهور تبويب الإدارة خطأً أثناء فحص الحساب الجديد
+            setIsAdminUser(false);
+            checkAdmin(uidAtCheck).then((adminStatus) => {
+              // تجاهل النتيجة إن تغيّر الحساب أو أُلغي التأثير قبل وصول الرد
+              if (!cancelled && currentUidRef.current === uidAtCheck) setIsAdminUser(adminStatus);
             });
-          } else if (!cancelled) {
+          } else {
             setIsAdminUser(false);
           }
         });
@@ -186,7 +193,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshAdminStatus = useCallback(async (uid: string): Promise<boolean> => {
     if (!uid) return false;
     const status = await checkAdmin(uid);
-    setIsAdminUser(status);
+    // لا تلوّث حالة حساب جديد إن تغيّر المستخدم أثناء الفحص
+    if (currentUidRef.current === uid) setIsAdminUser(status);
     return status;
   }, []);
 

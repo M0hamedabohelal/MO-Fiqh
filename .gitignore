@@ -20,6 +20,10 @@ public/lessons/
 # نسخ Firestore الاحتياطية (قد تكون كبيرة ومتكررة — تُحفظ خارج git)
 backups/
 
+# مفاتيح حساب الخدمة (Firebase Admin SDK) — سرّية تمامًا، لا تُرفع أبدًا
+scripts/service-account.json
+service-account*.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

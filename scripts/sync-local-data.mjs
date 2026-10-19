@@ -3,7 +3,7 @@
 // فارغة لحظيًا (أو مسائل محذوفة) حتى تكتمل المزامنة.
 // الاستخدام: npm run sync:local  (بعد أي تعديل إداري واسع، وقبل النشر)
 // ملاحظة: القاموس المحلي لا يُمسّ — قد يحوي مصطلحات مقصودة غير منشورة سحابيًا.
-import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, copyFileSync, renameSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -61,18 +61,57 @@ if (bad.length > 0) {
 }
 lessons.sort((a, b) => Number(a.id) - Number(b.id));
 
+const targetPath = join(root, 'src', 'data', 'lessons.ts');
+
+// حماية من الكتابة الفارغة: سحابة فارغة/ناقصة تُفسد اللقطة المحلية الاحتياطية.
+// نرفض الكتابة إن لم تُجلب أي مسألة، أو إن كان العدد أقل بوضوح من اللقطة الحالية (تقلّص غير متوقع).
+if (lessons.length === 0) {
+  console.error('❌ السحابة أعادت صفر مسائل — رُفضت الكتابة حفاظًا على اللقطة المحلية.');
+  process.exit(1);
+}
+if (existsSync(targetPath)) {
+  const currentMatch = readFileSync(targetPath, 'utf8').match(/"id"\s*:/g);
+  const currentCount = currentMatch ? currentMatch.length : 0;
+  if (currentCount > 0 && lessons.length < currentCount * 0.5) {
+    console.error(`❌ السحابة أعادت ${lessons.length} مسألة فقط مقابل ${currentCount} محليًا (تقليص > 50%) — رُفضت الكتابة. راجع المحتوى السحابي.`);
+    process.exit(1);
+  }
+}
+
 const header = `// نسخة محلية احتياطية من المحتوى — مولّدة من السحابة عبر \`npm run sync:local\`
 // لا تحرر يدويًا: أي تعديل يدوي سيُكتب فوقه عند التوليد التالي.
 // لتعديل المحتوى استخدم لوحة الإدارة ثم أعد التوليد قبل النشر.
 import type { Lesson } from '../types';
 
 export const lessonsData: Lesson[] = `;
+const output = header + JSON.stringify(lessons, null, 2) + '\n';
+
 mkdirSync(join(root, 'src', 'data'), { recursive: true });
-writeFileSync(
-  join(root, 'src', 'data', 'lessons.ts'),
-  header + JSON.stringify(lessons, null, 2) + '\n',
-  'utf8',
-);
+
+// نسخة احتياطية مؤرخة من اللقطة الحالية قبل الكتابة فوقها (لا تُفقد عند تقليص غير متوقع)
+if (existsSync(targetPath)) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const backupPath = join(root, 'backups', `lessons-local-${stamp}.ts`);
+  try {
+    mkdirSync(join(root, 'backups'), { recursive: true });
+    copyFileSync(targetPath, backupPath);
+    console.log(`🗄️  نسخة احتياطية: backups/${backupPath.split(/[\\/]/).pop()}`);
+  } catch (err) {
+    console.error('❌ تعذّر إنشاء النسخة الاحتياطية — أُلغيت الكتابة:', err.message);
+    process.exit(1);
+  }
+}
+
+// كتابة ذرية: ملف مؤقت ثم استبدال — لو انقطعت العملية لا يُفسد الملف الأصلي
+const tmpPath = `${targetPath}.tmp`;
+try {
+  writeFileSync(tmpPath, output, 'utf8');
+  renameSync(tmpPath, targetPath);
+} catch (err) {
+  try { if (existsSync(tmpPath)) unlinkSync(tmpPath); } catch { /* تجاهل */ }
+  console.error('❌ فشلت الكتابة:', err.message);
+  process.exit(1);
+}
 
 const byBook = {};
 for (const l of lessons) {

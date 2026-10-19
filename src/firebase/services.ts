@@ -382,19 +382,6 @@ export async function fetchLessonViews(): Promise<Record<string, number>> {
   return snap.exists() ? (snap.data() as Record<string, number>) : {};
 }
 
-// حفظ ملاحظة مسألة واحدة داخل خريطة الملاحظات الكاملة
-export async function syncNote(uid: string, lessonId: string, noteText: string): Promise<void> {
-  const { db, fs } = await getDb();
-  const notesSnap = await fs.getDoc(fs.doc(await userRoot(db, fs, uid), 'notes'));
-  const currentNotes = notesSnap.exists() ? (notesSnap.data().notes as Record<string, string>) || {} : {};
-  if (!noteText || !noteText.trim()) {
-    delete currentNotes[lessonId];
-  } else {
-    currentNotes[lessonId] = noteText.trim();
-  }
-  await saveUserDataSection(db, fs, uid, 'notes', { notes: currentNotes });
-}
-
 // حفظ خريطة الملاحظات كاملة دفعة واحدة (تُستخدم عند الدمج بعد تسجيل الدخول)
 export async function syncAllNotes(uid: string, notesObject: Record<string, string>): Promise<void> {
   const { db, fs } = await getDb();

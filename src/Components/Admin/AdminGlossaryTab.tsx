@@ -54,6 +54,8 @@ const AdminGlossaryTab = ({ glossary, onDataChanged, flash }: AdminGlossaryTabPr
   };
 
   const handleDeleteTerm = async (term: string): Promise<void> => {
+    // تأكيد قبل حذف لا رجعة فيه (باقي الشاشات تستخدم تأكيدًا مزدوجًا — هنا حماية صريحة)
+    if (!window.confirm(`حذف المصطلح "${term}"؟ لا يمكن التراجع.`)) return;
     setBusy(true);
     try {
       await deleteTerm(term);

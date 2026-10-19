@@ -152,6 +152,11 @@ const ReadingView = () => {
 
   // مراجع السحب (فون)
   const touchStartRef = useRef({ x: 0, y: 0, t: 0 });
+  // مؤقت التقاط التحديد بعد اللمس — يُمسح عند الإزالة لمنع setState على مكوّن أُزيل
+  const selectionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (selectionTimerRef.current) clearTimeout(selectionTimerRef.current);
+  }, []);
 
   const handleTouchStart = (e: ReactTouchEvent<HTMLDivElement>): void => {
     if (e.touches.length === 1) {
@@ -179,7 +184,8 @@ const ReadingView = () => {
       }
     }
     // نفس المنطق للمس في الموبايل مع مهلة قصيرة لاكتمال التحديد
-    setTimeout(captureSelection, 100);
+    if (selectionTimerRef.current) clearTimeout(selectionTimerRef.current);
+    selectionTimerRef.current = setTimeout(captureSelection, 100);
   };
 
   const saveSelectionAsHighlight = (): void => {
@@ -469,7 +475,7 @@ const ReadingView = () => {
           
           <MediaCard mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} title={lesson.title} />
           <AudioCard key={`audio-${lessonId}`} audioUrl={lesson.audioUrl} title={lesson.title} startTime={lesson.startTime} endTime={lesson.endTime} />
-          <VideoCard videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} title={lesson.title} />
+          <VideoCard key={`video-${lessonId}`} videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} title={lesson.title} />
 
           {/* الميزات التفاعلية */}
           <NotesCard

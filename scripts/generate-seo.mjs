@@ -143,6 +143,15 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+// ترميز آمن لبيانات JSON-LD داخل وسم <script>: يمنع كسر الوسم عبر </script>
+// من محتوى قادم من السحابة (عنوان/وصف فيه < > &) — تهريب يونيكود بدل HTML entities
+function jsonLdString(obj) {
+  return JSON.stringify(obj)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+}
+
 const PAGE_CSS = `
   body{background:#101414;color:#e6e8e6;font-family:'Amiri',serif;margin:0;padding:2rem 1rem;line-height:2}
   .wrap{max-width:780px;margin:auto}
@@ -178,7 +187,7 @@ function head(title, desc, url, jsonld) {
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Amiri+Quran&family=Tajawal:wght@400;700&display=swap">
-<script type="application/ld+json">${JSON.stringify(jsonld)}</script>
+<script type="application/ld+json">${jsonLdString(jsonld)}</script>
 <style>${PAGE_CSS}</style>
 </head>
 <body><div class="wrap">`;

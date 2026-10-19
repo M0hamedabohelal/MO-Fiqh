@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FiChevronLeft, FiChevronRight, FiDownload, FiUser, FiYoutube, FiBookOpen } from 'react-icons/fi';
 import type { User } from 'firebase/auth';
 import logo from '../../assets/logo-circle.webp';
@@ -31,6 +31,8 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpen
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [slideVisible, setSlideVisible] = useState(true);
+  // مؤقت الانتقال اليدوي — يُمسح عند التنظيف/إعادة الضغط لمنع setState بعد الإزالة
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initial entrance animation
   useEffect(() => {
@@ -57,10 +59,16 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpen
     };
   }, []);
 
+  // مسح مؤقت الانتقال عند إلغاء تركيب المكوّن (الانتقال من شاشة البداية مثلًا)
+  useEffect(() => () => {
+    if (navTimerRef.current) clearTimeout(navTimerRef.current);
+  }, []);
+
   const goToSlide = (index: number) => {
     if (index === currentSlide) return;
     setSlideVisible(false);
-    setTimeout(() => {
+    if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    navTimerRef.current = setTimeout(() => {
       setCurrentSlide(index);
       setSlideVisible(true);
     }, 400);
@@ -68,7 +76,8 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpen
 
   const nextSlide = () => {
     setSlideVisible(false);
-    setTimeout(() => {
+    if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    navTimerRef.current = setTimeout(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
       setSlideVisible(true);
     }, 400);
@@ -76,7 +85,8 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpen
 
   const prevSlide = () => {
     setSlideVisible(false);
-    setTimeout(() => {
+    if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    navTimerRef.current = setTimeout(() => {
       setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
       setSlideVisible(true);
     }, 400);

@@ -54,6 +54,7 @@ const AdminStatsTab = ({ lessons }: AdminStatsTabProps) => {
 
   // حذف كل الأخطاء الأقدم من 30 يومًا ثم تحديث القائمة المعروضة
   const handlePruneOld = async (): Promise<void> => {
+    if (!window.confirm('حذف كل سجل الأخطاء الأقدم من 30 يومًا؟ لا يمكن التراجع.')) return;
     setPruning(true);
     setPruneMsg(null);
     try {

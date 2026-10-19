@@ -68,7 +68,7 @@ const explAll = lessons.map((l) => ' ' + norm(l.sheikhExplanation || '') + ' ').
 let matched = 0;
 const matchedTerms = [];
 const missingTerms = [];
-for (const [t, d] of Object.entries(mergedGlossary)) {
+for (const t of Object.keys(mergedGlossary)) {
   const n = norm(t);
   if (!n) continue;
   if (mainAll.includes(n) || explAll.includes(n) || lessons.some((l) => norm(l.title || '').includes(n) || norm(l.chapterName || '').includes(n))) {

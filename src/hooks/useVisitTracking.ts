@@ -62,9 +62,13 @@ export function useVisitTracking(user: { uid: string } | null, authLoading: bool
           const cloudDays = snapshot.exists() && Array.isArray(snapshot.data().items)
             ? (snapshot.data().items as unknown[]).filter((value): value is string => typeof value === 'string')
             : [];
-          const merged = Array.from(new Set([...readVisitDays(key), ...cloudDays])).sort().slice(-MAX_DAYS);
+          const localDaysNow = readVisitDays(key);
+          const merged = Array.from(new Set([...localDaysNow, ...cloudDays])).sort().slice(-MAX_DAYS);
           saveVisitDays(key, merged);
-          if (!snapshot.exists() || merged.length !== cloudDays.length || merged.some((value, index) => value !== cloudDays[index])) {
+          // رفع فقط عند وجود أيام محلية غير موجودة سحابيًا — مقارنة محتوى دقيقة (تجنّب رفع صدى
+          // وتجنّب تفويت اختلافات بنفس الطول)، والمكتوب اتحاد فلا يُفقد ما رآه جهاز آخر
+          const unionNeedsUpload = merged.some((d) => !cloudDays.includes(d));
+          if (unionNeedsUpload) {
             void fs.setDoc(visitsRef, { items: merged }, { merge: true })
               .catch((error) => logError('visits.sync', error));
           }

@@ -33,6 +33,21 @@ describe('validateLessonForm', () => {
       validateLessonForm({ bookName: 'ك', title: 'ع', mainText: 'ن', audioUrl: 'notaurl' }).length,
     ).toBeGreaterThan(0);
   });
+
+  it('يرفض رابطًا بلا مضيف فعلي (http:// فقط)', () => {
+    expect(
+      validateLessonForm({ bookName: 'ك', title: 'ع', mainText: 'ن', videoUrl: 'http://' }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('يرفض البروتوكول النسبي //evil.com للميديا ويقبل المسار المحلي', () => {
+    expect(
+      validateLessonForm({ bookName: 'ك', title: 'ع', mainText: 'ن', mediaUrl: '//evil.com/x.png' }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      validateLessonForm({ bookName: 'ك', title: 'ع', mainText: 'ن', mediaUrl: '/uploads/x.png' }),
+    ).toEqual([]);
+  });
 });
 
 describe('filterValidBulkLessons', () => {

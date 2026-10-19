@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
@@ -7,6 +7,7 @@ import styles from './QuoteCard.module.css';
 import { glossaryData as defaultGlossary } from '../../data/glossary';
 import { formatBrackets } from '../../utils/textFormatting';
 import { copyText } from '../../utils/clipboard';
+import { normalizeWithIndex, sortedGlossaryTerms } from '../../utils/glossaryUtil';
 import type { GlossaryMap } from '../../types';
 
 interface QuoteCardProps {
@@ -35,31 +36,6 @@ interface CrossLinkAnchorPart {
 }
 
 type CrossLinkPart = CrossLinkTextPart | CrossLinkAnchorPart;
-
-// تطبيع حرفي عربي للتسامح مع التشكيل واختلاف أشكال الحروف (للمطابقة فقط)
-function normalizeGlossaryTerm(s: string): string {
-  return String(s || '')
-    .normalize('NFKC')
-    .replace(/[\u064B-\u0652\u0670\u0640]/g, '') // تشكيل + تطويل
-    .replace(/[أإآٱ]/g, 'ا')
-    .replace(/ة/g, 'ه')
-    .replace(/ى/g, 'ي');
-}
-
-// تطبيع مع حفظ خريطة موضع (NormIndex → OrigIndex) كي نُبرز النص الأصلي
-function normalizeWithIndex(s: string): { norm: string; map: number[] } {
-  const map: number[] = [];
-  let norm = '';
-  for (let i = 0; i < s.length; i += 1) {
-    let c = s[i].normalize('NFKC');
-    c = c.replace(/[\u064B-\u0652\u0670\u0640]/g, '');
-    if (!c) continue; // حروف التشكيل المحذوفة لا تستهلك موضعًا في الناتج
-    c = c.replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
-    map.push(i);
-    norm += c;
-  }
-  return { norm, map };
-}
 
 const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardProps) => {
   const [copied, setCopied] = useState(false);
@@ -101,15 +77,17 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
   const handleTermHover = (e: MouseEvent, term: string): void => {
     const cx = e.clientX;
     const cy = e.clientY;
-    setTooltipInfo({ show: true, term, definition: glossary[term], x: cx + 9, y: cy + 9 });
-    setTimeout(() => positionAtPointer(cx, cy), 10);
+    setTooltipInfo({ show: true, term, definition: glossary[term] || 'لا يوجد تعريف', x: cx + 9, y: cy + 9 });
+    if (posTimer.current) clearTimeout(posTimer.current);
+    posTimer.current = setTimeout(() => positionAtPointer(cx, cy), 10);
   };
 
   const handleTermClick = (e: MouseEvent, term: string): void => {
     const cx = e.clientX;
     const cy = e.clientY;
-    setTooltipInfo({ show: true, term, definition: glossary[term], x: cx + 9, y: cy + 9 });
-    setTimeout(() => positionAtPointer(cx, cy), 10);
+    setTooltipInfo({ show: true, term, definition: glossary[term] || 'لا يوجد تعريف', x: cx + 9, y: cy + 9 });
+    if (posTimer.current) clearTimeout(posTimer.current);
+    posTimer.current = setTimeout(() => positionAtPointer(cx, cy), 10);
   };
 
   // يُحدّث موضع البوب ليلاحق سهم الماوس فوق الكلمة — مخنوق بإطار واحد لتجنب قراءات التخطيط المتكررة
@@ -128,6 +106,13 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
 
   const tooltipRef = useRef<HTMLDivElement>(null);
   const moveRaf = useRef<number>(0);
+  const posTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // تنظيف مؤقتات الموضع وإطار الرسم عند الإزالة (منع عمل بعد unmount)
+  useEffect(() => () => {
+    if (posTimer.current) clearTimeout(posTimer.current);
+    if (moveRaf.current) cancelAnimationFrame(moveRaf.current);
+  }, []);
 
   const highlightSearch = (plainText: string, baseKey: string): ReactNode => {
     if (!searchQuery || !searchQuery.trim()) {
@@ -196,19 +181,12 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
     });
   };
 
-  // مصطلحات القاموس مُطبَّعة ومرتّبة من الأطول للأقصر (تفضيل أطول تطابق)
-  const sortedGlossaryTerms = useMemo(
-    () =>
-      Object.entries(glossary)
-        .map(([term, def]) => ({ term, def, norm: normalizeGlossaryTerm(term) }))
-        .filter((e) => e.norm)
-        .sort((a, b) => b.norm.length - a.norm.length),
-    [glossary],
-  );
+  // مصطلحات القاموس مُطبَّعة ومرتّبة من الأطول للأقصر — من الأداة المشتركة (نفس منطق شرائح الشرح)
+  const glossaryTerms = useMemo(() => sortedGlossaryTerms(glossary), [glossary]);
 
   // إبراز المصطلحات بتطبيع متسامح مع التشكيل واختلاف أشكال الحروف
   const renderGlossary = (plainText: string, baseKey: string | number): ReactNode[] => {
-    if (sortedGlossaryTerms.length === 0) {
+    if (glossaryTerms.length === 0) {
       return [<React.Fragment key={`${baseKey}-empty`}>{parseCrossLinks(plainText, `${baseKey}-p`)}</React.Fragment>];
     }
     const { norm, map } = normalizeWithIndex(plainText);
@@ -218,7 +196,7 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
     let k = 0;
     while (cur < norm.length) {
       let best: { term: string; def: string; norm: string } | null = null;
-      for (const e of sortedGlossaryTerms) {
+      for (const e of glossaryTerms) {
         if (norm.startsWith(e.norm, cur) && (!best || e.norm.length > best.norm.length)) {
           best = e;
         }

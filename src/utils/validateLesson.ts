@@ -14,7 +14,8 @@ export interface LessonInput {
   [key: string]: unknown;
 }
 
-const URL_RE = /^https?:\/\/.+/i;
+// يتطلب مضيفًا فعليًا بعد البروتوكول (يرفض http:// و http:// مسافات ونحوها)
+const URL_RE = /^https?:\/\/[^\s/][^\s]*$/i;
 const MAX_TEXT = 60000;
 const MAX_SHORT = 500;
 
@@ -52,7 +53,9 @@ export function validateLessonForm<T extends object>(input: T): string[] {
   }
 
   const mediaUrl = str(rec['mediaUrl']);
-  if (mediaUrl && !URL_RE.test(mediaUrl) && !mediaUrl.startsWith('/')) {
+  // يسمح بمسار مطلق محلي (/path) أو رابط http(s) كامل — ويرفض البروتوكول النسبي //evil.com
+  const isLocalPath = mediaUrl.startsWith('/') && !mediaUrl.startsWith('//');
+  if (mediaUrl && !URL_RE.test(mediaUrl) && !isLocalPath) {
     errors.push('رابط الميديا غير صالح.');
   }
 

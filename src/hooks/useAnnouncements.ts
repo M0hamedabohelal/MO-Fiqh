@@ -82,8 +82,10 @@ export function useAnnouncements() {
 
   const markAsRead = useCallback(() => {
     const allIds = announcements.map((item) => item.id);
-    setReadIds(allIds);
-    try { localStorage.setItem(key, JSON.stringify(allIds)); } catch { /* الحالة داخل الذاكرة تكفي للجلسة */ }
+    // دمج مع المعروف محليًا بدل الاستبدال — الكتابة العمياء كانت تمحو قراءات جهاز آخر
+    const merged = Array.from(new Set([...readLocalIds(key), ...allIds]));
+    setReadIds(merged);
+    try { localStorage.setItem(key, JSON.stringify(merged)); } catch { /* الحالة داخل الذاكرة تكفي للجلسة */ }
     if (user && isFirebaseConfigured) {
       void (async () => {
         try {
@@ -92,10 +94,14 @@ export function useAnnouncements() {
             import('firebase/firestore'),
           ]);
           const { db } = await getFirestore();
-          await fs.setDoc(fs.doc(db, 'users', user.uid, 'data', 'announcementReads'), {
-            items: allIds,
-            updatedAt: Date.now(),
-          }, { merge: true });
+          // قراءة الحالة السحابية الأحدث أولًا ثم الدمج — لا نمحو ما قرأه جهاز آخر للتو
+          const readsRef = fs.doc(db, 'users', user.uid, 'data', 'announcementReads');
+          const snap = await fs.getDoc(readsRef);
+          const cloudIds = snap.exists() && Array.isArray(snap.data().items)
+            ? (snap.data().items as unknown[]).filter((id): id is string => typeof id === 'string')
+            : [];
+          const finalIds = Array.from(new Set([...cloudIds, ...merged]));
+          await fs.setDoc(readsRef, { items: finalIds, updatedAt: Date.now() }, { merge: true });
         } catch (error) {
           logError('announcements.sync', error);
         }

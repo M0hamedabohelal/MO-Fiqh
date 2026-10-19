@@ -30,10 +30,33 @@ VITE_FIREBASE_APPCHECK_KEY=...
 VITE_FIREBASE_APPCHECK_DEBUG_TOKEN=...
 ```
 
+اختياري — رفع مرفقات لوحة الإدارة عبر Cloudinary (بديلان افتراضيان مبنيان في الكود):
+
+```
+VITE_CLOUDINARY_CLOUD_NAME=...
+VITE_CLOUDINARY_UPLOAD_PRESET=...
+```
+
+> ⚠️ أمني: `cloudName` و`uploadPreset` غير الموقّع **علنيان بطبيعتهما** (يُخبزان في الحزمة).
+> الحماية الحقيقية على جانب Cloudinary: قيّد الـ preset (Settings ←‏ Upload ←‏ Upload presets)
+> بـ Allowed formats و Max file size و Folder ثابت. للقفل الكامل بدّل إلى Signed upload
+> عبر وسيط خادمي. القيم الافتراضية موجودة في `src/utils/cloudinary.ts`.
+
 > ملاحظة: إنفاذ App Check في `firestore.rules` خطوة لاحقة — تُفعَّل **بعد** خبز المفتاح في بناء
 > الإنتاج وإعادة النشر، وإلا انكسرت كتابات العملاء وسكربت SEO (بلا توكن).
 > سياسة الاحتفاظ بسجل الأخطاء: فعّل TTL من الكونسول على مجموعة `client_errors` للحقل
 > `expireAt` (يحذف تلقائيًا بعد 30 يومًا) — من Firestore ←‏ TTL policies.
+
+## مفتاح حساب الخدمة (لسكربتات الإدارة فقط)
+
+سكربتا `create-admin` و `upload:pdf` يكتبان إلى Firestore/Storage من الخادم، لأن قواعد
+الأمان ترفض الكتابة من العميل. يحتاجان مفتاح حساب خدمة (خطوة محلية لا تُرفع أبدًا):
+
+1. Firebase Console ←‏ Project Settings ←‏ Service accounts ←‏ Generate new private key
+2. احفظ الملف باسم `scripts/service-account.json` (مستثنى من git)، أو ضع مساره في
+   متغير البيئة `GOOGLE_APPLICATION_CREDENTIALS`.
+
+بدون هذا المفتاح يعمل التطبيق عاديًا؛ السكربتان فقط هما من يحتاجانه.
 
 بدون المفاتيح يعمل التطبيق بالبيانات المحلية فقط (قراءة عامة، بلا مزامنة).
 
@@ -48,6 +71,8 @@ VITE_FIREBASE_APPCHECK_DEBUG_TOKEN=...
 | `npm run lint` | فحص ESLint |
 | `npm test` | اختبارات vitest |
 | `npm run backup` | تنزيل نسخة احتياطية من Firestore إلى `backups/` |
+| `npm run create-admin -- "email" "pass"` | إنشاء/تحديث حساب مشرف عبر Admin SDK (يحتاج مفتاح حساب خدمة) |
+| `npm run upload:pdf` | رفع `public/fiqh-book.pdf` إلى Firebase Storage عبر Admin SDK |
 | `npm run deploy:hosting` | بناء + نشر على Firebase Hosting |
 
 ## البنية
