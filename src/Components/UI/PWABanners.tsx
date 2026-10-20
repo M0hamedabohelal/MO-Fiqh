@@ -23,26 +23,34 @@ const PWABanners = ({
   dismissOfflineReady,
 }: PWABannersProps) => (
   <>
-    {/* بانر فقدان الاتصال */}
+    {/* بانر فقدان الاتصال — حبّة سفلية مضغوطة لا تغطّي الشريط العلوي (المظهر/الإشعارات/المزامنة) */}
     <AnimatePresence>
       {isOffline && (
         <motion.div
           role="status"
           aria-live="polite"
-          initial={{ y: -60, opacity: 0 }}
+          initial={{ y: 60, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -60, opacity: 0 }}
-          className="position-fixed top-0 start-0 end-0 d-flex align-items-center justify-content-center gap-2 py-2 px-3"
-          style={{
-            zIndex: 'var(--z-banner)',
-            backgroundColor: '#856404',
-            color: '#fff',
-            fontSize: '0.9rem',
-            fontWeight: 'bold',
-          }}
+          exit={{ y: 60, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+          className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-center py-2 px-3 mb-5 mb-md-3"
+          style={{ zIndex: 'var(--z-banner)', pointerEvents: 'none' }}
         >
-          <FiWifiOff size={16} />
-          أنت غير متصل بالإنترنت — المحتوى المحمّل متاح للقراءة
+          <div
+            className="d-flex align-items-center gap-2 px-3 py-2 shadow"
+            style={{
+              backgroundColor: '#856404',
+              color: '#fff',
+              borderRadius: '50px',
+              fontSize: '0.85rem',
+              fontWeight: 'bold',
+              pointerEvents: 'auto',
+              maxWidth: '92vw',
+            }}
+          >
+            <FiWifiOff size={16} style={{ flexShrink: 0 }} />
+            <span>أنت غير متصل — المحتوى المحمّل متاح للقراءة</span>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -54,8 +62,13 @@ const PWABanners = ({
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 100, opacity: 0, scale: 0.85 }}
           transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-          className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-center py-3 mb-5 mb-md-3"
-          style={{ zIndex: 'var(--z-banner)', pointerEvents: 'none' }}
+          className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-center py-3"
+          style={{
+            zIndex: 'var(--z-banner)',
+            pointerEvents: 'none',
+            // عند ظهور حبّة «غير متصل» أدناه، نرفع زر التحديث فوقها لتفادي التراكب
+            marginBottom: isOffline ? '4.75rem' : '1.75rem',
+          }}
         >
           <motion.button
             onClick={applyUpdate}
@@ -98,8 +111,12 @@ const PWABanners = ({
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
-          className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-center py-2 px-3 mb-5 mb-md-0"
-          style={{ zIndex: 'var(--z-banner)' }}
+          className="position-fixed bottom-0 start-0 end-0 d-flex justify-content-center py-2 px-3"
+          style={{
+            zIndex: 'var(--z-banner)',
+            // فوق حبّة «غير متصل» عند ظهورهما معًا
+            marginBottom: isOffline ? '4.75rem' : '1.75rem',
+          }}
         >
           <div
             className="d-flex align-items-center gap-2 px-3 py-2 shadow small"
