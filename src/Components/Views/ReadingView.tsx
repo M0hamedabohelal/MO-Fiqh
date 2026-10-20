@@ -78,12 +78,11 @@ const ReadingView = () => {
     lessons,
     goToPrevLesson: onPrev,
     goToNextLesson: onNext,
-    lastReadLessonId,
+    goBackToList: onBackToIndex,
+    openLessonById,
     stopMarks,
     toggleStopMark: onToggleStopMark,
     createHighlightFromSelection: onCreateHighlight,
-    goBackToList: onBackToIndex,
-    openLessonById,
     fontSize,
     setFontSize,
   } = useApp();
@@ -95,12 +94,11 @@ const ReadingView = () => {
   const isBookmarked = lesson ? bookmarks.includes(lessonId) : false;
   const canGoPrev = currentIndex > 0;
   const canGoNext = currentIndex < lessons.length - 1;
+  // علامة الوقوف الحقيقية لهذا الكتاب فقط.
+  // بدون احتياطي lastReadLessonId: كان يُضيء الزر تلقائيًا بمجرد فتح المسألة
+  // فتظهر أول ضغطة بلا أثر (تُعيّن العلامة فعلًا) ثم تُزيلها الثانية.
   const bookMark = lesson ? stopMarks?.[(lesson.bookName || '').trim()] : undefined;
-  const isStopMarked = !!lesson && (
-    bookMark !== undefined
-      ? bookMark === String(lesson.id)
-      : lastReadLessonId === String(lesson.id)
-  );
+  const isStopMarked = !!lesson && bookMark === String(lesson.id);
   const onToggleRead = (): void => { if (lesson) toggleReadLesson(lesson.id); };
   const onToggleBookmark = (): void => { if (lesson) toggleBookmark(lessonId); };
   const onSelectLesson = (l: Lesson): void => openLessonById(l.id);
