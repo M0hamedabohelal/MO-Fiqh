@@ -347,6 +347,9 @@ button:active:not(:disabled),
 .lesson-read-badge {
   color: #27ae60;
 }
+.lesson-stop-badge {
+  color: var(--accent-color);
+}
 
 /* Bootstrap overrides */
 .text-muted {

@@ -1,4 +1,4 @@
-import { FiBook, FiList, FiChevronLeft } from 'react-icons/fi';
+import { FiBook, FiList, FiChevronLeft, FiFlag } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import EmptyState from '../UI/EmptyState';
@@ -38,13 +38,31 @@ const ChaptersView = () => {
     toggleChapter: onToggleChapter,
     openLessonById,
     contentSyncDone,
+    stopMarks,
+    lessons,
   } = useApp();
   const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
+  const stopLessonId = bookName ? stopMarks?.[bookName.trim()] : undefined;
+  const stopLesson = stopLessonId
+    ? lessons.find((l) => String(l.id) === String(stopLessonId))
+    : undefined;
   return (
   <div className="mt-4">
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
       <FiList className="ms-2" /> {bookName} - الفصول
     </h3>
+
+    {/* أكمل من علامة التوقف — نفس سلوك شاشة الكتب لكن داخل الكتاب */}
+    {stopLesson && (
+      <button
+        className="btn btn-sm w-100 mb-3 d-flex align-items-center justify-content-center gap-1 shadow-sm"
+        style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
+        onClick={() => openLessonById(stopLesson.id)}
+        title={stopLesson.title}
+      >
+        <FiFlag size={14} /> أكمل من هنا: {stopLesson.title.slice(0, 28)}
+      </button>
+    )}
 
     {chapters.length === 0 ? (
       !contentSyncDone ? (
@@ -106,6 +124,7 @@ const ChaptersView = () => {
                         title={lesson.title}
                         pageNumber={lesson.pageNumber}
                         isRead={lesson.isRead}
+                        isStopMark={String(lesson.id) === String(stopLessonId)}
                         onClick={() => onSelectLesson(lesson)}
                       />
                     ))}

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { FiBook, FiFileText, FiList, FiPrinter } from 'react-icons/fi';
+import { FiBook, FiFileText, FiList, FiPrinter, FiFlag } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import EmptyState from '../UI/EmptyState';
@@ -28,8 +28,14 @@ const LessonsView = memo(() => {
     selectedBookName: bookName,
     selectedBookChapters: chapters,
     openLessonById,
+    stopMarks,
+    lessons,
   } = useApp();
   const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
+  const stopLessonId = bookName ? stopMarks?.[bookName.trim()] : undefined;
+  const stopLesson = stopLessonId
+    ? lessons.find((l) => String(l.id) === String(stopLessonId))
+    : undefined;
   return (
   <div className="mt-4">
     <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -40,6 +46,18 @@ const LessonsView = memo(() => {
     <div className="text-muted fw-bold mb-4">
       {bookName}
     </div>
+
+    {/* أكمل من علامة التوقف — نفس سلوك شاشة الكتب لكن داخل الكتاب */}
+    {stopLesson && (
+      <button
+        className="btn btn-sm w-100 mb-3 d-flex align-items-center justify-content-center gap-1 shadow-sm"
+        style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
+        onClick={() => openLessonById(stopLesson.id)}
+        title={stopLesson.title}
+      >
+        <FiFlag size={14} /> أكمل من هنا: {stopLesson.title.slice(0, 28)}
+      </button>
+    )}
     <div className="d-flex flex-column gap-4">
       {chapters.length === 0 && (
         <EmptyState
@@ -82,6 +100,7 @@ const LessonsView = memo(() => {
                   title={lesson.title}
                   pageNumber={lesson.pageNumber}
                   isRead={lesson.isRead}
+                  isStopMark={String(lesson.id) === String(stopLessonId)}
                   onClick={() => onSelectLesson(lesson)}
                 />
               </motion.div>
