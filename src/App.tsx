@@ -63,12 +63,13 @@ function App() {
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');
   const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
   const [lastReadLessonId, setLastReadLessonId]       = useState(() => safeGet('lastReadLessonId_guest'));
-  const showSplash = useSplash(authLoading, cloudStatus === 'syncing');
+  const { visible: showSplash, progress: splashProgress } = useSplash(authLoading, cloudStatus === 'syncing');
+  // صياغة دقيقة حسب وجود الحساب: الضيف "يحمّل" المحتوى العام، والمسجّل "يزامن" بياناته
   const splashStatus = authLoading
     ? 'جارٍ التحقق من الحساب...'
     : cloudStatus === 'syncing'
-      ? 'جارٍ مزامنة المحتوى...'
-      : 'تقريبًا انتهينا...';
+      ? (user ? 'جارٍ مزامنة بياناتك...' : 'جارٍ تحميل المحتوى...')
+      : (user ? 'اكتملت المزامنة' : 'تم التحميل');
   const [mindmapOpen, setMindmapOpen]       = useState(false);
   // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -344,7 +345,7 @@ function App() {
 
   return (
     <div className="container-fluid p-0 position-relative">
-      <SplashScreen visible={showSplash} statusText={splashStatus} />
+      <SplashScreen visible={showSplash} progress={splashProgress} statusText={splashStatus} />
 
       {/* ✅ Onboarding — مرة واحدة للمستخدم الجديد */}
       {showOnboarding && <OnboardingSlides onDone={() => setShowOnboarding(false)} />}
