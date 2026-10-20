@@ -48,7 +48,6 @@ export interface AppContextValue {
   setCurrentView: (view: string) => void;
   openBookChapters: (bookName: string) => void;
   toggleChapter: (chapterName: string) => void;
-  openMindMap: () => void;
   openLessonById: (lessonId: string | number) => void;
   goToNextLesson: () => void;
   goToPrevLesson: () => void;

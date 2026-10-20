@@ -1,12 +1,12 @@
 import { memo } from 'react';
-import { FiBook, FiCheckCircle, FiGitBranch, FiFlag } from 'react-icons/fi';
+import { FiBook, FiCheckCircle, FiFlag } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useApp } from '../Layout/AppContext';
 import GuestAccountCard from '../UI/GuestAccountCard';
 
 // شاشة فهرس الكتب — كل كتاب بغلاف بصري + إحصاءات التقدم
 const BooksView = memo(() => {
-  const { booksWithStats: books, lessons, openBookChapters: onOpenBook, openMindMap: onOpenMindMap, stopMarks, openLessonById, contentSyncDone } = useApp();
+  const { booksWithStats: books, lessons, openBookChapters: onOpenBook, stopMarks, openLessonById, contentSyncDone } = useApp();
   const lessonTitle = (id: string | undefined): string | null => {
     if (!id) return null;
     const l = lessons.find((x) => String(x.id) === String(id));
@@ -17,14 +17,6 @@ const BooksView = memo(() => {
     <GuestAccountCard />
     <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
       <h3 className="mb-0 fw-bold" style={{ color: 'var(--primary-color)' }}><FiBook className="ms-2" /> فهرس الكتب</h3>
-      <button
-        className="btn btn-sm d-flex align-items-center shadow-sm"
-        style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
-        onClick={onOpenMindMap}
-        title="عرض خريطة الفقه الذهنية"
-      >
-        <FiGitBranch className="ms-1" size={16} /> الخريطة الذهنية
-      </button>
     </div>
     <div className="row px-1">
       {books.map(({ bookName, issuesCount, readCount, progressPercent }) => (

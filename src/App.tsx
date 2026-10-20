@@ -11,7 +11,6 @@ import AppLayout      from './Components/Layout/AppLayout';
 import { AppProvider } from './Components/Layout/AppContext';
 import type { AppContextValue } from './Components/Layout/AppContext';
 import OnboardingSlides, { shouldShowOnboarding } from './Components/UI/OnboardingSlides';
-import MindMapModal from './Components/UI/MindMapModal';
 
 import { useAuth }             from './Components/Auth/AuthContext';
 import { useHashRoute }        from './hooks/useHashRoute';
@@ -72,7 +71,6 @@ function App() {
     : !contentSyncDone
       ? (user ? 'جارٍ مزامنة المحتوى...' : 'جارٍ تحميل المحتوى...')
       : (user ? 'اكتملت المزامنة' : 'تم التحميل');
-  const [mindmapOpen, setMindmapOpen]       = useState(false);
   // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -323,7 +321,6 @@ function App() {
   }, [isAdminUser]);
 
   // مراجع ثابتة للحالات المرتفعة حتى لا يُعاد بناء كائن السياق بلا داعٍ
-  const openMindMap = useCallback(() => setMindmapOpen(true), []);
   const onOpenSearch = useCallback(() => setIsSearchOpen(true), []);
   const onOpenLogin = useCallback(() => setIsLoginOpen(true), []);
 
@@ -342,7 +339,6 @@ function App() {
     booksWithStats, selectedBookName, selectedBookChapters,
     openChapterName, lastReadLessonId, stopMarks, setStopMarks,
     setCurrentView, openBookChapters, toggleChapter,
-    openMindMap,
     openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
     toggleBookmark, toggleReadLesson, saveNoteForLesson,
     deleteHighlight, createHighlightFromSelection,
@@ -363,7 +359,7 @@ function App() {
     booksWithStats, selectedBookName, selectedBookChapters,
     openChapterName, lastReadLessonId, stopMarks, setStopMarks,
     setCurrentView, openBookChapters, toggleChapter,
-    openMindMap, openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
+    openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
     toggleBookmark, toggleReadLesson, saveNoteForLesson,
     deleteHighlight, createHighlightFromSelection,
     toggleStopMark, restoreLibrary,
@@ -379,15 +375,6 @@ function App() {
       {showOnboarding && <OnboardingSlides onDone={() => setShowOnboarding(false)} />}
 
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} data={lessons} onSelect={handleSearchResultSelect} />
-      {mindmapOpen && (
-        <MindMapModal
-          open={mindmapOpen}
-          onClose={() => setMindmapOpen(false)}
-          books={booksWithStats}
-          chapters={chaptersWithIssues}
-          onSelectLesson={openLessonById}
-        />
-      )}
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { if (currentView === 'hero') setCurrentView('books'); }} />
       <ShortcutsHelpModal open={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
 
