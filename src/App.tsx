@@ -40,7 +40,7 @@ function App() {
   const { canInstall, isInstalled, promptInstall, needRefresh, applyUpdate, checkForUpdates, offlineReady, dismissOfflineReady, isOffline } = usePWA();
 
   // ─── بيانات المحتوى ───
-  const { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded } = useAppData({ isOffline });
+  const { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded, contentSyncDone } = useAppData({ isOffline });
 
   // ─── المكتبة الشخصية (تُزامن سحابيًا للمسجل — فتظهر علامات التوقف على كل الأجهزة) ───
   const { bookmarks, highlights, notes, readLessons, stopMarks, setStopMarks, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary } = useUserLibrary({ onStatus: setCloudStatus });
@@ -63,12 +63,14 @@ function App() {
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');
   const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
   const [lastReadLessonId, setLastReadLessonId]       = useState(() => safeGet('lastReadLessonId_guest'));
-  const { visible: showSplash, progress: splashProgress } = useSplash(authLoading, cloudStatus === 'syncing');
+  // بوابة الشاشة تعتمد على تحميل المحتوى فقط (contentSyncDone) لا على cloudStatus
+  // المُشترك مع مزامنة المكتبة (وإلا علِقت الشاشة للمسجّلين).
+  const { visible: showSplash, progress: splashProgress } = useSplash(authLoading, !contentSyncDone);
   // صياغة دقيقة حسب وجود الحساب: الضيف "يحمّل" المحتوى العام، والمسجّل "يزامن" بياناته
   const splashStatus = authLoading
     ? 'جارٍ التحقق من الحساب...'
-    : cloudStatus === 'syncing'
-      ? (user ? 'جارٍ مزامنة بياناتك...' : 'جارٍ تحميل المحتوى...')
+    : !contentSyncDone
+      ? (user ? 'جارٍ مزامنة المحتوى...' : 'جارٍ تحميل المحتوى...')
       : (user ? 'اكتملت المزامنة' : 'تم التحميل');
   const [mindmapOpen, setMindmapOpen]       = useState(false);
   // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
@@ -325,6 +327,7 @@ function App() {
     user, isAdminUser,
     theme, setTheme, fontSize, setFontSize,
     cloudStatus, cloudLessonsLoaded,
+    contentSyncDone,
     canInstall, isInstalled, promptInstall,
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,

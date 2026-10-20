@@ -37,7 +37,7 @@ const ChaptersView = () => {
     openChapterName,
     toggleChapter: onToggleChapter,
     openLessonById,
-    cloudStatus,
+    contentSyncDone,
   } = useApp();
   const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
   return (
@@ -47,7 +47,7 @@ const ChaptersView = () => {
     </h3>
 
     {chapters.length === 0 ? (
-      cloudStatus === 'syncing' ? (
+      !contentSyncDone ? (
         <div className="custom-card p-5 text-center shadow-sm">
           <div className="spinner-border mb-3" style={{ color: 'var(--primary-color)' }} role="status" aria-hidden="true" />
           <p className="text-muted mb-0 small">جارٍ تحميل مسائل الكتاب من السحابة...</p>

@@ -23,6 +23,8 @@ export interface AppContextValue {
   setFontSize: Dispatch<SetStateAction<number>>;
   cloudStatus: string;
   cloudLessonsLoaded: boolean;
+  // هل انتهت أول محاولة لتحميل المحتوى؟ (مستقل عن cloudStatus المشترك مع مزامنة المكتبة)
+  contentSyncDone: boolean;
   canInstall: boolean;
   isInstalled: boolean;
   promptInstall: () => void;

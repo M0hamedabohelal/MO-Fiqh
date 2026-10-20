@@ -6,7 +6,7 @@ import GuestAccountCard from '../UI/GuestAccountCard';
 
 // شاشة فهرس الكتب — كل كتاب بغلاف بصري + إحصاءات التقدم
 const BooksView = memo(() => {
-  const { booksWithStats: books, lessons, openBookChapters: onOpenBook, openMindMap: onOpenMindMap, stopMarks, openLessonById, cloudStatus } = useApp();
+  const { booksWithStats: books, lessons, openBookChapters: onOpenBook, openMindMap: onOpenMindMap, stopMarks, openLessonById, contentSyncDone } = useApp();
   const lessonTitle = (id: string | undefined): string | null => {
     if (!id) return null;
     const l = lessons.find((x) => String(x.id) === String(id));
@@ -57,7 +57,7 @@ const BooksView = memo(() => {
                 <div className="book-meta-text" title={bookName}>
                   <span className="book-meta-text-title">{bookName}</span>
                   <span className="book-cover-count">
-                    {issuesCount > 0 ? `${issuesCount} مسألة` : (cloudStatus === 'syncing' ? 'جارٍ التحميل…' : 'قريباً')}
+                    {issuesCount > 0 ? `${issuesCount} مسألة` : (!contentSyncDone ? 'جارٍ التحميل…' : 'قريباً')}
                   </span>
                 </div>
                 {issuesCount > 0 && (

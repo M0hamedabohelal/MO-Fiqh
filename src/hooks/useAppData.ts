@@ -15,6 +15,10 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   // هل اكتمل جلب سحابي واحد بنجاح؟ قبلها قائمة المسائل قد تكون لقطة محلية قديمة —
   // لا يُبنى عليها أي حذف (تقليم علامات التوقف) حتى تُؤكَّد بالسحابة
   const [cloudLessonsLoaded, setCloudLessonsLoaded] = useState(false);
+  // علم مخصّص لبوابة شاشة الإقلاع: هل انتهت أول محاولة لتحميل المحتوى (نجحت أو فشلت)؟
+  // مستقل تمامًا عن cloudStatus الذي يشترك فيه مزامن المكتبة (useUserLibrary) فيتذبذب
+  // بين syncing/synced ويُعلّق الشاشة. هذا العلم يحسم مرة واحدة فقط بعد أول جلب/أوفلاين.
+  const [contentSyncDone, setContentSyncDone] = useState(!isFirebaseConfigured);
 
   // ترتيب المسائل حسب الكتاب → الباب → الترتيب الأبجدي
   const lessons = useMemo(() => {
@@ -73,6 +77,9 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       setCloudStatus('synced');
     } catch {
       setCloudStatus('offline');
+    } finally {
+      // حسم بوابة الإقلاع مرة واحدة — مهما كانت النتيجة
+      setContentSyncDone(true);
     }
   }, []);
 
@@ -84,6 +91,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     if (isOffline) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCloudStatus(isFirebaseConfigured ? 'offline' : 'local');
+      setContentSyncDone(true);
       return;
     }
     const t = setTimeout(() => { reloadFromCloud(); }, 600);
@@ -104,5 +112,5 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     return () => { cancelled = true; };
   }, []);
 
-  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded };
+  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded, contentSyncDone };
 }
