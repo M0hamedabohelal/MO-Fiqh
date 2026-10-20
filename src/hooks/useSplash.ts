@@ -1,18 +1,29 @@
 import { useEffect, useState } from 'react';
 
-// شاشة التحميل: حد أقصى ثانيتين، وتختفي سريعًا بعد جاهزية المصادقة
-export function useSplash(authLoading: boolean): boolean {
+// شاشة الإقلاع: تبقى طالما المصادقة لم تجهز أو مزامنة المحتوى جارية.
+// - حد أدنى بسيط (400ms) لمنع وميض سريع.
+// - حد أقصى (6 ثوانٍ) أمانًا: لو تعطّلت المزامنة لا نحبس المستخدم في الشاشة.
+const MIN_MS = 400;
+const MAX_MS = 6000;
+
+export function useSplash(authLoading: boolean, contentSyncing: boolean): boolean {
   const [showSplash, setShowSplash] = useState(true);
+  const ready = !authLoading && !contentSyncing;
 
   useEffect(() => {
-    const maxTimer = setTimeout(() => setShowSplash(false), 2000);
-    if (!authLoading) {
-      clearTimeout(maxTimer);
-      const minTimer = setTimeout(() => setShowSplash(false), 350);
-      return () => clearTimeout(minTimer);
+    // مؤقتات مستقلة عن تبعية ready كي لا تُعاد تهيئتها عند كل تغيّر
+    const maxTimer = setTimeout(() => setShowSplash(false), MAX_MS);
+    const start = Date.now();
+    let minTimer: ReturnType<typeof setTimeout> | undefined;
+    if (ready) {
+      const elapsed = Date.now() - start;
+      minTimer = setTimeout(() => setShowSplash(false), Math.max(0, MIN_MS - elapsed));
     }
-    return () => clearTimeout(maxTimer);
-  }, [authLoading]);
+    return () => {
+      clearTimeout(maxTimer);
+      if (minTimer) clearTimeout(minTimer);
+    };
+  }, [ready]);
 
   return showSplash;
 }

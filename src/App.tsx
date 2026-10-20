@@ -63,7 +63,12 @@ function App() {
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');
   const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
   const [lastReadLessonId, setLastReadLessonId]       = useState(() => safeGet('lastReadLessonId_guest'));
-  const showSplash = useSplash(authLoading);
+  const showSplash = useSplash(authLoading, cloudStatus === 'syncing');
+  const splashStatus = authLoading
+    ? 'جارٍ التحقق من الحساب...'
+    : cloudStatus === 'syncing'
+      ? 'جارٍ مزامنة المحتوى...'
+      : 'تقريبًا انتهينا...';
   const [mindmapOpen, setMindmapOpen]       = useState(false);
   // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -339,7 +344,7 @@ function App() {
 
   return (
     <div className="container-fluid p-0 position-relative">
-      <SplashScreen visible={showSplash} />
+      <SplashScreen visible={showSplash} statusText={splashStatus} />
 
       {/* ✅ Onboarding — مرة واحدة للمستخدم الجديد */}
       {showOnboarding && <OnboardingSlides onDone={() => setShowOnboarding(false)} />}
