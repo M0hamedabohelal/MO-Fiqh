@@ -316,6 +316,20 @@
   }
 }
 
+/* مؤشر «غير متصل» في الشريط العلوي — نبضة خفيفة تجذب الانتباه بهدوء */
+.offline-indicator {
+  animation: offlinePulse 2.4s ease-in-out infinite;
+}
+
+@keyframes offlinePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .offline-indicator { animation: none; }
+}
+
 /* ==================== نافذة تسجيل الدخول (Login Modal) ==================== */
 
 /* ✅ حقول إدخال مخصصة — تعمل بشكل صحيح في الداكن والفاتح والورقي */

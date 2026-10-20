@@ -25,6 +25,8 @@ export interface AppContextValue {
   cloudLessonsLoaded: boolean;
   // هل انتهت أول محاولة لتحميل المحتوى؟ (مستقل عن cloudStatus المشترك مع مزامنة المكتبة)
   contentSyncDone: boolean;
+  // هل الجهاز بلا اتصال؟ (لعرض مؤشر الواي فاي المشطوب في الشريط العلوي)
+  isOffline: boolean;
   canInstall: boolean;
   isInstalled: boolean;
   promptInstall: () => void;

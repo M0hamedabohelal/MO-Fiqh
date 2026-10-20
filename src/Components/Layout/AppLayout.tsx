@@ -41,6 +41,7 @@ const AppLayout = () => {
     user, isAdminUser,
     theme, setTheme,
     cloudStatus,
+    isOffline,
     canInstall, promptInstall,
     selectedBookName,
     setCurrentView,
@@ -50,7 +51,10 @@ const AppLayout = () => {
   <div className="row g-0">
 
     {/* الشريط الجانبي */}
-    <div className="col-lg-2 col-md-3 d-none d-md-block sidebar-container">
+    <div
+      className="col-lg-2 col-md-3 d-none d-md-block sidebar-container"
+      style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))' }}
+    >
       <Slider
         activeView={currentView}
         setActiveView={setCurrentView}
@@ -64,11 +68,15 @@ const AppLayout = () => {
     </div>
 
     {/* المنطقة الرئيسية */}
-    <div className="col-lg-10 col-md-9 px-4 py-3 pb-5 pb-md-3">
+    <div
+      className="col-lg-10 col-md-9 px-4 pb-5 pb-md-3"
+      style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))' }}
+    >
       <Topbar
         theme={theme}
         toggleTheme={setTheme}
         cloudStatus={cloudStatus}
+        isOffline={isOffline}
       />
 
       <div className="container mt-4" style={{ maxWidth: '850px' }}>

@@ -328,6 +328,7 @@ function App() {
     theme, setTheme, fontSize, setFontSize,
     cloudStatus, cloudLessonsLoaded,
     contentSyncDone,
+    isOffline,
     canInstall, isInstalled, promptInstall,
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
@@ -380,7 +381,7 @@ function App() {
         </AppProvider>
       )}
 
-      <PWABanners isOffline={isOffline} needRefresh={needRefresh} applyUpdate={applyUpdate} offlineReady={offlineReady} dismissOfflineReady={dismissOfflineReady} />
+      <PWABanners needRefresh={needRefresh} applyUpdate={applyUpdate} offlineReady={offlineReady} dismissOfflineReady={dismissOfflineReady} />
 
       {currentView !== 'hero' && (
         <MobileBottomNav

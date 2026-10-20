@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiMoon, FiBell } from 'react-icons/fi';
+import { FiMoon, FiBell, FiWifiOff } from 'react-icons/fi';
 import { BsBook } from 'react-icons/bs';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import AnnouncementsModal from '../UI/AnnouncementsModal';
@@ -8,9 +8,10 @@ interface TopbarProps {
   theme: string;
   toggleTheme: (theme: string) => void;
   cloudStatus: string;
+  isOffline: boolean;
 }
 
-const Topbar = ({ theme, toggleTheme, cloudStatus }: TopbarProps) => {
+const Topbar = ({ theme, toggleTheme, cloudStatus, isOffline }: TopbarProps) => {
   const { announcements, unreadCount, markAsRead, refresh } = useAnnouncements();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -80,6 +81,18 @@ const Topbar = ({ theme, toggleTheme, cloudStatus }: TopbarProps) => {
         {getThemeIcon()}
         <span className="d-none d-md-inline">{getThemeLabel()}</span>
       </button>
+
+      {isOffline && (
+        <span
+          className="d-inline-flex align-items-center ms-2 offline-indicator"
+          style={{ color: '#e74c3c', fontSize: '1.05rem' }}
+          title="أنت غير متصل — المحتوى المحمّل متاح للقراءة"
+          aria-label="غير متصل بالإنترنت"
+          role="status"
+        >
+          <FiWifiOff size={20} />
+        </span>
+      )}
 
       {cloud && (
         <span
