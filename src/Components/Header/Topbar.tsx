@@ -45,7 +45,8 @@ const Topbar = ({ theme, toggleTheme, cloudStatus, isOffline }: TopbarProps) => 
     if (cloudStatus === 'synced') {
       return { icon: '✓', label: 'متزامن', title: 'البيانات محدثة من السحابة', color: '#27ae60' };
     }
-    if (cloudStatus === 'offline') {
+    // عند انقطاع الاتصال تظهر أيقونة الواي فاي المشطوبة منفصلة — نتفادى تكرار الدلالة
+    if (cloudStatus === 'offline' && !isOffline) {
       return { icon: '⚠', label: 'بدون اتصال', title: 'تعذر الوصول للسحابة — تعرض البيانات المحلية', color: '#e74c3c' };
     }
     return null;

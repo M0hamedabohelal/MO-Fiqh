@@ -94,9 +94,12 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       setContentSyncDone(true);
       return;
     }
+    // إن سبق نجاح الجلب السحابي، لا نعيد جلب المحتوى كاملًا عند كل عودة أونلاين
+    // (المحتوى العام نادر التغيّر؛ التحديث اليدوي متاح عبر reloadFromCloud)
+    if (cloudLessonsLoaded) return;
     const t = setTimeout(() => { reloadFromCloud(); }, 600);
     return () => clearTimeout(t);
-  }, [isOffline, reloadFromCloud]);
+  }, [isOffline, reloadFromCloud, cloudLessonsLoaded]);
 
   // تحميل البيانات المحلية (نسخة احتياطية عند غياب السحابة) ديناميكيًا
   // حتى لا تدخل ملفات الداتا الكبيرة في حزمة التحميل الأولية

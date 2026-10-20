@@ -192,14 +192,15 @@ function App() {
   );
 
   // ─── معالجات التنقل ───
-  const openBookChapters = (bookName: string) => {
+  const openBookChapters = useCallback((bookName: string) => {
     setSelectedBookName(bookName);
     setOpenChapterName(null);
     setCurrentView('chapters');
-  };
+  }, [setSelectedBookName, setOpenChapterName, setCurrentView]);
 
-  const toggleChapter = (chapterName: string) =>
-    setOpenChapterName((prev) => (prev === chapterName ? null : chapterName));
+  const toggleChapter = useCallback((chapterName: string) =>
+    setOpenChapterName((prev) => (prev === chapterName ? null : chapterName)),
+  [setOpenChapterName]);
 
   const openLessonByIndex = useCallback((index: number) => {
     setCurrentIndex(index);
@@ -222,7 +223,7 @@ function App() {
     addHighlight({ id: createUniqueId('hl'), lessonId: currentLesson.id, bookName: currentLesson.bookName, chapterName: currentLesson.chapterName, title: currentLesson.title, text });
   }, [currentLesson, addHighlight]);
 
-  const toggleStopMark = () => {
+  const toggleStopMark = useCallback(() => {
     const id = currentLesson?.id?.toString();
     const book = (currentLesson?.bookName || '').trim();
     if (!id || !book) return;
@@ -241,7 +242,7 @@ function App() {
       recordStopMarkTouch(book);
       setLastReadLessonId(id);
     }
-  };
+  }, [currentLesson, stopMarks, setStopMarks, lastReadLessonId]);
 
   // تسجيل مشاهدة المسألة
   const currentLessonId = currentLesson?.id;
@@ -321,8 +322,14 @@ function App() {
     if (isAdminUser) void import('./Components/Admin/AdminPanel');
   }, [isAdminUser]);
 
-  // قيمة السياق المشتركة — النوع الصارم يمنع نسيان أي حقل
-  const layoutProps: AppContextValue = {
+  // مراجع ثابتة للحالات المرتفعة حتى لا يُعاد بناء كائن السياق بلا داعٍ
+  const openMindMap = useCallback(() => setMindmapOpen(true), []);
+  const onOpenSearch = useCallback(() => setIsSearchOpen(true), []);
+  const onOpenLogin = useCallback(() => setIsLoginOpen(true), []);
+
+  // قيمة السياق المشتركة — النوع الصارم يمنع نسيان أي حقل.
+  // مُحسّنة بـ useMemo حتى لا يُعاد رسم كل مستهلكي useApp عند أي تغيّر لا يمسّهم.
+  const layoutProps: AppContextValue = useMemo(() => ({
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
     theme, setTheme, fontSize, setFontSize,
@@ -335,17 +342,34 @@ function App() {
     booksWithStats, selectedBookName, selectedBookChapters,
     openChapterName, lastReadLessonId, stopMarks, setStopMarks,
     setCurrentView, openBookChapters, toggleChapter,
-    openMindMap: () => setMindmapOpen(true),
+    openMindMap,
     openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
     toggleBookmark, toggleReadLesson, saveNoteForLesson,
     deleteHighlight, createHighlightFromSelection,
     toggleStopMark, restoreLibrary,
-    onOpenSearch: () => setIsSearchOpen(true),
-    onOpenLogin: () => setIsLoginOpen(true),
+    onOpenSearch,
+    onOpenLogin,
     reloadFromCloud,
     currentSearchQuery,
     lessonsCount: lessons.length,
-  };
+  }), [
+    currentView, currentIndex, currentLesson, lessons,
+    user, isAdminUser,
+    theme, fontSize,
+    cloudStatus, cloudLessonsLoaded, contentSyncDone, isOffline,
+    canInstall, isInstalled, promptInstall,
+    needRefresh, applyUpdate, checkForUpdates,
+    glossary, notes, bookmarks, highlights, readLessons,
+    booksWithStats, selectedBookName, selectedBookChapters,
+    openChapterName, lastReadLessonId, stopMarks, setStopMarks,
+    setCurrentView, openBookChapters, toggleChapter,
+    openMindMap, openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
+    toggleBookmark, toggleReadLesson, saveNoteForLesson,
+    deleteHighlight, createHighlightFromSelection,
+    toggleStopMark, restoreLibrary,
+    onOpenSearch, onOpenLogin, reloadFromCloud,
+    currentSearchQuery,
+  ]);
 
   return (
     <div className="container-fluid p-0 position-relative">
