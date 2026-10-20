@@ -34,7 +34,9 @@ export function clearStopMarkTouchedAt(): void {
   safeRemove(TOUCH_KEY);
 }
 
-// نواة pure قابلة للاختبار: أحدث لمسة يفوز، وبلا سجل → آخر قيمة (توافق رجعي)
+// نواة pure قابلة للاختبار: أحدث لمسة يفوز، وبلا سجل → أكبر معرّف مسألة رقمي
+// (المسائل مرقّمة تصاعديًا غالبًا، فأكبر معرّف أقرب للأحدث فعليًا من مفتاح إدخال عشوائي)،
+// وإن تعذّر ذلك (معرّفات غير رقمية) نرجع لآخر قيمة (توافق رجعي).
 export function pickLatestStopMarkId(
   stopMarks: Record<string, string>,
   touchedAt: StopMarkTouchedAt,
@@ -50,6 +52,18 @@ export function pickLatestStopMarkId(
       bestId = String(id);
     }
   }
-  if (bestTs <= 0) return String(entries[entries.length - 1][1]);
-  return bestId;
+  if (bestTs > 0) return bestId;
+  // بلا سجل لمسات محلي (مثلاً جهاز جديد استقبل العلامات من السحابة):
+  // نختار أكبر معرّف رقمي — أقرب للأحدث فعلًا من آخر مفتاح إدخال
+  let bestNumeric = -Infinity;
+  let bestNumericId: string | null = null;
+  for (const [, id] of entries) {
+    const n = Number(id);
+    if (Number.isFinite(n) && n > bestNumeric) {
+      bestNumeric = n;
+      bestNumericId = String(id);
+    }
+  }
+  if (bestNumericId !== null) return bestNumericId;
+  return String(entries[entries.length - 1][1]);
 }

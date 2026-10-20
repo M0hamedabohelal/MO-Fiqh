@@ -112,11 +112,19 @@ export function useSyncedPreferences(
             import('firebase/firestore'),
           ]);
           const { db } = await getFirestore();
+          // كتابة الحقول المتغيّرة فقط (دمج حقل-بحقل) بدل الكائن كاملًا:
+          // يمنع جهازًا غيّر حقلًا (المظهر) من محو حقلٍ غيّره جهاز آخر (آخر مسألة) في آن
+          const patch: Record<string, unknown> = {};
+          if (!previous || previous.theme !== current.theme) patch.theme = current.theme;
+          if (!previous || previous.fontSize !== current.fontSize) patch.fontSize = current.fontSize;
+          if (!previous || previous.lastReadLessonId !== current.lastReadLessonId) patch.lastReadLessonId = current.lastReadLessonId;
+          if (Object.keys(patch).length === 0) return;
           await fs.setDoc(fs.doc(db, 'users', uid, 'data', 'preferences'), {
-            ...current,
+            ...patch,
             updatedAt: Date.now(),
           }, { merge: true });
-          lastCloudValue.current = current;
+          // انعكاس ما كُتب على مرجع السحابة (يبقى الباقي كما نراه من آخر لقطة)
+          lastCloudValue.current = { ...(previous ?? current), ...patch } as Preferences;
         } catch (error) {
           logError('preferences.sync', error);
         }

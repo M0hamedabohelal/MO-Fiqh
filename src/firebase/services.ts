@@ -246,6 +246,64 @@ async function saveUserDataSection(
   await fs.setDoc(fs.doc(await userRoot(db, fs, uid), section), value, { merge: true });
 }
 
+// نوع موحّد لحالة المكتبة المستخدمة في الدمج
+interface LibrarySections {
+  bookmarks: string[];
+  highlights: HighlightItem[];
+  notes: Record<string, string>;
+  readLessons: string[];
+  stopMarks: Record<string, string>;
+}
+
+// استخراج حالة المكتبة من لقطات مستندات Firestore (يُستخدم داخل المعاملة وعند الجلب)
+function sectionsFromDocData(get: (id: string) => Record<string, unknown>): { data: LibrarySections; tombs: unknown } {
+  const v = (id: string): Record<string, unknown> => get(id) || {};
+  const arr = (x: unknown): string[] => (Array.isArray(x) ? (x as unknown[]).map(String) : []);
+  const map = (x: unknown): Record<string, string> => (x && typeof x === 'object' ? (x as Record<string, string>) : {});
+  return {
+    data: {
+      bookmarks: arr(v('bookmarks').items),
+      highlights: (Array.isArray(v('highlights').items) ? v('highlights').items : []) as HighlightItem[],
+      notes: map(v('notes').notes),
+      readLessons: arr(v('readLessons').items),
+      stopMarks: map(v('stopMarks').marks),
+    },
+    tombs: v('tombstones').tombs,
+  };
+}
+
+// حساب نتيجة الدمج (نقي — بلا آثار جانبية) يُستدعى داخل المعاملة
+function computeMergedLibrary(
+  local: LibrarySections,
+  base: LibrarySections,
+  cloud: LibrarySections,
+  tombs: TombstoneMap,
+): { finalData: LibrarySections; prunedTombs: TombstoneMap } {
+  const str = (v: unknown): string => String(v);
+  const unionBookmarks = Array.from(new Set([
+    ...(local.bookmarks || []).map(str),
+    ...(cloud.bookmarks || []).map(str),
+  ]));
+  const unionRead = Array.from(new Set([
+    ...(local.readLessons || []).map(str),
+    ...(cloud.readLessons || []).map(str),
+  ]));
+  const hlMap = new Map<string, HighlightItem>();
+  [...(local.highlights || []), ...(cloud.highlights || [])].forEach((h) => {
+    if (h) hlMap.set(str(h.id ?? h.text), h);
+  });
+  const threeWayNotes = threeWayMergeMaps(
+    normalizeNoteMap(base.notes || {}),
+    normalizeNoteMap(local.notes || {}),
+    normalizeNoteMap(cloud.notes || {}),
+  );
+  const threeWayMarks = threeWayMergeMaps(base.stopMarks || {}, local.stopMarks || {}, cloud.stopMarks || {});
+  const merged = { bookmarks: unionBookmarks, highlights: Array.from(hlMap.values()), notes: threeWayNotes, readLessons: unionRead, stopMarks: threeWayMarks };
+  const finalData = applyTombsToMerged(merged, local, tombs);
+  const prunedTombs = pruneTombs(tombs, finalData);
+  return { finalData, prunedTombs };
+}
+
 export async function syncBookmarks(uid: string, bookmarkIds: string[]): Promise<void> {
   const { db, fs } = await getDb();
   await saveUserDataSection(db, fs, uid, 'bookmarks', { items: bookmarkIds });
@@ -296,49 +354,51 @@ export async function mergeAndSyncLibrary(
   };
   tombs: TombstoneMap;
 }> {
-  const cloud = await fetchUserData(uid);
-  const tombs = mergeTombs(cleanTombs(cloud.tombs), cleanTombs(inputTombs));
-  const str = (v: unknown): string => String(v);
-
-  // اتحاد، المحلي يفوز، مع تقليم الفارغ (سلوك معتمد: الملاحظة الفارغة = محذوفة)
-  const unionBookmarks = Array.from(new Set([
-    ...(local.bookmarks || []).map(str),
-    ...(cloud.bookmarks || []).map(str),
-  ]));
-  const unionRead = Array.from(new Set([
-    ...(local.readLessons || []).map(str),
-    ...(cloud.readLessons || []).map(str),
-  ]));
-  const hlMap = new Map<string, HighlightItem>();
-  [...(local.highlights || []), ...(cloud.highlights || [])].forEach((h) => {
-    if (h) hlMap.set(str(h.id ?? h.text), h);
-  });
-  // الملاحظات: دمج ثلاثي بعد التطبيع (الفارغة = محذوفة) — نفس حماية علامات التوقف:
-  // نص أحدث على السحابة لا يمحوه جهاز يحمل نصًا قديمًا
-  const threeWayNotes = threeWayMergeMaps(
-    normalizeNoteMap(base.notes || {}),
-    normalizeNoteMap(local.notes || {}),
-    normalizeNoteMap(cloud.notes || {}),
-  );
-  // علامات التوقف: دمج ثلاثي الاتجاهات (base/local/cloud) بدل "المحلي يفوز" —
-  // يمنع جهازًا قديمًا من محو علامة أحدث وُضعت على جهاز آخر (انظر threeWayMergeMaps)
-  const threeWayMarks = threeWayMergeMaps(base.stopMarks || {}, local.stopMarks || {}, cloud.stopMarks || {});
-
-  // إسقاط المشهود بحذفه (إلا ما أُعيد محليًا) ثم تنظيف شواهد العائدين
-  const merged = { bookmarks: unionBookmarks, highlights: Array.from(hlMap.values()), notes: threeWayNotes, readLessons: unionRead, stopMarks: threeWayMarks };
-  const finalData = applyTombsToMerged(merged, local, tombs);
-  const prunedTombs = pruneTombs(tombs, finalData);
-
   const { db, fs } = await getDb();
-  await Promise.all([
-    saveUserDataSection(db, fs, uid, 'bookmarks', { items: finalData.bookmarks }),
-    saveUserDataSection(db, fs, uid, 'highlights', { items: finalData.highlights }),
-    saveUserDataSection(db, fs, uid, 'notes', { notes: finalData.notes }),
-    saveUserDataSection(db, fs, uid, 'readLessons', { items: finalData.readLessons }),
-    saveUserDataSection(db, fs, uid, 'stopMarks', { marks: finalData.stopMarks }),
-    saveUserDataSection(db, fs, uid, 'tombstones', { tombs: prunedTombs }),
-  ]);
-  return { data: finalData, tombs: prunedTombs };
+  const dataRoot = await userRoot(db, fs, uid);
+  const refs = {
+    bookmarks: fs.doc(dataRoot, 'bookmarks'),
+    highlights: fs.doc(dataRoot, 'highlights'),
+    notes: fs.doc(dataRoot, 'notes'),
+    readLessons: fs.doc(dataRoot, 'readLessons'),
+    stopMarks: fs.doc(dataRoot, 'stopMarks'),
+    tombstones: fs.doc(dataRoot, 'tombstones'),
+  };
+
+  // الدمج يتم داخل معاملة ذرّية: القراءة والدمج والكتابة وحدة واحدة.
+  // أي كتابة متزامنة من جهاز آخر تُكتشف فيُعاد تشغيل المعاملة تلقائيًا على البيانات
+  // الأحدث — فتغلق نافذة السباق "قراءة→كتابة" التي كانت تُسقط تعديلات متزامنة.
+  return fs.runTransaction(db, async (tx) => {
+    const snaps = await Promise.all([
+      tx.get(refs.bookmarks),
+      tx.get(refs.highlights),
+      tx.get(refs.notes),
+      tx.get(refs.readLessons),
+      tx.get(refs.stopMarks),
+      tx.get(refs.tombstones),
+    ]);
+    const docMap: Record<string, Record<string, unknown>> = {
+      bookmarks: snaps[0].exists() ? (snaps[0].data() as Record<string, unknown>) : {},
+      highlights: snaps[1].exists() ? (snaps[1].data() as Record<string, unknown>) : {},
+      notes: snaps[2].exists() ? (snaps[2].data() as Record<string, unknown>) : {},
+      readLessons: snaps[3].exists() ? (snaps[3].data() as Record<string, unknown>) : {},
+      stopMarks: snaps[4].exists() ? (snaps[4].data() as Record<string, unknown>) : {},
+      tombstones: snaps[5].exists() ? (snaps[5].data() as Record<string, unknown>) : {},
+    };
+    const { data: cloud, tombs: cloudTombs } = sectionsFromDocData((id) => docMap[id]);
+    const tombs = mergeTombs(cleanTombs(cloudTombs), cleanTombs(inputTombs));
+
+    const { finalData, prunedTombs } = computeMergedLibrary(local, base, cloud, tombs);
+
+    tx.set(refs.bookmarks, { items: finalData.bookmarks }, { merge: true });
+    tx.set(refs.highlights, { items: finalData.highlights }, { merge: true });
+    tx.set(refs.notes, { notes: finalData.notes }, { merge: true });
+    tx.set(refs.readLessons, { items: finalData.readLessons }, { merge: true });
+    tx.set(refs.stopMarks, { marks: finalData.stopMarks }, { merge: true });
+    tx.set(refs.tombstones, { tombs: prunedTombs }, { merge: true });
+
+    return { data: finalData, tombs: prunedTombs };
+  });
 }
 
 // مزامنة قائمة المسائل المقروءة (تتبع التقدم)
