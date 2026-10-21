@@ -444,7 +444,17 @@ export function useUserLibrary() {
     // قد تترك حالة التحذير عالقة بلا طلب كتابة/تأكيد جديد.
     const forceCloudSync = onlineRevision > lastForcedSyncRevisionRef.current;
     if (forceCloudSync) lastForcedSyncRevisionRef.current = onlineRevision;
-    if (lastWrittenRef.current && snapshotsEqual(snapshot, lastWrittenRef.current) && !forceCloudSync) return;
+    if (lastWrittenRef.current && snapshotsEqual(snapshot, lastWrittenRef.current) && !forceCloudSync) {
+      // لا جديد للرفع — لكن قد يكون صندوق صادر قديم عالقًا من جلسة سابقة اكتمل رفعها فعليًا.
+      // تركه يمنع المستمع اللحظي من تطبيق تعديلات الأجهزة الأخرى ويُبقي المؤشر "قيد المزامنة".
+      // بما أن المحلي يطابق آخر كتابة ناجحة فلا شيء لرفعه؛ ننظّفه فقط. المستمع اللحظي
+      // (الذي بات غير محجوب) سيستقر على 'synced' عند أول لقطة خادمية مؤكدة.
+      if (readLibraryOutbox(uid)) {
+        safeRemove(accountOutboxKey(uid));
+        syncErrorRef.current = false;
+      }
+      return;
+    }
     if (lastWrittenRef.current) {
       const prev = lastWrittenRef.current;
       const diffSection = (
@@ -474,6 +484,9 @@ export function useUserLibrary() {
     const tombs = tombRef.current;
     // base للدمج الثلاثي: آخر حالة مكتوبة بنجاح (غيابها = أول رفع: كل المحلي جديد)
     const base = lastWrittenRef.current ?? emptyLibrarySnapshot();
+    // لقطة أقسام المستخدم المعدّلة قبل بدء هذه المعاملة — تُستخدم عند محاذاة النتيجة
+    // حتى لا نمحو مسودةً أنشأها المستخدم أثناء انتظار استجابة الخادم.
+    const dirtyAtRequest = { ...dirtyRef.current };
     // صندوق صادر دائم: ينجو من إغلاق التطبيق أو إعادة تشغيل الهاتف قبل عودة الإنترنت.
     safeSet(accountOutboxKey(uid), JSON.stringify({ snapshot, base } satisfies LibraryOutbox));
     syncErrorRef.current = false;
@@ -506,12 +519,37 @@ export function useUserLibrary() {
           const currentOutbox = readLibraryOutbox(uid);
           if (currentOutbox && snapshotsEqual(currentOutbox.snapshot, snapshot)) safeRemove(accountOutboxKey(uid));
           dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false };
-          // محاذاة: الدمج الثلاثي قد يغلّب السحابة (الأحدث) على قيمة محلية قديمة —
-          // نعكس النتيجة على الحالة حتى لا يعرض الجهاز قيمة تجاوزها الدمج
-          // (الحارس يمنع الصدى: الحالة المطابقة لآخر كتابة لا تُعاد كتابتها)
-          if (!mapEqual(snapshot.notes, data.notes)) {
-            setNotes(data.notes);
-          }
+          // محاذاة: الدمج قد يغلّب السحابة (عناصر رفعها جهاز آخر) على الحالة المحلية —
+          // نعكس النتيجة كاملةً على الحالة حتى لا يبقى الجهاز معروضًا على نسخته فقط.
+          // هذا هو المسار الذي يجعل تعديلات الأجهزة الأخرى تظهر بعد اكتمال الرفع،
+          // لأن المستمع اللحظي يتجاهل اللقطات ما دام الصندوق الصادر موجودًا ثم لا تأتي لقطة جديدة.
+          // الأقسام التي عدّلها المستخدم أثناء الطلب تُدمج (اتحاد) لا تُستبدل، حمايةً لمسودته.
+          setBookmarks((prev) => {
+            const next = dirtyAtRequest.bookmarks
+              ? Array.from(new Set([...prev.map(String), ...data.bookmarks.map(String)]))
+              : data.bookmarks.map(String);
+            return strArrEqual(prev, next) ? prev : next;
+          });
+          setReadLessons((prev) => {
+            const next = dirtyAtRequest.readLessons
+              ? Array.from(new Set([...prev.map(String), ...data.readLessons.map(String)]))
+              : data.readLessons.map(String);
+            return strArrEqual(prev, next) ? prev : next;
+          });
+          setHighlights((prev) => {
+            const next = dirtyAtRequest.highlights
+              ? (() => {
+                  const map = new Map(prev.map((h) => [String(h.id ?? h.text), h] as const));
+                  data.highlights.forEach((h) => { if (h) map.set(String(h.id ?? h.text), h); });
+                  return Array.from(map.values());
+                })()
+              : data.highlights;
+            return highlightsEqual(prev, next) ? prev : next;
+          });
+          setNotes((prev) => {
+            const next = dirtyAtRequest.notes ? { ...data.notes, ...prev } : data.notes;
+            return mapEqual(prev, next) ? prev : next;
+          });
           setSyncState('synced');
           setLastSyncRecord({ uid, at: Date.now() });
         })
@@ -558,7 +596,12 @@ export function useUserLibrary() {
           });
 
           // لا تستبدل المسودة المحفوظة في الصندوق بلقطة كاش أقدم؛ المعاملة ستدمجها مع أحدث نسخة خادمية.
-          if (readLibraryOutbox(user.uid)) {
+          // لكن صندوقًا بلا فرق فعلي (لقطته تساوي أساسه = لا شيء للرفع) لا يحجب اللقطات —
+          // وإلا بقي المستمع أعمى عن تعديلات الأجهزة الأخرى إلى الأبد إن عُلّق الصندوق.
+          const outbox = readLibraryOutbox(user.uid);
+          const outboxHasPending = Boolean(outbox && !snapshotsEqual(outbox.snapshot, outbox.base));
+          if (outbox && !outboxHasPending) safeRemove(accountOutboxKey(user.uid));
+          if (outboxHasPending) {
             setSyncState(syncErrorRef.current
               ? 'error'
               : !snap.metadata.fromCache && !snap.metadata.hasPendingWrites ? 'syncing' : 'pending');

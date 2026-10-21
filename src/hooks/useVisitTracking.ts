@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { safeGet, safeSet, safeParse } from '../utils/safeStorage';
+import { safeGet, safeSet, safeRemove, safeParse } from '../utils/safeStorage';
 import { logError } from '../utils/logError';
 
 const LEGACY_VISIT_DAYS_KEY = 'fiqh_visit_days';
@@ -35,6 +35,17 @@ export function useVisitTracking(user: { uid: string } | null, authLoading: bool
       const legacyDays = readVisitDays(LEGACY_VISIT_DAYS_KEY);
       if (legacyDays.length) localDays.push(...legacyDays);
       safeSet(migratedKey, '1');
+    }
+    // ترحيل أيام الضيف إلى حساب المستخدم عند تسجيل الدخول لأول مرة —
+    // بلا هذا يفقد من قرأ كضيف سلسلة مواظبته فور الدخول (المفاتيح معزولة لكل حساب).
+    if (uid) {
+      const guestKey = visitDaysStorageKey(undefined);
+      const guestDays = readVisitDays(guestKey);
+      if (guestDays.length) {
+        guestDays.forEach((d) => { if (!localDays.includes(d)) localDays.push(d); });
+        // ننقلها مرة واحدة ثم نمسحها حتى لا تتسرّب لأي حساب لاحق على نفس الجهاز.
+        safeRemove(guestKey);
+      }
     }
 
     const now = new Date();

@@ -75,8 +75,16 @@ export function useStopMarks() {
       .then(() => {
         clearTimeout(timeout);
         if (pendingTimeoutsRef.current.get(bookKey) === timeout) pendingTimeoutsRef.current.delete(bookKey);
+        if (activeUidRef.current !== currentUid) return;
+        // كتابة الكاش المحلي (Firestore offline persistence) تُحل فورًا حتى بلا شبكة،
+        // فلا نعلن "synced" إلا عند طلب الخادم فعليًا؛ وإلا بقي سجل العلامة غير مُرسل.
+        if (!window.navigator.onLine) {
+          syncTimedOutRef.current = false;
+          setSyncState('pending');
+          return;
+        }
         if (pendingRecordsRef.current.get(bookKey) === record) pendingRecordsRef.current.delete(bookKey);
-        if (activeUidRef.current === currentUid && pendingRecordsRef.current.size === 0) {
+        if (pendingRecordsRef.current.size === 0) {
           syncTimedOutRef.current = false;
           setSyncState('synced');
           setLastSyncRecord({ uid: currentUid, at: Date.now() });
