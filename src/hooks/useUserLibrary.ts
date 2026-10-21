@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { SetStateAction } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
-import { safeSet, safeRemove } from '../utils/safeStorage';
-import { clearStopMarkTouchedAt } from '../utils/stopMarkRecency';
+import { safeGet, safeSet, safeRemove } from '../utils/safeStorage';
 import { mergeLibraries, mergeTombs, emptyTombs, cleanTombs, applyTombsToMerged, pruneTombs, dropStaleTombs } from '../utils/mergeLibrary';
 import type { TombstoneMap } from '../utils/mergeLibrary';
 import { logError } from '../utils/logError';
@@ -12,7 +10,6 @@ import {
   syncHighlights,
   syncAllNotes,
   syncReadLessons,
-  syncStopMarks,
   mergeAndSyncLibrary,
 } from '../firebase/services';
 
@@ -48,7 +45,55 @@ interface LibrarySnapshot {
   highlights: HighlightItem[];
   notes: Record<string, string>;
   readLessons: string[];
-  stopMarks: Record<string, string>;
+}
+
+export type LibrarySyncState = 'loading' | 'local' | 'offline' | 'pending' | 'syncing' | 'synced' | 'error';
+
+interface LibraryOutbox {
+  snapshot: LibrarySnapshot;
+  base: LibrarySnapshot;
+}
+
+const accountCacheKey = (uid: string): string => `library_v2_${uid}`;
+const accountOutboxKey = (uid: string): string => `library_outbox_v2_${uid}`;
+const emptyLibrarySnapshot = (): LibrarySnapshot => ({ bookmarks: [], highlights: [], notes: {}, readLessons: [] });
+
+function readLibrarySnapshot(key: string): LibrarySnapshot | null {
+  try {
+    const parsed = JSON.parse(safeGet(key) || 'null') as Partial<LibrarySnapshot> | null;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      bookmarks: Array.isArray(parsed.bookmarks) ? parsed.bookmarks.map(String) : [],
+      highlights: Array.isArray(parsed.highlights) ? parsed.highlights : [],
+      notes: parsed.notes && typeof parsed.notes === 'object' ? parsed.notes : {},
+      readLessons: Array.isArray(parsed.readLessons) ? parsed.readLessons.map(String) : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readLibraryOutbox(uid: string): LibraryOutbox | null {
+  try {
+    const parsed = JSON.parse(safeGet(accountOutboxKey(uid)) || 'null') as Partial<LibraryOutbox> | null;
+    if (!parsed || !parsed.snapshot || !parsed.base) return null;
+    const snapshot = readLibrarySnapshotValue(parsed.snapshot);
+    const base = readLibrarySnapshotValue(parsed.base);
+    return snapshot && base ? { snapshot, base } : null;
+  } catch {
+    return null;
+  }
+}
+
+function readLibrarySnapshotValue(value: unknown): LibrarySnapshot | null {
+  if (!value || typeof value !== 'object') return null;
+  const parsed = value as Partial<LibrarySnapshot>;
+  return {
+    bookmarks: Array.isArray(parsed.bookmarks) ? parsed.bookmarks.map(String) : [],
+    highlights: Array.isArray(parsed.highlights) ? parsed.highlights : [],
+    notes: parsed.notes && typeof parsed.notes === 'object' ? parsed.notes : {},
+    readLessons: Array.isArray(parsed.readLessons) ? parsed.readLessons.map(String) : [],
+  };
 }
 
 function snapshotsEqual(a: LibrarySnapshot, b: LibrarySnapshot): boolean {
@@ -56,8 +101,7 @@ function snapshotsEqual(a: LibrarySnapshot, b: LibrarySnapshot): boolean {
     strArrEqual(a.bookmarks, b.bookmarks) &&
     highlightsEqual(a.highlights, b.highlights) &&
     mapEqual(a.notes, b.notes) &&
-    strArrEqual(a.readLessons, b.readLessons) &&
-    mapEqual(a.stopMarks, b.stopMarks)
+    strArrEqual(a.readLessons, b.readLessons)
   );
 }
 
@@ -66,23 +110,28 @@ function snapshotsEqual(a: LibrarySnapshot, b: LibrarySnapshot): boolean {
  * تضمن عزل بيانات كل مستخدم بناءً على حسابه.
  * تقوم بدمج بيانات الضيف (إن وجدت) لمرة واحدة عند تسجيل الدخول ثم تحذفها من الجهاز.
  */
-export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => void } = {}) {
+export function useUserLibrary() {
   const { user, loadUserData, authLoading } = useAuth();
 
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [highlights, setHighlights] = useState<HighlightItem[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [readLessons, setReadLessons] = useState<string[]>([]);
-  // علامات التوقف لكل كتاب — ضيف: محلية فقط، مسجل: تُزامن سحابيًا فتظهر على كل الأجهزة
-  const [stopMarks, setStopMarks] = useState<Record<string, string>>({});
 
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [loadedUid, setLoadedUid] = useState<string | null>(null);
+  const [onlineRevision, setOnlineRevision] = useState(0);
+  const lastForcedSyncRevisionRef = useRef(0);
+  const [lastSyncRecord, setLastSyncRecord] = useState<{ uid: string; at: number } | null>(null);
+  const [syncState, setSyncState] = useState<LibrarySyncState>('loading');
   const isSyncReady = Boolean(user) && isDataLoaded;
   // تتبّع الجلسة لمنع تسرب علامات مستخدم خرج للتو إلى ضيف جديد على نفس الجهاز
   const prevUidRef = useRef<string | null>(null);
+  // Avoid exposing the previous account's ready state during the render before its auth effect runs.
+  const isLibraryReady = isDataLoaded && loadedUid === (user?.uid ?? null);
   // وسم "معدّل محليًا" لكل قسم — القسم النظيف تُستبدل قيمته بما يصل من الأجهزة الأخرى
   // (فينتشر التعديل والحذف)، والقسم المعدّل يُدمج إضافيًا فقط حمايةً لمسودة المستخدم
-  const dirtyRef = useRef({ bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false });
+  const dirtyRef = useRef({ bookmarks: false, highlights: false, notes: false, readLessons: false });
   // آخر حالة كُتبت بنجاح — تطابقها مع الحالية يعني "لا جديد للرفع" (يمنع الرفع الصدى)
   const lastWrittenRef = useRef<LibrarySnapshot | null>(null);
   // شواهد الحذف — تسجيل صريح "حُذف هذا المفتاح عمدًا" يُزامن سحابيًا:
@@ -114,25 +163,19 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       // حتى لا تتحول بيانات الحساب السابق إلى بيانات محلية تُدمج مع حساب لاحق.
       // المعرفات تُوحَّد كنصوص دائمًا حتى لا تفشل المطابقة بين رقم ونص
       const asStringArray = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
-      const asMarks = (v: unknown): Record<string, string> =>
-        v && typeof v === 'object' ? (v as Record<string, string>) : {};
-      safeRemove('stopMarks'); // مفتاح قديم غير معزول حسب الحساب
       if (prevUidRef.current) {
         // خرج من حساب — لا نعرض بيانات الضيف القديمة ولا نرحّلها لحساب آخر لاحقًا.
         prevUidRef.current = null;
-        ['guest_bookmarks', 'guest_highlights', 'guest_notes', 'guest_readLessons', 'guest_stopMarks']
+        ['guest_bookmarks', 'guest_highlights', 'guest_notes', 'guest_readLessons']
           .forEach(safeRemove);
-        clearStopMarkTouchedAt();
-        dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false };
+        dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false };
         lastWrittenRef.current = null;
         tombRef.current = emptyTombs();
         setBookmarks([]);
         setHighlights([]);
         setNotes({});
         setReadLessons([]);
-        setStopMarks({});
       } else {
-        setStopMarks(asMarks(readJsonStorage('guest_stopMarks', {})));
         setBookmarks(asStringArray(readJsonStorage('guest_bookmarks', [])));
         setHighlights(readJsonStorage('guest_highlights', []));
         setNotes(readJsonStorage('guest_notes', {}));
@@ -140,7 +183,9 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       }
       // Sync loaded auth/guest state into the hook after the auth transition.
       // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoadedUid(null);
       setIsDataLoaded(true);
+      setSyncState('local');
       return;
     }
 
@@ -149,30 +194,51 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     const previousUid = prevUidRef.current;
     if (previousUid && previousUid !== user.uid) {
       // تبديل مباشر بين حسابين: أخفِ فورًا مكتبة الحساب السابق أثناء جلب الجديدة.
-      dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false };
+      dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false };
       lastWrittenRef.current = null;
       tombRef.current = emptyTombs();
-      clearStopMarkTouchedAt();
       setBookmarks([]);
       setHighlights([]);
       setNotes({});
       setReadLessons([]);
-      setStopMarks({});
     }
     setIsDataLoaded(false);
     prevUidRef.current = user.uid;
 
     (async () => {
-      onStatus?.('syncing');
+      const queuedOutbox = readLibraryOutbox(user.uid);
+      const cachedSnapshot = readLibrarySnapshot(accountCacheKey(user.uid));
+      const localSnapshot = queuedOutbox?.snapshot ?? cachedSnapshot;
+      if (localSnapshot) {
+        // عرض آخر نسخة محلية فورًا بدل انتظار Firestore (قد يصل لـ 12 ثانية على شبكة بطيئة).
+        // المكتبة جاهزة للاستخدام من الكاش، والجلب السحابي يكمل في الخلفية ليحدّثها.
+        setBookmarks(localSnapshot.bookmarks);
+        setHighlights(localSnapshot.highlights);
+        setNotes(localSnapshot.notes);
+        setReadLessons(localSnapshot.readLessons);
+        tombRef.current = loadPersistedTombs(user.uid);
+        // إعلان الجاهزية فورًا — المكتبة قابلة للاستخدام من الكاش المحلي
+        setLoadedUid(user.uid);
+        setIsDataLoaded(true);
+      }
+      setSyncState(window.navigator.onLine ? 'syncing' : (queuedOutbox ? 'pending' : 'offline'));
       
-      // جلب بيانات المستخدم من السحابة
-      const cloudData: UserLibraryData = (await loadUserData(user.uid)) || {
+      // جلب بيانات المستخدم من السحابة بمهلة؛ لا نعلّق واجهة المكتبة للأبد
+      // إذا اتصل الجهاز بالواي فاي لكن لم يرد Firestore.
+      let cloudFetchTimeout: ReturnType<typeof setTimeout> | null = null;
+      const fetchedCloudData = await Promise.race([
+        loadUserData(user.uid),
+        new Promise<null>((resolve) => {
+          cloudFetchTimeout = setTimeout(() => resolve(null), 12_000);
+        }),
+      ]);
+      if (cloudFetchTimeout) clearTimeout(cloudFetchTimeout);
+      const cloudData: UserLibraryData = fetchedCloudData || {
         bookmarks: [],
         highlights: [],
         notes: {},
         readLessons: [],
         visits: [],
-        stopMarks: {},
         tombs: emptyTombs(),
       };
       if (cancelled) return;
@@ -186,23 +252,28 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       const guestHighlights = readJsonStorage<HighlightItem[]>('guest_highlights', []);
       const guestNotes = readJsonStorage<Record<string, string>>('guest_notes', {});
       const guestReadLessons = readJsonStorage<string[]>('guest_readLessons', []);
-      const guestStopMarks = readJsonStorage<Record<string, string>>('guest_stopMarks', {});
+
+      const serverSnapshot: LibrarySnapshot = {
+        bookmarks: cloudData.bookmarks || [],
+        highlights: cloudData.highlights || [],
+        notes: cloudData.notes || {},
+        readLessons: cloudData.readLessons || [],
+      };
+      const fallbackSnapshot = queuedOutbox?.snapshot ?? (!fetchedCloudData ? cachedSnapshot : null);
 
       const hasGuestData =
         guestBookmarks.length > 0 ||
         guestHighlights.length > 0 ||
         Object.keys(guestNotes).length > 0 ||
-        guestReadLessons.length > 0 ||
-        Object.keys(guestStopMarks).length > 0;
+        guestReadLessons.length > 0;
 
-      let initialBookmarks = cloudData.bookmarks || [];
-      let initialHighlights = cloudData.highlights || [];
-      let initialNotes = cloudData.notes || {};
-      let initialReadLessons = cloudData.readLessons || [];
-      let initialStopMarks = cloudData.stopMarks || {};
+      let initialBookmarks = fallbackSnapshot?.bookmarks ?? serverSnapshot.bookmarks;
+      let initialHighlights = fallbackSnapshot?.highlights ?? serverSnapshot.highlights;
+      let initialNotes = fallbackSnapshot?.notes ?? serverSnapshot.notes;
+      let initialReadLessons = fallbackSnapshot?.readLessons ?? serverSnapshot.readLessons;
 
       // رفع بيانات الضيف المدمجة — الحذف من الجهاز فقط بعد نجاح الرفع
-      let mergeUploaded = !hasGuestData; // بلا بيانات ضيف: السحابة مطابقة أصلًا
+      let mergeUploaded = Boolean(fetchedCloudData) && !hasGuestData && !queuedOutbox; // لا نعلن النجاح إذا تعذر جلب السحابة أو بقيت تغييرات محلية
       if (hasGuestData) {
         const merged = mergeLibraries(
           {
@@ -210,14 +281,12 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
             highlights: initialHighlights,
             notes: initialNotes,
             readLessons: initialReadLessons,
-            stopMarks: initialStopMarks,
           },
           {
             bookmarks: guestBookmarks,
             highlights: guestHighlights,
             notes: guestNotes,
             readLessons: guestReadLessons,
-            stopMarks: guestStopMarks,
           },
         );
         // إسقاط المشهود بحذفه — إلا ما أعاده الضيف صراحةً (الوجود يلغي الشاهد)
@@ -226,20 +295,17 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
           highlights: guestHighlights,
           notes: guestNotes,
           readLessons: guestReadLessons,
-          stopMarks: guestStopMarks,
         };
         const dropped = applyTombsToMerged(merged, guestLocal, tombRef.current);
         initialBookmarks = dropped.bookmarks;
         initialHighlights = dropped.highlights;
         initialNotes = dropped.notes;
         initialReadLessons = dropped.readLessons;
-        initialStopMarks = dropped.stopMarks;
         tombRef.current = pruneTombs(tombRef.current, {
           bookmarks: initialBookmarks,
           highlights: initialHighlights,
           notes: initialNotes,
           readLessons: initialReadLessons,
-          stopMarks: initialStopMarks,
         });
         persistTombs(user.uid);
         try {
@@ -248,14 +314,12 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
             syncHighlights(user.uid, initialHighlights),
             syncAllNotes(user.uid, initialNotes),
             syncReadLessons(user.uid, initialReadLessons),
-            syncStopMarks(user.uid, initialStopMarks),
           ]);
           mergeUploaded = true;
           safeRemove('guest_bookmarks');
           safeRemove('guest_highlights');
           safeRemove('guest_notes');
           safeRemove('guest_readLessons');
-          safeRemove('guest_stopMarks');
         } catch (err) {
           // تبقى نسخة الضيف محفوظة للدمج في المرة القادمة — وlastWritten فارغ فيُعاد الرفع تلقائيًا
           logError('userLibrary.mergeUpload', err);
@@ -266,18 +330,18 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       setHighlights(initialHighlights);
       setNotes(initialNotes);
       setReadLessons(initialReadLessons);
-      setStopMarks(initialStopMarks);
 
       const initialSnapshot = {
         bookmarks: initialBookmarks,
         highlights: initialHighlights,
         notes: initialNotes,
         readLessons: initialReadLessons,
-        stopMarks: initialStopMarks,
       };
       // آخر كتابة ناجحة تُسجَّل فقط عند تطابق السحابة فعليًا — الفشل يُبقي الباب مفتوحًا لإعادة الرفع
-      lastWrittenRef.current = mergeUploaded ? initialSnapshot : null;
-      dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false };
+      lastWrittenRef.current = mergeUploaded
+        ? initialSnapshot
+        : queuedOutbox?.base ?? (fetchedCloudData ? serverSnapshot : cachedSnapshot ?? (!hasGuestData ? initialSnapshot : null));
+      dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false };
 
       // إزالة البيانات القديمة المتبقية من الإصدارات السابقة (تنظيف)
       safeRemove('bookmarks');
@@ -293,37 +357,94 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
         staleKeys.forEach((key) => safeRemove(key));
       } catch { /* تجاهل — التنظيف لا يعلق التحميل */ }
 
+      // إذا لم يسبق إعلان الجاهزية (لا كاش محلي) نُعلنها الآن بعد الجلب السحابي
+      setLoadedUid(user.uid);
       setIsDataLoaded(true);
-      onStatus?.(mergeUploaded ? 'synced' : 'offline');
+      setSyncState(queuedOutbox ? 'pending' : !window.navigator.onLine ? 'offline' : mergeUploaded || fetchedCloudData ? 'synced' : 'error');
     })();
 
     return () => { cancelled = true; };
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // حفظ محلي لبيانات الضيف فقط. علامات الحساب المسجل مصدرها مسار Firestore الخاص به.
+  // حفظ لقطة محلية لكل حساب وضيف؛ تبقى القراءة والتعديلات متاحة بعد إغلاق التطبيق أو انقطاع الشبكة.
   useEffect(() => {
     if (!isDataLoaded) return;
+    const snapshot = { bookmarks, highlights, notes, readLessons };
     if (!user) {
       safeSet('guest_bookmarks', JSON.stringify(bookmarks));
       safeSet('guest_highlights', JSON.stringify(highlights));
       safeSet('guest_notes', JSON.stringify(notes));
       safeSet('guest_readLessons', JSON.stringify(readLessons));
+    } else if (loadedUid === user.uid) {
+      safeSet(accountCacheKey(user.uid), JSON.stringify(snapshot));
     }
-    if (!user) safeSet('guest_stopMarks', JSON.stringify(stopMarks));
-  }, [bookmarks, highlights, notes, readLessons, stopMarks, user, isDataLoaded]);
+  }, [bookmarks, highlights, notes, readLessons, user, loadedUid, isDataLoaded]);
 
   // المزامنة مع السحابة دفعة واحدة بعد هدوء التغييرات (تجنّب كتابة لكل ضغطة متتالية)
   // مهلة قصيرة (250ms) تكفي لدمج النقرات المزدوجة مع استجابة أسرع.
   // دمج عند الكتابة: تُقرأ النسخة الأحدث وتُدمج قبل الرفع فلا تمحو تعديلات جهاز آخر.
   // تطابق الحالة مع آخر كتابة ناجحة = لا جديد (يمنع الرفع الصدى بعد استبدال قادم من مستمع).
   // diff-first: مفاتيح اختفت منذ آخر كتابة = حذف عمدًا (شاهد)، ومفاتيح عادت = إلغاء الشاهد.
-  // بهذا تُسجَّل الشواهد مركزيًا من أي مسار (زر/تقليم/ترحيل) دون تتبع كل استدعاء.
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const syncErrorRef = useRef(false);
+  const syncStateRef = useRef(syncState);
+  const lastRecoveryAttemptRef = useRef(0);
+  // Keep a current view for browser lifecycle callbacks without reinstalling listeners.
+  useEffect(() => {
+    syncStateRef.current = syncState;
+  }, [syncState]);
+  useEffect(() => {
+    let recoveryTimer: ReturnType<typeof setTimeout> | null = null;
+    const retryPendingSync = () => {
+      if (!window.navigator.onLine) return;
+      const state = syncStateRef.current;
+      // A live sync already has its own request and watchdog. Recover only a queued,
+      // offline, or failed sync so foreground events never create duplicate transactions.
+      if (state !== 'pending' && state !== 'offline' && state !== 'error') return;
+      if (Date.now() - lastRecoveryAttemptRef.current < 8_000) return;
+      lastRecoveryAttemptRef.current = Date.now();
+      if (recoveryTimer) clearTimeout(recoveryTimer);
+      recoveryTimer = setTimeout(() => {
+        setOnlineRevision((revision) => revision + 1);
+      }, 200);
+    };
+    const retryWhenVisible = () => {
+      if (document.visibilityState === 'visible') retryPendingSync();
+    };
+
+    window.addEventListener('online', retryPendingSync);
+    window.addEventListener('pageshow', retryPendingSync);
+    window.addEventListener('focus', retryPendingSync);
+    document.addEventListener('visibilitychange', retryWhenVisible);
+    return () => {
+      if (recoveryTimer) clearTimeout(recoveryTimer);
+      window.removeEventListener('online', retryPendingSync);
+      window.removeEventListener('pageshow', retryPendingSync);
+      window.removeEventListener('focus', retryPendingSync);
+      document.removeEventListener('visibilitychange', retryWhenVisible);
+    };
+  }, []);
+
+  const retryLibrarySync = useCallback(() => {
+    if (!window.navigator.onLine) return;
+    if (isSyncReady && user) {
+      syncErrorRef.current = false;
+      setSyncState('syncing');
+    }
+    setOnlineRevision((revision) => revision + 1);
+  }, [isSyncReady, user]);
+
   useEffect(() => {
     if (!isSyncReady || !user) return;
+    let requestTimeout: ReturnType<typeof setTimeout> | null = null;
     const uid = user.uid;
-    const snapshot = { bookmarks, highlights, notes, readLessons, stopMarks };
-    if (lastWrittenRef.current && snapshotsEqual(snapshot, lastWrittenRef.current)) return;
+    const snapshot = { bookmarks, highlights, notes, readLessons };
+    // رجوع الاتصال أو الضغط على «إعادة المزامنة» يجب أن ينفّذ معاملة سحابية فعلية،
+    // حتى عندما تطابق البيانات المحلية آخر نسخة معروفة؛ إعادة فتح المستمع وحدها
+    // قد تترك حالة التحذير عالقة بلا طلب كتابة/تأكيد جديد.
+    const forceCloudSync = onlineRevision > lastForcedSyncRevisionRef.current;
+    if (forceCloudSync) lastForcedSyncRevisionRef.current = onlineRevision;
+    if (lastWrittenRef.current && snapshotsEqual(snapshot, lastWrittenRef.current) && !forceCloudSync) return;
     if (lastWrittenRef.current) {
       const prev = lastWrittenRef.current;
       const diffSection = (
@@ -348,46 +469,66 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
         (id) => snapshot.highlights.some((h) => String(h.id ?? h.text) === id),
       );
       diffSection('noteKeys', Object.keys(prev.notes), Object.keys(snapshot.notes), (k) => k in snapshot.notes);
-      diffSection('stopMarkKeys', Object.keys(prev.stopMarks), Object.keys(snapshot.stopMarks), (k) => k in snapshot.stopMarks);
       persistTombs(uid);
     }
     const tombs = tombRef.current;
     // base للدمج الثلاثي: آخر حالة مكتوبة بنجاح (غيابها = أول رفع: كل المحلي جديد)
-    const base = lastWrittenRef.current ?? { bookmarks: [], highlights: [], notes: {}, readLessons: [], stopMarks: {} };
+    const base = lastWrittenRef.current ?? emptyLibrarySnapshot();
+    // صندوق صادر دائم: ينجو من إغلاق التطبيق أو إعادة تشغيل الهاتف قبل عودة الإنترنت.
+    safeSet(accountOutboxKey(uid), JSON.stringify({ snapshot, base } satisfies LibraryOutbox));
+    syncErrorRef.current = false;
+    setSyncState('pending');
     if (syncTimer.current) clearTimeout(syncTimer.current);
     let cancelled = false;
     syncTimer.current = setTimeout(() => {
-      onStatus?.('syncing');
+      if (!window.navigator.onLine) {
+        setSyncState('pending');
+        return;
+      }
+      setSyncState('syncing');
+      // لا نترك المؤشر عالقًا للأبد إذا لم يرد Firestore؛ تبقى المسودة في
+      // الصندوق المحلي ويستطيع المستخدم إعادة المحاولة بأمان.
+      requestTimeout = setTimeout(() => {
+        if (cancelled || prevUidRef.current !== uid) return;
+        syncErrorRef.current = true;
+        setSyncState('error');
+      }, 20_000);
       mergeAndSyncLibrary(uid, snapshot, base, tombs)
         .then(({ data, tombs }) => {
+          if (requestTimeout) clearTimeout(requestTimeout);
           // حارس تبديل الحساب/الإلغاء: نتيجة حساب سابق لا تلوّث حالة/مرجع حساب آخر
           if (cancelled || prevUidRef.current !== uid) return;
+          syncErrorRef.current = false;
           tombRef.current = tombs;
           persistTombs(uid);
           lastWrittenRef.current = data;
-          dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false, stopMarks: false };
+          safeSet(accountCacheKey(uid), JSON.stringify(data));
+          const currentOutbox = readLibraryOutbox(uid);
+          if (currentOutbox && snapshotsEqual(currentOutbox.snapshot, snapshot)) safeRemove(accountOutboxKey(uid));
+          dirtyRef.current = { bookmarks: false, highlights: false, notes: false, readLessons: false };
           // محاذاة: الدمج الثلاثي قد يغلّب السحابة (الأحدث) على قيمة محلية قديمة —
           // نعكس النتيجة على الحالة حتى لا يعرض الجهاز قيمة تجاوزها الدمج
           // (الحارس يمنع الصدى: الحالة المطابقة لآخر كتابة لا تُعاد كتابتها)
-          if (!mapEqual(snapshot.stopMarks, data.stopMarks)) {
-            setStopMarks(data.stopMarks);
-          }
           if (!mapEqual(snapshot.notes, data.notes)) {
             setNotes(data.notes);
           }
-          onStatus?.('synced');
+          setSyncState('synced');
+          setLastSyncRecord({ uid, at: Date.now() });
         })
         .catch((e) => {
+          if (requestTimeout) clearTimeout(requestTimeout);
           if (cancelled || prevUidRef.current !== uid) return;
           logError('userLibrary.sync', e, { section: 'merge' });
-          onStatus?.('offline');
+          syncErrorRef.current = true;
+          setSyncState(window.navigator.onLine ? 'error' : 'pending');
         });
     }, 250);
     return () => {
       cancelled = true;
       if (syncTimer.current) clearTimeout(syncTimer.current);
+      if (requestTimeout) clearTimeout(requestTimeout);
     };
-  }, [bookmarks, highlights, notes, readLessons, stopMarks, isSyncReady, user, onStatus, persistTombs]);
+  }, [bookmarks, highlights, notes, readLessons, isSyncReady, user, persistTombs, onlineRevision]);
 
   // اشتراك لحظي: الرفع وحده لا يكفي — الجهاز الآخر المفتوح أصلًا لا يعيد الجلب إلا عند الدخول.
   // هذا المستمع يلتقط تعديلات الأجهزة الأخرى فور وصولها (علامة وُضعت على الفون تظهر على اللاب المفتوح).
@@ -403,9 +544,9 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
         const { db, fsMod } = await getFirestore();
         if (cancelled) return;
         const colRef = fsMod.collection(db, 'users', user.uid, 'data');
-        unsub = fsMod.onSnapshot(colRef, (snap) => {
-          const cloud: { bookmarks: string[]; highlights: HighlightItem[]; notes: Record<string, string>; readLessons: string[]; stopMarks: Record<string, string> } =
-            { bookmarks: [], highlights: [], notes: {}, readLessons: [], stopMarks: {} };
+        unsub = fsMod.onSnapshot(colRef, { includeMetadataChanges: true }, (snap) => {
+          const cloud: { bookmarks: string[]; highlights: HighlightItem[]; notes: Record<string, string>; readLessons: string[] } =
+            { bookmarks: [], highlights: [], notes: {}, readLessons: [] };
           let cloudTombs: unknown = null;
           snap.forEach((d) => {
             const v = d.data() as Record<string, unknown>;
@@ -413,9 +554,16 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
             else if (d.id === 'highlights' && Array.isArray(v.items)) cloud.highlights = v.items as HighlightItem[];
             else if (d.id === 'notes' && v.notes && typeof v.notes === 'object') cloud.notes = v.notes as Record<string, string>;
             else if (d.id === 'readLessons' && Array.isArray(v.items)) cloud.readLessons = (v.items as unknown[]).map(String);
-            else if (d.id === 'stopMarks' && v.marks && typeof v.marks === 'object') cloud.stopMarks = v.marks as Record<string, string>;
             else if (d.id === 'tombstones' && v.tombs && typeof v.tombs === 'object') cloudTombs = v.tombs;
           });
+
+          // لا تستبدل المسودة المحفوظة في الصندوق بلقطة كاش أقدم؛ المعاملة ستدمجها مع أحدث نسخة خادمية.
+          if (readLibraryOutbox(user.uid)) {
+            setSyncState(syncErrorRef.current
+              ? 'error'
+              : !snap.metadata.fromCache && !snap.metadata.hasPendingWrites ? 'syncing' : 'pending');
+            return;
+          }
 
           // شواهد السحابة تُحدَّث لحظيًا أيضًا — لا تُقرأ عند الدخول فقط.
           // ثم نُسقط الشواهد "العالقة": شاهد يعيق عنصرًا ما زال في السحابة = بلا أساس
@@ -427,8 +575,18 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
           tombRef.current = dropStaleTombs(tombRef.current, cloud);
           persistTombs(user.uid);
 
+          // حدّث الحالة من ميتاداتا الاتصال حتى لو كانت البيانات مطابقة محليًا؛
+          // حارس منع الصدى أدناه قد يتجاهل محتوى اللقطة لكنه لا يجب أن يتجاهل تأكيد الخادم.
+          if (!snap.metadata.fromCache && !snap.metadata.hasPendingWrites) {
+            setSyncState('synced');
+            setLastSyncRecord({ uid: user.uid, at: Date.now() });
+          } else if (snap.metadata.fromCache && !snap.metadata.hasPendingWrites) {
+            setSyncState(readLibraryOutbox(user.uid) ? 'pending' : 'offline');
+          }
+
           // منع حلقة الصدى: إذا كانت البيانات القادمة من السحابة مطابقة لما كتبناه للتو، نتجاهلها
           if (lastWrittenRef.current && snapshotsEqual(cloud, lastWrittenRef.current)) {
+            safeSet(accountCacheKey(user.uid), JSON.stringify(cloud));
             return;
           }
 
@@ -488,25 +646,17 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
             return { ...admitted };
           });
 
-          setStopMarks((prev) => {
-            const admitted = notTombedMap('stopMarkKeys', cloud.stopMarks, prev);
-            if (mapEqual(prev, admitted)) return prev;
-            if (dirtyRef.current.stopMarks) {
-              const next = { ...prev };
-              Object.entries(admitted).forEach(([k, v]) => { if (!(k in next)) next[k] = v; });
-              return next;
-            }
-            return { ...admitted };
-          });
-
-          onStatus?.('synced');
+        }, (error) => {
+          if (cancelled) return;
+          logError('userLibrary.listen', error, { section: 'snapshot' });
+          setSyncState(window.navigator.onLine ? 'error' : 'offline');
         });
       } catch {
         // بلا اتصال: يبقى الجلب عند الدخول هو المصدر — لا كسر
       }
     })();
     return () => { cancelled = true; if (unsub) unsub(); };
-  }, [user, isSyncReady, onStatus, persistTombs]);
+  }, [user, isSyncReady, persistTombs, onlineRevision]);
 
   // الدوال المساعدة للتحكم بالبيانات (المعرفات كنصوص دائمًا)
   // كل تعديل صادر عن المستخدم يوسم قسمه "معدّلًا" — فيُحمى من الاستبدال القادم من مستمع الأجهزة
@@ -556,15 +706,9 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
     );
   }, []);
 
-  // نسخة مغلفة من setStopMarks للمستهلكين (App/الاستعادة) — توسم القسم معدلًا
-  const setStopMarksDirty = useCallback((updater: SetStateAction<Record<string, string>>) => {
-    dirtyRef.current.stopMarks = true;
-    setStopMarks(updater);
-  }, []);
-
   // استعادة نسخة احتياطية (دمج مع الحالي بدون فقد)
   const restoreLibrary = useCallback((data: {
-    bookmarks?: string[]; highlights?: HighlightItem[]; notes?: Record<string, string>; readLessons?: string[]; stopMarks?: Record<string, string>;
+    bookmarks?: string[]; highlights?: HighlightItem[]; notes?: Record<string, string>; readLessons?: string[];
   }) => {
     if (Array.isArray(data.bookmarks)) {
       dirtyRef.current.bookmarks = true;
@@ -586,20 +730,17 @@ export function useUserLibrary({ onStatus }: { onStatus?: (status: string) => vo
       dirtyRef.current.readLessons = true;
       setReadLessons((prev) => Array.from(new Set([...prev.map(String), ...data.readLessons!.map(String)])));
     }
-    if (data.stopMarks && typeof data.stopMarks === 'object') {
-      // الاستعادة تُغلّب النسخة (كملاحظاتها تمامًا) — وإلا بدت الاستعادة وكأنها لم تفعل شيئًا
-      dirtyRef.current.stopMarks = true;
-      setStopMarks((prev) => ({ ...prev, ...data.stopMarks }));
-    }
   }, []);
 
   return {
+    isDataLoaded: isLibraryReady,
+    lastSyncedAt: lastSyncRecord && lastSyncRecord.uid === user?.uid ? lastSyncRecord.at : null,
+    syncState,
+    retryLibrarySync,
     bookmarks,
     highlights,
     notes,
     readLessons,
-    stopMarks,
-    setStopMarks: setStopMarksDirty,
     toggleBookmark,
     addHighlight,
     deleteHighlight,

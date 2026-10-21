@@ -33,6 +33,7 @@ import ReadingProgressBar from '../UI/ReadingProgressBar';
 import QuoteImageModal from '../UI/QuoteImageModal';
 import { useApp } from '../Layout/AppContext';
 import type { Lesson } from '../../types';
+import { getStopMarkForBook } from '../../features/stopMarks/model';
 
 
 
@@ -74,14 +75,15 @@ const ReadingView = () => {
     toggleReadLesson,
     bookmarks,
     toggleBookmark,
+    stopMarks,
+    toggleStopMark,
+    stopMarksSyncState,
     currentIndex,
     lessons,
     goToPrevLesson: onPrev,
     goToNextLesson: onNext,
     goBackToList: onBackToIndex,
     openLessonById,
-    stopMarks,
-    toggleStopMark: onToggleStopMark,
     createHighlightFromSelection: onCreateHighlight,
     fontSize,
     setFontSize,
@@ -92,16 +94,20 @@ const ReadingView = () => {
   const noteValue = lesson ? (notes[lessonId] || '') : '';
   const isRead = lesson ? readLessons.includes(lessonId) : false;
   const isBookmarked = lesson ? bookmarks.includes(lessonId) : false;
+  const currentStopMark = lesson ? getStopMarkForBook(stopMarks, lesson.bookName, allLessons) : null;
+  const isStopMarked = currentStopMark?.lessonId === lessonId;
   const canGoPrev = currentIndex > 0;
   const canGoNext = currentIndex < lessons.length - 1;
-  // علامة الوقوف الحقيقية لهذا الكتاب فقط.
-  // بدون احتياطي lastReadLessonId: كان يُضيء الزر تلقائيًا بمجرد فتح المسألة
-  // فتظهر أول ضغطة بلا أثر (تُعيّن العلامة فعلًا) ثم تُزيلها الثانية.
-  const bookMark = lesson ? stopMarks?.[(lesson.bookName || '').trim()] : undefined;
-  const isStopMarked = !!lesson && bookMark === String(lesson.id);
   const onToggleRead = (): void => { if (lesson) toggleReadLesson(lesson.id); };
   const onToggleBookmark = (): void => { if (lesson) toggleBookmark(lessonId); };
+  const onToggleStopMark = (): void => { if (lesson) toggleStopMark(lesson); };
   const onSelectLesson = (l: Lesson): void => openLessonById(l.id);
+
+  useEffect(() => {
+    if (!lessonId) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
+  }, [lessonId]);
 
   // طباعة الباب كاملاً
   const handlePrintChapter = (): void => {
@@ -219,7 +225,7 @@ const ReadingView = () => {
   if (!lesson) return null;
 
   return (
-    <div onMouseUp={handleMouseUp} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <div className="reading-view" onMouseUp={handleMouseUp} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {/* عنوان لاصق أعلى الشاشة عند السكرول (فون فقط) */}
       <AnimatePresence>
         {showSticky && (
@@ -308,7 +314,7 @@ const ReadingView = () => {
         >
           <FiArrowRight className="ms-2" /> <span className="d-none d-md-inline">العودة لفهرس المسائل</span>
         </button>
-        <div className="d-flex align-items-center gap-2 flex-wrap">
+        <div className="reading-actions d-flex align-items-center gap-2 flex-wrap">
 
           <button
             className="btn btn-sm d-flex align-items-center shadow-sm"
@@ -386,7 +392,7 @@ const ReadingView = () => {
         </div>
       </div>
 
-      <div className="d-flex justify-content-between mb-4">
+      <div className="reading-top-nav d-flex justify-content-between mb-4" aria-label="التنقل بين المسائل">
         <button
           className="btn nav-lesson-btn btn-sm d-flex align-items-center"
           onClick={onPrev}
@@ -418,17 +424,24 @@ const ReadingView = () => {
             {lesson.title}
           </h3>
 
-          <div className="d-flex justify-content-center flex-wrap gap-3 mb-4">
-            <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
-              <FiBook className="ms-2" style={{ color: 'var(--accent-color)' }} /> ص {lesson.pageNumber}
-            </span>
-            <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
-              <FiVideo className="ms-2" style={{ color: 'var(--accent-color)' }} /> {lesson.videoNumber}
-            </span>
-            <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
-              <FiClock className="ms-2" style={{ color: 'var(--accent-color)' }} /> يبدأ عند: {lesson.videoTimestamp}
-            </span>
+          <div className="reading-meta d-flex justify-content-center flex-wrap gap-3 mb-4">
+            {String(lesson.pageNumber ?? '').trim() && (
+              <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
+                <FiBook className="ms-2" style={{ color: 'var(--accent-color)' }} /> ص {lesson.pageNumber}
+              </span>
+            )}
+            {String(lesson.videoNumber ?? '').trim() && (
+              <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
+                <FiVideo className="ms-2" style={{ color: 'var(--accent-color)' }} /> {lesson.videoNumber}
+              </span>
+            )}
+            {String(lesson.videoTimestamp ?? '').trim() && (
+              <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
+                <FiClock className="ms-2" style={{ color: 'var(--accent-color)' }} /> يبدأ عند: {lesson.videoTimestamp}
+              </span>
+            )}
             <button
+              type="button"
               className="badge d-flex align-items-center py-2 px-3 shadow-sm border-0"
               style={{
                 cursor: 'pointer',
@@ -437,10 +450,11 @@ const ReadingView = () => {
                 color: isStopMarked ? 'var(--text-on-primary)' : 'var(--text-main)',
               }}
               onClick={onToggleStopMark}
-              title="علامة توقف خاصة بهذا الكتاب — لكل كتاب علامته"
+              aria-pressed={isStopMarked}
+              title={stopMarksSyncState === 'pending' ? 'محفوظة محليًا — تنتظر المزامنة' : 'حفظ أو إزالة علامة الوقوف لهذا الكتاب'}
             >
               <FiFlag className="ms-2" style={{ color: 'var(--accent-color)' }} />
-              {isStopMarked ? 'علامة وقوف هذا الكتاب' : 'ضع علامة وقوف'}
+              {isStopMarked ? 'علامة الوقوف محفوظة' : 'ضع علامة وقوف'}
             </button>
           </div>
 
@@ -471,7 +485,7 @@ const ReadingView = () => {
             <ExplanationCard explanation={lesson.sheikhExplanation || ''} searchQuery={searchQuery} glossary={glossary} />
           )}
           
-          <MediaCard mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} title={lesson.title} />
+          <MediaCard key={`media-${lessonId}`} mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} title={lesson.title} />
           <AudioCard key={`audio-${lessonId}`} audioUrl={lesson.audioUrl} title={lesson.title} startTime={lesson.startTime} endTime={lesson.endTime} />
           <VideoCard key={`video-${lessonId}`} videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} title={lesson.title} />
 
@@ -485,6 +499,21 @@ const ReadingView = () => {
             note={noteValue} 
             onSave={onSaveNote} 
           />
+
+          <nav className="reading-bottom-nav" aria-label="التنقل للدرس السابق أو التالي">
+            <div className="reading-bottom-nav-meta">
+              <span>المسألة {currentIndex + 1} من {lessons.length}</span>
+              {String(lesson.pageNumber ?? '').trim() && <span>صفحة {lesson.pageNumber}</span>}
+            </div>
+            <div className="reading-bottom-nav-buttons">
+              <button type="button" className="btn nav-lesson-btn" onClick={onPrev} disabled={!canGoPrev}>
+                <FiChevronRight aria-hidden="true" /> السابقة
+              </button>
+              <button type="button" className="btn nav-lesson-btn" onClick={onNext} disabled={!canGoNext}>
+                التالية <FiChevronLeft aria-hidden="true" />
+              </button>
+            </div>
+          </nav>
         </motion.div>
       </AnimatePresence>
 

@@ -1,7 +1,5 @@
-// كارد الفيديو — مع زر تشغيل مباشر من الوقت المحدد للمسألة
-// على الموبايل: يعرض thumbnail مع زر تشغيل بدلاً من iframe مباشرة
+// كارد الفيديو — لا يحمّل المشغّل قبل طلب المستخدم لتقليل استهلاك البيانات.
 import { useState, useRef } from 'react';
-import type { SyntheticEvent } from 'react';
 import { FiHeadphones, FiPlay, FiExternalLink, FiClock } from 'react-icons/fi';
 
 interface VideoCardProps {
@@ -65,7 +63,7 @@ const VideoCard = ({ videoUrl, startTime, endTime, title }: VideoCardProps) => {
   if (endSeconds > startSeconds) embedUrl += `&end=${endSeconds}`;
   if (autoPlay) embedUrl += `&autoplay=1`;
 
-  // thumbnail عالية الجودة من YouTube
+  // صورة معاينة الحلقة من YouTube — تُحمّل بتكاسل، ولا تحمّل مشغّل الفيديو.
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
   const handlePlay = () => {
@@ -177,21 +175,23 @@ const VideoCard = ({ videoUrl, startTime, endTime, title }: VideoCardProps) => {
               }
             }}
           >
-            {/* Thumbnail */}
+            <div className="d-flex h-100 flex-column align-items-center justify-content-center gap-2 text-white" style={{ background: '#182321' }}>
+              <FiPlay size={28} aria-hidden="true" />
+              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>اضغط لتحميل الفيديو وتشغيله</span>
+            </div>
             <img
               src={thumbnailUrl}
-              alt={title ? `صورة فيديو شرح: ${title}` : 'صورة فيديو الشرح'}
+              alt=""
+              aria-hidden="true"
               loading="lazy"
               decoding="async"
+              onError={(event) => { event.currentTarget.style.display = 'none'; }}
               style={{
+                position: 'absolute',
+                inset: 0,
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                display: 'block',
-              }}
-              onError={(e: SyntheticEvent<HTMLImageElement>) => {
-                // fallback لو الصورة فشلت
-                e.currentTarget.style.display = 'none';
               }}
             />
             {/* Overlay داكن */}

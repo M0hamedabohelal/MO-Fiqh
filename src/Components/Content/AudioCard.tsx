@@ -172,7 +172,7 @@ const AudioCard = ({ audioUrl, title, startTime, endTime }: AudioCardProps) => {
       <audio
         ref={audioRef}
         controls
-        preload="metadata"
+        preload="none"
         src={mediaSrc}
         aria-label={title ? `مشغل صوت الدرس: ${title}` : 'مشغل صوت الدرس'}
         className="w-100"

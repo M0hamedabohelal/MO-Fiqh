@@ -7,6 +7,7 @@ import LessonListItem from '../UI/LessonListItem';
 import { exportChapterPrint } from '../../utils/printExport';
 import { useApp } from '../Layout/AppContext';
 import type { LessonIssue } from '../../types';
+import { getStopMarkForBook } from '../../features/stopMarks/model';
 
 const REDUCE_LIST_ANIM =
   typeof window !== 'undefined' && window.innerWidth < 768;
@@ -28,13 +29,13 @@ const LessonsView = memo(() => {
     selectedBookName: bookName,
     selectedBookChapters: chapters,
     openLessonById,
-    stopMarks,
     lessons,
+    stopMarks,
   } = useApp();
   const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
-  const stopLessonId = bookName ? stopMarks?.[bookName.trim()] : undefined;
-  const stopLesson = stopLessonId
-    ? lessons.find((l) => String(l.id) === String(stopLessonId))
+  const stopMark = getStopMarkForBook(stopMarks, bookName, lessons);
+  const stopLesson = stopMark?.lessonId
+    ? lessons.find((lesson) => String(lesson.id) === stopMark.lessonId)
     : undefined;
   return (
   <div className="mt-4">
@@ -47,17 +48,18 @@ const LessonsView = memo(() => {
       {bookName}
     </div>
 
-    {/* أكمل من علامة التوقف — نفس سلوك شاشة الكتب لكن داخل الكتاب */}
-    {stopLesson && (
+    {stopMark && stopLesson && (
       <button
+        type="button"
         className="btn btn-sm w-100 mb-3 d-flex align-items-center justify-content-center gap-1 shadow-sm"
         style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
-        onClick={() => openLessonById(stopLesson.id)}
+        onClick={() => openLessonById(stopMark.lessonId!)}
         title={stopLesson.title}
       >
         <FiFlag size={14} /> أكمل من هنا: {stopLesson.title.slice(0, 28)}
       </button>
     )}
+
     <div className="d-flex flex-column gap-4">
       {chapters.length === 0 && (
         <EmptyState
@@ -100,7 +102,7 @@ const LessonsView = memo(() => {
                   title={lesson.title}
                   pageNumber={lesson.pageNumber}
                   isRead={lesson.isRead}
-                  isStopMark={String(lesson.id) === String(stopLessonId)}
+                  isStopMark={lesson.id.toString() === stopMark?.lessonId}
                   onClick={() => onSelectLesson(lesson)}
                 />
               </motion.div>

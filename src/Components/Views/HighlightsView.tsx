@@ -13,10 +13,10 @@ const HighlightsView = () => {
     readLessons,
     highlights,
     notes,
+    stopMarks,
     lessons,
     deleteHighlight: onDeleteHighlight,
     openLessonById: onOpenLessonById,
-    stopMarks,
     restoreLibrary,
   } = useApp();
   const [query, setQuery] = useState('');
@@ -44,14 +44,14 @@ const HighlightsView = () => {
   const titleOf = (id: string): string => lessons.find((l) => String(l.id) === String(id))?.title || '';
 
   const handleBackup = (): void => {
-    downloadBackup(buildBackup({ bookmarks, highlights, notes, readLessons, stopMarks: stopMarks || {} }));
+    downloadBackup(buildBackup({ bookmarks, highlights, notes, readLessons, stopMarks }));
     setNotice('تم تنزيل نسخة احتياطية من مكتبتك.');
     setTimeout(() => setNotice(''), 3000);
   };
 
   const handleCopyAll = async (): Promise<void> => {
     try {
-      await navigator.clipboard.writeText(backupToText({ bookmarks, highlights, notes, readLessons }, titleOf));
+      await navigator.clipboard.writeText(backupToText({ bookmarks, highlights, notes, readLessons, stopMarks }, titleOf));
       setNotice('تم نسخ مكتبتك كنص.');
     } catch {
       setNotice('تعذّر النسخ — جرّب التصدير.');
@@ -64,7 +64,7 @@ const HighlightsView = () => {
     try {
       const text = await file.text();
       const data = parseBackupFile(text);
-      // restoreLibrary يدمج كل الأقسام بما فيها علامات التوقف — لا دمج ثانٍ هنا حتى لا يُبطل اتجاه الغلبة
+      // restoreLibrary يدمج أقسام المكتبة المدعومة.
       restoreLibrary(data);
       setNotice(`تمت الاستعادة ودمج ${data.bookmarks.length} مفضلة و${data.highlights.length} فائدة.`);
     } catch (err) {

@@ -21,6 +21,21 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // سجل تغييرات واستعادة المسائل — للمشرفين فقط، وسجلات الإصدارات لا تُعدّل أو تُحذف.
+    match /lessonRevisions/{lessonDocId} {
+      allow read, create, update: if isAdmin();
+      allow delete: if false;
+
+      match /versions/{versionId} {
+        allow read: if isAdmin();
+        allow create: if isAdmin()
+          && request.resource.data.keys().hasOnly(['lesson', 'savedAt'])
+          && request.resource.data.lesson is map
+          && request.resource.data.savedAt is number;
+        allow update, delete: if false;
+      }
+    }
+
     match /glossary/{term} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
@@ -46,6 +61,11 @@ service cloud.firestore {
 
     // ─── بيانات المستخدم الخاصة (مفضلة/فوائد/ملاحظات/مقروء): صاحبها فقط ───
     match /users/{uid}/data/{section} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // علامات الوقوف بإصدار مستقل: كل مستخدم يقرأ ويكتب علامات حسابه فقط.
+    match /users/{uid}/stopMarksV2/{bookId} {
       allow read, write: if isSignedIn() && request.auth.uid == uid;
     }
 

@@ -1,13 +1,17 @@
 // تبويب الإحصائيات — أكثر المسائل قراءةً وإجمالي المشاهدات + سجل أخطاء العملاء
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { FiBarChart2, FiAlertTriangle, FiTrash2 } from 'react-icons/fi';
+import { FiBarChart2, FiAlertTriangle, FiTrash2, FiDatabase, FiCheckCircle } from 'react-icons/fi';
 import { fetchLessonViews, fetchClientErrors, deleteClientError, pruneOldClientErrors } from '../../firebase/services';
 import type { ClientErrorItem } from '../../firebase/services';
 import type { Lesson } from '../../types';
+import { auditLessons } from '../../utils/auditLessons';
 
 interface AdminStatsTabProps {
   lessons: Lesson[];
+  cloudLessonsLoaded: boolean;
+  cloudStatus: string;
+  localLessonIds: string[];
 }
 
 interface StatsRow {
@@ -18,7 +22,7 @@ interface StatsRow {
   views: number;
 }
 
-const AdminStatsTab = ({ lessons }: AdminStatsTabProps) => {
+const AdminStatsTab = ({ lessons, cloudLessonsLoaded, cloudStatus, localLessonIds }: AdminStatsTabProps) => {
   const [viewStats, setViewStats] = useState<Record<string, number> | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   // سجل أخطاء العملاء — للمراقبة (يُجمَع تلقائيًا من الأجهزة، مخنوقًا)
@@ -92,6 +96,33 @@ const AdminStatsTab = ({ lessons }: AdminStatsTabProps) => {
   );
 
   const maxViews = statsRows.length > 0 ? statsRows[0].views : 0;
+  const contentAudit = useMemo(() => auditLessons(lessons), [lessons]);
+  const lessonSourceDiff = useMemo(() => {
+    if (!localLessonIds.length) return { localOnly: [] as string[], activeOnly: [] as string[] };
+    const localIds = new Set(localLessonIds);
+    const activeIds = new Set(lessons.map((lesson) => String(lesson.id)));
+    return {
+      localOnly: [...localIds].filter((id) => !activeIds.has(id)).sort((a, b) => Number(a) - Number(b)),
+      activeOnly: [...activeIds].filter((id) => !localIds.has(id)).sort((a, b) => Number(a) - Number(b)),
+    };
+  }, [lessons, localLessonIds]);
+  const duplicateCount = contentAudit.duplicateIds.length;
+  const incompleteCount = contentAudit.incompleteLessonIds.length;
+  const invalidLinkCount = contentAudit.invalidAudioUrlIds.length + contentAudit.invalidVideoUrlIds.length + contentAudit.invalidMediaUrlIds.length;
+  const invalidTimingCount = contentAudit.invalidTimeIds.length + contentAudit.invalidTimeRangeIds.length;
+  const qualityAlertCount = contentAudit.missingPageNumberIds.length + contentAudit.emptyMainTextIds.length + invalidLinkCount + invalidTimingCount;
+  const hasContentWarnings = duplicateCount > 0 || incompleteCount > 0 || qualityAlertCount > 0 || lessonSourceDiff.localOnly.length > 0 || lessonSourceDiff.activeOnly.length > 0;
+  const auditAlertCount = duplicateCount + incompleteCount + qualityAlertCount + lessonSourceDiff.localOnly.length + lessonSourceDiff.activeOnly.length;
+  const qualityIssues: Array<[string, string[]]> = [
+    ['صفحات بلا رقم', contentAudit.missingPageNumberIds],
+    ['مسائل بلا متن', contentAudit.emptyMainTextIds],
+    ['روابط صوت غير صالحة', contentAudit.invalidAudioUrlIds],
+    ['روابط فيديو غير صالحة', contentAudit.invalidVideoUrlIds],
+    ['روابط وسائط غير صالحة', contentAudit.invalidMediaUrlIds],
+    ['توقيتات غير صالحة', contentAudit.invalidTimeIds],
+    ['نهايات قبل البداية أو مساوية لها', contentAudit.invalidTimeRangeIds],
+  ];
+  const contentSource = cloudLessonsLoaded ? 'المحتوى المحمّل من السحابة' : 'النسخة المحلية الاحتياطية';
 
   return (
     <>
@@ -109,6 +140,64 @@ const AdminStatsTab = ({ lessons }: AdminStatsTabProps) => {
           <small className="text-muted">إجمالي المسائل</small>
         </div>
       </div>
+
+      <section className="custom-card p-3 p-md-4 shadow-sm mb-4" aria-labelledby="content-audit-title">
+        <h5 id="content-audit-title" className="fw-bold mb-1 d-flex align-items-center gap-2" style={{ color: 'var(--primary-color)' }}>
+          <FiDatabase /> سلامة فهرس المسائل
+        </h5>
+        <small className="text-muted d-block mb-3">
+          المصدر الحالي: {contentSource} ({cloudStatus === 'offline' ? 'غير متصل' : cloudStatus === 'synced' ? 'متزامن' : cloudStatus === 'local' ? 'محلي' : 'جارٍ الاتصال'}).
+          أعلى ID لا يساوي عدد المسائل، والفجوات قد تكون مقصودة.
+        </small>
+        <div className="row g-2 text-center">
+          <div className="col-6 col-md-3"><div className="p-2 rounded h-100" style={{ backgroundColor: 'var(--badge-bg)' }}><strong className="d-block fs-5">{contentAudit.total}</strong><small>مسألة محمّلة</small></div></div>
+          <div className="col-6 col-md-3"><div className="p-2 rounded h-100" style={{ backgroundColor: 'var(--badge-bg)' }}><strong className="d-block fs-5">{contentAudit.maximumId ?? '—'}</strong><small>أعلى ID</small></div></div>
+          <div className="col-6 col-md-3"><div className="p-2 rounded h-100" style={{ backgroundColor: 'var(--badge-bg)' }}><strong className="d-block fs-5">{contentAudit.missingNumericIds.length}</strong><small>IDs غير مستخدمة</small></div></div>
+          <div className="col-6 col-md-3"><div className="p-2 rounded h-100" style={{ backgroundColor: 'var(--badge-bg)' }}><strong className="d-block fs-5" style={{ color: hasContentWarnings ? '#e67e22' : '#27ae60' }}>{auditAlertCount}</strong><small>تنبيهات سلامة المحتوى</small></div></div>
+        </div>
+        <div className="row g-2 text-center mt-1">
+          <div className="col-6 col-md-3"><div className="p-2 rounded h-100" style={{ backgroundColor: 'var(--badge-bg)' }}><strong className="d-block fs-5">{contentAudit.missingPageNumberIds.length}</strong><small>بلا رقم صفحة</small></div></div>
+          <div className="col-6 col-md-3"><div className="p-2 rounded h-100" style={{ backgroundColor: 'var(--badge-bg)' }}><strong className="d-block fs-5">{contentAudit.emptyMainTextIds.length}</strong><small>بلا متن</small></div></div>
+          <div className="col-6 col-md-3"><div className="p-2 rounded h-100" style={{ backgroundColor: 'var(--badge-bg)' }}><strong className="d-block fs-5">{invalidLinkCount}</strong><small>روابط بصيغة غير صالحة</small></div></div>
+          <div className="col-6 col-md-3"><div className="p-2 rounded h-100" style={{ backgroundColor: 'var(--badge-bg)' }}><strong className="d-block fs-5">{invalidTimingCount}</strong><small>توقيتات غير صالحة</small></div></div>
+        </div>
+        <div className="mt-3 small">
+          {hasContentWarnings ? (
+            <p className="mb-1" role="status" style={{ color: '#e67e22' }}>
+              <FiAlertTriangle className="ms-1" /> تكرار IDs: {duplicateCount} — بيانات وصفية ناقصة: {incompleteCount}
+            </p>
+          ) : (
+            <p className="mb-1" style={{ color: '#27ae60' }}><FiCheckCircle className="ms-1" /> لا يوجد تكرار IDs أو بيانات وصفية ناقصة في المحتوى الحالي.</p>
+          )}
+          {contentAudit.missingNumericIds.length > 0 && (
+            <div className="text-muted">
+              IDs غير مستخدمة: {contentAudit.missingNumericIds.slice(0, 24).join('، ')}
+              {contentAudit.missingNumericIds.length > 24 ? '، …' : ''}
+            </div>
+          )}
+          {qualityAlertCount > 0 && (
+            <div className="mt-2" role="status" style={{ color: '#e67e22' }}>
+              {qualityIssues.filter(([, ids]) => ids.length > 0).map(([label, issueIds]) => (
+                <div key={label}>{label}: {issueIds.length} ({issueIds.slice(0, 12).join('، ')}{issueIds.length > 12 ? '، …' : ''})</div>
+              ))}
+            </div>
+          )}
+          <small className="text-muted d-block mt-2">فحص الروابط يتحقق من صحة تنسيقها فقط، ولا يختبر إتاحة الخدمة الخارجية.</small>
+          {cloudLessonsLoaded && (lessonSourceDiff.localOnly.length > 0 || lessonSourceDiff.activeOnly.length > 0) && (
+            <div className="mt-2" role="status" style={{ color: '#e67e22' }}>
+              اختلاف IDs بين السحابة والنسخة المحلية — موجودة محليًا فقط: {lessonSourceDiff.localOnly.length}
+              {lessonSourceDiff.localOnly.length > 0 && ` (${lessonSourceDiff.localOnly.slice(0, 12).join('، ')}${lessonSourceDiff.localOnly.length > 12 ? '، …' : ''})`}
+              {' '}— موجودة في السحابة فقط: {lessonSourceDiff.activeOnly.length}
+              {lessonSourceDiff.activeOnly.length > 0 && ` (${lessonSourceDiff.activeOnly.slice(0, 12).join('، ')}${lessonSourceDiff.activeOnly.length > 12 ? '، …' : ''})`}
+            </div>
+          )}
+          <div className="d-flex flex-wrap gap-2 mt-2">
+            {contentAudit.books.map(({ name, count }) => (
+              <span key={name} className="badge" style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}>{name}: {count}</span>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {statsLoading ? (
         <div className="text-center p-5"><div className="spinner-border" style={{ color: 'var(--primary-color)' }} /></div>

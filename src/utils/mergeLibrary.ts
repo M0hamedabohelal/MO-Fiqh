@@ -7,7 +7,6 @@ export interface LibraryState {
   highlights: HighlightItem[];
   notes: Record<string, string>;
   readLessons: string[];
-  stopMarks: Record<string, string>;
 }
 
 const asStrings = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
@@ -28,9 +27,6 @@ export function mergeLibraries(
   // ملاحظات السحابة أحدث (كُتبت من جهاز آخر) — تتفوق عند التعارض، وملاحظات الضيف الجديدة تُضاف
   const mergedNotes: Record<string, string> = { ...(guest.notes ?? {}), ...(cloud.notes ?? {}) };
 
-  // علامات التوقف: نفس القاعدة — السحابة تتفوق عند التعارض على نفس الكتاب (جهاز آخر أحدث غالبًا)
-  const mergedStopMarks: Record<string, string> = { ...(guest.stopMarks ?? {}), ...(cloud.stopMarks ?? {}) };
-
   const mergedReadLessons = Array.from(
     new Set([...asStrings(guest.readLessons), ...asStrings(cloud.readLessons)]),
   );
@@ -40,7 +36,6 @@ export function mergeLibraries(
     highlights: Array.from(highlightMap.values()),
     notes: mergedNotes,
     readLessons: mergedReadLessons,
-    stopMarks: mergedStopMarks,
   };
 }
 
@@ -87,7 +82,7 @@ export function threeWayMergeMaps(
     } else if (cv === bv) {
       if (lv !== undefined) out[k] = String(lv);
     } else {
-      // تعارض حقيقي: الجهتان غيّرتا نفس الكتاب منذ آخر مزامنة — المحلية تفوز
+      // تعارض حقيقي: الجهتان غيّرتا المفتاح منذ آخر مزامنة — المحلية تفوز
       if (lv !== undefined) out[k] = String(lv);
     }
   });
@@ -106,11 +101,10 @@ export interface TombstoneMap {
   readLessons: Record<string, number>;
   highlightIds: Record<string, number>;
   noteKeys: Record<string, number>;
-  stopMarkKeys: Record<string, number>;
 }
 
 export function emptyTombs(): TombstoneMap {
-  return { bookmarks: {}, readLessons: {}, highlightIds: {}, noteKeys: {}, stopMarkKeys: {} };
+  return { bookmarks: {}, readLessons: {}, highlightIds: {}, noteKeys: {} };
 }
 
 function cleanTombsSection(v: unknown): Record<string, number> {
@@ -130,7 +124,6 @@ export function cleanTombs(v: unknown): TombstoneMap {
     readLessons: cleanTombsSection(o.readLessons),
     highlightIds: cleanTombsSection(o.highlightIds),
     noteKeys: cleanTombsSection(o.noteKeys),
-    stopMarkKeys: cleanTombsSection(o.stopMarkKeys),
   };
 }
 
@@ -150,7 +143,7 @@ export function mergeTombs(a: TombstoneMap, b: TombstoneMap): TombstoneMap {
 
 // ─── إسقاط الشواهد "العالقة" ───
 // المشكلة: شاهد حذف مسجَّل يبقى عالقًا في ذاكرة جهاز، فيستمر بإسقاط عنصر قادم من
-// جهاز آخر (كعلامة توقف "لا تنتقل") ثم يعيد تسجيل حذفه ويُعيد ما رفعه الجهاز الأول —
+// جهاز آخر ثم يعيد تسجيل حذفه ويُعيد ما رفعه الجهاز الأول —
 // حلقة محو ذاتية. العلامة: الشاهد يعيق عنصرًا ما زال قائمًا في السحابة = بلا أساس
 // (أُلغيت إعادته من جهاز آخر فنُزع شاهده هنالك).
 // تُحترم الشواهد الحديثة (أقل من graceMs) حتى لا تُلغى حذفة محلية لم تُرفع بعد
@@ -167,7 +160,6 @@ export function dropStaleTombs(
     readLessons: new Set(asStrings(present.readLessons)),
     highlightIds: new Set((present.highlights || []).map((h) => String(h.id ?? h.text))),
     noteKeys: new Set(Object.keys(present.notes || {})),
-    stopMarkKeys: new Set(Object.keys(present.stopMarks || {})),
   };
   (Object.keys(t) as Array<keyof TombstoneMap>).forEach((section) => {
     Object.entries(t[section]).forEach(([k, ts]) => {
@@ -184,7 +176,6 @@ export function applyTombsToMerged(merged: LibraryState, local: LibraryState, to
   const localRead = new Set(asStrings(local.readLessons));
   const localHl = new Set((local.highlights || []).map((h) => String(h.id ?? h.text)));
   const localNotes = local.notes || {};
-  const localMarks = local.stopMarks || {};
   return {
     bookmarks: merged.bookmarks.filter((id) => localBookmarks.has(String(id)) || !t.bookmarks[String(id)]),
     readLessons: merged.readLessons.filter((id) => localRead.has(String(id)) || !t.readLessons[String(id)]),
@@ -194,9 +185,6 @@ export function applyTombsToMerged(merged: LibraryState, local: LibraryState, to
     }),
     notes: Object.fromEntries(
       Object.entries(merged.notes || {}).filter(([k]) => k in localNotes || !t.noteKeys[k]),
-    ),
-    stopMarks: Object.fromEntries(
-      Object.entries(merged.stopMarks || {}).filter(([k]) => k in localMarks || !t.stopMarkKeys[k]),
     ),
   };
 }
@@ -210,7 +198,6 @@ export function pruneTombs(tombs: TombstoneMap, present: LibraryState): Tombston
     readLessons: new Set(asStrings(present.readLessons)),
     highlightIds: new Set((present.highlights || []).map((h) => String(h.id ?? h.text))),
     noteKeys: new Set(Object.keys(present.notes || {})),
-    stopMarkKeys: new Set(Object.keys(present.stopMarks || {})),
   };
   (Object.keys(out) as Array<keyof TombstoneMap>).forEach((section) => {
     Object.entries(t[section]).forEach(([k, ts]) => {

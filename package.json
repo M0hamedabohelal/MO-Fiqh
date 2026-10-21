@@ -14,6 +14,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "backup": "node scripts/backup-firestore.mjs",
+    "audit:data": "node scripts/audit-content.mjs",
     "sync:local": "node scripts/sync-local-data.mjs",
     "migrate": "node scripts/migrate-to-firestore.mjs",
     "icons": "node scripts/generate-icons.mjs",

@@ -1,27 +1,29 @@
-// نسخ احتياطي لمكتبة المستخدم (مفضلة/فوائد/ملاحظات/مقروء/علامات) — تصدير واستعادة JSON محليًا
+// نسخ احتياطي لمكتبة المستخدم (مفضلة/فوائد/ملاحظات/مقروء) — تصدير واستعادة JSON محليًا
 import type { HighlightItem } from '../types';
+import { normalizeStopMarkMap } from '../features/stopMarks/model';
+import type { StopMarkMap } from '../features/stopMarks/model';
 
 export interface LibraryBackup {
   app: 'fqh';
-  version: 2;
+  version: 3;
   exportedAt: string;
   bookmarks: string[];
   highlights: HighlightItem[];
   notes: Record<string, string>;
   readLessons: string[];
-  stopMarks?: Record<string, string>;
+  stopMarks: StopMarkMap;
 }
 
 export function buildBackup(input: Omit<LibraryBackup, 'app' | 'version' | 'exportedAt'>): LibraryBackup {
   return {
     app: 'fqh',
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     bookmarks: input.bookmarks || [],
     highlights: input.highlights || [],
     notes: input.notes || {},
     readLessons: input.readLessons || [],
-    stopMarks: input.stopMarks || {},
+    stopMarks: Object.fromEntries(Object.entries(normalizeStopMarkMap(input.stopMarks)).filter(([, mark]) => mark.lessonId !== null)),
   };
 }
 
@@ -41,14 +43,15 @@ export function downloadBackup(data: LibraryBackup): void {
 export function parseBackupFile(text: string): Omit<LibraryBackup, 'app' | 'version' | 'exportedAt'> {
   const parsed = JSON.parse(text) as Partial<LibraryBackup>;
   const asStrings = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
-  // تُقبل النسخة 1 (بلا stopMarks) والنسخة 2 — أي كائن فيه bookmarks يُعد نسخة صالحة
+  // تُقبل النسخ السابقة أيضًا — أي كائن فيه bookmarks يُعد نسخة صالحة
   if (parsed && typeof parsed === 'object' && (parsed.app === 'fqh' || 'bookmarks' in parsed)) {
     return {
       bookmarks: asStrings(parsed.bookmarks),
       highlights: Array.isArray(parsed.highlights) ? (parsed.highlights as HighlightItem[]) : [],
       notes: parsed.notes && typeof parsed.notes === 'object' ? (parsed.notes as Record<string, string>) : {},
       readLessons: asStrings(parsed.readLessons),
-      stopMarks: parsed.stopMarks && typeof parsed.stopMarks === 'object' ? (parsed.stopMarks as Record<string, string>) : {},
+      // تُستعاد علامات النسخة الجديدة فقط؛ السجل القديم كان بصيغة مختلفة ومصدره غير موثوق.
+      stopMarks: parsed.version === 3 ? normalizeStopMarkMap(parsed.stopMarks) : {},
     };
   }
   throw new Error('ملف غير صالح — ليس نسخة احتياطية من الباحث الفقهي.');
@@ -62,7 +65,7 @@ export function backupToText(input: {
   const highlights = Array.isArray(input.highlights) ? (input.highlights as HighlightItem[]) : [];
   const notes = input.notes && typeof input.notes === 'object' ? (input.notes as Record<string, string>) : {};
   const readLessons = Array.isArray(input.readLessons) ? input.readLessons.map(String) : [];
-  const stopMarks = input.stopMarks && typeof input.stopMarks === 'object' ? (input.stopMarks as Record<string, string>) : {};
+  const stopMarks = normalizeStopMarkMap(input.stopMarks);
   if (bookmarks.length > 0) {
     lines.push('★ المفضلة:');
     bookmarks.forEach((id) => lines.push(`- ${lessonTitleOf(String(id)) || `مسألة ${id}`} (#${id})`));
@@ -85,10 +88,10 @@ export function backupToText(input: {
     lines.push(`✓ مسائل مقروءة: ${readLessons.length}`);
     lines.push('');
   }
-  const markEntries = Object.entries(stopMarks);
-  if (markEntries.length > 0) {
-    lines.push('🚩 علامات التوقف:');
-    markEntries.forEach(([book, id]) => lines.push(`- ${book}: ${lessonTitleOf(String(id)) || `مسألة ${id}`}`));
+  const activeMarks = Object.values(stopMarks).filter((mark) => mark.lessonId !== null);
+  if (activeMarks.length > 0) {
+    lines.push('🚩 علامات الوقوف:');
+    activeMarks.forEach((mark) => lines.push(`- ${mark.bookName}: ${lessonTitleOf(mark.lessonId!) || `مسألة ${mark.lessonId}`}`));
     lines.push('');
   }
   return lines.join('\n');

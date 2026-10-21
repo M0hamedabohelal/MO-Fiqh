@@ -3,15 +3,11 @@ import { FiBook, FiCheckCircle, FiFlag } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useApp } from '../Layout/AppContext';
 import GuestAccountCard from '../UI/GuestAccountCard';
+import { getStopMarkForBook } from '../../features/stopMarks/model';
 
 // شاشة فهرس الكتب — كل كتاب بغلاف بصري + إحصاءات التقدم
 const BooksView = memo(() => {
-  const { booksWithStats: books, lessons, openBookChapters: onOpenBook, stopMarks, openLessonById, contentSyncDone } = useApp();
-  const lessonTitle = (id: string | undefined): string | null => {
-    if (!id) return null;
-    const l = lessons.find((x) => String(x.id) === String(id));
-    return l ? l.title : null;
-  };
+  const { booksWithStats: books, lessons, stopMarks, openBookChapters: onOpenBook, openLessonById, contentSyncDone } = useApp();
   return (
   <div className="mt-4">
     <GuestAccountCard />
@@ -19,7 +15,12 @@ const BooksView = memo(() => {
       <h3 className="mb-0 fw-bold" style={{ color: 'var(--primary-color)' }}><FiBook className="ms-2" /> فهرس الكتب</h3>
     </div>
     <div className="row px-1">
-      {books.map(({ bookName, issuesCount, readCount, progressPercent }) => (
+      {books.map(({ bookName, issuesCount, readCount, progressPercent }) => {
+        const stopMark = getStopMarkForBook(stopMarks, bookName, lessons);
+        const stopLesson = stopMark?.lessonId
+          ? lessons.find((lesson) => String(lesson.id) === stopMark.lessonId)
+          : undefined;
+        return (
         <div className="col-6 col-md-4 mb-4 px-2" key={bookName}>
           <button
             className="btn w-100 p-0 book-item-btn shadow-sm"
@@ -67,19 +68,20 @@ const BooksView = memo(() => {
               </div>
             </div>
           </button>
-          {/* أكمل من علامة التوقف الخاصة بهذا الكتاب */}
-          {stopMarks?.[bookName.trim()] && lessonTitle(stopMarks[bookName.trim()]) && (
+          {stopMark && stopLesson && (
             <button
+              type="button"
               className="btn btn-sm w-100 mt-2 d-flex align-items-center justify-content-center gap-1 shadow-sm"
               style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold', fontSize: '0.8rem' }}
-              onClick={() => openLessonById(stopMarks[bookName.trim()])}
-              title={lessonTitle(stopMarks[bookName.trim()]) || 'أكمل القراءة'}
+              onClick={() => openLessonById(stopMark.lessonId!)}
+              title={stopLesson.title}
             >
-              <FiFlag size={14} /> أكمل: {(lessonTitle(stopMarks[bookName.trim()]) || '').slice(0, 28)}
+              <FiFlag size={14} /> أكمل: {stopLesson.title.slice(0, 28)}
             </button>
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   </div>
   );

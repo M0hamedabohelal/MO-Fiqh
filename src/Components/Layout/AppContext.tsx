@@ -8,6 +8,9 @@ import type {
   GlossaryMap,
   HighlightItem,
 } from '../../types';
+import type { StopMarkMap } from '../../features/stopMarks/model';
+import type { StopMarksSyncState } from '../../hooks/useStopMarks';
+import type { LibrarySyncState } from '../../hooks/useUserLibrary';
 
 // قيمة سياق التطبيق — نفس شكل layoutProps سابقًا (مصدر واحد للحقيقة بدل ~40 prop متناثرة)
 export interface AppContextValue {
@@ -22,7 +25,11 @@ export interface AppContextValue {
   fontSize: number;
   setFontSize: Dispatch<SetStateAction<number>>;
   cloudStatus: string;
+  librarySyncState: LibrarySyncState;
+  retryLibrarySync: () => void;
   cloudLessonsLoaded: boolean;
+  localLessonIds: string[];
+  lastSyncedAt: number | null;
   // هل انتهت أول محاولة لتحميل المحتوى؟ (مستقل عن cloudStatus المشترك مع مزامنة المكتبة)
   contentSyncDone: boolean;
   // هل الجهاز بلا اتصال؟ (لعرض مؤشر الواي فاي المشطوب في الشريط العلوي)
@@ -38,13 +45,15 @@ export interface AppContextValue {
   bookmarks: string[];
   highlights: HighlightItem[];
   readLessons: string[];
+  stopMarks: StopMarkMap;
+  stopMarksReady: boolean;
+  stopMarksSyncState: StopMarksSyncState;
+  stopMarksLastSyncedAt: number | null;
+  retryStopMarkSync: () => void;
   booksWithStats: BookStats[];
   selectedBookName: string | null;
   selectedBookChapters: ChapterGroup[];
   openChapterName: string | null;
-  lastReadLessonId: string | null;
-  stopMarks: Record<string, string>;
-  setStopMarks: Dispatch<SetStateAction<Record<string, string>>>;
   setCurrentView: (view: string) => void;
   openBookChapters: (bookName: string) => void;
   toggleChapter: (chapterName: string) => void;
@@ -54,15 +63,16 @@ export interface AppContextValue {
   goBackToList: () => void;
   toggleBookmark: (lessonId: string | number) => void;
   toggleReadLesson: (lessonId: string | number) => void;
+  toggleStopMark: (lesson: Lesson) => void;
   saveNoteForLesson: (lessonId: string | number, text: string) => void;
   deleteHighlight: (highlightId: string | number) => void;
   createHighlightFromSelection: (text: string) => void;
-  toggleStopMark: () => void;
   restoreLibrary: (data: {
     bookmarks?: string[];
     notes?: Record<string, string>;
     readLessons?: string[];
     highlights?: HighlightItem[];
+    stopMarks?: StopMarkMap;
   }) => void;
   onOpenSearch: () => void;
   onOpenLogin: () => void;

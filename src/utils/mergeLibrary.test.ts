@@ -28,15 +28,7 @@ describe('mergeLibraries', () => {
   });
 
   it('مدخلات فارغة تعطي حالة فارغة آمنة', () => {
-    expect(mergeLibraries({}, {})).toEqual({ bookmarks: [], highlights: [], notes: {}, readLessons: [], stopMarks: {} });
-  });
-
-  it('علامات التوقف تُدمج لكل كتاب والسحابة تتفوق عند التعارض', () => {
-    const merged = mergeLibraries(
-      { stopMarks: { 'الطهارة': '10', 'الصلاة': '20' } },
-      { stopMarks: { 'الطهارة': '11', 'الزكاة': '30' } },
-    );
-    expect(merged.stopMarks).toEqual({ 'الطهارة': '10', 'الصلاة': '20', 'الزكاة': '30' });
+    expect(mergeLibraries({}, {})).toEqual({ bookmarks: [], highlights: [], notes: {}, readLessons: [] });
   });
 });
 
@@ -94,22 +86,19 @@ describe('tombstones', () => {
     highlights: [],
     notes: { '1': 'نص' },
     readLessons: ['5'],
-    stopMarks: { 'الطهارة': '10' },
   };
   const local = {
     bookmarks: ['1'],
     highlights: [],
     notes: {},
     readLessons: [],
-    stopMarks: {},
   };
 
   it('المشهور بحذفه يُسقط من المدمج ما لم يعد محليًا', () => {
-    const tombs = { ...emptyTombs(), bookmarks: { '2': Date.now() }, noteKeys: { '1': Date.now() }, stopMarkKeys: { 'الطهارة': Date.now() } };
+    const tombs = { ...emptyTombs(), bookmarks: { '2': Date.now() }, noteKeys: { '1': Date.now() } };
     const out = applyTombsToMerged(base, local, tombs);
     expect(out.bookmarks).toEqual(['1']);
     expect(out.notes).toEqual({});
-    expect(out.stopMarks).toEqual({});
     expect(out.readLessons).toEqual(['5']); // بلا شاهد → يُحفظ
   });
 
@@ -140,7 +129,6 @@ describe('dropStaleTombs', () => {
     highlights: [],
     notes: { 'م': 'ملاحظة' },
     readLessons: [],
-    stopMarks: { 'الطهارة': '5' },
   };
 
   it('يسقط الشاهد الذي يعيق عنصرًا ما زال قائمًا في السحابة (عالق بلا أساس)', () => {
@@ -148,12 +136,10 @@ describe('dropStaleTombs', () => {
     const tombs = {
       ...emptyTombs(),
       bookmarks: { '1': now - 60000 },
-      stopMarkKeys: { 'الطهارة': now - 60000 },
       noteKeys: { 'م': now - 60000 },
     };
     const out = dropStaleTombs(tombs, present, 10000, now);
     expect(out.bookmarks).toEqual({});
-    expect(out.stopMarkKeys).toEqual({});
     expect(out.noteKeys).toEqual({});
   });
 

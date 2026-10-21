@@ -6,6 +6,7 @@
     "rules": "storage.rules"
   },
   "hosting": {
+    "site": "fiqh-app-9f98c",
     "public": "dist",
     "ignore": [
       "firebase.json",

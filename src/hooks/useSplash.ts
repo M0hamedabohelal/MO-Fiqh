@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
-// شاشة الإقلاع: تبقى طالما المصادقة لم تجهز أو مزامنة المحتوى جارية.
+// شاشة الإقلاع: تبقى حتى تنتهي المصادقة ويصبح محتوى المسائل جاهزًا.
 // - حد أدنى (500ms) لمنع وميض سريع.
-// - حد أقصى (7 ثوانٍ) أمانًا: لو تعطّلت المزامنة لا نحبس المستخدم في الشاشة.
 // - progress: قيمة مُحاكاة تتقدّم بتباطؤ نحو 92% أثناء الانتظار، ثم تقفز إلى 100% عند الجاهزية.
 export const SPLASH_MIN_MS = 500;
-export const SPLASH_MAX_MS = 7000;
 export const SPLASH_PROGRESS_CEIL = 92;
 
 // خطوة التقدّم المُحاكى: تقارب أسّي نحو السقف فلا تتجاوز 92% أبدًا (منطق نقي قابل للاختبار)
@@ -54,12 +52,6 @@ export function useSplash(authLoading: boolean, contentSyncing: boolean): Splash
     const t = setTimeout(() => setVisible(false), hideDelay(Date.now() - startRef.current));
     return () => clearTimeout(t);
   }, [ready]);
-
-  // حد أقصى أمان مستقل — يضمن عدم التعليق مهما حدث
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(false), SPLASH_MAX_MS);
-    return () => clearTimeout(t);
-  }, []);
 
   return { visible, progress };
 }

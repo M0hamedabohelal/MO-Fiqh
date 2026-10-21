@@ -4,11 +4,13 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { motion } from 'framer-motion';
 import {
   FiPlus, FiEdit2, FiTrash2, FiSave, FiX, FiBook,
-  FiAlertTriangle, FiSearch, FiEye, FiEyeOff, FiInfo, FiUpload,
+  FiAlertTriangle, FiSearch, FiEye, FiEyeOff, FiInfo, FiUpload, FiDownload, FiClock, FiRotateCcw,
 } from 'react-icons/fi';
 import {
   createLesson, updateLesson, deleteLessonById, bulkCreateLessons,
+  fetchLessonRevisions, fetchDeletedLessons, restoreDeletedLesson,
 } from '../../firebase/services';
+import type { DeletedLessonItem, LessonRevision } from '../../firebase/services';
 import { validateLessonForm, cleanLessonForm, filterValidBulkLessons } from '../../utils/validateLesson';
 import { CLOUDINARY_UPLOAD_URL, CLOUDINARY_UPLOAD_PRESET, validateUploadFile } from '../../utils/cloudinary';
 import QuoteCard from '../Content/QuoteCard';
@@ -36,6 +38,7 @@ interface LessonFormState {
 
 interface AdminLessonsTabProps {
   lessons: Lesson[];
+  cloudBackupReady: boolean;
   onDataChanged: () => Promise<void>;
   flash: (type: 'success' | 'error', text: string) => void;
 }
@@ -60,7 +63,7 @@ const EMPTY_LESSON: LessonFormState = {
   adminNote: '',
 };
 
-const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps) => {
+const AdminLessonsTab = ({ lessons, cloudBackupReady, onDataChanged, flash }: AdminLessonsTabProps) => {
   const [busy, setBusy] = useState(false);
 
   // حالة نموذج المسألة
@@ -72,6 +75,11 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [historyDocId, setHistoryDocId] = useState<string | null>(null);
+  const [historyItems, setHistoryItems] = useState<LessonRevision[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [deletedLessons, setDeletedLessons] = useState<DeletedLessonItem[] | null>(null);
 
   // البحث والتصفية داخل اللوحة
   const [adminSearch, setAdminSearch] = useState('');
@@ -122,6 +130,82 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
       await onDataChanged();
     } catch (err) {
       flash('error', `فشل الاستيراد: ${(err as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDownloadContentBackup = (): void => {
+    const payload = {
+      app: 'fqh-content',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      lessonCount: lessons.length,
+      lessons,
+    };
+    const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `fiqh-content-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    flash('success', `تم تنزيل نسخة من ${lessons.length} مسألة.`);
+  };
+
+  const toggleLessonHistory = async (docId: string): Promise<void> => {
+    if (historyDocId === docId) {
+      setHistoryDocId(null);
+      return;
+    }
+    setHistoryDocId(docId);
+    setHistoryItems([]);
+    setHistoryLoading(true);
+    try {
+      setHistoryItems(await fetchLessonRevisions(docId));
+    } catch {
+      flash('error', 'تعذر تحميل سجل تعديلات المسألة.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleRestoreRevision = async (docId: string, revision: LessonRevision): Promise<void> => {
+    if (!window.confirm(`استعادة نسخة «${revision.lesson.title}» المحفوظة في ${new Date(revision.savedAt).toLocaleString('ar-EG')}؟ سيُحفظ المحتوى الحالي في السجل أولًا.`)) return;
+    setBusy(true);
+    try {
+      await updateLesson(docId, revision.lesson);
+      await onDataChanged();
+      setHistoryItems(await fetchLessonRevisions(docId));
+      flash('success', 'تمت الاستعادة، وحُفظت النسخة السابقة في سجل التعديلات.');
+    } catch (error) {
+      flash('error', `تعذرت الاستعادة: ${(error as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleDeletedLessons = async (): Promise<void> => {
+    const nextOpen = !showDeleted;
+    setShowDeleted(nextOpen);
+    if (!nextOpen || deletedLessons !== null) return;
+    try {
+      setDeletedLessons(await fetchDeletedLessons());
+    } catch {
+      flash('error', 'تعذر تحميل قائمة المسائل المحذوفة.');
+      setDeletedLessons([]);
+    }
+  };
+
+  const handleRestoreDeletedLesson = async (item: DeletedLessonItem): Promise<void> => {
+    if (!window.confirm(`استعادة المسألة «${item.lesson.title}» (ID ${item.lesson.id})؟`)) return;
+    setBusy(true);
+    try {
+      await restoreDeletedLesson(item.docId);
+      setDeletedLessons((previous) => (previous || []).filter((lesson) => lesson.docId !== item.docId));
+      await onDataChanged();
+      flash('success', 'تمت استعادة المسألة المحذوفة.');
+    } catch (error) {
+      flash('error', `تعذرت الاستعادة: ${(error as Error).message}`);
     } finally {
       setBusy(false);
     }
@@ -285,6 +369,7 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
       setShowDeleteConfirm(null);
       flash('success', 'تم حذف المسألة.');
       await onDataChanged();
+      if (deletedLessons !== null) setDeletedLessons(await fetchDeletedLessons());
     } catch (err) {
       flash('error', `فشل الحذف: ${(err as Error).message}`);
     } finally {
@@ -362,15 +447,55 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
         </button>
       )}
 
-      {/* استيراد بالجملة (JSON) */}
-      <button
-        type="button"
-        className="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center gap-2 w-100 mb-3"
-        style={{ borderRadius: '10px' }}
-        onClick={() => setBulkOpen((p) => !p)}
-      >
-        <FiUpload size={16} /> استيراد مسائل بالجملة (JSON) {bulkOpen ? '— إخفاء' : ''}
-      </button>
+      <div className="mb-3">
+        <button type="button" className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2" onClick={() => void toggleDeletedLessons()}>
+          <FiRotateCcw size={15} /> {showDeleted ? 'إخفاء المحذوفة' : 'عرض المحذوفة واستعادتها'}
+        </button>
+        {showDeleted && (
+          <div className="custom-card p-3 mt-2">
+            <h6 className="fw-bold mb-2">المسائل المحذوفة مؤخرًا</h6>
+            {deletedLessons === null ? (
+              <div className="text-muted small">جارٍ تحميل القائمة...</div>
+            ) : deletedLessons.length === 0 ? (
+              <div className="text-muted small">لا توجد مسائل محذوفة قابلة للاستعادة.</div>
+            ) : (
+              <div className="d-flex flex-column gap-2">
+                {deletedLessons.map((item) => (
+                  <div key={item.docId} className="d-flex align-items-center justify-content-between flex-wrap gap-2 p-2 rounded" style={{ backgroundColor: 'var(--badge-bg)' }}>
+                    <span className="small">ID {item.lesson.id} — {item.lesson.title}<small className="d-block text-muted">{new Date(item.deletedAt).toLocaleString('ar-EG')}</small></span>
+                    <button type="button" className="btn btn-sm btn-outline-success d-flex align-items-center gap-1" disabled={busy || !cloudBackupReady} onClick={() => void handleRestoreDeletedLesson(item)}>
+                      <FiRotateCcw size={14} /> استعادة
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!cloudBackupReady && <small className="text-muted d-block mt-2">الاستعادة تحتاج اتصالًا بالسحابة.</small>}
+          </div>
+        )}
+      </div>
+
+      <div className="d-flex gap-2 mb-3 flex-wrap">
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center gap-2 flex-grow-1"
+          style={{ borderRadius: '10px' }}
+          onClick={handleDownloadContentBackup}
+          disabled={!cloudBackupReady}
+          title={cloudBackupReady ? 'تنزيل لقطة من محتوى السحابة قبل التعديل' : 'حمّل المحتوى من السحابة واتصل بالإنترنت لضمان أن النسخة حديثة'}
+        >
+          <FiDownload size={16} /> تنزيل نسخة المحتوى ({lessons.length})
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center gap-2 flex-grow-1"
+          style={{ borderRadius: '10px' }}
+          onClick={() => setBulkOpen((p) => !p)}
+        >
+          <FiUpload size={16} /> استيراد مسائل بالجملة (JSON) {bulkOpen ? '— إخفاء' : ''}
+        </button>
+      </div>
+      {!cloudBackupReady && <small className="text-muted d-block mb-3">تعطّل تنزيل النسخة حتى يكتمل تحميل المحتوى من السحابة والاتصال بالإنترنت؛ لتجنب حفظ لقطة محلية قديمة بالخطأ.</small>}
       {bulkOpen && (
         <div className="custom-card p-3 mb-4">
           <p className="text-muted small mb-2" style={{ lineHeight: '1.7' }}>
@@ -660,37 +785,60 @@ const AdminLessonsTab = ({ lessons, onDataChanged, flash }: AdminLessonsTabProps
           </h5>
 
           <div className="d-flex flex-column gap-2">
-            {bookLessons.map((lesson) => (
-              showDeleteConfirm === (lesson._docId || String(lesson.id)) ? (
-                <div key={lesson._docId || lesson.id} className="custom-card p-3 d-flex align-items-center justify-content-between flex-wrap gap-2 border-danger">
-                  <span className="small fw-bold"><FiAlertTriangle className="ms-1 text-warning" /> متأكد من حذف "{lesson.title}"؟ لا يمكن الرجوع.</span>
-                  <div className="d-flex gap-2">
-                    <button className="btn btn-sm btn-danger" disabled={busy} onClick={() => handleDeleteLesson(lesson._docId || String(lesson.id))}>
-                      نعم، احذف
-                    </button>
-                    <button className="btn btn-sm btn-light" onClick={() => setShowDeleteConfirm(null)}>إلغاء</button>
-                  </div>
-                </div>
-              ) : (
-                <div key={lesson._docId || lesson.id} className="custom-card p-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                  <div className="flex-grow-1 text-end" style={{ minWidth: '200px' }}>
-                    <div className="fw-bold small">
-                      <span className="badge bg-secondary me-2 ms-2" style={{ fontSize: '0.7rem' }}>ID: {lesson.id}</span>
-                      {lesson.title}
+            {bookLessons.map((lesson) => {
+              const docId = lesson._docId || String(lesson.id);
+              return (
+                <div key={docId}>
+                  {showDeleteConfirm === docId ? (
+                    <div className="custom-card p-3 d-flex align-items-center justify-content-between flex-wrap gap-2 border-danger">
+                      <span className="small fw-bold"><FiAlertTriangle className="ms-1 text-warning" /> متأكد من حذف "{lesson.title}"؟ يمكن استعادتها لاحقًا من قائمة المحذوفة.</span>
+                      <div className="d-flex gap-2">
+                        <button className="btn btn-sm btn-danger" disabled={busy} onClick={() => void handleDeleteLesson(docId)}>
+                          نعم، احذف
+                        </button>
+                        <button className="btn btn-sm btn-light" onClick={() => setShowDeleteConfirm(null)}>إلغاء</button>
+                      </div>
                     </div>
-                    <small className="text-muted">{lesson.chapterName} • ص {lesson.pageNumber}</small>
-                  </div>
-                  <div className="d-flex gap-2 flex-shrink-0">
-                    <button className="btn btn-sm btn-light d-flex align-items-center gap-1" onClick={() => openEditForm(lesson)} title="تعديل">
-                      <FiEdit2 size={14} /> تعديل
-                    </button>
-                    <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" disabled={busy} onClick={() => setShowDeleteConfirm(lesson._docId || String(lesson.id))} title="حذف" aria-label={`حذف مسألة ${lesson.title}`}>
-                      <FiTrash2 size={14} />
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="custom-card p-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                      <div className="flex-grow-1 text-end" style={{ minWidth: '200px' }}>
+                        <div className="fw-bold small">
+                          <span className="badge bg-secondary me-2 ms-2" style={{ fontSize: '0.7rem' }}>ID: {lesson.id}</span>
+                          {lesson.title}
+                        </div>
+                        <small className="text-muted">{lesson.chapterName} • ص {lesson.pageNumber}</small>
+                      </div>
+                      <div className="d-flex gap-2 flex-shrink-0">
+                        <button className="btn btn-sm btn-light d-flex align-items-center gap-1" onClick={() => openEditForm(lesson)} title="تعديل">
+                          <FiEdit2 size={14} /> تعديل
+                        </button>
+                        <button className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" disabled={busy} onClick={() => void toggleLessonHistory(docId)} title="سجل التعديلات">
+                          <FiClock size={14} /> السجل
+                        </button>
+                        <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" disabled={busy} onClick={() => setShowDeleteConfirm(docId)} title="حذف" aria-label={`حذف مسألة ${lesson.title}`}>
+                          <FiTrash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {historyDocId === docId && showDeleteConfirm !== docId && (
+                    <div className="custom-card p-3 mt-2" aria-live="polite">
+                      <h6 className="fw-bold mb-2">سجل النسخ السابقة: {lesson.title}</h6>
+                      {historyLoading ? <div className="text-muted small">جارٍ تحميل السجل...</div> : historyItems.length === 0 ? <div className="text-muted small">لا توجد نسخ سابقة لهذا المحتوى.</div> : (
+                        <div className="d-flex flex-column gap-2">
+                          {historyItems.map((revision) => (
+                            <div key={revision.id} className="d-flex align-items-center justify-content-between flex-wrap gap-2 p-2 rounded" style={{ backgroundColor: 'var(--badge-bg)' }}>
+                              <span className="small">{revision.lesson.title}<small className="d-block text-muted">{new Date(revision.savedAt).toLocaleString('ar-EG')}</small></span>
+                              <button type="button" className="btn btn-sm btn-outline-success" disabled={busy || !cloudBackupReady} onClick={() => void handleRestoreRevision(docId, revision)}>استعادة هذه النسخة</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}

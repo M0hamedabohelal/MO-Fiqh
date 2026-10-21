@@ -45,21 +45,39 @@ async function loadLiveLessons() {
     if (!env.VITE_FIREBASE_API_KEY || !env.VITE_FIREBASE_PROJECT_ID || !env.VITE_FIREBASE_APP_ID) {
       return null; // بلا مفاتيح — للاحتياطي التالي
     }
-    const { initializeApp } = await import('firebase/app');
-    const { getFirestore, collection, getDocs } = await import('firebase/firestore');
-    const app = initializeApp({
-      apiKey: env.VITE_FIREBASE_API_KEY,
-      authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
-      projectId: env.VITE_FIREBASE_PROJECT_ID,
-      storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-      appId: env.VITE_FIREBASE_APP_ID,
-    });
-    const snap = await getDocs(collection(getFirestore(app), 'lessons'));
+    const lessons = [];
+    let nextPageToken = '';
+    do {
+      const url = new URL(`https://firestore.googleapis.com/v1/projects/${encodeURIComponent(env.VITE_FIREBASE_PROJECT_ID)}/databases/(default)/documents/lessons`);
+      url.searchParams.set('pageSize', '1000');
+      url.searchParams.set('key', env.VITE_FIREBASE_API_KEY);
+      if (nextPageToken) url.searchParams.set('pageToken', nextPageToken);
+      const response = await fetch(url, { signal: AbortSignal.timeout(12_000) });
+      if (!response.ok) throw new Error(`Firestore REST returned HTTP ${response.status}`);
+      const payload = await response.json();
+      for (const document of payload.documents ?? []) {
+        const decode = (value) => {
+          if ('stringValue' in value) return value.stringValue;
+          if ('integerValue' in value) return Number(value.integerValue);
+          if ('doubleValue' in value) return value.doubleValue;
+          if ('booleanValue' in value) return value.booleanValue;
+          if ('nullValue' in value) return null;
+          if ('timestampValue' in value) return value.timestampValue;
+          if ('arrayValue' in value) return (value.arrayValue.values ?? []).map(decode);
+          if ('mapValue' in value) return Object.fromEntries(Object.entries(value.mapValue.fields ?? {}).map(([key, nested]) => [key, decode(nested)]));
+          return undefined;
+        };
+        const data = Object.fromEntries(Object.entries(document.fields ?? {}).map(([key, value]) => [key, decode(value)]));
+        lessons.push({ _docId: document.name.split('/').at(-1), ...data });
+      }
+      nextPageToken = payload.nextPageToken ?? '';
+    } while (nextPageToken);
+    const clean = validLessons(lessons);
+    if (!clean?.length) return null;
     // القراءة العامة مسموحة للجميع (firestore.rules) — لا حاجة لمصادقة
-    const lessons = validLessons(snap.docs.map((d) => ({ _docId: d.id, ...d.data() })));
-    if (lessons) console.log(`🌐 SEO: استخدام السحابة الحية (${lessons.length} مسألة)`);
-    return lessons;
+    const lessonsData = clean;
+    console.log(`🌐 SEO: استخدام السحابة الحية (${lessonsData.length} مسألة)`);
+    return lessonsData;
   } catch (e) {
     console.warn('⚠️ SEO: تعذّر القراءة الحية — للاحتياطي التالي:', e?.message);
     return null;
@@ -97,8 +115,36 @@ function loadBackupLessons() {
 const liveLessons = await loadLiveLessons();
 const backupLessons = liveLessons ? null : loadBackupLessons();
 const { lessonsData: localLessons } = await import('../src/data/lessons.ts');
-const lessonsData = liveLessons ?? backupLessons ?? localLessons;
-if (!liveLessons && !backupLessons) console.log('📄 SEO: استخدام البيانات المحلية.');
+// عند تعذّر السحابة قد تكون النسخة الاحتياطية أقدم من البيانات المحلية.
+// ندمج المصدرين حسب id، مع أولوية النسخة الاحتياطية للمسائل المشتركة حتى لا نفقد مسائل أضيفت محليًا.
+function mergeFallbackLessons(backup, local) {
+  const merged = new Map(validLessons(local)?.map((lesson) => [String(lesson.id), lesson]) ?? []);
+  validLessons(backup)?.forEach((lesson) => merged.set(String(lesson.id), lesson));
+  return [...merged.values()];
+}
+
+const lessonsData = liveLessons ?? (backupLessons
+  ? mergeFallbackLessons(backupLessons, localLessons)
+  : validLessons(localLessons) ?? []);
+if (liveLessons) {
+  const fallbackIds = new Set((backupLessons ? mergeFallbackLessons(backupLessons, localLessons) : validLessons(localLessons) ?? [])
+    .map((lesson) => String(lesson.id)));
+  const liveIds = new Set(liveLessons.map((lesson) => String(lesson.id)));
+  const missingFromLive = [...fallbackIds].filter((id) => !liveIds.has(id));
+  if (missingFromLive.length > 0) {
+    throw new Error(`❌ أوقف بناء SEO: السحابة تفتقد ${missingFromLive.length} معرّفًا موجودًا في النسخة المحلية/الاحتياطية (${missingFromLive.slice(0, 12).join(', ')}). راجع npm run audit:data ثم حدّث اللقطة المحلية قبل النشر.`);
+  }
+  const ids = liveLessons.map((lesson) => String(lesson.id));
+  const duplicateIds = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+  if (duplicateIds.length > 0) {
+    throw new Error(`❌ أوقف بناء SEO: معرّفات مكررة في بيانات السحابة (${duplicateIds.slice(0, 12).join(', ')}).`);
+  }
+}
+if (!liveLessons && backupLessons) {
+  console.log(`📦 SEO: دمج النسخة الاحتياطية والبيانات المحلية (${lessonsData.length} مسألة).`);
+} else if (!liveLessons) {
+  console.log(`📄 SEO: استخدام البيانات المحلية (${lessonsData.length} مسألة).`);
+}
 const { BOOKS_LIST } = await import('../src/data/books.ts');
 
 // مساعدة: اسم آمن للمجلد (ترميز عربي URL-صديق)

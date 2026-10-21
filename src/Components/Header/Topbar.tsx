@@ -3,15 +3,20 @@ import { FiMoon, FiBell, FiWifiOff } from 'react-icons/fi';
 import { BsBook } from 'react-icons/bs';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import AnnouncementsModal from '../UI/AnnouncementsModal';
+import type { StopMarksSyncState } from '../../hooks/useStopMarks';
+import type { LibrarySyncState } from '../../hooks/useUserLibrary';
 
 interface TopbarProps {
   theme: string;
   toggleTheme: (theme: string) => void;
   cloudStatus: string;
+  librarySyncState: LibrarySyncState;
+  isSignedIn: boolean;
+  stopMarksSyncState: StopMarksSyncState;
   isOffline: boolean;
 }
 
-const Topbar = ({ theme, toggleTheme, cloudStatus, isOffline }: TopbarProps) => {
+const Topbar = ({ theme, toggleTheme, cloudStatus, librarySyncState, isSignedIn, stopMarksSyncState, isOffline }: TopbarProps) => {
   const { announcements, unreadCount, markAsRead, refresh } = useAnnouncements();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -40,14 +45,20 @@ const Topbar = ({ theme, toggleTheme, cloudStatus, isOffline }: TopbarProps) => 
   // مؤشر حالة المزامنة مع السحابة
   const getCloudIndicator = () => {
     if (cloudStatus === 'syncing') {
-      return { icon: '⟳', label: 'جاري المزامنة', title: 'جاري سحب أحدث البيانات من السحابة', color: '#f39c12' };
+      return { icon: '⟳', label: 'جارٍ تحديث المسائل', title: 'جارٍ جلب أحدث المسائل من السحابة', color: '#f39c12' };
     }
     if (cloudStatus === 'synced') {
-      return { icon: '✓', label: 'متزامن', title: 'البيانات محدثة من السحابة', color: '#27ae60' };
+      return { icon: '✓', label: 'المسائل محدّثة', title: 'المسائل محمّلة من السحابة', color: '#27ae60' };
+    }
+    if (cloudStatus === 'available') {
+      return { icon: '✓', label: 'المسائل جاهزة', title: 'المسائل المحمّلة متاحة؛ يمكنك طلب تحديثها من الإعدادات', color: '#27ae60' };
     }
     // عند انقطاع الاتصال تظهر أيقونة الواي فاي المشطوبة منفصلة — نتفادى تكرار الدلالة
     if (cloudStatus === 'offline' && !isOffline) {
-      return { icon: '⚠', label: 'بدون اتصال', title: 'تعذر الوصول للسحابة — تعرض البيانات المحلية', color: '#e74c3c' };
+      return { icon: '⚠', label: 'تعذر تحديث المسائل', title: 'تعذر الوصول إلى المسائل على السحابة؛ النسخة المحفوظة متاحة', color: '#e74c3c' };
+    }
+    if (cloudStatus === 'local') {
+      return { icon: '●', label: 'المسائل محلية', title: 'يعمل التطبيق بالنسخة المحلية من المسائل', color: '#a77c2d' };
     }
     return null;
   };
@@ -87,11 +98,12 @@ const Topbar = ({ theme, toggleTheme, cloudStatus, isOffline }: TopbarProps) => 
         <span
           className="d-inline-flex align-items-center ms-2 offline-indicator"
           style={{ color: '#e74c3c', fontSize: '1.05rem' }}
-          title="أنت غير متصل — المحتوى المحمّل متاح للقراءة"
-          aria-label="غير متصل بالإنترنت"
+          aria-label="غير متصل بالإنترنت؛ المحتوى المحمّل متاح والتغييرات الشخصية محفوظة محليًا"
           role="status"
+          title="غير متصل — ستُحفظ تغييراتك على الجهاز وتُزامن عند عودة الاتصال"
         >
           <FiWifiOff size={20} />
+          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>غير متصل — التغييرات محفوظة</span>
         </span>
       )}
 
@@ -99,10 +111,46 @@ const Topbar = ({ theme, toggleTheme, cloudStatus, isOffline }: TopbarProps) => 
         <span
           className="ms-auto d-flex align-items-center gap-1"
           style={{ color: cloud.color, fontSize: '0.78rem', fontWeight: 600 }}
+          role="status"
+          aria-label={`${cloud.label} — ${cloud.title}`}
           title={cloud.title}
         >
           <span style={{ fontSize: '0.85rem' }}>{cloud.icon}</span>
-          <span className="d-none d-sm-inline">{cloud.label}</span>
+          <span>{cloud.label}</span>
+        </span>
+      )}
+
+      {isSignedIn && librarySyncState === 'pending' && (
+        <span className="d-flex align-items-center gap-1" style={{ color: '#f39c12', fontSize: '0.78rem', fontWeight: 600 }} role="status" title="تغييرات المكتبة محفوظة على الجهاز وستُرفع عند توفر الاتصال">
+          <span aria-hidden="true">⟳</span><span>تغييرات محفوظة محليًا</span>
+        </span>
+      )}
+      {isSignedIn && librarySyncState === 'syncing' && (
+        <span className="d-flex align-items-center gap-1" style={{ color: '#f39c12', fontSize: '0.78rem', fontWeight: 600 }} role="status" title="جارٍ رفع التغييرات الشخصية إلى الحساب">
+          <span aria-hidden="true">⟳</span><span>جارٍ مزامنة المكتبة</span>
+        </span>
+      )}
+      {isSignedIn && librarySyncState === 'error' && (
+        <span className="d-flex align-items-center gap-1" style={{ color: '#e74c3c', fontSize: '0.78rem', fontWeight: 600 }} role="status" title="تعذرت مزامنة المكتبة؛ التغييرات ما زالت محفوظة على الجهاز">
+          <span aria-hidden="true">⚠</span><span>تعذرت مزامنة المكتبة</span>
+        </span>
+      )}
+      {isSignedIn && librarySyncState === 'offline' && !isOffline && (
+        <span className="d-flex align-items-center gap-1" style={{ color: '#e74c3c', fontSize: '0.78rem', fontWeight: 600 }} role="status" title="الجهاز متصل بالإنترنت، لكن لم نتمكن من تأكيد مزامنة بيانات الحساب. ستبقى بياناتك محفوظة على هذا الجهاز">
+          <span aria-hidden="true">⚠</span><span>مزامنة الحساب غير مؤكدة</span>
+        </span>
+      )}
+
+      {stopMarksSyncState === 'pending' && (
+        <span className="ms-auto d-flex align-items-center gap-1" style={{ color: '#f39c12', fontSize: '0.78rem', fontWeight: 600 }} role="status" title="علامة الوقوف محفوظة محليًا وبانتظار مزامنتها">
+          <span aria-hidden="true">⟳</span>
+          <span className="d-none d-sm-inline">مزامنة العلامة</span>
+        </span>
+      )}
+      {stopMarksSyncState === 'error' && (
+        <span className="ms-auto d-flex align-items-center gap-1" style={{ color: '#e74c3c', fontSize: '0.78rem', fontWeight: 600 }} role="status" title="تعذرت مزامنة علامة الوقوف؛ ستُعاد المحاولة عند الاتصال">
+          <span aria-hidden="true">⚠</span>
+          <span className="d-none d-sm-inline">تعذرت مزامنة العلامة</span>
         </span>
       )}
     </div>

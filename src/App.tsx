@@ -15,21 +15,21 @@ import OnboardingSlides, { shouldShowOnboarding } from './Components/UI/Onboardi
 import { useAuth }             from './Components/Auth/AuthContext';
 import { useHashRoute }        from './hooks/useHashRoute';
 import { useUserLibrary }      from './hooks/useUserLibrary';
+import { useStopMarks }        from './hooks/useStopMarks';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { usePWA }              from './hooks/usePWA';
 import { useAppData }          from './hooks/useAppData';
 
 import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
-import { safeGet, safeSet, safeRemove } from './utils/safeStorage';
-import { recordStopMarkTouch, pickLatestStopMarkId, readStopMarkTouchedAt } from './utils/stopMarkRecency';
+import { safeGet, safeSet } from './utils/safeStorage';
 import { createUniqueId } from './utils/uniqueId';
 import { useVisitTracking }    from './hooks/useVisitTracking';
 import { useSyncedPreferences } from './hooks/useSyncedPreferences';
 import { useSplash }           from './hooks/useSplash';
-import type { Lesson, ChapterGroup } from './types';
-
-const lastReadStorageKey = (uid?: string): string => uid ? `lastReadLessonId_${uid}` : 'lastReadLessonId_guest';
+import type { Lesson, ChapterGroup, HighlightItem } from './types';
+import { getLatestStopMark } from './features/stopMarks/model';
+import type { StopMarkMap } from './features/stopMarks/model';
 
 function App() {
   // ─── Auth ───
@@ -39,10 +39,11 @@ function App() {
   const { canInstall, isInstalled, promptInstall, needRefresh, applyUpdate, checkForUpdates, offlineReady, dismissOfflineReady, isOffline } = usePWA();
 
   // ─── بيانات المحتوى ───
-  const { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded, contentSyncDone } = useAppData({ isOffline });
+  const { lessons, glossary, cloudStatus, reloadFromCloud, cloudLessonsLoaded, contentSyncDone, localLessonIds } = useAppData({ isOffline });
 
-  // ─── المكتبة الشخصية (تُزامن سحابيًا للمسجل — فتظهر علامات التوقف على كل الأجهزة) ───
-  const { bookmarks, highlights, notes, readLessons, stopMarks, setStopMarks, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary } = useUserLibrary({ onStatus: setCloudStatus });
+  // ─── المكتبة الشخصية ───
+  const { bookmarks, highlights, notes, readLessons, lastSyncedAt, syncState: librarySyncState, retryLibrarySync, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary } = useUserLibrary();
+  const { stopMarks, stopMarksReady, stopMarksSyncState, stopMarksLastSyncedAt, retryStopMarkSync, toggleStopMark, restoreStopMarks } = useStopMarks();
 
   // ─── التوجيه الهاشي ───
   const { currentView, setCurrentView, currentIndex, setCurrentIndex, selectedBookName, setSelectedBookName, openChapterName, setOpenChapterName, goToNextLesson, goToPrevLesson, goBackToList } = useHashRoute(lessons);
@@ -61,7 +62,6 @@ function App() {
   const [isLoginOpen, setIsLoginOpen]     = useState(false);
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');
   const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
-  const [lastReadLessonId, setLastReadLessonId]       = useState(() => safeGet('lastReadLessonId_guest'));
   // بوابة الشاشة تعتمد على تحميل المحتوى فقط (contentSyncDone) لا على cloudStatus
   // المُشترك مع مزامنة المكتبة (وإلا علِقت الشاشة للمسجّلين).
   const { visible: showSplash, progress: splashProgress } = useSplash(authLoading, !contentSyncDone);
@@ -69,15 +69,17 @@ function App() {
   const splashStatus = authLoading
     ? 'جارٍ التحقق من الحساب...'
     : !contentSyncDone
-      ? (user ? 'جارٍ مزامنة المحتوى...' : 'جارٍ تحميل المحتوى...')
-      : (user ? 'اكتملت المزامنة' : 'تم التحميل');
+      ? (user ? 'جارٍ تحميل المسائل ومزامنتها...' : 'جارٍ تحميل المسائل كاملة...')
+      : cloudLessonsLoaded
+        ? 'المسائل جاهزة من السحابة'
+        : 'اكتمل تحميل المسائل المحلية';
   // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // المظهر وحجم الخط يتبعان الحساب نفسه على كل أجهزته، مع استمرار التخزين المحلي للضيف.
-  useSyncedPreferences(user?.uid, authLoading, theme, setTheme, fontSize, setFontSize, lastReadLessonId, setLastReadLessonId);
+  useSyncedPreferences(user?.uid, authLoading, theme, setTheme, fontSize, setFontSize);
 
-  // تبديل الحساب يمسح حالة الاستمرار المحلية ويعود للبداية بعد الخروج؛ لكل حساب مخبأ مستقل.
+  // تبديل الحساب يعود إلى الشاشة الرئيسية.
   const previousUidRef = useRef<string | null>(user?.uid ?? null);
   useEffect(() => {
     if (authLoading) return;
@@ -85,19 +87,11 @@ function App() {
     const previousUid = previousUidRef.current;
     if (uid === previousUid) return;
     previousUidRef.current = uid;
-    setLastReadLessonId(uid ? safeGet(lastReadStorageKey(uid)) : null);
-    safeRemove('lastReadLessonId'); // مفتاح قديم مشترك بين الحسابات
     if (previousUid) {
       setIsLoginOpen(false);
       setCurrentView('hero');
     }
   }, [user?.uid, authLoading, setCurrentView]);
-
-  useEffect(() => {
-    const key = lastReadStorageKey(user?.uid);
-    if (lastReadLessonId) safeSet(key, lastReadLessonId);
-    else safeRemove(key);
-  }, [lastReadLessonId, user?.uid]);
 
   // Theme & Font
   useEffect(() => {
@@ -109,49 +103,6 @@ function App() {
     document.documentElement.style.setProperty('--base-font-size', `${fontSize}px`);
     safeSet('fontSize', String(fontSize));
   }, [fontSize]);
-
-  // ترحيل لمرة واحدة: العلامة الواحدة القديمة للضيف → خريطة لكل كتاب (بعد تحميل الدروس لمعرفة الكتاب)
-  useEffect(() => {
-    if (user || Object.keys(stopMarks).length > 0 || lessons.length === 0) return;
-    const oldId = safeGet('lastReadLessonId_guest');
-    if (!oldId) return;
-    const lesson = lessons.find((l: Lesson) => String(l.id) === oldId);
-    if (lesson?.bookName) {
-      setStopMarks({ [lesson.bookName.trim()]: oldId });
-    }
-  }, [lessons, user]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // علامات التوقف المؤهلة للعرض فقط: ما يشير إلى مسألة موجودة فعلًا.
-  // ملاحظة حرجة: نُصفّي هنا ولا نحذف من `stopMarks` — الحذف يُحوَّل إلى "شاهد حذف" دائم
-  // يُزامن سحابيًا فيُفقد العلامة على كل الأجهزة بلا رجعة. الإسقاط عرضي، والسحابة تنظف نفسها.
-  const validStopMarks = useMemo(() => {
-    if (lessons.length === 0) return stopMarks;
-    const validIds = new Set(lessons.map((l: Lesson) => String(l.id)));
-    let dropped = false;
-    const out: Record<string, string> = {};
-    Object.entries(stopMarks || {}).forEach(([book, id]) => {
-      if (validIds.has(String(id))) out[book] = id;
-      else dropped = true;
-    });
-    return dropped ? out : stopMarks;
-  }, [lessons, stopMarks]);
-
-  // مزامنة lastReadLessonId مع علامات التوقف النشطة (لتحديث زر أكمل القراءة فوراً عبر الأجهزة)
-  // ضبط متزامن مقصود مع حالة خارجية (السحابة عبر stopMarks) — يتوقف ذاتيًا خلال دورتين كحد أقصى
-  useEffect(() => {
-    const markIds = Object.values(validStopMarks).filter(Boolean);
-    if (markIds.length === 0) {
-      return;
-    }
-    if (!lastReadLessonId || !markIds.includes(lastReadLessonId)) {
-      // الأحدث زمنيًا (بختم اللمسة المحلي)، وعند غياب السجل نرجع لآخر قيمة كالسابق
-      const latest = pickLatestStopMarkId(validStopMarks, readStopMarkTouchedAt()) ?? markIds[markIds.length - 1];
-      // مواءمة حالة الاستمرار مع علامة التوقف الواردة من السحابة.
-      // الحفظ يتم عبر lastReadStorageKey(uid) أعلاه — لا مفتاح مشترك قديم.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLastReadLessonId(latest);
-    }
-  }, [validStopMarks, lastReadLessonId, user]);
 
   // ─── بيانات مشتقة للفهرس ───
   const chaptersWithIssues = useMemo(() => {
@@ -189,6 +140,15 @@ function App() {
     [chaptersWithIssues, selectedBookName]
   );
 
+  const latestStopMark = useMemo(() => getLatestStopMark(stopMarks, lessons), [stopMarks, lessons]);
+  const restoreFullLibrary = useCallback((data: {
+    bookmarks?: string[]; highlights?: HighlightItem[]; notes?: Record<string, string>;
+    readLessons?: string[]; stopMarks?: StopMarkMap;
+  }) => {
+    restoreLibrary(data);
+    if (data.stopMarks) restoreStopMarks(data.stopMarks);
+  }, [restoreLibrary, restoreStopMarks]);
+
   // ─── معالجات التنقل ───
   const openBookChapters = useCallback((bookName: string) => {
     setSelectedBookName(bookName);
@@ -220,27 +180,6 @@ function App() {
     if (!currentLesson) return;
     addHighlight({ id: createUniqueId('hl'), lessonId: currentLesson.id, bookName: currentLesson.bookName, chapterName: currentLesson.chapterName, title: currentLesson.title, text });
   }, [currentLesson, addHighlight]);
-
-  const toggleStopMark = useCallback(() => {
-    const id = currentLesson?.id?.toString();
-    const book = (currentLesson?.bookName || '').trim();
-    if (!id || !book) return;
-    // إزالة إذا كانت هذه علامة الكتاب الحالية، وإلا تعيينها (لا تمس علامات الكتب الأخرى)
-    if (stopMarks[book] === id) {
-      setStopMarks((prev) => {
-        const next = { ...prev };
-        delete next[book];
-        return next;
-      });
-      if (lastReadLessonId === id) {
-        setLastReadLessonId(null);
-      }
-    } else {
-      setStopMarks((prev) => ({ ...prev, [book]: id }));
-      recordStopMarkTouch(book);
-      setLastReadLessonId(id);
-    }
-  }, [currentLesson, stopMarks, setStopMarks, lastReadLessonId]);
 
   // تسجيل مشاهدة المسألة
   const currentLessonId = currentLesson?.id;
@@ -277,8 +216,6 @@ function App() {
   useKeyboardShortcuts(handleKeyboardShortcut);
 
   // ─── التوجيه: التصفح مفتوح للجميع (القراءة عامة لأجل SEO)، والحساب للخصائص المحفوظة ───
-  const lastReadTitle = lessons.find((l: Lesson) => String(l.id) === lastReadLessonId)?.title;
-
   useEffect(() => {
     if (authLoading) return;
     // ✅ Onboarding: بعد تسجيل الدخول نتحقق من أول مرة
@@ -330,19 +267,21 @@ function App() {
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
     theme, setTheme, fontSize, setFontSize,
-    cloudStatus, cloudLessonsLoaded,
+    cloudStatus, librarySyncState, retryLibrarySync, cloudLessonsLoaded, localLessonIds,
     contentSyncDone,
     isOffline,
     canInstall, isInstalled, promptInstall,
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
+    lastSyncedAt,
+    stopMarks, stopMarksReady, stopMarksSyncState, stopMarksLastSyncedAt, retryStopMarkSync,
     booksWithStats, selectedBookName, selectedBookChapters,
-    openChapterName, lastReadLessonId, stopMarks, setStopMarks,
+    openChapterName,
     setCurrentView, openBookChapters, toggleChapter,
     openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
-    toggleBookmark, toggleReadLesson, saveNoteForLesson,
+    toggleBookmark, toggleReadLesson, toggleStopMark, saveNoteForLesson,
     deleteHighlight, createHighlightFromSelection,
-    toggleStopMark, restoreLibrary,
+    restoreLibrary: restoreFullLibrary,
     onOpenSearch,
     onOpenLogin,
     reloadFromCloud,
@@ -352,17 +291,20 @@ function App() {
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
     theme, fontSize,
-    cloudStatus, cloudLessonsLoaded, contentSyncDone, isOffline,
+    cloudStatus, librarySyncState, retryLibrarySync, cloudLessonsLoaded, localLessonIds, contentSyncDone,
+    isOffline,
     canInstall, isInstalled, promptInstall,
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
+    lastSyncedAt,
+    stopMarks, stopMarksReady, stopMarksSyncState, stopMarksLastSyncedAt, retryStopMarkSync,
     booksWithStats, selectedBookName, selectedBookChapters,
-    openChapterName, lastReadLessonId, stopMarks, setStopMarks,
+    openChapterName,
     setCurrentView, openBookChapters, toggleChapter,
     openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
-    toggleBookmark, toggleReadLesson, saveNoteForLesson,
+    toggleBookmark, toggleReadLesson, toggleStopMark, saveNoteForLesson,
     deleteHighlight, createHighlightFromSelection,
-    toggleStopMark, restoreLibrary,
+    restoreFullLibrary,
     onOpenSearch, onOpenLogin, reloadFromCloud,
     currentSearchQuery,
   ]);
@@ -381,8 +323,8 @@ function App() {
       {currentView === 'hero' ? (
         <HeroSection
           onStartBrowsing={() => setCurrentView('books')}
-          lastReadTitle={lastReadTitle}
-          onContinueReading={() => { if (lastReadLessonId) openLessonById(lastReadLessonId); }}
+          stopLessonTitle={latestStopMark ? lessons.find((lesson) => String(lesson.id) === latestStopMark.lessonId)?.title : undefined}
+          onContinueStopMark={() => { if (latestStopMark?.lessonId) openLessonById(latestStopMark.lessonId); }}
           onOpenLogin={() => setIsLoginOpen(true)}
           user={user}
         />

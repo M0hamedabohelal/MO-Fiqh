@@ -26,6 +26,16 @@ export async function fetchLessons(): Promise<Lesson[]> {
     .sort((a, b) => Number(a.id) - Number(b.id));
 }
 
+// تحميل مؤكد من الخادم لشاشة البداية؛ getDocs العادي قد يعيد لقطة الكاش
+// ويجعل التطبيق يعتقد أن المزامنة اكتملت قبل التواصل مع Firebase.
+export async function fetchLessonsFromServer(): Promise<Lesson[]> {
+  const { db, fs } = await getDb();
+  const snapshot = await fs.getDocsFromServer(fs.collection(db, 'lessons'));
+  return snapshot.docs
+    .map((d) => ({ ...d.data(), _docId: d.id }) as Lesson)
+    .sort((a, b) => Number(a.id) - Number(b.id));
+}
+
 // جلب مرقّم للمسائل (للتوسع المستقبلي — لا يكسر السلوك الحالي)
 // يُستخدم مع orderBy('id') + limit لتجنّب جلب آلاف المستندات دفعة واحدة.
 export async function fetchLessonsPaged(
@@ -159,13 +169,82 @@ export async function bulkCreateLessons(lessonsArray: Array<Omit<Lesson, 'id' | 
 // تعديل مسألة موجودة (docId هو معرف المستند في Firestore)
 export async function updateLesson(docId: string, lessonData: Lesson): Promise<void> {
   const { db, fs } = await getDb();
-  await fs.setDoc(fs.doc(db, 'lessons', String(docId)), lessonData);
+  const lessonRef = fs.doc(db, 'lessons', String(docId));
+  const revisionRef = fs.doc(fs.collection(db, 'lessonRevisions', String(docId), 'versions'));
+  await fs.runTransaction(db, async (transaction) => {
+    const current = await transaction.get(lessonRef);
+    if (!current.exists()) throw new Error('المسألة لم تعد موجودة؛ حدّث القائمة قبل الحفظ.');
+    transaction.set(revisionRef, { lesson: current.data(), savedAt: Date.now() });
+    transaction.set(lessonRef, lessonData);
+  });
 }
 
-// حذف مسألة
+export interface LessonRevision {
+  id: string;
+  lesson: Lesson;
+  savedAt: number;
+}
+
+export async function fetchLessonRevisions(docId: string, limitCount = 20): Promise<LessonRevision[]> {
+  const { db, fs } = await getDb();
+  const versions = fs.collection(db, 'lessonRevisions', String(docId), 'versions');
+  const snapshot = await fs.getDocs(fs.query(versions, fs.orderBy('savedAt', 'desc'), fs.limit(limitCount)));
+  return snapshot.docs.flatMap((version) => {
+    const data = version.data();
+    if (!data.lesson || typeof data.lesson !== 'object' || !Number.isFinite(Number(data.savedAt))) return [];
+    return [{ id: version.id, lesson: data.lesson as Lesson, savedAt: Number(data.savedAt) }];
+  });
+}
+
+export interface DeletedLessonItem {
+  docId: string;
+  lesson: Lesson;
+  deletedAt: number;
+}
+
+export async function fetchDeletedLessons(): Promise<DeletedLessonItem[]> {
+  const { db, fs } = await getDb();
+  const snapshot = await fs.getDocs(fs.collection(db, 'lessonRevisions'));
+  return snapshot.docs.flatMap((doc) => {
+    const data = doc.data();
+    if (data.isDeleted !== true || !data.deletedLesson || typeof data.deletedLesson !== 'object') return [];
+    return [{ docId: doc.id, lesson: data.deletedLesson as Lesson, deletedAt: Number(data.deletedAt) || 0 }];
+  }).sort((a, b) => b.deletedAt - a.deletedAt);
+}
+
+export async function restoreDeletedLesson(docId: string): Promise<void> {
+  const { db, fs } = await getDb();
+  const revisionRef = fs.doc(db, 'lessonRevisions', String(docId));
+  const lessonRef = fs.doc(db, 'lessons', String(docId));
+  await fs.runTransaction(db, async (transaction) => {
+    const [revision, existingLesson] = await Promise.all([
+      transaction.get(revisionRef),
+      transaction.get(lessonRef),
+    ]);
+    const deletedLesson = revision.data()?.deletedLesson;
+    if (!revision.exists() || revision.data()?.isDeleted !== true || !deletedLesson || typeof deletedLesson !== 'object') {
+      throw new Error('لا توجد نسخة محذوفة صالحة للاستعادة.');
+    }
+    if (existingLesson.exists()) throw new Error('يوجد مستند بالمعرّف نفسه؛ لم تتم الاستعادة لتجنب استبداله.');
+    transaction.set(lessonRef, deletedLesson);
+    transaction.set(revisionRef, { isDeleted: false, restoredAt: Date.now() }, { merge: true });
+  });
+}
+
+// حذف مسألة مع حفظ نسخة قابلة للاستعادة في المعاملة نفسها
 export async function deleteLessonById(docId: string): Promise<void> {
   const { db, fs } = await getDb();
-  await fs.deleteDoc(fs.doc(db, 'lessons', String(docId)));
+  const lessonRef = fs.doc(db, 'lessons', String(docId));
+  const revisionRef = fs.doc(db, 'lessonRevisions', String(docId));
+  const versionRef = fs.doc(fs.collection(db, 'lessonRevisions', String(docId), 'versions'));
+  await fs.runTransaction(db, async (transaction) => {
+    const current = await transaction.get(lessonRef);
+    if (!current.exists()) throw new Error('المسألة غير موجودة أو حُذفت بالفعل.');
+    const lesson = current.data();
+    transaction.set(versionRef, { lesson, savedAt: Date.now() });
+    transaction.set(revisionRef, { isDeleted: true, deletedLesson: lesson, deletedAt: Date.now() }, { merge: true });
+    transaction.delete(lessonRef);
+  });
 }
 
 /* ==================== القاموس الفقهي (Glossary) ==================== */
@@ -200,11 +279,11 @@ async function userRoot(db: Firestore, fs: typeof FsMod, uid: string) {
   return fs.collection(db, 'users', uid, 'data');
 }
 
-// جلب كل بيانات المستخدم: bookmarks / highlights / notes / readLessons / visits / stopMarks / tombstones
+// جلب بيانات المستخدم: bookmarks / highlights / notes / readLessons / visits / tombstones
 export async function fetchUserData(uid: string): Promise<UserLibraryData> {
   const { db, fs } = await getDb();
   const snapshot = await fs.getDocs(await userRoot(db, fs, uid));
-  const data: UserLibraryData = { bookmarks: [], highlights: [], notes: {}, readLessons: [], visits: [], stopMarks: {}, tombs: { bookmarks: {}, readLessons: {}, highlightIds: {}, noteKeys: {}, stopMarkKeys: {} } };
+  const data: UserLibraryData = { bookmarks: [], highlights: [], notes: {}, readLessons: [], visits: [], tombs: { bookmarks: {}, readLessons: {}, highlightIds: {}, noteKeys: {} } };
   snapshot.forEach((d) => {
     const value = d.data();
     switch (d.id) {
@@ -222,9 +301,6 @@ export async function fetchUserData(uid: string): Promise<UserLibraryData> {
         break;
       case 'visits':
         data.visits = value.items || [];
-        break;
-      case 'stopMarks':
-        data.stopMarks = value.marks && typeof value.marks === 'object' ? value.marks : {};
         break;
       case 'tombstones':
         data.tombs = cleanTombs(value.tombs);
@@ -252,7 +328,6 @@ interface LibrarySections {
   highlights: HighlightItem[];
   notes: Record<string, string>;
   readLessons: string[];
-  stopMarks: Record<string, string>;
 }
 
 // استخراج حالة المكتبة من لقطات مستندات Firestore (يُستخدم داخل المعاملة وعند الجلب)
@@ -266,7 +341,6 @@ function sectionsFromDocData(get: (id: string) => Record<string, unknown>): { da
       highlights: (Array.isArray(v('highlights').items) ? v('highlights').items : []) as HighlightItem[],
       notes: map(v('notes').notes),
       readLessons: arr(v('readLessons').items),
-      stopMarks: map(v('stopMarks').marks),
     },
     tombs: v('tombstones').tombs,
   };
@@ -297,8 +371,7 @@ function computeMergedLibrary(
     normalizeNoteMap(local.notes || {}),
     normalizeNoteMap(cloud.notes || {}),
   );
-  const threeWayMarks = threeWayMergeMaps(base.stopMarks || {}, local.stopMarks || {}, cloud.stopMarks || {});
-  const merged = { bookmarks: unionBookmarks, highlights: Array.from(hlMap.values()), notes: threeWayNotes, readLessons: unionRead, stopMarks: threeWayMarks };
+  const merged = { bookmarks: unionBookmarks, highlights: Array.from(hlMap.values()), notes: threeWayNotes, readLessons: unionRead };
   const finalData = applyTombsToMerged(merged, local, tombs);
   const prunedTombs = pruneTombs(tombs, finalData);
   return { finalData, prunedTombs };
@@ -314,12 +387,6 @@ export async function syncHighlights(uid: string, highlightsArray: HighlightItem
   await saveUserDataSection(db, fs, uid, 'highlights', { items: highlightsArray });
 }
 
-// مزامنة علامات التوقف لكل كتاب — لتظهر على كل أجهزة المستخدم
-export async function syncStopMarks(uid: string, marks: Record<string, string>): Promise<void> {
-  const { db, fs } = await getDb();
-  await saveUserDataSection(db, fs, uid, 'stopMarks', { marks });
-}
-
 // ─── الدمج عند الكتابة: يمنع ضياع تعديلات جهاز آخر ───
 // بدل الكتابة العمياء للقسم كاملًا (الأخير يمحو ما كتبه الجهاز الآخر)،
 // نقرأ الأحدث أولًا وندمج على مستوى العنصر ثم نكتب. نافذة السباق المتبقية
@@ -333,15 +400,13 @@ export async function mergeAndSyncLibrary(
     highlights: HighlightItem[];
     notes: Record<string, string>;
     readLessons: string[];
-    stopMarks: Record<string, string>;
   },
-  // base = آخر حالة مكتوبة بنجاح (مرجع الدمج الثلاثي لعلامات التوقف) — تُمرَّر من المتصل
+  // base = آخر حالة مكتوبة بنجاح لاستخدام الدمج الثلاثي للملاحظات.
   base: {
     bookmarks: string[];
     highlights: HighlightItem[];
     notes: Record<string, string>;
     readLessons: string[];
-    stopMarks: Record<string, string>;
   },
   inputTombs?: TombstoneMap,
 ): Promise<{
@@ -350,7 +415,6 @@ export async function mergeAndSyncLibrary(
     highlights: HighlightItem[];
     notes: Record<string, string>;
     readLessons: string[];
-    stopMarks: Record<string, string>;
   };
   tombs: TombstoneMap;
 }> {
@@ -361,7 +425,6 @@ export async function mergeAndSyncLibrary(
     highlights: fs.doc(dataRoot, 'highlights'),
     notes: fs.doc(dataRoot, 'notes'),
     readLessons: fs.doc(dataRoot, 'readLessons'),
-    stopMarks: fs.doc(dataRoot, 'stopMarks'),
     tombstones: fs.doc(dataRoot, 'tombstones'),
   };
 
@@ -374,7 +437,6 @@ export async function mergeAndSyncLibrary(
       tx.get(refs.highlights),
       tx.get(refs.notes),
       tx.get(refs.readLessons),
-      tx.get(refs.stopMarks),
       tx.get(refs.tombstones),
     ]);
     const docMap: Record<string, Record<string, unknown>> = {
@@ -382,20 +444,31 @@ export async function mergeAndSyncLibrary(
       highlights: snaps[1].exists() ? (snaps[1].data() as Record<string, unknown>) : {},
       notes: snaps[2].exists() ? (snaps[2].data() as Record<string, unknown>) : {},
       readLessons: snaps[3].exists() ? (snaps[3].data() as Record<string, unknown>) : {},
-      stopMarks: snaps[4].exists() ? (snaps[4].data() as Record<string, unknown>) : {},
-      tombstones: snaps[5].exists() ? (snaps[5].data() as Record<string, unknown>) : {},
+      tombstones: snaps[4].exists() ? (snaps[4].data() as Record<string, unknown>) : {},
     };
     const { data: cloud, tombs: cloudTombs } = sectionsFromDocData((id) => docMap[id]);
     const tombs = mergeTombs(cleanTombs(cloudTombs), cleanTombs(inputTombs));
 
     const { finalData, prunedTombs } = computeMergedLibrary(local, base, cloud, tombs);
 
-    tx.set(refs.bookmarks, { items: finalData.bookmarks }, { merge: true });
-    tx.set(refs.highlights, { items: finalData.highlights }, { merge: true });
-    tx.set(refs.notes, { notes: finalData.notes }, { merge: true });
-    tx.set(refs.readLessons, { items: finalData.readLessons }, { merge: true });
-    tx.set(refs.stopMarks, { marks: finalData.stopMarks }, { merge: true });
-    tx.set(refs.tombstones, { tombs: prunedTombs }, { merge: true });
+    // لا نكتب الأقسام التي تطابق السحابة؛ تقليل حجم المعاملة يمنع الكتابات
+    // والصدى غير الضروريين عند إعادة المزامنة دون تغييرات فعلية.
+    const writeIfChanged = (
+      section: keyof typeof refs,
+      field: string,
+      value: unknown,
+      isEmpty: boolean,
+    ): void => {
+      const currentDoc = docMap[section];
+      const currentValue = currentDoc?.[field];
+      if ((!currentDoc && isEmpty) || JSON.stringify(currentValue) === JSON.stringify(value)) return;
+      tx.set(refs[section], { [field]: value }, { merge: true });
+    };
+    writeIfChanged('bookmarks', 'items', finalData.bookmarks, finalData.bookmarks.length === 0);
+    writeIfChanged('highlights', 'items', finalData.highlights, finalData.highlights.length === 0);
+    writeIfChanged('notes', 'notes', finalData.notes, Object.keys(finalData.notes).length === 0);
+    writeIfChanged('readLessons', 'items', finalData.readLessons, finalData.readLessons.length === 0);
+    writeIfChanged('tombstones', 'tombs', prunedTombs, Object.values(prunedTombs).every((section) => Object.keys(section).length === 0));
 
     return { data: finalData, tombs: prunedTombs };
   });

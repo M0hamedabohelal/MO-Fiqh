@@ -28,6 +28,9 @@ interface SearchDoc extends Lesson {
   nChapter: string;
   nText: string;
   nExpl: string;
+  nId: string;
+  nPage: string;
+  nVideo: string;
 }
 
 interface SearchModalProps {
@@ -124,6 +127,9 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
         nChapter: normalizeArabic(item.chapterName),
         nText: normalizeArabic(item.mainText),
         nExpl: normalizeArabic(item.sheikhExplanation),
+        nId: normalizeArabic(String(item.id)),
+        nPage: normalizeArabic(item.pageNumber),
+        nVideo: normalizeArabic(item.videoNumber),
       })),
     [data]
   );
@@ -133,12 +139,15 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
     () =>
       new Fuse(searchDocs, {
         keys: [
-          { name: 'nTitle', weight: 0.5 }, // العنوان المطبَّع هو الأقوى
-          { name: 'title', weight: 0.25 }, // مع الحفاظ على النص الأصلي
+          { name: 'nTitle', weight: 0.46 }, // العنوان المطبَّع هو الأقوى
+          { name: 'title', weight: 0.22 }, // مع الحفاظ على النص الأصلي
           { name: 'nText', weight: 0.12 }, // متن الكتاب مطبَّع
           { name: 'nExpl', weight: 0.06 },
-          { name: 'nBook', weight: 0.04 },
-          { name: 'nChapter', weight: 0.03 },
+          { name: 'nId', weight: 0.06 },
+          { name: 'nPage', weight: 0.04 },
+          { name: 'nVideo', weight: 0.02 },
+          { name: 'nBook', weight: 0.01 },
+          { name: 'nChapter', weight: 0.01 },
         ],
         threshold: 0.35, // تسامح معقول مع الأخطاء الإملائية
         ignoreLocation: true, // المطابقة في أي موضع وليس بالبداية فقط
@@ -154,6 +163,9 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
     const q = normalizeArabic(debouncedQuery);
     let found = fuse.search(q);
     let fuzzy = false;
+    // إدخال رقم الصفحة أو المسألة مع وصف عربي مثل "ص 62" يبحث أيضًا بالرقم نفسه.
+    const numericTerm = q.match(/\d+/)?.[0];
+    if (found.length === 0 && numericTerm) found = fuse.search(numericTerm);
     // ارتقاء التسامح عند عدم وجود نتائج حتى يستوعب الأخطاء الإملائية في العربية
     if (found.length === 0) {
       found = fuse.search(q, { threshold: 0.6 } as FuseSearchOptions);
@@ -288,7 +300,7 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
             <input 
               type="text" 
               className="form-control form-control-lg border-0 search-input pe-5" 
-              placeholder="ابحث عن مسألة..."
+              placeholder="عنوان، نص، رقم المسألة أو الصفحة..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleInputKeyDown}

@@ -21,13 +21,13 @@ const slides = [
 
 interface HeroSectionProps {
   onStartBrowsing: () => void;
-  lastReadTitle: string | undefined;
-  onContinueReading: () => void;
+  stopLessonTitle?: string;
+  onContinueStopMark: () => void;
   onOpenLogin: () => void;
   user: User | null;
 }
 
-const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpenLogin, user }: HeroSectionProps) => {
+const HeroSection = ({ onStartBrowsing, stopLessonTitle, onContinueStopMark, onOpenLogin, user }: HeroSectionProps) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [slideVisible, setSlideVisible] = useState(true);
@@ -192,13 +192,14 @@ const HeroSection = ({ onStartBrowsing, lastReadTitle, onContinueReading, onOpen
                 </a>
               </div>
 
-              {lastReadTitle && (
-                <button className={styles['hero-btn-continue']} onClick={onContinueReading}>
-                  <div className={styles['pulse-dot']}></div>
-                  <span>أكمل القراءة: {lastReadTitle}</span>
+              {stopLessonTitle && (
+                <button className={styles['hero-stop-continue']} onClick={onContinueStopMark}>
+                  <span className={styles['stop-mark-dot']} aria-hidden="true" />
+                  <span>أكمل من علامة الوقوف: {stopLessonTitle}</span>
                   <FiChevronLeft size={16} />
                 </button>
               )}
+
             </div>
 
           </div>

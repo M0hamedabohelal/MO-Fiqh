@@ -52,23 +52,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let cancelled = false;
 
     getAuthModule()
-      .then(async ({ auth, authMod }) => {
+      .then(({ auth, authMod }) => {
         if (cancelled) return;
 
-        // ✅ معالجة نتيجة Google Redirect عند العودة للتطبيق
-        try {
-          const result = await authMod.getRedirectResult(auth);
-          if (result?.user && !cancelled) {
-            // تم تسجيل الدخول بنجاح عبر Google Redirect
-            setAuthError('');
-          }
-        } catch (redirectErr) {
-          if (!cancelled) {
-            const msg = translateAuthError(errCode(redirectErr, 'auth/network-request-failed'));
-            setAuthError(msg);
-          }
-        }
-
+        // اشترك أولًا: استعادة الحساب المخزّن لا تنتظر فحص نتيجة Google Redirect.
+        // getRedirectResult قد يتأخر على الشبكة؛ تشغيله بالخلفية يمنع تعليق شاشة البداية.
         unsubscribe = authMod.onAuthStateChanged(auth, (firebaseUser: User | null) => {
           setUser(firebaseUser);
           currentUidRef.current = firebaseUser?.uid ?? null;
@@ -87,6 +75,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsAdminUser(false);
           }
         });
+
+        // ✅ معالجة نتيجة Google Redirect عند العودة للتطبيق، دون حجب استعادة الجلسة.
+        void authMod.getRedirectResult(auth)
+          .then((result) => {
+            if (result?.user && !cancelled) setAuthError('');
+          })
+          .catch((redirectErr: unknown) => {
+            if (!cancelled) {
+              const msg = translateAuthError(errCode(redirectErr, 'auth/network-request-failed'));
+              setAuthError(msg);
+            }
+          });
       })
       .catch(() => {
         if (!cancelled) setAuthLoading(false);

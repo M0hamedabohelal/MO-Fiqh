@@ -350,7 +350,6 @@ button:active:not(:disabled),
 .lesson-stop-badge {
   color: var(--accent-color);
 }
-
 /* Bootstrap overrides */
 .text-muted {
   color: var(--text-muted) !important;
@@ -644,11 +643,11 @@ button:active:not(:disabled),
     padding-right: 1rem !important;
     padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; /* مسافة لشريط التنقل السفلي + safe area */
     /* تجنّب تداخل المحتوى مع النوتش/شريط الحالة في التطبيق المثبت (خاصة آيفون) */
-    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: calc(1.25rem + env(safe-area-inset-top, 0px)) !important;
   }
 
-  /* إخفاء شريط التنقل عند فتح لوحة المفاتيح (عند التركيز على حقل إدخال) */
-  body:has(input:focus, textarea:focus) .mobile-bottom-nav {
+  /* إخفاء شريط التنقل عند فتح لوحة المفاتيح لحقل نصي فقط؛ تركيز checkbox لا يخفيه */
+  body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus) .mobile-bottom-nav {
     display: none !important;
   }
 
@@ -899,6 +898,97 @@ button:active:not(:disabled),
   .mobile-bottom-nav .nav-item {
     font-size: 0.66rem !important;
     gap: 2px !important;
+  }
+}
+
+/* تجربة القراءة على الهاتف: مساحة لمس مريحة وملاحة متاحة عند نهاية المسألة */
+@media (max-width: 768px) {
+  .reading-actions > button,
+  .reading-actions .bookmark-btn,
+  .reading-actions [role="group"] button {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .reading-actions {
+    gap: 0.4rem !important;
+  }
+
+  .reading-meta {
+    gap: 0.45rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .reading-meta .badge {
+    min-height: 40px;
+    justify-content: center;
+  }
+
+  .reading-top-nav .nav-lesson-btn {
+    min-height: 44px;
+    min-width: 112px;
+    justify-content: center;
+  }
+
+  .reading-bottom-nav {
+    margin: 1.5rem 0 calc(1rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.85rem;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background: var(--card-bg);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  }
+
+  .reading-bottom-nav-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-inline: 54px;
+    margin-bottom: 0.65rem;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+  }
+
+  .reading-bottom-nav-buttons {
+    display: flex;
+    gap: 0.65rem;
+    margin-inline: 54px;
+  }
+
+  .reading-bottom-nav-buttons .nav-lesson-btn {
+    flex: 1;
+    min-height: 48px;
+    justify-content: center;
+  }
+
+  .reading-bottom-nav-buttons .nav-lesson-btn:focus-visible,
+  .reading-actions button:focus-visible,
+  .reading-top-nav .nav-lesson-btn:focus-visible {
+    outline: 3px solid var(--accent-color) !important;
+    outline-offset: 2px;
+  }
+
+  .reading-view [data-selectable="body-text"] {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 480px) {
+  .reading-bottom-nav-buttons .nav-lesson-btn {
+    padding: 0.6rem 0.4rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  .reading-meta .badge {
+    padding-inline: 0.65rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .reading-bottom-nav-meta,
+  .reading-bottom-nav-buttons {
+    margin-inline: 42px;
   }
 }
 

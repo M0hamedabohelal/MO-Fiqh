@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiAward, FiChevronLeft, FiRefreshCw } from 'react-icons/fi';
+import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiAward, FiChevronLeft, FiRefreshCw, FiCloud, FiWifiOff, FiFlag } from 'react-icons/fi';
 import { useApp } from '../Layout/AppContext';
 import GuestAccountCard from '../UI/GuestAccountCard';
 
@@ -13,10 +13,25 @@ const SettingsView = () => {
     needRefresh,
     applyUpdate: onApplyUpdate,
     checkForUpdates: onCheckForUpdates,
+    librarySyncState,
+    retryLibrarySync,
+    retryStopMarkSync,
+    cloudLessonsLoaded,
+    contentSyncDone,
+    isOffline,
+    lessonsCount,
+    stopMarksSyncState,
+    stopMarksLastSyncedAt,
+    stopMarksReady,
+    lastSyncedAt,
+    user,
+    reloadFromCloud,
   } = useApp();
   const onOpenAchievements = (): void => setCurrentView('achievements');
   const [checking, setChecking] = useState(false);
   const [checkedOnce, setCheckedOnce] = useState(false);
+  const [refreshingContent, setRefreshingContent] = useState(false);
+  const [contentRefreshMessage, setContentRefreshMessage] = useState('');
   const timerRef = useRef<number | null>(null);
 
   // لحظة ظهور تحديث حقيقي ننهي الفحص فورًا — زر التحديث يحل محل زر الفحص تلقائيًا
@@ -53,12 +68,98 @@ const SettingsView = () => {
     }
   };
 
+  const handleRefreshContent = async (): Promise<void> => {
+    if (refreshingContent || isOffline) return;
+    setRefreshingContent(true);
+    setContentRefreshMessage('');
+    try {
+      await reloadFromCloud();
+      setContentRefreshMessage('تمت محاولة تحديث المحتوى؛ حالة المصدر الحالية ظاهرة أعلاه.');
+    } catch {
+      setContentRefreshMessage('تعذر تحديث المحتوى الآن؛ سيظل المحتوى المحفوظ متاحًا.');
+    } finally {
+      setRefreshingContent(false);
+    }
+  };
+
+  const librarySyncLabel = isOffline
+    ? librarySyncState === 'pending'
+      ? 'التغييرات محفوظة على الجهاز وتنتظر الاتصال'
+      : 'غير متصل — بيانات هذا الجهاز متاحة'
+    : librarySyncState === 'loading'
+      ? 'جارٍ تحميل بيانات الحساب'
+      : librarySyncState === 'syncing'
+        ? 'جارٍ مزامنة بيانات الحساب'
+        : librarySyncState === 'pending'
+          ? 'تغييرات محفوظة محليًا وتنتظر المزامنة'
+          : librarySyncState === 'synced'
+            ? 'متزامنة مع الحساب'
+            : librarySyncState === 'local'
+              ? 'محفوظة على هذا الجهاز فقط'
+              : librarySyncState === 'offline'
+                ? 'مزامنة الحساب غير مؤكدة — النسخة المحفوظة على الجهاز متاحة'
+                : 'تعذرت المزامنة — التغييرات محفوظة محليًا';
+  const contentSourceLabel = cloudLessonsLoaded
+    ? 'المسائل محمّلة من السحابة'
+    : contentSyncDone
+      ? 'المسائل محمّلة من النسخة المحلية'
+      : 'جارٍ تحميل المسائل';
+  const stopMarkLabel = !stopMarksReady
+    ? 'جارٍ استعادة العلامات'
+    : stopMarksSyncState === 'pending'
+      ? 'محفوظة محليًا وتنتظر المزامنة'
+      : stopMarksSyncState === 'synced'
+        ? 'علامات الوقوف متزامنة'
+        : stopMarksSyncState === 'error'
+          ? 'تعذرت المزامنة — ستُعاد المحاولة عند الاتصال'
+          : user
+            ? 'علامات الحساب محفوظة محليًا'
+            : 'محفوظة على هذا الجهاز للضيف';
+
   return (
   <div className="mt-4 mb-5 text-center">
     <GuestAccountCard />
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
       حول التطبيق والإعدادات
     </h3>
+
+    <div className="custom-card p-3 p-md-4 mx-auto mb-4 text-end" style={{ maxWidth: '600px' }} aria-labelledby="sync-center-title">
+      <h5 id="sync-center-title" className="fw-bold mb-3 d-flex align-items-center gap-2" style={{ color: 'var(--primary-color)' }}>
+        {isOffline ? <FiWifiOff /> : <FiCloud />} حالة البيانات والمزامنة
+      </h5>
+      <div className="d-flex flex-column gap-2 small">
+        <div className="d-flex justify-content-between gap-3"><span>المحتوى ({lessonsCount} مسألة)</span><strong>{contentSourceLabel}</strong></div>
+        <div className="d-flex justify-content-between gap-3"><span>مكتبة الحساب</span><strong>{user ? librarySyncLabel : 'الضيف: محفوظة على هذا الجهاز'}</strong></div>
+        {user && <div className="d-flex justify-content-between gap-3"><span>آخر مزامنة للمكتبة</span><strong>{lastSyncedAt ? new Date(lastSyncedAt).toLocaleString('ar-EG') : 'لم تكتمل بعد'}</strong></div>}
+        <div className="d-flex justify-content-between gap-3"><span><FiFlag className="ms-1" />علامة الوقوف</span><strong>{stopMarkLabel}</strong></div>
+        {user && <div className="d-flex justify-content-between gap-3"><span>آخر مزامنة للعلامة</span><strong>{stopMarksLastSyncedAt ? new Date(stopMarksLastSyncedAt).toLocaleString('ar-EG') : 'لم تكتمل بعد'}</strong></div>}
+      </div>
+      <p className="text-muted small mt-3 mb-2">
+        عند تسجيل الدخول، تنتقل المفضلة والملاحظات والمسائل المقروءة وعلامات الوقوف بين أجهزتك. التغييرات دون إنترنت تُحفظ في هذا الجهاز وتُرسل تلقائيًا عند عودة الاتصال.
+      </p>
+      {user && (librarySyncState === 'pending' || librarySyncState === 'error' || librarySyncState === 'offline' || stopMarksSyncState === 'pending' || stopMarksSyncState === 'error') && (
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-primary d-flex align-items-center gap-2 mb-2"
+          onClick={() => { retryLibrarySync(); retryStopMarkSync(); }}
+          disabled={isOffline || librarySyncState === 'syncing'}
+          title={isOffline ? 'ستُعاد المحاولة تلقائيًا عند رجوع الاتصال' : 'إعادة إرسال المكتبة وعلامات الوقوف'}
+        >
+          <FiRefreshCw /> إعادة مزامنة التغييرات
+        </button>
+      )}
+      <button
+        type="button"
+        className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
+        onClick={handleRefreshContent}
+        disabled={refreshingContent || isOffline}
+        title={isOffline ? 'اتصل بالإنترنت أولًا' : 'إعادة جلب محتوى الكتب والمسائل'}
+      >
+        {refreshingContent ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
+        {refreshingContent ? 'جارٍ تحديث المحتوى...' : 'تحديث محتوى الكتب والمسائل'}
+      </button>
+      {contentRefreshMessage && <small className="d-block mt-2 text-muted" role="status">{contentRefreshMessage}</small>}
+    </div>
 
     {/* قسم تحديث التطبيق */}
     <div className="custom-card p-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>

@@ -41,6 +41,8 @@ const AppLayout = () => {
     user, isAdminUser,
     theme, setTheme,
     cloudStatus,
+    librarySyncState,
+    stopMarksSyncState,
     isOffline,
     canInstall, promptInstall,
     selectedBookName,
@@ -76,6 +78,9 @@ const AppLayout = () => {
         theme={theme}
         toggleTheme={setTheme}
         cloudStatus={cloudStatus}
+        librarySyncState={librarySyncState}
+        isSignedIn={Boolean(user)}
+        stopMarksSyncState={stopMarksSyncState}
         isOffline={isOffline}
       />
 

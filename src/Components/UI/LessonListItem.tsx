@@ -10,14 +10,14 @@ interface LessonListItemProps {
   variant?: 'toc';
 }
 
-// زر المسألة الموحد في فهرس الأبواب والمسائل (🚩 علامة التوقف + ✓ مقروء + عنوان + رقم صفحة)
+// زر المسألة الموحد في فهرس الأبواب والمسائل (✓ مقروء + عنوان + رقم صفحة)
 // variant="toc": صف فهرس تراثي (عنوان + نقاط + رقم الصفحة) لصفحة الأبواب
 const LessonListItem = ({ title, pageNumber, isRead, isStopMark, onClick, variant }: LessonListItemProps) => {
   if (variant === 'toc') {
     return (
       <button className="toc-row" onClick={onClick}>
         <span className="toc-title">
-          {isStopMark && <FiFlag size={15} className="lesson-stop-badge flex-shrink-0" />}
+          {isStopMark && <FiFlag size={15} className="lesson-stop-badge flex-shrink-0" aria-label="علامة الوقوف" />}
           {isRead && <FiCheckCircle size={15} className="lesson-read-badge flex-shrink-0" />}
           {title}
         </span>
@@ -32,7 +32,7 @@ const LessonListItem = ({ title, pageNumber, isRead, isStopMark, onClick, varian
     onClick={onClick}
   >
     <span className="d-flex align-items-center gap-2">
-      {isStopMark && <FiFlag size={16} className="lesson-stop-badge flex-shrink-0" />}
+      {isStopMark && <FiFlag size={16} className="lesson-stop-badge flex-shrink-0" aria-label="علامة الوقوف" />}
       {isRead && <FiCheckCircle size={16} className="lesson-read-badge flex-shrink-0" />}
       {title}
     </span>

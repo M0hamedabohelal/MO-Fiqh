@@ -5,13 +5,11 @@ import { logError } from '../utils/logError';
 interface Preferences {
   theme: string;
   fontSize: number;
-  lastReadLessonId: string | null;
 }
 
 const isTheme = (value: unknown): value is 'dark' | 'sepia' => value === 'dark' || value === 'sepia';
-const isLastRead = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 
-/** Keep appearance and reading-progress preferences in sync for signed-in devices, with local state as the offline fallback. */
+/** Keep appearance preferences in sync for signed-in devices, with local state as the offline fallback. */
 export function useSyncedPreferences(
   uid: string | undefined,
   authLoading: boolean,
@@ -19,17 +17,15 @@ export function useSyncedPreferences(
   setTheme: Dispatch<SetStateAction<string>>,
   fontSize: number,
   setFontSize: Dispatch<SetStateAction<number>>,
-  lastReadLessonId: string | null,
-  setLastReadLessonId: Dispatch<SetStateAction<string | null>>,
 ): void {
   const [readyUid, setReadyUid] = useState<string | null>(null);
   const lastCloudValue = useRef<Preferences | null>(null);
   // Current local values. The listener is registered once per account, so it reads this ref
   // instead of the stale closure captured at registration time.
-  const localRef = useRef<Preferences>({ theme, fontSize, lastReadLessonId });
+  const localRef = useRef<Preferences>({ theme, fontSize });
   useEffect(() => {
-    localRef.current = { theme, fontSize, lastReadLessonId };
-  }, [theme, fontSize, lastReadLessonId]);
+    localRef.current = { theme, fontSize };
+  }, [theme, fontSize]);
 
   useEffect(() => {
     if (authLoading) return undefined;
@@ -63,7 +59,6 @@ export function useSyncedPreferences(
               fontSize: typeof data.fontSize === 'number' && data.fontSize >= 14 && data.fontSize <= 24
                 ? data.fontSize
                 : local.fontSize,
-              lastReadLessonId: isLastRead(data.lastReadLessonId) ? data.lastReadLessonId : local.lastReadLessonId,
             };
           } else {
             // First signed-in device seeds the account from its existing local settings.
@@ -74,7 +69,6 @@ export function useSyncedPreferences(
           lastCloudValue.current = next;
           if (next.theme !== local.theme) setTheme(next.theme);
           if (next.fontSize !== local.fontSize) setFontSize(next.fontSize);
-          if (next.lastReadLessonId !== local.lastReadLessonId) setLastReadLessonId(next.lastReadLessonId);
           setReadyUid(uid);
         }, (error) => {
           if (!cancelled) logError('preferences.listen', error);
@@ -93,13 +87,11 @@ export function useSyncedPreferences(
 
   useEffect(() => {
     if (!uid || readyUid !== uid) return undefined;
-    const current = { theme, fontSize, lastReadLessonId };
+    const current = { theme, fontSize };
     const previous = lastCloudValue.current;
-    // Every field participates: skipping lastReadLessonId would leave reading progress on the seed value forever.
     if (
       previous?.theme === current.theme &&
-      previous.fontSize === current.fontSize &&
-      previous.lastReadLessonId === current.lastReadLessonId
+      previous.fontSize === current.fontSize
     ) {
       return undefined;
     }
@@ -113,11 +105,10 @@ export function useSyncedPreferences(
           ]);
           const { db } = await getFirestore();
           // كتابة الحقول المتغيّرة فقط (دمج حقل-بحقل) بدل الكائن كاملًا:
-          // يمنع جهازًا غيّر حقلًا (المظهر) من محو حقلٍ غيّره جهاز آخر (آخر مسألة) في آن
+          // يمنع جهازًا غيّر حقلًا من محو حقلٍ غيّره جهاز آخر في آن
           const patch: Record<string, unknown> = {};
           if (!previous || previous.theme !== current.theme) patch.theme = current.theme;
           if (!previous || previous.fontSize !== current.fontSize) patch.fontSize = current.fontSize;
-          if (!previous || previous.lastReadLessonId !== current.lastReadLessonId) patch.lastReadLessonId = current.lastReadLessonId;
           if (Object.keys(patch).length === 0) return;
           await fs.setDoc(fs.doc(db, 'users', uid, 'data', 'preferences'), {
             ...patch,
@@ -131,5 +122,5 @@ export function useSyncedPreferences(
       })();
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [uid, readyUid, theme, fontSize, lastReadLessonId]);
+  }, [uid, readyUid, theme, fontSize]);
 }

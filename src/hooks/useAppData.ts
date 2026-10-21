@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { fetchLessons, fetchGlossary } from '../firebase/services';
+import { fetchLessonsFromServer, fetchGlossary } from '../firebase/services';
 import { isFirebaseConfigured } from '../firebase/config';
 import { BOOKS_LIST } from '../data/books';
 import type { Lesson, GlossaryMap } from '../types';
+
+const CLOUD_LESSONS_TIMEOUT_MS = 15_000;
 
 /**
  * hook مسؤول عن تحميل بيانات المحتوى (المسائل والمسرد)
@@ -12,13 +14,15 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   const [rawLessons, setRawLessons] = useState<Lesson[]>([]);
   const [glossary, setGlossary] = useState<GlossaryMap>({});
   const [cloudStatus, setCloudStatus] = useState(isFirebaseConfigured ? 'syncing' : 'local');
-  // هل اكتمل جلب سحابي واحد بنجاح؟ قبلها قائمة المسائل قد تكون لقطة محلية قديمة —
-  // لا يُبنى عليها أي حذف (تقليم علامات التوقف) حتى تُؤكَّد بالسحابة
+  // على الإنترنت ننتظر جواب الخادم (نجاحًا أو فشلًا) ثم نستخدم المحلي عند الحاجة.
+  // دون اتصال نفتح فور اكتمال النسخة المحلية من المسائل.
   const [cloudLessonsLoaded, setCloudLessonsLoaded] = useState(false);
-  // علم مخصّص لبوابة شاشة الإقلاع: هل انتهت أول محاولة لتحميل المحتوى (نجحت أو فشلت)؟
-  // مستقل تمامًا عن cloudStatus الذي يشترك فيه مزامن المكتبة (useUserLibrary) فيتذبذب
-  // بين syncing/synced ويُعلّق الشاشة. هذا العلم يحسم مرة واحدة فقط بعد أول جلب/أوفلاين.
-  const [contentSyncDone, setContentSyncDone] = useState(!isFirebaseConfigured);
+  const [localLessonsLoaded, setLocalLessonsLoaded] = useState(false);
+  const [localLessonIds, setLocalLessonIds] = useState<string[]>([]);
+  const [cloudAttemptDone, setCloudAttemptDone] = useState(!isFirebaseConfigured);
+  const contentSyncDone = isOffline
+    ? localLessonsLoaded
+    : cloudLessonsLoaded || (cloudAttemptDone && localLessonsLoaded);
 
   // ترتيب المسائل حسب الكتاب → الباب → الترتيب الأبجدي
   const lessons = useMemo(() => {
@@ -67,20 +71,36 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   // جلب البيانات من السحابة
   const reloadFromCloud = useCallback(async () => {
     if (!isFirebaseConfigured) return;
+    setCloudAttemptDone(false);
+    const glossaryRequest = fetchGlossary().catch(() => null);
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const cloudLessonsRequest = Promise.race([
+      fetchLessonsFromServer(),
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('انتهت مهلة تحميل المسائل من السحابة')), CLOUD_LESSONS_TIMEOUT_MS);
+      }),
+    ]);
     try {
-      const [cloudLessons, cloudGlossary] = await Promise.all([fetchLessons(), fetchGlossary()]);
-      if (cloudLessons?.length > 0) setRawLessons(cloudLessons);
-      if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
-        setGlossary((prev) => ({ ...prev, ...cloudGlossary }));
+      const cloudLessons = await cloudLessonsRequest;
+      if (cloudLessons.length > 0) {
+        setRawLessons(cloudLessons);
+        setCloudLessonsLoaded(true);
+        setCloudStatus('synced');
+      } else {
+        setCloudStatus('offline');
       }
-      setCloudLessonsLoaded(true);
-      setCloudStatus('synced');
     } catch {
       setCloudStatus('offline');
     } finally {
-      // حسم بوابة الإقلاع مرة واحدة — مهما كانت النتيجة
-      setContentSyncDone(true);
+      if (timeoutId) clearTimeout(timeoutId);
+      setCloudAttemptDone(true);
     }
+    // المسرد غير مطلوب لعرض المسائل، لذلك لا يحجب اكتمال التحميل أو شاشة البداية.
+    void glossaryRequest.then((cloudGlossary) => {
+        if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
+          setGlossary((prev) => ({ ...prev, ...cloudGlossary }));
+        }
+      });
   }, []);
 
   // تحميل البيانات من السحابة مؤجّلاً بحيث لا ينافس أول رسم للشاشة
@@ -91,12 +111,19 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     if (isOffline) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCloudStatus(isFirebaseConfigured ? 'offline' : 'local');
-      setContentSyncDone(true);
       return;
     }
     // إن سبق نجاح الجلب السحابي، لا نعيد جلب المحتوى كاملًا عند كل عودة أونلاين
     // (المحتوى العام نادر التغيّر؛ التحديث اليدوي متاح عبر reloadFromCloud)
-    if (cloudLessonsLoaded) return;
+    if (cloudLessonsLoaded) {
+      // عادت الشبكة، لكن المحتوى محمّل بالفعل؛ لا نزعم تنفيذ تنزيل جديد عند كل عودة اتصال.
+      // حالة التحديث اليدوي تظل مستقلة في زر الإعدادات.
+      setCloudStatus((previous) => previous === 'synced' ? previous : 'available');
+      return;
+    }
+    // طالما الجهاز online، اجعل البوابة تنتظر نتيجة محاولة الخادم قبل عرض المحلي.
+    // في حال فشل الطلب، reloadFromCloud يحسم المحاولة ويُفتح المحلي الكامل.
+    setCloudAttemptDone(false);
     const t = setTimeout(() => { reloadFromCloud(); }, 600);
     return () => clearTimeout(t);
   }, [isOffline, reloadFromCloud, cloudLessonsLoaded]);
@@ -105,15 +132,22 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   // حتى لا تدخل ملفات الداتا الكبيرة في حزمة التحميل الأولية
   useEffect(() => {
     let cancelled = false;
-    Promise.all([import('../data/lessons'), import('../data/glossary')])
-      .then(([lmod, gmod]) => {
+    void import('../data/lessons')
+      .then((lmod) => {
         if (cancelled) return;
         setRawLessons((prev) => (prev.length ? prev : lmod.lessonsData || []));
-        setGlossary((prev) => ({ ...(gmod.glossaryData || {}), ...prev }));
+        setLocalLessonIds((lmod.lessonsData || []).map((lesson) => String(lesson.id)));
+        setLocalLessonsLoaded(true);
+      })
+      .catch(() => {});
+    // تحميل المسرد منفصل: بطء بياناته لا يؤخر ظهور قائمة المسائل.
+    void import('../data/glossary')
+      .then((gmod) => {
+        if (!cancelled) setGlossary((prev) => ({ ...(gmod.glossaryData || {}), ...prev }));
       })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
-  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded, contentSyncDone };
+  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded, contentSyncDone, localLessonIds };
 }
