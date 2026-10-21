@@ -76,7 +76,7 @@ export interface AppContextValue {
   }) => void;
   onOpenSearch: () => void;
   onOpenLogin: () => void;
-  reloadFromCloud: () => Promise<void>;
+  reloadFromCloud: () => Promise<boolean>;
   currentSearchQuery: string;
   lessonsCount: number;
 }

@@ -39,7 +39,7 @@ interface LessonFormState {
 interface AdminLessonsTabProps {
   lessons: Lesson[];
   cloudBackupReady: boolean;
-  onDataChanged: () => Promise<void>;
+  onDataChanged: () => Promise<boolean>;
   flash: (type: 'success' | 'error', text: string) => void;
 }
 

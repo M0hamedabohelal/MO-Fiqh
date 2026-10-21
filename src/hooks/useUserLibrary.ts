@@ -360,7 +360,13 @@ export function useUserLibrary() {
       // إذا لم يسبق إعلان الجاهزية (لا كاش محلي) نُعلنها الآن بعد الجلب السحابي
       setLoadedUid(user.uid);
       setIsDataLoaded(true);
-      setSyncState(queuedOutbox ? 'pending' : !window.navigator.onLine ? 'offline' : mergeUploaded || fetchedCloudData ? 'synced' : 'error');
+      const onlineNow = window.navigator.onLine;
+      setSyncState(queuedOutbox ? 'pending' : !onlineNow ? 'offline' : mergeUploaded || fetchedCloudData ? 'synced' : 'pending');
+      // فشل الجلب الأولي (تهيئة Firestore باردة/شبكة بطيئة) أو وُجد صندوق صادر:
+      // نُطلق آليات إعادة المزامنة فورًا بدل ترك المؤشر عالقًا حتى التحديث اليدوي.
+      if (onlineNow && (!fetchedCloudData || queuedOutbox)) {
+        setOnlineRevision((revision) => revision + 1);
+      }
     })();
 
     return () => { cancelled = true; };

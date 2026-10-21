@@ -1,10 +1,14 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchLessonsFromServer, fetchGlossary } from '../firebase/services';
 import { isFirebaseConfigured } from '../firebase/config';
 import { BOOKS_LIST } from '../data/books';
 import type { Lesson, GlossaryMap } from '../types';
 
 const CLOUD_LESSONS_TIMEOUT_MS = 15_000;
+// إعادة المحاولة التلقائية عند فشل الجلب السحابي الأولي (شبكة بطيئة أو تهيئة Firestore باردة).
+// تُنهي رسالة "تعذر تحديث المسائل" التي كانت تبقى حتى التحديث اليدوي رغم أن الشبكة سليمة.
+const CLOUD_RETRY_BASE_MS = 3_000;
+const CLOUD_RETRY_MAX_MS = 30_000;
 
 /**
  * hook مسؤول عن تحميل بيانات المحتوى (المسائل والمسرد)
@@ -20,6 +24,9 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   const [localLessonsLoaded, setLocalLessonsLoaded] = useState(false);
   const [localLessonIds, setLocalLessonIds] = useState<string[]>([]);
   const [cloudAttemptDone, setCloudAttemptDone] = useState(!isFirebaseConfigured);
+  // عدّاد إعادة المحاولة التلقائية — يزيد عند فشل الجلب فيُعيد الأثر المحاولة بتراجع أسّي.
+  const [cloudRetryNonce, setCloudRetryNonce] = useState(0);
+  const cloudRetryRef = useRef(0);
   const contentSyncDone = isOffline
     ? localLessonsLoaded
     : cloudLessonsLoaded || (cloudAttemptDone && localLessonsLoaded);
@@ -69,9 +76,8 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   }, [rawLessons]);
 
   // جلب البيانات من السحابة
-  const reloadFromCloud = useCallback(async () => {
-    if (!isFirebaseConfigured) return;
-    setCloudAttemptDone(false);
+  const reloadFromCloud = useCallback(async (): Promise<boolean> => {
+    if (!isFirebaseConfigured) return false;
     const glossaryRequest = fetchGlossary().catch(() => null);
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const cloudLessonsRequest = Promise.race([
@@ -80,12 +86,14 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
         timeoutId = setTimeout(() => reject(new Error('انتهت مهلة تحميل المسائل من السحابة')), CLOUD_LESSONS_TIMEOUT_MS);
       }),
     ]);
+    let succeeded = false;
     try {
       const cloudLessons = await cloudLessonsRequest;
       if (cloudLessons.length > 0) {
         setRawLessons(cloudLessons);
         setCloudLessonsLoaded(true);
         setCloudStatus('synced');
+        succeeded = true;
       } else {
         setCloudStatus('offline');
       }
@@ -95,12 +103,16 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       if (timeoutId) clearTimeout(timeoutId);
       setCloudAttemptDone(true);
     }
+    // نجاح = إعادة تصفير عدّاد التراجع؛ فشل = جدولة محاولة تلقائية لاحقة.
+    cloudRetryRef.current = succeeded ? 0 : cloudRetryRef.current + 1;
+    if (!succeeded) setCloudRetryNonce((n) => n + 1);
     // المسرد غير مطلوب لعرض المسائل، لذلك لا يحجب اكتمال التحميل أو شاشة البداية.
     void glossaryRequest.then((cloudGlossary) => {
         if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
           setGlossary((prev) => ({ ...prev, ...cloudGlossary }));
         }
       });
+    return succeeded;
   }, []);
 
   // تحميل البيانات من السحابة مؤجّلاً بحيث لا ينافس أول رسم للشاشة
@@ -123,10 +135,16 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     }
     // طالما الجهاز online، اجعل البوابة تنتظر نتيجة محاولة الخادم قبل عرض المحلي.
     // في حال فشل الطلب، reloadFromCloud يحسم المحاولة ويُفتح المحلي الكامل.
-    setCloudAttemptDone(false);
-    const t = setTimeout(() => { reloadFromCloud(); }, 600);
+    // لا نُغلق بوابة المحتوى عند إعادة المحاولة في الخلفية (nonce>0) وإلا عادت شاشة البداية.
+    if (cloudRetryNonce === 0) setCloudAttemptDone(false);
+    // تراجع أسّي بين المحاولات: 3s ثم 6s ثم 12s ... بحد أقصى 30s — يمنع إغراق الشبكة
+    // ويعالج تهيئة Firestore الباردة أو الشبكة البطيئة تلقائيًا بلا تدخل يدوي.
+    const delay = cloudRetryNonce === 0
+      ? 600
+      : Math.min(CLOUD_RETRY_BASE_MS * 2 ** (cloudRetryNonce - 1), CLOUD_RETRY_MAX_MS);
+    const t = setTimeout(() => { void reloadFromCloud(); }, delay);
     return () => clearTimeout(t);
-  }, [isOffline, reloadFromCloud, cloudLessonsLoaded]);
+  }, [isOffline, reloadFromCloud, cloudLessonsLoaded, cloudRetryNonce]);
 
   // تحميل البيانات المحلية (نسخة احتياطية عند غياب السحابة) ديناميكيًا
   // حتى لا تدخل ملفات الداتا الكبيرة في حزمة التحميل الأولية

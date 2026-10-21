@@ -8,7 +8,7 @@ import type { GlossaryMap } from '../../types';
 
 interface AdminGlossaryTabProps {
   glossary: GlossaryMap;
-  onDataChanged: () => Promise<void>;
+  onDataChanged: () => Promise<boolean>;
   flash: (type: 'success' | 'error', text: string) => void;
 }
 
