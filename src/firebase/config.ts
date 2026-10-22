@@ -55,6 +55,20 @@ export function getFirestore(): Promise<{ app: FirebaseApp; db: Firestore; fsMod
   return dbPromise;
 }
 
+// فرض إعادة اتصال Firestore.
+// بعد انقطاع الشبكة قد يبقى العميل في وضع "غير متصل" إن فات حدث online (شائع في تطبيقات PWA
+// على أندرويد حيث يبقى navigator.onLine=false رغم عودة الشبكة)، فلا تُرسل أي طلب ويظل
+// كل تحديث يفشل بالمهلة. enableNetwork يعيد تشغيل قنوات الاتصال بغض النظر عن الحدث.
+export async function enableFirestoreNetwork(): Promise<void> {
+  if (!isFirebaseConfigured) return;
+  try {
+    const { db, fsMod } = await getFirestore();
+    await fsMod.enableNetwork(db);
+  } catch {
+    // تجاهل — العملية التالية ستحاول وتفشل بوضوح إن كانت الشبكة فعلًا مقطوعة
+  }
+}
+
 let authPromise: Promise<{ app: FirebaseApp; auth: Auth; authMod: typeof AuthMod }> | null = null;
 // مسار المصادقة: auth فقط (يُحمَّل عند تسجيل الدخول أو فحص الجلسة)
 export function getAuthModule(): Promise<{ app: FirebaseApp; auth: Auth; authMod: typeof AuthMod }> {

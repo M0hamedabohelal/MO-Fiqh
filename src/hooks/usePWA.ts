@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { registerSW } from 'virtual:pwa-register';
+import { probeOnline } from '../utils/connectivity';
 
 /**
  * إدارة حالة التطبيق المثبت (PWA):
@@ -26,6 +27,7 @@ export function usePWA() {
   const [isOffline, setIsOffline] = useState(() => !navigator.onLine);
 
   const updateSWRef = useRef<((reloadPage?: boolean) => Promise<void>) | null>(null);
+  const offlineRef = useRef(!navigator.onLine);
 
   // إجبار المتصفح على فحص الشبكة بحثًا عن Service Worker جديد —
   // updateSW(false) وحده يرسل SKIP_WAITING فقط ولا يفحص الشبكة، فبدونه لا يُكتشف أي تحديث إلا بإعادة تحميل الصفحة
@@ -57,8 +59,26 @@ export function usePWA() {
       setIsInstalled(true);
       setInstallPromptEvent(null);
     };
-    const goOnline = () => setIsOffline(false);
-    const goOffline = () => setIsOffline(true);
+    const markOnline = () => {
+      offlineRef.current = false;
+      setIsOffline(false);
+    };
+    const markOffline = () => {
+      offlineRef.current = true;
+      setIsOffline(true);
+    };
+    const recheckConnection = () => {
+      if (navigator.onLine) {
+        markOnline();
+        return;
+      }
+      void probeOnline().then((online) => {
+        if (online) markOnline();
+      });
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') recheckConnection();
+    };
 
     // فحص دوري للتحديثات: عند عودة التركيز للتبويب وكل 30 دقيقة
     // حتى يظهر زر "تحديث الموقع" فورًا بعد أي نشر حتى لو الصفحة مفتوحة — دون الحاجة لإعادة التحميل
@@ -66,21 +86,39 @@ export function usePWA() {
       void forceUpdateCheck();
       void updateSWRef.current?.(false);
     };
-    const onFocus = () => checkNow();
+    const onFocus = () => {
+      checkNow();
+      recheckConnection();
+    };
     const updateInterval = setInterval(checkNow, 30 * 60 * 1000);
+    // ما دام التطبيق يظن أنه بلا اتصال نتحقق كل 15 ثانية — يغطي حدث online المفقود.
+    const offlineProbe = setInterval(() => {
+      if (!offlineRef.current) return;
+      if (navigator.onLine) {
+        markOnline();
+        return;
+      }
+      void probeOnline().then((online) => {
+        if (online) markOnline();
+      });
+    }, 15_000);
+    if (!navigator.onLine) recheckConnection();
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleInstalled);
-    window.addEventListener('online', goOnline);
-    window.addEventListener('offline', goOffline);
+    window.addEventListener('online', markOnline);
+    window.addEventListener('offline', markOffline);
     window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleInstalled);
-      window.removeEventListener('online', goOnline);
-      window.removeEventListener('offline', goOffline);
+      window.removeEventListener('online', markOnline);
+      window.removeEventListener('offline', markOffline);
       window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
       clearInterval(updateInterval);
+      clearInterval(offlineProbe);
     };
   }, [forceUpdateCheck]);
 

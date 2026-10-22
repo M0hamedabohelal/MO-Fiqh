@@ -4,6 +4,7 @@ import { safeGet, safeSet, safeRemove } from '../utils/safeStorage';
 import { mergeLibraries, mergeTombs, emptyTombs, cleanTombs, applyTombsToMerged, pruneTombs, dropStaleTombs } from '../utils/mergeLibrary';
 import type { TombstoneMap } from '../utils/mergeLibrary';
 import { logError } from '../utils/logError';
+import { enableFirestoreNetwork } from '../firebase/config';
 import type { HighlightItem, UserLibraryData } from '../types';
 import {
   syncBookmarks,
@@ -405,7 +406,9 @@ export function useUserLibrary() {
   useEffect(() => {
     let recoveryTimer: ReturnType<typeof setTimeout> | null = null;
     const retryPendingSync = () => {
-      if (!window.navigator.onLine) return;
+      // لا نعتمد على navigator.onLine وحده: قد يبقى false بعد عودة الشبكة في PWA،
+      // والمحاولة الفعلية هي الحكم. نجبر Firestore على إعادة الاتصال أولًا.
+      void enableFirestoreNetwork();
       const state = syncStateRef.current;
       // A live sync already has its own request and watchdog. Recover only a queued,
       // offline, or failed sync so foreground events never create duplicate transactions.
@@ -435,7 +438,9 @@ export function useUserLibrary() {
   }, []);
 
   const retryLibrarySync = useCallback(() => {
-    if (!window.navigator.onLine) return;
+    // زر يدوي: لا نحجب المحاولة بحجة navigator.onLine (كثيرًا ما يكون خاطئًا بعد العودة).
+    // إن كانت الشبكة مقطوعة فعلًا فسيفشل الطلب ويبقى الصندوق الصادر محفوظًا.
+    void enableFirestoreNetwork();
     // إعادة محاولة يدوية = بداية نظيفة: لا نُظهر 'error' من عدّاد فشل قديم قبل أن تفشل المحاولة الجديدة.
     listenFailuresRef.current = 0;
     if (isSyncReady && user) {
@@ -505,10 +510,13 @@ export function useUserLibrary() {
     if (syncTimer.current) clearTimeout(syncTimer.current);
     let cancelled = false;
     syncTimer.current = setTimeout(() => {
-      if (!window.navigator.onLine) {
+      // المحاولة اليدوية/العودة للتركيز تتجاوز حارس navigator.onLine الخاطئ؛
+      // الطلب نفسه هو الحكم، وأي فشل يُبقي التغييرات في الصندوق الصادر.
+      if (!window.navigator.onLine && !forceCloudSync) {
         setSyncState('pending');
         return;
       }
+      void enableFirestoreNetwork();
       setSyncState('syncing');
       // لا نترك المؤشر عالقًا للأبد إذا لم يرد Firestore؛ تبقى المسودة في
       // الصندوق المحلي ويستطيع المستخدم إعادة المحاولة بأمان.

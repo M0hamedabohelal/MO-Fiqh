@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchLessonsFromServer, fetchLessons, fetchGlossary } from '../firebase/services';
-import { isFirebaseConfigured } from '../firebase/config';
+import { isFirebaseConfigured, enableFirestoreNetwork } from '../firebase/config';
 import { logError } from '../utils/logError';
 import { readCachedLessons, writeCachedLessons } from '../utils/contentCache';
 import { BOOKS_LIST } from '../data/books';
@@ -41,6 +41,8 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   // عالقًا على شاشة البداية حتى تنتهي مهلة الخادم الطويلة (تهيئة Firestore باردة على الفون).
   const [cloudGraceElapsed, setCloudGraceElapsed] = useState(false);
   const cloudRetryRef = useRef(0);
+  // لرصد لحظة عودة الاتصال: عندها نحاول فورًا بلا انتظار تراجع أسّي قد يبلغ 30 ثانية.
+  const wasOfflineRef = useRef(isOffline);
   const contentSyncDone = isOffline
     ? localLessonsLoaded
     : cloudLessonsLoaded || (localLessonsLoaded && (cloudAttemptDone || cloudGraceElapsed));
@@ -102,6 +104,9 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   // يرى المستخدم أن الضغط بدأ فعلًا، وتعيد عدّاد التراجع للصفر لمحاولة سريعة.
   const reloadFromCloud = useCallback(async (manual = false): Promise<boolean> => {
     if (!isFirebaseConfigured) return false;
+    // بعد عودة الشبكة قد يكون Firestore عالقًا في وضع "غير متصل" فيفشل كل طلب بالمهلة.
+    // نجبره على إعادة الاتصال قبل كل محاولة (لا يُكلف شيئًا إن كان متصلًا أصلًا).
+    await enableFirestoreNetwork();
     if (manual) {
       cloudRetryRef.current = 0;
       setCloudStatus('syncing');
@@ -169,6 +174,13 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   // تحميل البيانات من السحابة مؤجّلاً بحيث لا ينافس أول رسم للشاشة
   // (يُجدول بعد ~0.6 ثانية — بعد اكتمال أول رسم عادةً — ويُعاد عند تغيّر حالة الاتصال)
   useEffect(() => {
+    const comingOnline = wasOfflineRef.current && !isOffline;
+    wasOfflineRef.current = isOffline;
+    // عاد الاتصال: صفّر التراجع وحاول فورًا حتى لا يبقى المستخدم على رسالة "تعذر".
+    if (comingOnline) {
+      cloudRetryRef.current = 0;
+      setCloudStatus(isFirebaseConfigured ? 'syncing' : 'local');
+    }
     // بلا اتصال: الحالة الأولية 'syncing' كانت تعلق للأبد — نعلنها بصراحة
     // مزامنة مقصودة مع حالة خارجية (الاتصال) لا بديل تفاعلي لها
     if (isOffline) {
@@ -199,9 +211,11 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     if (cloudRetryNonce === 0) setCloudAttemptDone(false);
     // تراجع أسّي بين المحاولات: 3s ثم 6s ثم 12s ... بحد أقصى 30s — يمنع إغراق الشبكة
     // ويعالج تهيئة Firestore الباردة أو الشبكة البطيئة تلقائيًا بلا تدخل يدوي.
-    const delay = cloudRetryNonce === 0
-      ? 600
-      : Math.min(CLOUD_RETRY_BASE_MS * 2 ** (cloudRetryNonce - 1), CLOUD_RETRY_MAX_MS);
+    const delay = comingOnline
+      ? 0
+      : cloudRetryNonce === 0
+        ? 600
+        : Math.min(CLOUD_RETRY_BASE_MS * 2 ** (cloudRetryNonce - 1), CLOUD_RETRY_MAX_MS);
     const t = setTimeout(() => { void reloadFromCloud(); }, delay);
     return () => clearTimeout(t);
   }, [isOffline, reloadFromCloud, cloudLessonsLoaded, cloudRetryNonce, applyCachedLessons]);

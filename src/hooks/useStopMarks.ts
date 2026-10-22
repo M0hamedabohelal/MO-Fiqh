@@ -4,6 +4,7 @@ import { useAuth } from '../Components/Auth/AuthContext';
 import { safeGet, safeSet } from '../utils/safeStorage';
 import { logError } from '../utils/logError';
 import { subscribeToStopMarks, writeStopMark } from '../firebase/stopMarks';
+import { enableFirestoreNetwork } from '../firebase/config';
 import {
   compareStopMarks,
   createStopMarkChange,
@@ -107,7 +108,10 @@ export function useStopMarks() {
 
   const retryStopMarkSync = useCallback(() => {
     const currentUid = activeUidRef.current;
-    if (!currentUid || !window.navigator.onLine) return;
+    if (!currentUid) return;
+    // لا نحجب المحاولة بـ navigator.onLine (قد يكون خاطئًا بعد عودة الشبكة) —
+    // نجبر Firestore على إعادة الاتصال ونترك الطلب نفسه يحكم.
+    void enableFirestoreNetwork();
     syncTimedOutRef.current = false;
     listenFailuresRef.current = 0;
     // إزالة الرسالة الحمراء فورًا وإظهار أن المحاولة جارية
