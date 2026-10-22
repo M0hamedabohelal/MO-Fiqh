@@ -2,6 +2,7 @@ import { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import EmptyState from './Components/UI/EmptyState';
 import { FiAlertTriangle } from 'react-icons/fi';
+import { recoverFromFatalFirestoreError } from './utils/firestoreRecovery';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -41,6 +42,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error', error, errorInfo);
     this.setState({ errorInfo });
+    // عطل Firestore الداخلي القاتل (ca9/b815) يُعطّل كل الطلبات حتى إعادة التحميل؛
+    // نتعافى تلقائيًا (بحد مرة كل عدة دقائق) بدل ترك المستخدم أمام شاشة خطأ دائمة.
+    recoverFromFatalFirestoreError(error);
   }
 
   render() {
@@ -56,6 +60,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <br />
             {this.state.errorInfo && this.state.errorInfo.componentStack}
           </pre>
+          <button className="btn btn-primary mt-3" onClick={() => window.location.reload()}>
+            إعادة تحميل الصفحة
+          </button>
         </div>
       );
     }

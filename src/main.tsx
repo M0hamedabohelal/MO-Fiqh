@@ -5,9 +5,13 @@ import App from './App';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AuthProvider } from './Components/Auth/AuthContext';
 import { initAppCheck } from './firebase/config';
+import { installFirestoreRecovery } from './utils/firestoreRecovery';
 import 'bootstrap/dist/css/bootstrap.rtl.min.css';
 import './index.css';
 import './styles/exterior.css';
+
+// إنقاذ تلقائي من الأعطال الداخلية القاتلة في Firestore (ca9/b815) قبل أي تهيئة
+installFirestoreRecovery();
 
 // App Check (حماية من البوتات): تهيئة مبكرة غير حاجبة — تُتخطى بصمت بلا مفتاح
 void initAppCheck();

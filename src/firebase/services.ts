@@ -26,6 +26,31 @@ export async function fetchLessons(): Promise<Lesson[]> {
     .sort((a, b) => Number(a.id) - Number(b.id));
 }
 
+// مشترك دائم على قائمة المسائل.
+// سبب وجوده (وقاية من عطل Firestore داخلي معروف): جعل قراءة لحظية (getDocs/getDocsFromServer)
+// أول عملية على اتصال بارد يُطلق تأكيدًا داخليًا فاشلًا (ca9 ثم b815) يُعطّل عميل Firestore
+// كله حتى إعادة تحميل الصفحة. إبقاء مستمع مفتوح على نفس الاستعلام يُدفئ الهدف ويجعل كل
+// القراءات اللاحقة تُعيد استخدامه، كما يعطينا تحديثات حيّة للمحتوى.
+export async function subscribeToLessons(
+  onNext: (lessons: Lesson[], fromCache: boolean) => void,
+  onError: (error: unknown) => void,
+): Promise<() => void> {
+  const { db, fs } = await getDb();
+  return fs.onSnapshot(
+    fs.collection(db, 'lessons'),
+    // true ضروري: بدونه قد لا تصل لقطة "تأكيد الخادم" إن كانت البيانات نفسها موجودة في الكاش،
+    // فتبقى الحالة 'syncing' رغم نجاح الاتصال.
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      const lessons = snapshot.docs
+        .map((d) => ({ ...d.data(), _docId: d.id }) as Lesson)
+        .sort((a, b) => Number(a.id) - Number(b.id));
+      onNext(lessons, snapshot.metadata.fromCache);
+    },
+    onError,
+  );
+}
+
 // تحميل مؤكد من الخادم لشاشة البداية؛ getDocs العادي قد يعيد لقطة الكاش
 // ويجعل التطبيق يعتقد أن المزامنة اكتملت قبل التواصل مع Firebase.
 export async function fetchLessonsFromServer(): Promise<Lesson[]> {

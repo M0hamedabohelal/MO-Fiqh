@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { fetchLessonsFromServer, fetchLessons, fetchGlossary } from '../firebase/services';
+import { fetchLessonsFromServer, fetchLessons, fetchGlossary, subscribeToLessons } from '../firebase/services';
 import { isFirebaseConfigured, enableFirestoreNetwork } from '../firebase/config';
 import { logError } from '../utils/logError';
 import { readCachedLessons, writeCachedLessons } from '../utils/contentCache';
@@ -98,6 +98,45 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     setRawLessons(cached);
     writeCachedLessons(cached);
   }, []);
+
+  // مستمع دائم على المسائل يبدأ قبل أي قراءة لقطية.
+  // يُدفئ اتصال Firestore ويمنع عطل ca9/b815 المعروف (قراءة عابرة كأول عملية على اتصال بارد)،
+  // ويعطي المحتوى تحديثًا حيًا عند تعديله من الإدارة بلا حاجة لإعادة تحميل.
+  useEffect(() => {
+    if (!isFirebaseConfigured) return undefined;
+    let cancelled = false;
+    let unsubscribe: (() => void) | null = null;
+    void subscribeToLessons(
+      (cloudLessons, fromCache) => {
+        if (cancelled || cloudLessons.length === 0) return;
+        if (fromCache) {
+          // لقطة كاش فقط: اعرضها إن كانت أحدث، ولا تُعلن نجاح السحابة بعد.
+          applyCachedLessons(cloudLessons);
+          return;
+        }
+        rawLessonsRef.current = cloudLessons;
+        setRawLessons(cloudLessons);
+        writeCachedLessons(cloudLessons);
+        setCloudLessonsLoaded(true);
+        setCloudStatus('synced');
+        setCloudAttemptDone(true);
+      },
+      (error) => {
+        if (!cancelled) logError('appData.lessonsListener', error);
+      },
+    )
+      .then((unsub) => {
+        if (cancelled) unsub();
+        else unsubscribe = unsub;
+      })
+      .catch((error) => {
+        if (!cancelled) logError('appData.lessonsListener', error);
+      });
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [applyCachedLessons]);
 
   // جلب البيانات من السحابة
   // manual = إعادة محاولة يدوية (زر المستخدم): تُظهر حالة "جارٍ التحديث" فورًا حتى
