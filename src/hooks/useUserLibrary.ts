@@ -5,6 +5,7 @@ import { mergeLibraries, mergeTombs, emptyTombs, cleanTombs, applyTombsToMerged,
 import type { TombstoneMap } from '../utils/mergeLibrary';
 import { logError } from '../utils/logError';
 import { enableFirestoreNetwork } from '../firebase/config';
+import { probeOnline } from '../utils/connectivity';
 import type { HighlightItem, UserLibraryData } from '../types';
 import {
   syncBookmarks,
@@ -365,6 +366,9 @@ export function useUserLibrary() {
       setIsDataLoaded(true);
       const onlineNow = window.navigator.onLine;
       setSyncState(queuedOutbox ? 'pending' : !onlineNow ? 'offline' : mergeUploaded || fetchedCloudData ? 'synced' : 'pending');
+      // إن زعم الجهاز أنه غير متصل لكن الجلب السحابي نجح فهذا حكم navigator.onLine الخاطئ:
+      // نصحّح إلى 'synced' بدل إبقاء "لم يصل تأكيد" رغم نجاح الطلب نفسه.
+      if (!onlineNow && fetchedCloudData) setSyncState('synced');
       // فشل الجلب الأولي (تهيئة Firestore باردة/شبكة بطيئة) أو وُجد صندوق صادر:
       // نُطلق آليات إعادة المزامنة فورًا بدل ترك المؤشر عالقًا حتى التحديث اليدوي.
       if (onlineNow && (!fetchedCloudData || queuedOutbox)) {
@@ -521,7 +525,13 @@ export function useUserLibrary() {
       // المحاولة اليدوية/العودة للتركيز تتجاوز حارس navigator.onLine الخاطئ؛
       // الطلب نفسه هو الحكم، وأي فشل يُبقي التغييرات في الصندوق الصادر.
       if (!window.navigator.onLine && !forceCloudSync) {
-        setSyncState('pending');
+        // navigator.onLine قد يبقى false في PWA على أندرويد رغم وجود الشبكة:
+        // نفحص الاتصال فعليًا بدل تثبيت "بانتظار الرفع" للأبد.
+        void probeOnline(2_500).then((online) => {
+          if (cancelled || prevUidRef.current !== uid) return;
+          if (!online) setSyncState('pending');
+          else setOnlineRevision((revision) => revision + 1);
+        });
         return;
       }
       void enableFirestoreNetwork();

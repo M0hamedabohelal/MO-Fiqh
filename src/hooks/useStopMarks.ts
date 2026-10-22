@@ -5,6 +5,7 @@ import { safeGet, safeSet } from '../utils/safeStorage';
 import { logError } from '../utils/logError';
 import { subscribeToStopMarks, writeStopMark } from '../firebase/stopMarks';
 import { enableFirestoreNetwork } from '../firebase/config';
+import { probeOnline } from '../utils/connectivity';
 import {
   compareStopMarks,
   createStopMarkChange,
@@ -78,16 +79,23 @@ export function useStopMarks() {
     }, 20_000);
     pendingTimeoutsRef.current.set(bookKey, timeout);
     void writeStopMark(currentUid, bookKey, record)
-      .then(() => {
+      .then(async () => {
         clearTimeout(timeout);
         if (pendingTimeoutsRef.current.get(bookKey) === timeout) pendingTimeoutsRef.current.delete(bookKey);
         if (activeUidRef.current !== currentUid) return;
         // كتابة الكاش المحلي (Firestore offline persistence) تُحل فورًا حتى بلا شبكة،
         // فلا نعلن "synced" إلا عند طلب الخادم فعليًا؛ وإلا بقي سجل العلامة غير مُرسل.
+        // navigator.onLine غير موثوق في PWA على أندرويد (يبقى false رغم وجود الشبكة)،
+        // فنستخدم فحص اتصال فعليًا قبل إعلان "بانتظار الاتصال" — وإلا ظلّت العلامة
+        // "تنتظر الرفع" والإنترنت يعمل.
         if (!window.navigator.onLine) {
-          syncTimedOutRef.current = false;
-          setSyncState('pending');
-          return;
+          const online = await probeOnline(2_500);
+          if (activeUidRef.current !== currentUid) return;
+          if (!online) {
+            syncTimedOutRef.current = false;
+            setSyncState('pending');
+            return;
+          }
         }
         if (pendingRecordsRef.current.get(bookKey) === record) pendingRecordsRef.current.delete(bookKey);
         if (pendingRecordsRef.current.size === 0) {
@@ -96,13 +104,15 @@ export function useStopMarks() {
           setLastSyncRecord({ uid: currentUid, at: Date.now() });
         }
       })
-      .catch((error: unknown) => {
+      .catch(async (error: unknown) => {
         clearTimeout(timeout);
         if (pendingTimeoutsRef.current.get(bookKey) === timeout) pendingTimeoutsRef.current.delete(bookKey);
         if (activeUidRef.current !== currentUid) return;
         logError('stopMarks.write', error);
-        syncTimedOutRef.current = window.navigator.onLine;
-        setSyncState(window.navigator.onLine ? 'error' : 'pending');
+        const online = window.navigator.onLine || await probeOnline(2_500);
+        if (activeUidRef.current !== currentUid) return;
+        syncTimedOutRef.current = online;
+        setSyncState(online ? 'error' : 'pending');
       });
   }, []);
 

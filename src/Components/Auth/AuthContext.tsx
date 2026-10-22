@@ -70,15 +70,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // يفحص الصلاحية ويُعيد المحاولة بتراجع أسّي ما دامت النتيجة غير مؤكدة (فشل شبكة/توكن).
     // يُكفّ عن المحاولة عند إجابة مؤكدة، أو تغيّر الحساب، أو مغادرة الجلسة.
+    // المحاولة الأولى من الكاش (آمنة على عميل بارد)؛ المحاولات التالية من الخادم
+    // لتكشف كاشًا قديمًا يرفض الصلاحية بعد منحها في الكونسول.
     const runAdminCheck = (uid: string) => {
       const attempt = () => {
-        void checkAdmin(uid).then((result) => {
+        const fromServer = adminAttemptRef.current > 0;
+        void checkAdmin(uid, { server: fromServer }).then((result) => {
           if (cancelled || currentUidRef.current !== uid) return;
           // 'unknown' = فشل تقييم وليس رفضًا: نحاول مرة أخرى بدل تثبيت false
           if (result === 'unknown') {
             adminAttemptRef.current += 1;
             const delay = Math.min(2_000 * 2 ** (adminAttemptRef.current - 1), 20_000);
             adminRetryRef.current = setTimeout(attempt, delay);
+            return;
+          }
+          // رفض من الكاش = محتمل أن يكون قديمًا: جولة خادم واحدة قبل الحسم
+          if (result === false && !fromServer) {
+            adminAttemptRef.current += 1;
+            adminRetryRef.current = setTimeout(attempt, 1_200);
             return;
           }
           clearAdminRetry();

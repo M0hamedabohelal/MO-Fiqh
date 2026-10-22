@@ -553,19 +553,23 @@ export async function syncAllNotes(uid: string, notesObject: Record<string, stri
 // لأن إرجاع false عند أي خطأ يُخفي لوحة الإدارة نهائيًا عن المشرف الحقيقي.
 export type AdminCheck = boolean | 'unknown';
 
-export async function isAdmin(uid: string): Promise<AdminCheck> {
+// server = قراءة من الخادم بدل الكاش.
+// ⚠️ لا تُستخدم في أول عملية على عميل Firestore البارد: القراءة اللحظية كأول عملية
+// تُطلق عطل ca9/b815 الداخلي المعروف فتُعطّل العميل كله (تفشل بعدها كل القراءات
+// والكتابات: المحتوى والمكتبة وعلامة الوقوف). لذلك: الكاش أولًا (رخيص ويعيد
+// استخدام الهدف المُدفّأ)، وطلب الخادم في محاولة لاحقة فقط لكشف رفض كاش قديم.
+export async function isAdmin(uid: string, options?: { server?: boolean }): Promise<AdminCheck> {
   if (!isFirebaseConfigured || !uid) return false;
   try {
     const { db, fs } = await getDb();
-    // getDocFromServer: قرار \"مشرف أم لا\" لا يُؤخذ من كاش قديم — والإجابة السلبية
-    // المخزّنة (مستند غير موجود) كانت تُبقي اللوحة مخفية بعد إضافة المشرف في الكونسول.
-    const adminDoc = await fs.getDocFromServer(fs.doc(db, 'admins', uid));
+    const ref = fs.doc(db, 'admins', uid);
+    const adminDoc = options?.server ? await fs.getDocFromServer(ref) : await fs.getDoc(ref);
     return adminDoc.exists();
   } catch (error) {
     // فشل حقيقي (offline / permission / تهيئة باردة) — ليس رفضًا
     try {
       const { logError } = await import('../utils/logError');
-      logError('admins.check', error, { uid });
+      logError('admins.check', error, { uid, server: Boolean(options?.server) });
     } catch { /* تجاهل */ }
     return 'unknown';
   }
