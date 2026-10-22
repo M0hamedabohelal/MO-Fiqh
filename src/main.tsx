@@ -14,9 +14,10 @@ import './styles/exterior.css';
 installFirestoreRecovery();
 
 // App Check (حماية من البوتات): معطّل افتراضيًا.
-// السبب: الـ APP_ID في .env.local غير مسجّل في المشروع، فكل تحميل يصدر 400
-// ("App not registered") في الكونسول وطلبات فاشلة بلا أي حماية فعلية.
-// بعد تسجيل تطبيق الويب الصحيح في Firebase Console وإضافة دومين الموقع لمفتاح reCAPTCHA،
+// السبب: تطبيق الويب غير مُسجَّل في App Check لهذا المشروع، فكل تحميل يصدر 400
+// ("App not registered") في الكونسول مع تحميل reCAPTCHA بلا أي حماية فعلية.
+// (الـ APP_ID والقيم في .env.local مطابقة لإعدادات المشروع — النقص في تسجيل App Check نفسه.)
+// بعد تسجيل التطبيق في App Check وإضافة دومين الموقع لمفتاح reCAPTCHA،
 // فعّله بضبط VITE_ENABLE_APPCHECK=true ثم فعّل الإنفاذ في القواعد.
 if (import.meta.env.VITE_ENABLE_APPCHECK === 'true') void initAppCheck();
 

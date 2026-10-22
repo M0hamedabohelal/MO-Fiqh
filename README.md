@@ -1,8 +1,16 @@
 # الباحث الفقهي — منصة تعليم الفقه الإسلامي
 
-تطبيق ويب تعليمي (React + Vite + TypeScript + Firebase) لدراسة الفقه بأسلوب ميسّر:
+موقع ويب تعليمي (React + Vite + TypeScript + Firebase) لدراسة الفقه بأسلوب ميسّر:
 فهرس كتب وأبواب ومسائل، بحث عربي متسامح، قاموس مصطلحات تفاعلي، مفضلة وفوائد وملاحظات
-متزامنة سحابيًا، ودعم كامل للعمل دون إنترنت (PWA).
+تُحفظ على الجهاز، ومحتوى المسائل يُقرأ من Firestore (مع لقطة محلية احتياطية).
+
+> **حالة المزامنة:** طبقة المزامنة السحابية (رفع/دمج بيانات الحساب، علامات الوقوف،
+> التفضيلات، الزيارات) **محذوفة بالكامل** لإعادة بنائها من الصفر.
+> المفضلة والفوائد والملاحظات والمسائل المقروءة وعلامة الوقوف تعمل محليًا فقط
+> (`localStorage`)، معزولة لكل حساب وضيف.
+>
+> **حالة التطبيق المثبّت:** دعم PWA (المانيفست + Service Worker + أزرار التثبيت + التحديث)
+> **محذوف بالكامل**. الموقع يعمل كموقع ويب عادي. راجع «إعادة بناء ما أُزيل» أدناه.
 
 ## التشغيل المحلي
 
@@ -22,12 +30,15 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 ```
 
-اختياري — App Check (حماية نقاط الكتابة من البوتات)، من Firebase Console ←‏ App Check ←‏ سجّل تطبيق الويب (reCAPTCHA v3):
+بدون المفاتيح يعمل الموقع بالبيانات المحلية المضمّنة فقط (لقطة قديمة أقل من المسائل الحقيقية).
+
+اختياري — App Check (حماية نقاط الكتابة من البوتات). **مُعطَّل افتراضيًا** لأن تطبيق الويب
+غير مسجَّل في App Check بعد؛ تفعيله بدون تسجيل يُنتج 400 في كل تحميل بلا أي حماية:
 
 ```
-VITE_FIREBASE_APPCHECK_KEY=...
-# للتطوير على localhost بعد تفعيل الإنفاذ: توكن التصحيح من الكونسول
-VITE_FIREBASE_APPCHECK_DEBUG_TOKEN=...
+VITE_FIREBASE_APPCHECK_KEY=...            # مفتاح reCAPTCHA v3
+VITE_ENABLE_APPCHECK=true                 # لا تضبطه قبل تسجيل التطبيق في App Check
+VITE_FIREBASE_APPCHECK_DEBUG_TOKEN=...    # للتطوير على localhost عند تفعيل الإنفاذ
 ```
 
 اختياري — رفع مرفقات لوحة الإدارة عبر Cloudinary (بديلان افتراضيان مبنيان في الكود):
@@ -42,8 +53,8 @@ VITE_CLOUDINARY_UPLOAD_PRESET=...
 > بـ Allowed formats و Max file size و Folder ثابت. للقفل الكامل بدّل إلى Signed upload
 > عبر وسيط خادمي. القيم الافتراضية موجودة في `src/utils/cloudinary.ts`.
 
-> ملاحظة: إنفاذ App Check في `firestore.rules` خطوة لاحقة — تُفعَّل **بعد** خبز المفتاح في بناء
-> الإنتاج وإعادة النشر، وإلا انكسرت كتابات العملاء وسكربت SEO (بلا توكن).
+> ملاحظة: إنفاذ App Check في `firestore.rules` خطوة لاحقة — تُفعَّل **بعد** تسجيل التطبيق
+> وخبز المفتاح في بناء الإنتاج، وإلا انكسرت كتابات العملاء وسكربت SEO (بلا توكن).
 > سياسة الاحتفاظ بسجل الأخطاء: فعّل TTL من الكونسول على مجموعة `client_errors` للحقل
 > `expireAt` (يحذف تلقائيًا بعد 30 يومًا) — من Firestore ←‏ TTL policies.
 
@@ -56,9 +67,7 @@ VITE_CLOUDINARY_UPLOAD_PRESET=...
 2. احفظ الملف باسم `scripts/service-account.json` (مستثنى من git)، أو ضع مساره في
    متغير البيئة `GOOGLE_APPLICATION_CREDENTIALS`.
 
-بدون هذا المفتاح يعمل التطبيق عاديًا؛ السكربتان فقط هما من يحتاجانه.
-
-بدون المفاتيح يعمل التطبيق بالبيانات المحلية فقط (قراءة عامة، بلا مزامنة).
+بدون هذا المفتاح يعمل الموقع عاديًا؛ السكربتان فقط هما من يحتاجانه.
 
 ## الأوامر
 
@@ -71,6 +80,8 @@ VITE_CLOUDINARY_UPLOAD_PRESET=...
 | `npm run lint` | فحص ESLint |
 | `npm test` | اختبارات vitest |
 | `npm run backup` | تنزيل نسخة احتياطية من Firestore إلى `backups/` |
+| `npm run content:snapshot` | توليد اللقطة المحلية `src/data/lessons.ts` من Firestore |
+| `npm run audit:data` | تحليل تغطية المحتوى |
 | `npm run create-admin -- "email" "pass"` | إنشاء/تحديث حساب مشرف عبر Admin SDK (يحتاج مفتاح حساب خدمة) |
 | `npm run upload:pdf` | رفع `public/fiqh-book.pdf` إلى Firebase Storage عبر Admin SDK |
 | `npm run deploy:hosting` | بناء + نشر على Firebase Hosting |
@@ -87,15 +98,16 @@ src/
     Admin/                    # لوحة المشرفين (تحمّل عند الطلب)
     Auth/                     # سياق المصادقة + نافذة الدخول
     Layout/ Header/ Sidebar/ Navigation/ UI/
-  hooks/                      # useAppData, useUserLibrary, useHashRoute, usePWA, ...
+  hooks/                      # useAppData, useUserLibrary, useStopMarks, useHashRoute, useOnlineStatus
   firebase/                   # config (تحميل مؤجل) + services (طبقة Firestore)
-  data/                       # نسخة محلية احتياطية (lessons, glossary, books)
-  utils/                      # تنسيق النصوص، الطباعة، أدوات القاموس
+  data/                       # لقطة محلية احتياطية (lessons, glossary, books)
+  utils/                      # تنسيق النصوص، الطباعة، النسخ الاحتياطي، أدوات القاموس
 scripts/
   generate-seo.mjs            # توليد صفحات SEO قبل البناء (تلقائي)
+  snapshot-content.mjs        # لقطة المحتوى المحلية من Firestore
   migrate-to-firestore.mjs    # رفع البيانات المحلية (مرة واحدة)
   backup-firestore.mjs        # تنزيل نسخة احتياطية مؤرخة (دوري)
-  generate-icons.mjs / create-admin.mjs / upload-pdf.mjs / analyze-*.mjs
+  create-admin.mjs / upload-pdf.mjs / analyze-*.mjs
 ```
 
 ## النشر
@@ -105,12 +117,30 @@ npm run deploy:hosting
 ```
 
 - الاستضافة: Firebase Hosting (المجلد `dist`) — راجع `firebase.json`
-- دفع الكود إلى GitHub **لا ينشر الموقع** (لا توجد Actions تلقائية) — زر "تحديث الموقع" يقارن النسخة **المنشورة** فقط
+- **لا يوجد rewrite شامل:** أي مسار غير موجود يُرجع 404 حقيقيًا. (الـ rewrite الشامل كان
+  يُرجع صفحة التطبيق بنجاح 200 لأي مسار — يُفسد SEO ويُعطّل تحديث أي Service Worker قديم
+  لأن `/sw.js` كان يُرجع HTML بدل ملف JS)
+- المسارات العامة: `/` (التطبيق بتوجيه هاشي `#/...`) + صفحات مُجهّزة `/lessons/{id}/` و
+  `/books/{اسم الكتاب}/` — تُكتب بأسماء مجلدات حقيقية غير مُرمَّزة، لأن الخادم يفكّ ترميز
+  المسار قبل مطابقة الملف
+- دفع الكود إلى GitHub **لا ينشر الموقع** (لا توجد Actions تلقائية)
+
+## إعادة بناء ما أُزيل
+
+| الطبقة | ما تحتاجه لإرجاعها |
+|---|---|
+| المزامنة السحابية | قواعد `users/{uid}/data` و`users/{uid}/stopMarksV2` في `firestore.rules` (أُزيلت) + طبقة دمج/رفع جديدة |
+| التطبيق المثبّت (PWA) | `vite-plugin-pwa` + مانيفست + Service Worker + أيقونات `public/icons` + أزرار التثبيت/التحديث |
+| App Check | تسجيل تطبيق الويب في Console ←‏ App Check (reCAPTCHA v3) ثم `VITE_ENABLE_APPCHECK=true` |
+
+البيانات القديمة للمستخدمين (`users/*`, `stopMarksV2`) ما زالت في Firestore ولم تُحذف؛
+لكن الوصول إليها مغلق من العميل عبر القاعدة العامة (`allow read, write: if false`).
 
 ## قواعد الكود
 
 - TypeScript صارم (`npm run typecheck`) — والمعرّفات تُقارن كنصوص دائمًا `String(id)` (رقم/نص من مصادر مختلفة)
 - Firebase يُحمّل مؤجلًا عبر `import()` — ممنوع أي استيراد runtime ثابت من `firebase/*` (يسمح `import type` فقط)
-- أي وصول لـ `localStorage` داخل `try/catch`
-- بيانات الضيف تُحذف من الجهاز فقط **بعد نجاح** رفع الدمج للسحابة
+- أي وصول لـ `localStorage` داخل `try/catch` (انظر `src/utils/safeStorage.ts`)
+- **لا تقرأ من الخادم قراءةً لقطية (`getDocsFromServer`) على استعلام له مستمع مفتوح** — يرمي
+  `Target ID already exists` ويُفشل التحديث. أعِد فتح المستمع بدلًا من ذلك (انظر `useAppData`)
 - شغّل النسخة الاحتياطية دوريًا قبل أي تعديل إداري واسع: `npm run backup`

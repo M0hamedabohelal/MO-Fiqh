@@ -59,15 +59,10 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
-    // ─── بيانات المستخدم الخاصة (مفضلة/فوائد/ملاحظات/مقروء): صاحبها فقط ───
-    match /users/{uid}/data/{section} {
-      allow read, write: if isSignedIn() && request.auth.uid == uid;
-    }
-
-    // علامات الوقوف بإصدار مستقل: كل مستخدم يقرأ ويكتب علامات حسابه فقط.
-    match /users/{uid}/stopMarksV2/{bookId} {
-      allow read, write: if isSignedIn() && request.auth.uid == uid;
-    }
+    // ─── بيانات المستخدم الخاصة: أُزيلت مع طبقة المزامنة ───
+    // (كانت: users/{uid}/data و users/{uid}/stopMarksV2). البيانات القديمة ما زالت
+    // في القاعدة لكن لا كود يقرأها أو يكتبها، فالمسار مغلق افتراضيًا عبر القاعدة العامة
+    // في نهاية الملف (match /{document=**} → allow false) حتى تُعاد المزامنة من جديد.
 
     // ─── إحصائيات المشاهدات: قراءة للجميع، وتحديث تراكمي للجميع (تتبع مجهول من trackLessonView) ───
     // القيد يمنع العبث الواسع: الإنشاء بمفتاح واحد فقط، وكل تحديث يمس مفتاحًا واحدًا

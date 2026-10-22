@@ -1,7 +1,7 @@
-// مزامنة اللقطة المحلية من السحابة — يولّد src/data/lessons.ts من Firestore
+// لقطة المحتوى المحلية من السحابة — يولّد src/data/lessons.ts من Firestore
 // السبب: اللقطة المحلية هي أول ما يُعرض قبل وصول السحابة؛ إن تقادمت ظهرت كتب
-// فارغة لحظيًا (أو مسائل محذوفة) حتى تكتمل المزامنة.
-// الاستخدام: npm run sync:local  (بعد أي تعديل إداري واسع، وقبل النشر)
+// فارغة لحظيًا (أو مسائل محذوفة) حتى يصل المحتوى من السحابة.
+// الاستخدام: npm run content:snapshot  (بعد أي تعديل إداري واسع، وقبل النشر)
 // ملاحظة: القاموس المحلي لا يُمسّ — قد يحوي مصطلحات مقصودة غير منشورة سحابيًا.
 import { mkdirSync, writeFileSync, readFileSync, existsSync, copyFileSync, renameSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -78,7 +78,7 @@ if (existsSync(targetPath)) {
   }
 }
 
-const header = `// نسخة محلية احتياطية من المحتوى — مولّدة من السحابة عبر \`npm run sync:local\`
+const header = `// نسخة محلية احتياطية من المحتوى — مولّدة من السحابة عبر \`npm run content:snapshot\`
 // لا تحرر يدويًا: أي تعديل يدوي سيُكتب فوقه عند التوليد التالي.
 // لتعديل المحتوى استخدم لوحة الإدارة ثم أعد التوليد قبل النشر.
 import type { Lesson } from '../types';

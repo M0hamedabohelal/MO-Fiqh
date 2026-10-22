@@ -240,7 +240,7 @@ function head(title, desc, url, jsonld) {
 }
 
 const foot = (appLink) => `
-<a class="cta" href="${appLink}" rel="noopener">📖 افتح في التطبيق التفاعلي</a>
+<a class="cta" href="${appLink}" rel="noopener">📖 افتح في الموقع التفاعلي</a>
 <div class="footer">الباحث الفقهي — منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر — <a href="/">fqh.me</a></div>
 </div></body></html>`;
 

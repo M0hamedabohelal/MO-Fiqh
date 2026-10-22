@@ -15,12 +15,12 @@
     "test": "vitest run",
     "backup": "node scripts/backup-firestore.mjs",
     "audit:data": "node scripts/audit-content.mjs",
-    "sync:local": "node scripts/sync-local-data.mjs",
     "migrate": "node scripts/migrate-to-firestore.mjs",
     "brand": "node scripts/build-brand-assets.mjs",
     "create-admin": "node scripts/create-admin.mjs",
     "upload:pdf": "node scripts/upload-pdf.mjs",
-    "deploy:hosting": "npm run build && firebase deploy --only hosting"
+    "deploy:hosting": "npm run build && firebase deploy --only hosting",
+    "content:snapshot": "node scripts/snapshot-content.mjs"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
