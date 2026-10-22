@@ -5,6 +5,7 @@ import SearchModal    from './Components/UI/SearchModal';
 import ShortcutsHelpModal from './Components/UI/ShortcutsHelpModal';
 import MobileBottomNav from './Components/Navigation/MobileBottomNav';
 import SplashScreen   from './Components/UI/SplashScreen';
+import UpdateBanner   from './Components/UI/UpdateBanner';
 import LoginModal     from './Components/Auth/LoginModal';
 import AppLayout      from './Components/Layout/AppLayout';
 import { AppProvider } from './Components/Layout/AppContext';
@@ -18,6 +19,7 @@ import { useStopMarks }        from './hooks/useStopMarks';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useOnlineStatus }     from './hooks/useOnlineStatus';
 import { useAppData }          from './hooks/useAppData';
+import { useAppVersion }       from './hooks/useAppVersion';
 
 import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
@@ -38,6 +40,7 @@ function App() {
 
   // ─── بيانات المحتوى ───
   const { lessons, glossary, cloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, contentSource } = useAppData({ isOffline });
+  const appVersion = useAppVersion();
 
   // ─── المكتبة الشخصية ───
   const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary } = useUserLibrary();
@@ -299,6 +302,9 @@ function App() {
   return (
     <div className="container-fluid p-0 position-relative">
       <SplashScreen visible={showSplash} progress={splashProgress} statusText={splashStatus} />
+
+      {/* إشعار نشر نسخة جديدة — يظهر تلقائيًا بلا Service Worker */}
+      <UpdateBanner version={appVersion} />
 
       {/* ✅ Onboarding — مرة واحدة للمستخدم الجديد */}
       {showOnboarding && <OnboardingSlides onDone={() => setShowOnboarding(false)} />}

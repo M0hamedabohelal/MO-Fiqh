@@ -132,4 +132,30 @@ test.describe('المسارات الحرجة', () => {
     await expect(page.getByRole('button', { name: /القاموس/ })).toHaveCount(0);
     expect(errors, errors.join('\n')).toEqual([]);
   });
+
+  test('7) شريط «نسخة جديدة متاحة» يظهر عند نشر حزمة مختلفة ويُحدّث الصفحة', async ({ page }) => {
+    const errors = collectErrors(page);
+    await openBooks(page);
+    await expect(page.locator('.update-banner')).toHaveCount(0);
+
+    // الخادم يقدّم حزمة أحدث من العاملة (محاكاة نشر جديد)
+    await page.route('**/index.html*', async (route) => {
+      const res = await route.fetch();
+      const body = (await res.text()).replace(/assets\/index-[A-Za-z0-9_-]+\.js/, 'assets/index-ZZZnew99.js');
+      await route.fulfill({ response: res, body });
+    });
+
+    // الزناد الحقيقي: عودة التبويب إلى المقدمة
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+
+    const banner = page.locator('.update-banner');
+    await expect(banner).toBeVisible({ timeout: 20_000 });
+    await expect(banner).toContainText('نسخة جديدة متاحة');
+
+    await page.unroute('**/index.html*');
+    await page.getByRole('button', { name: /تحديث الآن/ }).click();
+    // بعد التحميل تعود الحالة نظيفة ويختفي الشريط
+    await expect(page.locator('.update-banner')).toHaveCount(0, { timeout: 30_000 });
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
 });
