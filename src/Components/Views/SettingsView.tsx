@@ -16,7 +16,6 @@ const SettingsView = () => {
     librarySyncState,
     retryLibrarySync,
     retryStopMarkSync,
-    cloudStatus,
     cloudLessonsLoaded,
     contentSyncDone,
     isOffline,
@@ -70,7 +69,7 @@ const SettingsView = () => {
   };
 
   const handleRefreshContent = async (): Promise<void> => {
-    if (refreshingContent || isOffline) return;
+    if (refreshingContent) return;
     setRefreshingContent(true);
     setContentRefreshMessage('');
     try {
@@ -78,7 +77,9 @@ const SettingsView = () => {
       setContentRefreshMessage(
         ok
           ? 'تم تحديث المسائل من السحابة بنجاح.'
-          : 'تعذر تحديث المسائل الآن؛ سيظل المحتوى المحفوظ متاحًا وأعد المحاولة بعد قليل.',
+          : (isOffline
+              ? 'الجهاز يبدو غير متصل بالإنترنت الآن؛ أعد المحاولة عند تأكّد الاتصال.'
+              : 'تعذر تحديث المسائل الآن؛ سيظل المحتوى المحفوظ متاحًا وأعد المحاولة بعد قليل.'),
       );
     } catch {
       setContentRefreshMessage('تعذر تحديث المحتوى الآن؛ سيظل المحتوى المحفوظ متاحًا.');
@@ -109,8 +110,8 @@ const SettingsView = () => {
     : contentSyncDone
       ? 'المسائل محمّلة من النسخة المحلية'
       : 'جارٍ تحميل المسائل';
-  // فشل/عدم تأكيد تحديث المسائل من السحابة — يُبرز زر التحديث ويعرض سببًا واضحًا.
-  const contentFailed = !isOffline && !cloudLessonsLoaded && cloudStatus === 'offline';
+  // لم تُحمَّل المسائل من السحابة بعد (فشل أو ما زال يحاول) — نُبرز زر التحديث اليدوي دائمًا.
+  const contentFailed = !cloudLessonsLoaded;
   const stopMarkLabel = !stopMarksReady
     ? 'جارٍ استعادة العلامات'
     : stopMarksSyncState === 'pending'
