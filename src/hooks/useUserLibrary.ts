@@ -395,6 +395,9 @@ export function useUserLibrary() {
   const syncErrorRef = useRef(false);
   const syncStateRef = useRef(syncState);
   const lastRecoveryAttemptRef = useRef(0);
+  // عدّاد فشل المستمع المتتالي — نؤجّل إظهار 'error' حتى يتكرر الفشل فعلًا،
+  // فلا تظهر "تعذرت مزامنة المكتبة" عند اهتزاز شبكة عابر أثناء التهيئة الباردة.
+  const listenFailuresRef = useRef(0);
   // Keep a current view for browser lifecycle callbacks without reinstalling listeners.
   useEffect(() => {
     syncStateRef.current = syncState;
@@ -510,7 +513,9 @@ export function useUserLibrary() {
       requestTimeout = setTimeout(() => {
         if (cancelled || prevUidRef.current !== uid) return;
         syncErrorRef.current = true;
-        setSyncState('error');
+        // 'pending' لا 'error': المسودة محفوظة في الصندوق وتُرفع تلقائيًا لاحقًا؛
+        // إظهار "تعذرت المزامنة" لمجرد بطء استجابة Firestore يقلق المستخدم بلا داعٍ.
+        setSyncState('pending');
       }, 20_000);
       mergeAndSyncLibrary(uid, snapshot, base, tombs)
         .then(({ data, tombs }) => {
@@ -564,7 +569,9 @@ export function useUserLibrary() {
           if (cancelled || prevUidRef.current !== uid) return;
           logError('userLibrary.sync', e, { section: 'merge' });
           syncErrorRef.current = true;
-          setSyncState(window.navigator.onLine ? 'error' : 'pending');
+          // الصندوق الصادر يحفظ التغييرات؛ نُبقي 'pending' فيُعاد الرفع تلقائيًا عند عودة
+          // التركيز/الاتصال بدل إظهار فشل دائم لخطأ شبكة عابر أثناء التهيئة الباردة.
+          setSyncState('pending');
         });
     }, 250);
     return () => {
@@ -589,6 +596,7 @@ export function useUserLibrary() {
         if (cancelled) return;
         const colRef = fsMod.collection(db, 'users', user.uid, 'data');
         unsub = fsMod.onSnapshot(colRef, { includeMetadataChanges: true }, (snap) => {
+          listenFailuresRef.current = 0;
           const cloud: { bookmarks: string[]; highlights: HighlightItem[]; notes: Record<string, string>; readLessons: string[] } =
             { bookmarks: [], highlights: [], notes: {}, readLessons: [] };
           let cloudTombs: unknown = null;
@@ -608,9 +616,9 @@ export function useUserLibrary() {
           const outboxHasPending = Boolean(outbox && !snapshotsEqual(outbox.snapshot, outbox.base));
           if (outbox && !outboxHasPending) safeRemove(accountOutboxKey(user.uid));
           if (outboxHasPending) {
-            setSyncState(syncErrorRef.current
-              ? 'error'
-              : !snap.metadata.fromCache && !snap.metadata.hasPendingWrites ? 'syncing' : 'pending');
+            // يوجد رفع مؤجّل: الحالة 'syncing' إن كانت اللقطة خادمية حديثة، وإلا 'pending'.
+            // لا نُظهر 'error' هنا؛ التغييرات محفوظة وسيُعاد رفعها تلقائيًا.
+            setSyncState(!snap.metadata.fromCache && !snap.metadata.hasPendingWrites ? 'syncing' : 'pending');
             return;
           }
 
@@ -698,7 +706,14 @@ export function useUserLibrary() {
         }, (error) => {
           if (cancelled) return;
           logError('userLibrary.listen', error, { section: 'snapshot' });
-          setSyncState(window.navigator.onLine ? 'error' : 'offline');
+          listenFailuresRef.current += 1;
+          // خطأ عابر (تهيئة باردة/شبكة) لا يُعد "تعذرت المزامنة"؛ نبقى 'pending' في المحاولات الأولى
+          // ويكفل المشترك (online/focus/visibility) إعادة الاشتراك. 'error' فقط عند تكرار الفشل.
+          setSyncState(
+            !window.navigator.onLine
+              ? 'offline'
+              : listenFailuresRef.current >= 3 ? 'error' : 'pending',
+          );
         });
       } catch {
         // بلا اتصال: يبقى الجلب عند الدخول هو المصدر — لا كسر

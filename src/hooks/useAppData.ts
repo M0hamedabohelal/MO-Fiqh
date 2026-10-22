@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { fetchLessonsFromServer, fetchGlossary } from '../firebase/services';
+import { fetchLessonsFromServer, fetchLessons, fetchGlossary } from '../firebase/services';
 import { isFirebaseConfigured } from '../firebase/config';
+import { logError } from '../utils/logError';
 import { BOOKS_LIST } from '../data/books';
 import type { Lesson, GlossaryMap } from '../types';
 
 const CLOUD_LESSONS_TIMEOUT_MS = 15_000;
+// مهلة السماح: أقصى انتظار للخادم قبل عرض النسخة المحلية مع متابعة الجلب في الخلفية.
+const CLOUD_GRACE_MS = 6_000;
 // إعادة المحاولة التلقائية عند فشل الجلب السحابي الأولي (شبكة بطيئة أو تهيئة Firestore باردة).
 // تُنهي رسالة "تعذر تحديث المسائل" التي كانت تبقى حتى التحديث اليدوي رغم أن الشبكة سليمة.
 const CLOUD_RETRY_BASE_MS = 3_000;
@@ -26,10 +29,13 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   const [cloudAttemptDone, setCloudAttemptDone] = useState(!isFirebaseConfigured);
   // عدّاد إعادة المحاولة التلقائية — يزيد عند فشل الجلب فيُعيد الأثر المحاولة بتراجع أسّي.
   const [cloudRetryNonce, setCloudRetryNonce] = useState(0);
+  // انقضت مهلة السماح لانتظار الخادم — بعدها نفتح بالنسخة المحلية ولا نُبقي المستخدم
+  // عالقًا على شاشة البداية حتى تنتهي مهلة الخادم الطويلة (تهيئة Firestore باردة على الفون).
+  const [cloudGraceElapsed, setCloudGraceElapsed] = useState(false);
   const cloudRetryRef = useRef(0);
   const contentSyncDone = isOffline
     ? localLessonsLoaded
-    : cloudLessonsLoaded || (cloudAttemptDone && localLessonsLoaded);
+    : cloudLessonsLoaded || (localLessonsLoaded && (cloudAttemptDone || cloudGraceElapsed));
 
   // ترتيب المسائل حسب الكتاب → الباب → الترتيب الأبجدي
   const lessons = useMemo(() => {
@@ -87,6 +93,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       }),
     ]);
     let succeeded = false;
+    let failure: unknown = null;
     try {
       const cloudLessons = await cloudLessonsRequest;
       if (cloudLessons.length > 0) {
@@ -95,17 +102,36 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
         setCloudStatus('synced');
         succeeded = true;
       } else {
-        setCloudStatus('offline');
+        // نجح الاتصال لكن المجموعة فارغة (نادر) — ليست حالة "غير متصل"
+        setCloudStatus('available');
+        succeeded = true;
       }
-    } catch {
-      setCloudStatus('offline');
+    } catch (error) {
+      failure = error;
+      // فشل الخادم لا يعني بالضرورة انقطاع الاتصال: قد تكون التهيئة الباردة/الشبكة بطيئة.
+      // نجرّب الكاش المحلي (getDocs يقرأ من IndexedDB فورًا) لعرض أي نسخة سحابية سابقة،
+      // ونبقي الحالة 'syncing' في أول محاولات حتى لا تظهر رسالة "تعذر" مبكرًا بلا داعٍ.
+      try {
+        const cached = await fetchLessons();
+        if (cached.length > 0) {
+          setRawLessons((prev) => (prev.length ? prev : cached));
+        }
+      } catch { /* تجاهل — الداتا المحلية المضمّنة تغطي */ }
     } finally {
       if (timeoutId) clearTimeout(timeoutId);
       setCloudAttemptDone(true);
     }
     // نجاح = إعادة تصفير عدّاد التراجع؛ فشل = جدولة محاولة تلقائية لاحقة.
     cloudRetryRef.current = succeeded ? 0 : cloudRetryRef.current + 1;
-    if (!succeeded) setCloudRetryNonce((n) => n + 1);
+    if (!succeeded) {
+      const attempts = cloudRetryRef.current;
+      // نُظهر "تعذر تحديث المسائل" فقط بعد فشل متكرر (≥3 محاولات) والجهاز يزعم أنه متصل،
+      // وإلا نبقى على 'syncing' مع إعادة المحاولة فلا تقفز الرسالة عند مجرد بطء البداية.
+      setCloudStatus((prev) => (attempts >= 3 ? 'offline' : (prev === 'synced' ? prev : 'syncing')));
+      // تسجيل السبب الفعلي مرة واحدة (مخنوق داخليًا) ليمكن تشخيصه من سجل الأخطاء
+      if (attempts === 1) logError('appData.reloadFromCloud', failure, { attempt: attempts });
+      setCloudRetryNonce((n) => n + 1);
+    }
     // المسرد غير مطلوب لعرض المسائل، لذلك لا يحجب اكتمال التحميل أو شاشة البداية.
     void glossaryRequest.then((cloudGlossary) => {
         if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
@@ -145,6 +171,14 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     const t = setTimeout(() => { void reloadFromCloud(); }, delay);
     return () => clearTimeout(t);
   }, [isOffline, reloadFromCloud, cloudLessonsLoaded, cloudRetryNonce]);
+
+  // مهلة السماح: بعدها نفتح التطبيق بالنسخة المحلية حتى لو تأخر الخادم (فيتابع في الخلفية).
+  // هذا يمنع بقاء المستخدم على شاشة البداية 15 ثانية ثم رؤية رسالة "تعذر" لمجرد بطء البداية.
+  useEffect(() => {
+    if (isOffline || cloudLessonsLoaded) return undefined;
+    const t = setTimeout(() => setCloudGraceElapsed(true), CLOUD_GRACE_MS);
+    return () => clearTimeout(t);
+  }, [isOffline, cloudLessonsLoaded]);
 
   // تحميل البيانات المحلية (نسخة احتياطية عند غياب السحابة) ديناميكيًا
   // حتى لا تدخل ملفات الداتا الكبيرة في حزمة التحميل الأولية
