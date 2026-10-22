@@ -88,6 +88,15 @@ const SettingsView = () => {
     }
   };
 
+  // زر واحد موحّد: يحدّث المحتوى من السحابة ويعيد محاولة مزامنة المكتبة وعلامات الوقوف معًا.
+  // يمنع تكرار عدة أزرار لنفس الغرض ويجعل الإجراء واضحًا للمستخدم.
+  const handleSyncAll = async (): Promise<void> => {
+    if (refreshingContent) return;
+    retryLibrarySync();
+    retryStopMarkSync();
+    await handleRefreshContent();
+  };
+
   const librarySyncLabel = isOffline
     ? librarySyncState === 'pending'
       ? 'التغييرات محفوظة على الجهاز وتنتظر الاتصال'
@@ -145,17 +154,8 @@ const SettingsView = () => {
       <p className="text-muted small mt-3 mb-2">
         عند تسجيل الدخول، تنتقل المفضلة والملاحظات والمسائل المقروءة وعلامات الوقوف بين أجهزتك. التغييرات دون إنترنت تُحفظ في هذا الجهاز وتُرسل تلقائيًا عند عودة الاتصال.
       </p>
-      {user && (librarySyncState === 'pending' || librarySyncState === 'error' || librarySyncState === 'offline' || stopMarksSyncState === 'pending' || stopMarksSyncState === 'error') && (
-        <button
-          type="button"
-          className="btn btn-sm btn-outline-primary d-flex align-items-center gap-2 mb-2"
-          onClick={() => { retryLibrarySync(); retryStopMarkSync(); }}
-          disabled={isOffline || librarySyncState === 'syncing'}
-          title={isOffline ? 'ستُعاد المحاولة تلقائيًا عند رجوع الاتصال' : 'إعادة إرسال المكتبة وعلامات الوقوف'}
-        >
-          <FiRefreshCw /> إعادة مزامنة التغييرات
-        </button>
-      )}
+      {/* زر واحد موحّد للمزامنة والتحديث: يتحوّل لتنبيه تحذيري بارز عند تعذّر تحميل المسائل
+          من السحابة، ويبقى زرًا هادئًا عاديًا خلاف ذلك — لا تكرار لعمل واحد. */}
       {contentFailed ? (
         <div className="alert alert-warning d-flex flex-column gap-2 mb-2 text-start" role="alert">
           <span className="d-flex align-items-center gap-2 fw-bold">
@@ -165,7 +165,7 @@ const SettingsView = () => {
           <button
             type="button"
             className="btn btn-warning btn-sm d-flex align-items-center justify-content-center gap-2 fw-bold"
-            onClick={handleRefreshContent}
+            onClick={handleSyncAll}
             disabled={refreshingContent}
           >
             {refreshingContent ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
@@ -176,12 +176,12 @@ const SettingsView = () => {
         <button
           type="button"
           className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
-          onClick={handleRefreshContent}
-          disabled={refreshingContent || isOffline}
-          title={isOffline ? 'اتصل بالإنترنت أولًا' : 'إعادة جلب محتوى الكتب والمسائل'}
+          onClick={handleSyncAll}
+          disabled={refreshingContent}
+          title={isOffline ? 'يُعاد المحاولة تلقائيًا عند رجوع الاتصال' : 'تحديث المحتوى ومزامنة بيانات الحساب'}
         >
           {refreshingContent ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
-          {refreshingContent ? 'جارٍ تحديث المحتوى...' : 'تحديث محتوى الكتب والمسائل'}
+          {refreshingContent ? 'جارٍ التحديث والمزامنة...' : 'تحديث المزامنة والمحتوى'}
         </button>
       )}
       {contentRefreshMessage && <small className="d-block mt-2 text-muted" role="status">{contentRefreshMessage}</small>}
