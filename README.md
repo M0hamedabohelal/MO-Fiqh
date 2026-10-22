@@ -206,3 +206,9 @@ npm run deploy:all       # الاثنان معًا
 - حقول React المُتحكَّم بها داخل الاختبار تُكتب بـ `pressSequentially` لا `fill`، وإلا
   وصل الضغط قبل أن تُحدَّث الحالة
 - الاختبارات تعمل بـ `workers: 1` لأن `localStorage` مشترك بينها في المتصفح نفسه
+
+في CI تعمل هذه المهمة فقط بعد ضبط **متغيّرات المستودع** (Settings → Secrets and
+variables → Actions → **Variables**): `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`,
+`VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`,
+`VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`. القيم عامة بطبيعتها (تُشحن
+داخل حزمة الموقع) ولا تُحفظ كأسرار — `secrets` ممنوع داخل `if` ويرفضه GitHub.
