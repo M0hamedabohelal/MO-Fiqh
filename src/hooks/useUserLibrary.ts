@@ -463,11 +463,17 @@ export function useUserLibrary() {
     if (lastWrittenRef.current && snapshotsEqual(snapshot, lastWrittenRef.current) && !forceCloudSync) {
       // لا جديد للرفع — لكن قد يكون صندوق صادر قديم عالقًا من جلسة سابقة اكتمل رفعها فعليًا.
       // تركه يمنع المستمع اللحظي من تطبيق تعديلات الأجهزة الأخرى ويُبقي المؤشر "قيد المزامنة".
-      // بما أن المحلي يطابق آخر كتابة ناجحة فلا شيء لرفعه؛ ننظّفه فقط. المستمع اللحظي
-      // (الذي بات غير محجوب) سيستقر على 'synced' عند أول لقطة خادمية مؤكدة.
+      // بما أن المحلي يطابق آخر كتابة ناجحة فلا شيء لرفعه؛ ننظّفه فقط.
       if (readLibraryOutbox(uid)) {
         safeRemove(accountOutboxKey(uid));
         syncErrorRef.current = false;
+      }
+      // المحلي يطابق ما كُتب بنجاح بالفعل = مزامنة مؤكدة. بدون هذه السطر يبقى المؤشر
+      // على 'syncing' للأبد: لا طلب يُرسل (فلا انتقال)، ولا لقطة جديدة تصل (فلا تأكيد).
+      // الحارس على syncStateRef يمنع تحديث "آخر مزامنة" مع كل تمريرة بلا تغيير فعلي.
+      if (syncStateRef.current !== 'synced') {
+        setSyncState('synced');
+        setLastSyncRecord({ uid, at: Date.now() });
       }
       return;
     }
@@ -626,9 +632,10 @@ export function useUserLibrary() {
           const outboxHasPending = Boolean(outbox && !snapshotsEqual(outbox.snapshot, outbox.base));
           if (outbox && !outboxHasPending) safeRemove(accountOutboxKey(user.uid));
           if (outboxHasPending) {
-            // يوجد رفع مؤجّل: الحالة 'syncing' إن كانت اللقطة خادمية حديثة، وإلا 'pending'.
-            // لا نُظهر 'error' هنا؛ التغييرات محفوظة وسيُعاد رفعها تلقائيًا.
-            setSyncState(!snap.metadata.fromCache && !snap.metadata.hasPendingWrites ? 'syncing' : 'pending');
+            // يوجد رفع مؤجّل: 'pending' (بانتظار الرفع) لا 'syncing'. 'syncing' تعني طلبًا
+            // جاريًا الآن؛ إبقاؤها هنا كان يجعل مؤشر المزامنة يدور بلا نهاية لأن اللقطة
+            // الخادمية لا تتغيّر فلا تأتي لقطة تالية تُصحّح الحالة.
+            setSyncState('pending');
             return;
           }
 

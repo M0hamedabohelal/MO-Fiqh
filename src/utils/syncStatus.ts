@@ -1,6 +1,6 @@
 // حالة المزامنة الموحّدة — مصدر واحد للحقيقة يُغذّي علامة واحدة فقط في كل التطبيق.
-// بدل عدة مؤشرات متفرقة (المحتوى، المكتبة، العلامة، التفضيلات، صلاحية المشرف)
-// نجمع الكلّ هنا ونشتق منه: 'syncing' | 'error' | 'offline' | 'partial' | 'synced' | 'local'
+// بدل عدة مؤشرات متفرقة (المحتوى، المكتبة، العلامة، التفضيلات) نجمع الكلّ هنا.
+// نتيجة: 'syncing' | 'error' | 'offline' | 'partial' | 'synced' | 'local'
 import type { StopMarksSyncState } from '../hooks/useStopMarks';
 import type { LibrarySyncState } from '../hooks/useUserLibrary';
 
@@ -11,13 +11,9 @@ export interface UnifiedSyncInput {
   /** هل Firebase مهيأ في هذا البناء؟ */
   isFirebaseConfigured: boolean;
   user: unknown;
-  /** جهاز التحقق من صلاحية المشرف — 'skipped' يعني لا حساب مسجّل */
-  adminCheck: 'pending' | 'done' | 'skipped';
   /** حالة المحتوى من useAppData (cloudStatus) */
   cloudStatus: string;
   contentSyncDone: boolean;
-  /** هل المستخدم الحالي مشرف؟ — يحدد إن كان فحص المشرف شرطًا لتمام المزامنة */
-  isAdminUser: boolean;
   librarySyncState: LibrarySyncState;
   stopMarksSyncState: StopMarksSyncState;
 }
@@ -28,37 +24,38 @@ export const isBusySync = (state: UnifiedSyncState): boolean => state === 'synci
 /** هل تحتاج هذه الحالة تدخلًا من المستخدم (عرض علامة حمراء)? */
 export const isFailedSync = (state: UnifiedSyncState): boolean => state === 'error';
 
+// أقصى مدة تُقبل فيها حالة "جارٍ المزامنة" قبل اعتبارها معلّقة.
+// أي مسار لا يُنهي حالته (خطأ منطقي أو رد لا يصل أبدًا) كان يُبقي العلامة تدور بلا نهاية
+// ويربك المستخدم. بعد هذه المدة ننتقل إلى 'partial': لا نزعم نجاحًا، ولا نُبقي دورانًا كاذبًا.
+export const SYNC_STALL_TIMEOUT_MS = 15_000;
+
 export function computeUnifiedSyncState(input: UnifiedSyncInput): UnifiedSyncState {
   if (!input.isFirebaseConfigured) return 'local';
   if (input.isOffline) return 'offline';
 
-  // خطأ مؤكّد في أي مسار: المحتوى فشل فعلًا بعد استنفاد المحاولات
+  // خطأ مؤكّد في المحتوى بعد استنفاد المحاولات
   if (input.contentSyncDone && input.cloudStatus === 'offline') return 'error';
-
-  const contentDone = input.contentSyncDone;
-  const adminPending = input.adminCheck === 'pending';
-  const adminOk = !adminPending && (!input.isAdminUser || input.adminCheck === 'done');
-
-  // فحص المشرف لم يكتمل بعد (لا تُعلن النجاح قبل التأكد أن اللوحة جاهزة/غير مطلوبة)
-  if (adminPending) return 'syncing';
-
-  if (!input.user) {
-    // ضيف: المحتوى فقط هو ما يُزامن
-    if (!contentDone) return 'syncing';
-    return adminOk ? 'synced' : 'syncing';
-  }
-
-  // مسجّل: المحتوى + المكتبة + علامة الوقوف
-  const libraryBusy = input.librarySyncState === 'loading' || input.librarySyncState === 'syncing' || input.librarySyncState === 'pending';
-  const marksBusy = input.stopMarksSyncState === 'loading' || input.stopMarksSyncState === 'pending';
-  const libraryOk = input.librarySyncState === 'synced';
-  const marksOk = input.stopMarksSyncState === 'synced';
-
+  // فشل مزامنة المكتبة أو العلامة — قابل لإعادة المحاولة بضغطة
   if (input.librarySyncState === 'error' || input.stopMarksSyncState === 'error') return 'error';
 
-  if (!contentDone || libraryBusy || marksBusy) return 'syncing';
+  if (!input.contentSyncDone) return 'syncing';
 
-  if (libraryOk && marksOk && adminOk) return 'synced';
-  // جزء تم وجزء لم يُؤكَّد (محلي فقط بلا رفع) — لا نزعم نجاحًا كاملًا
+  // ضيف: المحتوى فقط هو ما يُزامن (لا مكتبة حساب ولا علامات سحابية)
+  if (!input.user) return 'synced';
+
+  // 'loading'/'syncing' = طلب جارٍ الآن. 'pending' = تغيير محفوظ محليًا ينتظر الرفع
+  // (يُنقل إلى 'syncing' خلال أجزاء من الثانية عند بدء الطلب) — لذا يُعد عملًا جاريًا.
+  const libraryBusy =
+    input.librarySyncState === 'loading' ||
+    input.librarySyncState === 'syncing' ||
+    input.librarySyncState === 'pending';
+  const marksBusy =
+    input.stopMarksSyncState === 'loading' || input.stopMarksSyncState === 'pending';
+
+  if (libraryBusy || marksBusy) return 'syncing';
+
+  if (input.librarySyncState === 'synced' && input.stopMarksSyncState === 'synced') return 'synced';
+
+  // جزء مؤكَّد وجزء محفوظ محليًا فقط (offline/local) — لا نزعم نجاحًا كاملًا
   return 'partial';
 }

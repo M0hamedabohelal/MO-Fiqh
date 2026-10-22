@@ -19,7 +19,7 @@ import { useStopMarks }        from './hooks/useStopMarks';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { usePWA }              from './hooks/usePWA';
 import { useAppData }          from './hooks/useAppData';
-import { computeUnifiedSyncState } from './utils/syncStatus';
+import { computeUnifiedSyncState, SYNC_STALL_TIMEOUT_MS } from './utils/syncStatus';
 
 import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
@@ -34,7 +34,7 @@ import type { StopMarkMap } from './features/stopMarks/model';
 
 function App() {
   // ─── Auth ───
-  const { user, isAdminUser, adminCheck, authLoading, isFirebaseConfigured, refreshAdminStatus } = useAuth();
+  const { user, isAdminUser, authLoading, isFirebaseConfigured, refreshAdminStatus } = useAuth();
 
   // ─── PWA ───
   const { canInstall, isInstalled, promptInstall, needRefresh, applyUpdate, checkForUpdates, offlineReady, dismissOfflineReady, isOffline } = usePWA();
@@ -47,19 +47,33 @@ function App() {
   const { stopMarks, stopMarksReady, stopMarksSyncState, stopMarksLastSyncedAt, retryStopMarkSync, toggleStopMark, restoreStopMarks } = useStopMarks();
 
   // ─── علامة المزامنة الواحدة ───
-  // كل مؤشرات المزامنة المتفرقة (المحتوى/المكتبة/العلامة/صلاحية المشرف) تُجمَع هنا
+  // كل مؤشرات المزامنة المتفرقة (المحتوى/المكتبة/العلامة) تُجمَع هنا
   // وتُعرض كعلامة واحدة فقط في الشريط العلوي — نجاح أو تدخّل، لا خمس علامات.
-  const unifiedSyncState = useMemo(() => computeUnifiedSyncState({
+  const rawSyncState = useMemo(() => computeUnifiedSyncState({
     isOffline,
     isFirebaseConfigured,
     user,
-    adminCheck,
     cloudStatus,
     contentSyncDone,
-    isAdminUser,
     librarySyncState,
     stopMarksSyncState,
-  }), [isOffline, isFirebaseConfigured, user, adminCheck, cloudStatus, contentSyncDone, isAdminUser, librarySyncState, stopMarksSyncState]);
+  }), [isOffline, isFirebaseConfigured, user, cloudStatus, contentSyncDone, librarySyncState, stopMarksSyncState]);
+
+  // حارس التعليق: لو بقيت الحالة 'syncing' أطول من الحد المسموح فالمسار لم يُنهِ حالته.
+  // ننتقل إلى 'partial' بدل دوران لا ينتهي — المستخدم يرى حقيقة الوضع لا مؤشرًا كاذبًا.
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    if (rawSyncState !== 'syncing') {
+      // مزامنة مقصودة مع حالة مشتقة: تصفير الحارس عند انتهاء الانتظار
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStalled(false);
+      return undefined;
+    }
+    const t = setTimeout(() => setStalled(true), SYNC_STALL_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [rawSyncState]);
+
+  const unifiedSyncState = rawSyncState === 'syncing' && stalled ? 'partial' : rawSyncState;
 
   // إعادة المحاولة الموحّدة: تُعيد كل المسارات معًا بضغطة واحدة — المحتوى والمكتبة والعلامة وفحص المشرف.
   const retryAllSync = useCallback(() => {

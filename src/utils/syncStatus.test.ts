@@ -6,14 +6,14 @@ const base = (over: Partial<UnifiedSyncInput> = {}): UnifiedSyncInput => ({
   isOffline: false,
   isFirebaseConfigured: true,
   user: null,
-  adminCheck: 'skipped',
   cloudStatus: 'synced',
   contentSyncDone: true,
-  isAdminUser: false,
   librarySyncState: 'local',
   stopMarksSyncState: 'local',
   ...over,
 });
+
+const signedIn = { uid: 'u1' };
 
 describe('computeUnifiedSyncState', () => {
   it('تزامن كامل لضيف بعد اكتمال المحتوى', () => {
@@ -32,31 +32,30 @@ describe('computeUnifiedSyncState', () => {
     expect(computeUnifiedSyncState(base({ cloudStatus: 'offline' }))).toBe('error');
   });
 
-  it('فحص المشرف المعلّق يعني مزامنة جارية', () => {
-    expect(computeUnifiedSyncState(base({ adminCheck: 'pending' }))).toBe('syncing');
+  it('المحتوى الذي لم يكتمل = مزامنة جارية', () => {
+    expect(computeUnifiedSyncState(base({ contentSyncDone: false }))).toBe('syncing');
   });
 
   it('الحساب المسجّل لا يُعلن نجاحًا قبل اكتمال مكتبته وعلامته', () => {
-    const user = { uid: 'u1' };
-    expect(computeUnifiedSyncState(base({ user, adminCheck: 'done', librarySyncState: 'syncing', stopMarksSyncState: 'synced' }))).toBe('syncing');
-    expect(computeUnifiedSyncState(base({ user, adminCheck: 'done', librarySyncState: 'synced', stopMarksSyncState: 'pending' }))).toBe('syncing');
+    expect(computeUnifiedSyncState(base({ user: signedIn, librarySyncState: 'syncing', stopMarksSyncState: 'synced' }))).toBe('syncing');
+    expect(computeUnifiedSyncState(base({ user: signedIn, librarySyncState: 'synced', stopMarksSyncState: 'pending' }))).toBe('syncing');
+    expect(computeUnifiedSyncState(base({ user: signedIn, librarySyncState: 'loading', stopMarksSyncState: 'synced' }))).toBe('syncing');
   });
 
-  it('تزامن الحساب المسجّل ينجح فقط عند synced للطرفين وفحص مشرف مكتمل', () => {
-    const user = { uid: 'u1' };
-    expect(computeUnifiedSyncState(base({ user, adminCheck: 'done', librarySyncState: 'synced', stopMarksSyncState: 'synced' }))).toBe('synced');
+  it('تزامن الحساب المسجّل ينجح فقط عند synced للطرفين', () => {
+    expect(computeUnifiedSyncState(base({ user: signedIn, librarySyncState: 'synced', stopMarksSyncState: 'synced' }))).toBe('synced');
     // مكتبة محفوظة محليًا فقط = نجاح جزئي، لا علامة صح خضراء
-    expect(computeUnifiedSyncState(base({ user, adminCheck: 'done', librarySyncState: 'local', stopMarksSyncState: 'synced' }))).toBe('partial');
+    expect(computeUnifiedSyncState(base({ user: signedIn, librarySyncState: 'local', stopMarksSyncState: 'synced' }))).toBe('partial');
+    expect(computeUnifiedSyncState(base({ user: signedIn, librarySyncState: 'offline', stopMarksSyncState: 'synced' }))).toBe('partial');
   });
 
   it('فشل المكتبة أو العلامة = خطأ واحد قابل لإعادة المحاولة', () => {
-    const user = { uid: 'u1' };
-    expect(computeUnifiedSyncState(base({ user, adminCheck: 'done', librarySyncState: 'error', stopMarksSyncState: 'synced' }))).toBe('error');
-    expect(computeUnifiedSyncState(base({ user, adminCheck: 'done', librarySyncState: 'synced', stopMarksSyncState: 'error' }))).toBe('error');
+    expect(computeUnifiedSyncState(base({ user: signedIn, librarySyncState: 'error', stopMarksSyncState: 'synced' }))).toBe('error');
+    expect(computeUnifiedSyncState(base({ user: signedIn, librarySyncState: 'synced', stopMarksSyncState: 'error' }))).toBe('error');
   });
 
-  it('المشرف لا يُعلن نجاحًا قبل تأكيد صلاحيته', () => {
-    expect(computeUnifiedSyncState(base({ user: { uid: 'a1' }, isAdminUser: true, adminCheck: 'pending', librarySyncState: 'synced', stopMarksSyncState: 'synced' }))).toBe('syncing');
-    expect(computeUnifiedSyncState(base({ user: { uid: 'a1' }, isAdminUser: true, adminCheck: 'done', librarySyncState: 'synced', stopMarksSyncState: 'synced' }))).toBe('synced');
+  it('فحص صلاحية المشرف لا يحجب إعلان اكتمال المزامنة (ليس مسار مزامنة)', () => {
+    // ربط المؤشر بفحص المشرف كان يترك العلامة تدور بلا نهاية لو تأخر تقييم الصلاحية
+    expect(computeUnifiedSyncState(base({ user: signedIn, librarySyncState: 'synced', stopMarksSyncState: 'synced' }))).toBe('synced');
   });
 });
