@@ -185,7 +185,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       provider.setCustomParameters({ prompt: 'select_account' });
 
       // محاولة Popup أولاً (أفضل تجربة في المتصفح العادي)
-      // في حالة الفشل (مثل PWA أو متصفح مقيد) ننتقل لـ Redirect
+      // في حالة الفشل (متصفح مقيّد أو نافذة محجوبة) ننتقل لـ Redirect
       try {
         const result = await authMod.signInWithPopup(auth, provider);
         if (result?.user) {

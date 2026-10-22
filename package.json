@@ -17,8 +17,7 @@
     "audit:data": "node scripts/audit-content.mjs",
     "sync:local": "node scripts/sync-local-data.mjs",
     "migrate": "node scripts/migrate-to-firestore.mjs",
-    "icons": "node scripts/generate-icons.mjs",
-    "brand": "node scripts/build-brand-assets.mjs && node scripts/generate-icons.mjs",
+    "brand": "node scripts/build-brand-assets.mjs",
     "create-admin": "node scripts/create-admin.mjs",
     "upload:pdf": "node scripts/upload-pdf.mjs",
     "deploy:hosting": "npm run build && firebase deploy --only hosting"
@@ -48,7 +47,6 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.1",
     "vite": "^8.0.10",
-    "vite-plugin-pwa": "^1.3.0",
     "vitest": "^5.0.3"
   }
 }

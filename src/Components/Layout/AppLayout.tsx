@@ -41,7 +41,6 @@ const AppLayout = () => {
     user, isAdminUser,
     theme, setTheme,
     selectedBookName,
-    canInstall, promptInstall,
     setCurrentView,
     onOpenSearch, onOpenLogin,
   } = useApp();
@@ -60,8 +59,6 @@ const AppLayout = () => {
         onOpenLogin={onOpenLogin}
         user={user}
         isAdminUser={isAdminUser}
-        canInstall={canInstall}
-        onInstall={promptInstall}
       />
     </div>
 

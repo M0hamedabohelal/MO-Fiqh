@@ -4,7 +4,7 @@
 let seq = 0;
 
 export function createUniqueId(prefix = 'hl'): string {
-  // crypto.randomUUID متاح في كل المتصفحات الحديثة والسياق الآمن (https/PWA)
+  // crypto.randomUUID متاح في كل المتصفحات الحديثة والسياق الآمن (https)
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
       return `${prefix}_${crypto.randomUUID()}`;

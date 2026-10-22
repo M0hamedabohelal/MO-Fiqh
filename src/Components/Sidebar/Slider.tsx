@@ -1,4 +1,4 @@
-import { FiBook, FiList, FiFileText, FiSearch, FiSettings, FiBookmark, FiEdit3, FiUser, FiShield, FiDownload, FiAward } from 'react-icons/fi';
+import { FiBook, FiList, FiFileText, FiSearch, FiSettings, FiBookmark, FiEdit3, FiUser, FiShield, FiAward } from 'react-icons/fi';
 import type { User } from 'firebase/auth';
 import logo from '../../assets/logo-circle.webp';
 import './Slider.css';
@@ -10,11 +10,9 @@ interface SliderProps {
   onOpenLogin: () => void;
   user: User | null;
   isAdminUser: boolean;
-  canInstall: boolean;
-  onInstall: () => void;
 }
 
-const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, isAdminUser, canInstall, onInstall }: SliderProps) => {
+const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, isAdminUser }: SliderProps) => {
 
   return (
     <div className="sidebar-wrapper">
@@ -120,17 +118,6 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
           <FiUser size={20} />
           {user ? (user.displayName || user.email || 'حسابي') : 'تسجيل الدخول'}
         </button>
-
-        {canInstall && (
-          <button
-            className="sidebar-login-btn"
-            onClick={onInstall}
-            title="ثبّت التطبيق على جهازك"
-          >
-            <FiDownload size={20} />
-            ثبّت التطبيق
-          </button>
-        )}
 
         <ul className="sidebar-secondary-nav">
           <li className="sidebar-nav-item">

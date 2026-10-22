@@ -4,7 +4,6 @@ import HeroSection    from './Components/Header/HeroSection';
 import SearchModal    from './Components/UI/SearchModal';
 import ShortcutsHelpModal from './Components/UI/ShortcutsHelpModal';
 import MobileBottomNav from './Components/Navigation/MobileBottomNav';
-import PWABanners     from './Components/UI/PWABanners';
 import SplashScreen   from './Components/UI/SplashScreen';
 import LoginModal     from './Components/Auth/LoginModal';
 import AppLayout      from './Components/Layout/AppLayout';
@@ -17,7 +16,7 @@ import { useHashRoute }        from './hooks/useHashRoute';
 import { useUserLibrary }      from './hooks/useUserLibrary';
 import { useStopMarks }        from './hooks/useStopMarks';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { usePWA }              from './hooks/usePWA';
+import { useOnlineStatus }     from './hooks/useOnlineStatus';
 import { useAppData }          from './hooks/useAppData';
 
 import { trackLessonView }     from './firebase/services';
@@ -34,8 +33,8 @@ function App() {
   // ─── Auth ───
   const { user, isAdminUser, authLoading } = useAuth();
 
-  // ─── PWA ───
-  const { canInstall, isInstalled, promptInstall, needRefresh, applyUpdate, checkForUpdates, offlineReady, dismissOfflineReady, isOffline } = usePWA();
+  // ─── حالة الشبكة ───
+  const isOffline = useOnlineStatus();
 
   // ─── بيانات المحتوى ───
   const { lessons, glossary, cloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, localLessonIds } = useAppData({ isOffline });
@@ -264,8 +263,6 @@ function App() {
     cloudStatus, cloudLessonsLoaded, localLessonIds,
     contentReady,
     isOffline,
-    canInstall, isInstalled, promptInstall,
-    needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
     stopMarks, stopMarksReady,
     booksWithStats, selectedBookName, selectedBookChapters,
@@ -286,8 +283,6 @@ function App() {
     theme, fontSize,
     cloudStatus, cloudLessonsLoaded, localLessonIds, contentReady,
     isOffline,
-    canInstall, isInstalled, promptInstall,
-    needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
     stopMarks, stopMarksReady,
     booksWithStats, selectedBookName, selectedBookChapters,
@@ -325,8 +320,6 @@ function App() {
           <AppLayout />
         </AppProvider>
       )}
-
-      <PWABanners needRefresh={needRefresh} applyUpdate={applyUpdate} offlineReady={offlineReady} dismissOfflineReady={dismissOfflineReady} />
 
       {currentView !== 'hero' && (
         <MobileBottomNav

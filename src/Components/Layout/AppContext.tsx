@@ -29,12 +29,6 @@ export interface AppContextValue {
   contentReady: boolean;
   // هل الجهاز بلا اتصال؟ (لعرض مؤشر الواي فاي المشطوب في الشريط العلوي)
   isOffline: boolean;
-  canInstall: boolean;
-  isInstalled: boolean;
-  promptInstall: () => void;
-  needRefresh: boolean;
-  applyUpdate: () => void;
-  checkForUpdates: () => Promise<void>;
   glossary: GlossaryMap;
   notes: Record<string, string>;
   bookmarks: string[];

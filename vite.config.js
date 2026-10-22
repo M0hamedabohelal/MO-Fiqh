@@ -1,64 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 // وضع ghpages للنشر على GitHub Pages (مسار فرعي /MO-Fiqh/)
 // أي وضع آخر — Firebase Hosting أو غيره — يخدم من الجذر /
 export default defineConfig(({ mode }) => ({
-  plugins: [
-    react(),
-    // PWA: تثبيت الموقع كتطبيق + عمل أوفلاين عبر Service Worker
-    VitePWA({
-      // prompt: نتحكم في إشعار "تحديث جاهز" بأنفسنا ليظهر زر التحديث
-      registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'robots.txt', 'sitemap.xml'],
-      manifest: {
-        name: 'الباحث الفقهي',
-        short_name: 'فقهي',
-        description: 'منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر',
-        lang: 'ar',
-        dir: 'rtl',
-        start_url: '/',
-        scope: '/',
-        display: 'standalone',
-        orientation: 'portrait',
-        // لون شاشة البداية يطابق الثيم الداكن الافتراضي (#101414) لمنع وميض أبيض عند الفتح
-        background_color: '#101414',
-        theme_color: '#101414',
-        categories: ['education', 'books'],
-        icons: [
-          { src: '/icons/pwa-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/pwa-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icons/maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-          { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-        ],
-      },
-      workbox: {
-        // كل ملفات التطبيق تُخزَّن مسبقاً للعمل أوفلاين (بدون PDF الكبير وصور المشاركة)
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        // حزمة الإدارة (~30KB) لغير المشرفين: تُحمَّل عند الطلب فقط (الإدارة تحتاج إنترنت أصلًا)
-        // أيقونتا 512 تُجلبان من المانيفست عند التثبيت فقط — استثناؤهما يوفّر ~660KB من الـ precache
-        globIgnores: ['**/og-image.jpg', '**/icons/pwa-512.png', '**/icons/maskable-512.png', '**/AdminPanel-*.js'],
-        navigateFallback: '/index.html',
-        runtimeCaching: [
-          {
-            // خطوط Google — لا تتغير تقريباً، كاش دائم
-            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts',
-              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [200] },
-            },
-          },
-          // ملاحظة مقصودة: ملفات الصوت (Cloudinary) خارج الـ SW تمامًا —
-          // تقديمها من الكاش كاستجابة كاملة كان يكسر طلبات المدى (Range) فيتعطّل القفز
-          // لموضع المسألة. الأوفلاين يتم عبر IndexedDB (Blob) بدعم مدى كامل أصليًا.
-        ],
-      },
-    }),
-  ],
+  plugins: [react()],
   base: mode === 'ghpages' ? '/MO-Fiqh/' : '/',
   build: {
     rollupOptions: {
