@@ -40,3 +40,7 @@ service-account*.json
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# مخرجات فحص مؤقتة
+jobs.json
+
