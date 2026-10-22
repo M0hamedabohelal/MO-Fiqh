@@ -436,6 +436,8 @@ export function useUserLibrary() {
 
   const retryLibrarySync = useCallback(() => {
     if (!window.navigator.onLine) return;
+    // إعادة محاولة يدوية = بداية نظيفة: لا نُظهر 'error' من عدّاد فشل قديم قبل أن تفشل المحاولة الجديدة.
+    listenFailuresRef.current = 0;
     if (isSyncReady && user) {
       syncErrorRef.current = false;
       setSyncState('syncing');

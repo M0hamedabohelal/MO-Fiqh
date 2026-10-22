@@ -18,6 +18,7 @@ const SettingsView = () => {
     retryStopMarkSync,
     cloudLessonsLoaded,
     contentSyncDone,
+    cloudStatus,
     isOffline,
     lessonsCount,
     stopMarksSyncState,
@@ -73,7 +74,7 @@ const SettingsView = () => {
     setRefreshingContent(true);
     setContentRefreshMessage('');
     try {
-      const ok = await reloadFromCloud();
+      const ok = await reloadFromCloud(true);
       setContentRefreshMessage(
         ok
           ? 'تم تحديث المسائل من السحابة بنجاح.'
@@ -119,8 +120,9 @@ const SettingsView = () => {
     : contentSyncDone
       ? 'المسائل محمّلة من النسخة المحلية'
       : 'جارٍ تحميل المسائل';
-  // لم تُحمَّل المسائل من السحابة بعد (فشل أو ما زال يحاول) — نُبرز زر التحديث اليدوي دائمًا.
-  const contentFailed = !cloudLessonsLoaded;
+  // تحذير فقط عند فشل فعلي مؤكد — لا أثناء المحاولة الأولى/إعادة المحاولة،
+  // ولا عند نجاح الاتصال السحابي بمجموعة فارغة (كان التحذير يبقى حينها رغم نجاح الطلب).
+  const contentFailed = !cloudLessonsLoaded && cloudStatus === 'offline';
   const stopMarkLabel = !stopMarksReady
     ? 'جارٍ استعادة العلامات'
     : stopMarksSyncState === 'pending'
@@ -159,9 +161,13 @@ const SettingsView = () => {
       {contentFailed ? (
         <div className="alert alert-warning d-flex flex-column gap-2 mb-2 text-start" role="alert">
           <span className="d-flex align-items-center gap-2 fw-bold">
-            <FiWifiOff /> تعذر تحديث المسائل من السحابة
+            <FiWifiOff /> {isOffline ? 'لا يوجد اتصال بالإنترنت' : 'تعذر تحديث المسائل من السحابة'}
           </span>
-          <small className="text-muted">النسخة المحفوظة على هذا الجهاز متاحة الآن. اضغط الزر لإعادة المحاولة.</small>
+          <small className="text-muted">
+            {isOffline
+              ? 'ستبقى النسخة المحفوظة على جهازك متاحة، وتُحدَّث تلقائيًا عند عودة الاتصال.'
+              : 'النسخة المحفوظة على هذا الجهاز متاحة الآن. اضغط الزر لإعادة المحاولة.'}
+          </small>
           <button
             type="button"
             className="btn btn-warning btn-sm d-flex align-items-center justify-content-center gap-2 fw-bold"

@@ -82,8 +82,15 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   }, [rawLessons]);
 
   // جلب البيانات من السحابة
-  const reloadFromCloud = useCallback(async (): Promise<boolean> => {
+  // manual = إعادة محاولة يدوية (زر المستخدم): تُظهر حالة "جارٍ التحديث" فورًا حتى
+  // يرى المستخدم أن الضغط بدأ فعلًا، وتعيد عدّاد التراجع للصفر لمحاولة سريعة.
+  const reloadFromCloud = useCallback(async (manual = false): Promise<boolean> => {
     if (!isFirebaseConfigured) return false;
+    if (manual) {
+      cloudRetryRef.current = 0;
+      setCloudStatus('syncing');
+      setCloudAttemptDone(false);
+    }
     const glossaryRequest = fetchGlossary().catch(() => null);
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const cloudLessonsRequest = Promise.race([
@@ -127,7 +134,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       const attempts = cloudRetryRef.current;
       // نُظهر "تعذر تحديث المسائل" فقط بعد فشل متكرر (≥3 محاولات) والجهاز يزعم أنه متصل،
       // وإلا نبقى على 'syncing' مع إعادة المحاولة فلا تقفز الرسالة عند مجرد بطء البداية.
-      setCloudStatus((prev) => (attempts >= 3 ? 'offline' : (prev === 'synced' ? prev : 'syncing')));
+      setCloudStatus((prev) => (manual || attempts >= 3 ? 'offline' : (prev === 'synced' ? prev : 'syncing')));
       // تسجيل السبب الفعلي مرة واحدة (مخنوق داخليًا) ليمكن تشخيصه من سجل الأخطاء
       if (attempts === 1) logError('appData.reloadFromCloud', failure, { attempt: attempts });
       setCloudRetryNonce((n) => n + 1);

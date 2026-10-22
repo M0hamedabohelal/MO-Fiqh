@@ -44,6 +44,9 @@ const AppLayout = () => {
     librarySyncState,
     stopMarksSyncState,
     isOffline,
+    reloadFromCloud,
+    retryLibrarySync,
+    retryStopMarkSync,
     canInstall, promptInstall,
     selectedBookName,
     setCurrentView,
@@ -82,6 +85,9 @@ const AppLayout = () => {
         isSignedIn={Boolean(user)}
         stopMarksSyncState={stopMarksSyncState}
         isOffline={isOffline}
+        onRetryCloud={() => reloadFromCloud(true)}
+        onRetryLibrary={retryLibrarySync}
+        onRetryStopMarks={retryStopMarkSync}
       />
 
       <div className="container mt-4" style={{ maxWidth: '850px' }}>

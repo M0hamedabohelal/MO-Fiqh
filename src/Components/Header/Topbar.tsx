@@ -14,11 +14,26 @@ interface TopbarProps {
   isSignedIn: boolean;
   stopMarksSyncState: StopMarksSyncState;
   isOffline: boolean;
+  onRetryCloud: () => Promise<boolean>;
+  onRetryLibrary: () => void;
+  onRetryStopMarks: () => void;
 }
 
-const Topbar = ({ theme, toggleTheme, cloudStatus, librarySyncState, isSignedIn, stopMarksSyncState, isOffline }: TopbarProps) => {
+const Topbar = ({ theme, toggleTheme, cloudStatus, librarySyncState, isSignedIn, stopMarksSyncState, isOffline, onRetryCloud, onRetryLibrary, onRetryStopMarks }: TopbarProps) => {
   const { announcements, unreadCount, markAsRead, refresh } = useAnnouncements();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [retryingCloud, setRetryingCloud] = useState(false);
+
+  // خطأ السحابة في الأعلى قابل للضغط: إعادة المحاولة من نفس المكان بدل البحث عن زر الإعدادات.
+  const handleRetryCloud = async (): Promise<void> => {
+    if (retryingCloud) return;
+    setRetryingCloud(true);
+    try {
+      await onRetryCloud();
+    } finally {
+      setRetryingCloud(false);
+    }
+  };
 
   const handleOpenAnnouncements = () => {
     refresh();
@@ -107,7 +122,22 @@ const Topbar = ({ theme, toggleTheme, cloudStatus, librarySyncState, isSignedIn,
         </span>
       )}
 
-      {cloud && (
+      {cloud && (cloudStatus === 'offline' && !isOffline ? (
+        <button
+          type="button"
+          className="btn btn-link p-0 ms-auto d-flex align-items-center gap-1"
+          style={{ color: cloud.color, fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none' }}
+          aria-label={`${cloud.label} — اضغط لإعادة المحاولة`}
+          title="اضغط لإعادة محاولة تحميل المسائل من السحابة"
+          onClick={() => { void handleRetryCloud(); }}
+          disabled={retryingCloud}
+        >
+          {retryingCloud
+            ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+            : <span style={{ fontSize: '0.85rem' }}>{cloud.icon}</span>}
+          <span>{retryingCloud ? 'جارٍ إعادة المحاولة...' : cloud.label}</span>
+        </button>
+      ) : (
         <span
           className="ms-auto d-flex align-items-center gap-1"
           style={{ color: cloud.color, fontSize: '0.78rem', fontWeight: 600 }}
@@ -118,7 +148,7 @@ const Topbar = ({ theme, toggleTheme, cloudStatus, librarySyncState, isSignedIn,
           <span style={{ fontSize: '0.85rem' }}>{cloud.icon}</span>
           <span>{cloud.label}</span>
         </span>
-      )}
+      ))}
 
       {isSignedIn && librarySyncState === 'pending' && (
         <span className="d-flex align-items-center gap-1" style={{ color: '#f39c12', fontSize: '0.78rem', fontWeight: 600 }} role="status" title="تغييرات المكتبة محفوظة على الجهاز وستُرفع عند توفر الاتصال">
@@ -131,14 +161,26 @@ const Topbar = ({ theme, toggleTheme, cloudStatus, librarySyncState, isSignedIn,
         </span>
       )}
       {isSignedIn && librarySyncState === 'error' && (
-        <span className="d-flex align-items-center gap-1" style={{ color: '#e74c3c', fontSize: '0.78rem', fontWeight: 600 }} role="status" title="تعذرت مزامنة المكتبة؛ التغييرات ما زالت محفوظة على الجهاز">
+        <button
+          type="button"
+          className="btn btn-link p-0 d-flex align-items-center gap-1"
+          style={{ color: '#e74c3c', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none' }}
+          title="تعذرت مزامنة المكتبة؛ التغييرات ما زالت محفوظة على الجهاز — اضغط لإعادة المحاولة"
+          onClick={onRetryLibrary}
+        >
           <span aria-hidden="true">⚠</span><span>تعذرت مزامنة المكتبة</span>
-        </span>
+        </button>
       )}
       {isSignedIn && librarySyncState === 'offline' && !isOffline && (
-        <span className="d-flex align-items-center gap-1" style={{ color: '#e74c3c', fontSize: '0.78rem', fontWeight: 600 }} role="status" title="الجهاز متصل بالإنترنت، لكن لم نتمكن من تأكيد مزامنة بيانات الحساب. ستبقى بياناتك محفوظة على هذا الجهاز">
+        <button
+          type="button"
+          className="btn btn-link p-0 d-flex align-items-center gap-1"
+          style={{ color: '#e74c3c', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none' }}
+          title="لم نتمكن من تأكيد مزامنة بيانات الحساب. بياناتك محفوظة على هذا الجهاز — اضغط لإعادة المحاولة"
+          onClick={onRetryLibrary}
+        >
           <span aria-hidden="true">⚠</span><span>مزامنة الحساب غير مؤكدة</span>
-        </span>
+        </button>
       )}
 
       {stopMarksSyncState === 'pending' && (
@@ -148,10 +190,16 @@ const Topbar = ({ theme, toggleTheme, cloudStatus, librarySyncState, isSignedIn,
         </span>
       )}
       {stopMarksSyncState === 'error' && (
-        <span className="ms-auto d-flex align-items-center gap-1" style={{ color: '#e74c3c', fontSize: '0.78rem', fontWeight: 600 }} role="status" title="تعذرت مزامنة علامة الوقوف؛ ستُعاد المحاولة عند الاتصال">
+        <button
+          type="button"
+          className="btn btn-link p-0 ms-auto d-flex align-items-center gap-1"
+          style={{ color: '#e74c3c', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none' }}
+          title="تعذرت مزامنة علامة الوقوف — اضغط لإعادة المحاولة"
+          onClick={onRetryStopMarks}
+        >
           <span aria-hidden="true">⚠</span>
           <span className="d-none d-sm-inline">تعذرت مزامنة العلامة</span>
-        </span>
+        </button>
       )}
     </div>
     {isModalOpen && (

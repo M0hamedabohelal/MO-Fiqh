@@ -49,6 +49,11 @@ export function useStopMarks() {
   const pendingTimeoutsRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const syncTimedOutRef = useRef(false);
   const deviceIdRef = useRef('');
+  // عدّاد فشل مستمع العلامات — خطأ عابر واحد لا يستحق إظهار "تعذرت مزامنة العلامة".
+  const listenFailuresRef = useRef(0);
+  // إعادة المحاولة اليدوية تُعيد الاشتراك أيضًا؛ خطأ المستمع لا يُصلحه إرسال السجلات وحده
+  // فكانت رسالة الخطأ تبقى في الأعلى مهما ضغط المستخدم.
+  const [listenerRevision, setListenerRevision] = useState(0);
 
   const persistLocal = useCallback((next: StopMarkMap, currentUid: string | null) => {
     marksRef.current = next;
@@ -104,7 +109,11 @@ export function useStopMarks() {
     const currentUid = activeUidRef.current;
     if (!currentUid || !window.navigator.onLine) return;
     syncTimedOutRef.current = false;
+    listenFailuresRef.current = 0;
+    // إزالة الرسالة الحمراء فورًا وإظهار أن المحاولة جارية
+    setSyncState('pending');
     pendingRecordsRef.current.forEach((record, bookKey) => persistCloudRecord(currentUid, bookKey, record));
+    setListenerRevision((revision) => revision + 1);
   }, [persistCloudRecord]);
 
   // يحمّل هذا الأثر مخزن الحساب بعد استقرار المصادقة، لذا تحديث الحالة هنا هو مزامنة التخزين المحلي المقصودة.
@@ -119,6 +128,7 @@ export function useStopMarks() {
     pendingTimeouts.clear();
     pendingRecordsRef.current.clear();
     syncTimedOutRef.current = false;
+    listenFailuresRef.current = 0;
 
     const storedMarks = readStoredMarks(uid ? accountStorageKey(uid) : guestStorageKey);
     persistLocal(storedMarks, uid);
@@ -132,6 +142,7 @@ export function useStopMarks() {
     setSyncState('loading');
     void subscribeToStopMarks(uid, (cloudDocuments, metadata) => {
       if (cancelled || activeUidRef.current !== uid) return;
+      listenFailuresRef.current = 0;
       const normalizedCloud = normalizeStopMarkMap(cloudDocuments);
       const current = marksRef.current;
       const merged = mergeStopMarkMaps(current, normalizedCloud);
@@ -156,14 +167,26 @@ export function useStopMarks() {
     }, (error) => {
       if (cancelled || activeUidRef.current !== uid) return;
       logError('stopMarks.listen', error);
-      setSyncState('error');
+      listenFailuresRef.current += 1;
+      // أثناء انقطاع الاتصال لا نُظهر "تعذرت المزامنة" — مؤشر الواي فاي يكفي،
+      // ومع خطأ عابر واحد نبقى 'pending' ونعيد الاشتراك تلقائيًا.
+      setSyncState(
+        !window.navigator.onLine
+          ? 'pending'
+          : listenFailuresRef.current >= 2 ? 'error' : 'pending',
+      );
     }).then((stopListening) => {
       if (cancelled) stopListening();
       else unsubscribe = stopListening;
     }).catch((error: unknown) => {
       if (cancelled || activeUidRef.current !== uid) return;
       logError('stopMarks.listen', error);
-      setSyncState('error');
+      listenFailuresRef.current += 1;
+      setSyncState(
+        !window.navigator.onLine
+          ? 'pending'
+          : listenFailuresRef.current >= 2 ? 'error' : 'pending',
+      );
     });
 
     return () => {
@@ -172,7 +195,7 @@ export function useStopMarks() {
       pendingTimeouts.forEach((timeout) => clearTimeout(timeout));
       pendingTimeouts.clear();
     };
-  }, [authLoading, uid, persistCloudRecord, persistLocal]);
+  }, [authLoading, uid, persistCloudRecord, persistLocal, listenerRevision]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
