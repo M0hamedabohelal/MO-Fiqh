@@ -19,7 +19,9 @@
     "brand": "node scripts/build-brand-assets.mjs",
     "create-admin": "node scripts/create-admin.mjs",
     "upload:pdf": "node scripts/upload-pdf.mjs",
-    "deploy:hosting": "npm run build && firebase deploy --only hosting",
+    "deploy:hosting": "npm run build && npx -y --engine-strict=false firebase-tools@15 deploy --only hosting",
+    "deploy:rules": "npx -y --engine-strict=false firebase-tools@15 deploy --only firestore:rules",
+    "deploy:all": "npm run build && npx -y --engine-strict=false firebase-tools@15 deploy --only hosting,firestore:rules",
     "content:snapshot": "node scripts/snapshot-content.mjs",
     "check:content": "node scripts/check-content.mjs"
   },

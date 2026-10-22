@@ -119,8 +119,22 @@ scripts/
 ## النشر
 
 ```bash
-npm run deploy:hosting
+npm run deploy:hosting   # بناء + نشر الواجهة
+npm run deploy:rules     # نشر قواعد Firestore فقط
+npm run deploy:all       # الاثنان معًا
 ```
+
+> Node: المشروع يستهدف **22** (`.nvmrc` و`engines`). على Node 26 يفشل `firebase-tools`
+> في فحص المحرك، ولذلك سكربتات النشر تستخدم `--engine-strict=false` مع إصدار مثبّت (`@15`).
+> الأفضل: `nvm use` قبل النشر.
+
+- **ترويسات أمان** في `firebase.json` (تعمل على كل المسارات): `nosniff` · `Referrer-Policy` ·
+> `X-Frame-Options: DENY` · `Permissions-Policy` (تعطيل الكاميرا/الميكروفون/الموقع…) ·
+> `Cross-Origin-Opener-Policy: same-origin-allow-popups` (يلزم لبقاء popup تسجيل Google) ·
+> و`Content-Security-Policy-Report-Only`.
+> الـ CSP مراقبة فقط حاليًا: **صفر مخالفات** على تحميل كامل (مُقاس بمستمع
+> `securitypolicyviolation`). بعد فترة مراقبة بلا مخالفات، انقلها إلى ترويسة مُنفَّذة
+> `Content-Security-Policy`.
 
 - الاستضافة: Firebase Hosting (المجلد `dist`) — راجع `firebase.json`
 - **لا يوجد rewrite شامل:** أي مسار غير موجود يُرجع 404 حقيقيًا. (الـ rewrite الشامل كان
