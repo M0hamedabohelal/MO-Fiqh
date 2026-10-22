@@ -16,6 +16,7 @@ const SettingsView = () => {
     librarySyncState,
     retryLibrarySync,
     retryStopMarkSync,
+    cloudStatus,
     cloudLessonsLoaded,
     contentSyncDone,
     isOffline,
@@ -73,8 +74,12 @@ const SettingsView = () => {
     setRefreshingContent(true);
     setContentRefreshMessage('');
     try {
-      await reloadFromCloud();
-      setContentRefreshMessage('تمت محاولة تحديث المحتوى؛ حالة المصدر الحالية ظاهرة أعلاه.');
+      const ok = await reloadFromCloud();
+      setContentRefreshMessage(
+        ok
+          ? 'تم تحديث المسائل من السحابة بنجاح.'
+          : 'تعذر تحديث المسائل الآن؛ سيظل المحتوى المحفوظ متاحًا وأعد المحاولة بعد قليل.',
+      );
     } catch {
       setContentRefreshMessage('تعذر تحديث المحتوى الآن؛ سيظل المحتوى المحفوظ متاحًا.');
     } finally {
@@ -104,6 +109,8 @@ const SettingsView = () => {
     : contentSyncDone
       ? 'المسائل محمّلة من النسخة المحلية'
       : 'جارٍ تحميل المسائل';
+  // فشل/عدم تأكيد تحديث المسائل من السحابة — يُبرز زر التحديث ويعرض سببًا واضحًا.
+  const contentFailed = !isOffline && !cloudLessonsLoaded && cloudStatus === 'offline';
   const stopMarkLabel = !stopMarksReady
     ? 'جارٍ استعادة العلامات'
     : stopMarksSyncState === 'pending'
@@ -148,16 +155,34 @@ const SettingsView = () => {
           <FiRefreshCw /> إعادة مزامنة التغييرات
         </button>
       )}
-      <button
-        type="button"
-        className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
-        onClick={handleRefreshContent}
-        disabled={refreshingContent || isOffline}
-        title={isOffline ? 'اتصل بالإنترنت أولًا' : 'إعادة جلب محتوى الكتب والمسائل'}
-      >
-        {refreshingContent ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
-        {refreshingContent ? 'جارٍ تحديث المحتوى...' : 'تحديث محتوى الكتب والمسائل'}
-      </button>
+      {contentFailed ? (
+        <div className="alert alert-warning d-flex flex-column gap-2 mb-2 text-start" role="alert">
+          <span className="d-flex align-items-center gap-2 fw-bold">
+            <FiWifiOff /> تعذر تحديث المسائل من السحابة
+          </span>
+          <small className="text-muted">النسخة المحفوظة على هذا الجهاز متاحة الآن. اضغط الزر لإعادة المحاولة.</small>
+          <button
+            type="button"
+            className="btn btn-warning btn-sm d-flex align-items-center justify-content-center gap-2 fw-bold"
+            onClick={handleRefreshContent}
+            disabled={refreshingContent}
+          >
+            {refreshingContent ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
+            {refreshingContent ? 'جارٍ تحديث المسائل...' : 'تحديث المسائل الآن'}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
+          onClick={handleRefreshContent}
+          disabled={refreshingContent || isOffline}
+          title={isOffline ? 'اتصل بالإنترنت أولًا' : 'إعادة جلب محتوى الكتب والمسائل'}
+        >
+          {refreshingContent ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
+          {refreshingContent ? 'جارٍ تحديث المحتوى...' : 'تحديث محتوى الكتب والمسائل'}
+        </button>
+      )}
       {contentRefreshMessage && <small className="d-block mt-2 text-muted" role="status">{contentRefreshMessage}</small>}
     </div>
 
