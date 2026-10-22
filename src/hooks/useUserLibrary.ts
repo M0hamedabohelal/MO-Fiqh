@@ -226,11 +226,13 @@ export function useUserLibrary() {
       
       // جلب بيانات المستخدم من السحابة بمهلة؛ لا نعلّق واجهة المكتبة للأبد
       // إذا اتصل الجهاز بالواي فاي لكن لم يرد Firestore.
+      // 8 ثوانٍ بدل 12: المستمع اللحظي (أسفل الملف) هو المسار الأسرع للتأكيد،
+      // وهذه الجلبة واحدة فقط للتعبئة الأولى — إطالتها تُظهر "جارٍ المزامنة" بلا داعٍ.
       let cloudFetchTimeout: ReturnType<typeof setTimeout> | null = null;
       const fetchedCloudData = await Promise.race([
         loadUserData(user.uid),
         new Promise<null>((resolve) => {
-          cloudFetchTimeout = setTimeout(() => resolve(null), 12_000);
+          cloudFetchTimeout = setTimeout(() => resolve(null), 8_000);
         }),
       ]);
       if (cloudFetchTimeout) clearTimeout(cloudFetchTimeout);

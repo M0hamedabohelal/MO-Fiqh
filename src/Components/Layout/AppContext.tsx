@@ -38,6 +38,8 @@ export interface AppContextValue {
   // العلامة الواحدة للمزامنة: نجاح/جاري/تعذّر — تُعرض في الشريط العلوي فقط
   unifiedSyncState: UnifiedSyncState;
   retryAllSync: () => Promise<boolean>;
+  // أسباب عدم اكتمال المزامنة (فارغة عند النجاح) — تُعرض فقط عند الحاجة للتشخيص
+  syncDetails: string[];
   canInstall: boolean;
   isInstalled: boolean;
   promptInstall: () => void;

@@ -146,6 +146,13 @@ export function useStopMarks() {
     }
 
     setSyncState('loading');
+    // حارس: إن لم تصل أي لقطة من مستمع العلامات خلال هذه المدة فالاتصال لم يستقر.
+    // ننتقل إلى 'local' (العلامات المحفوظة على الجهاز متاحة) بدل البقاء 'loading'
+    // وهو ما كان يُبقي مؤشر المزامنة في حالة "جاري" بلا نهاية.
+    const loadingGuard = setTimeout(() => {
+      if (cancelled || activeUidRef.current !== uid) return;
+      setSyncState((previous) => (previous === 'loading' ? 'local' : previous));
+    }, 10_000);
     void subscribeToStopMarks(uid, (cloudDocuments, metadata) => {
       if (cancelled || activeUidRef.current !== uid) return;
       listenFailuresRef.current = 0;
@@ -197,6 +204,7 @@ export function useStopMarks() {
 
     return () => {
       cancelled = true;
+      clearTimeout(loadingGuard);
       unsubscribe?.();
       pendingTimeouts.forEach((timeout) => clearTimeout(timeout));
       pendingTimeouts.clear();

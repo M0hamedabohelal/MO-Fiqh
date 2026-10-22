@@ -59,3 +59,37 @@ export function computeUnifiedSyncState(input: UnifiedSyncInput): UnifiedSyncSta
   // جزء مؤكَّد وجزء محفوظ محليًا فقط (offline/local) — لا نزعم نجاحًا كاملًا
   return 'partial';
 }
+
+// يسمّي المسار الذي لم يُؤكَّد بدل ترك المستخدم يخمّن.
+// يُعرض فقط عندما لا تكون الحالة 'synced' (الحالة السليمة تبقى علامة واحدة بلا تفاصيل).
+export function describeSyncGap(input: UnifiedSyncInput): string[] {
+  const reasons: string[] = [];
+  if (!input.isFirebaseConfigured) return ['يعمل التطبيق بلا Firebase (نسخة محلية).'];
+  if (input.isOffline) return ['الجهاز غير متصل بالإنترنت؛ التغييرات محفوظة وتُرسل عند عودة الاتصال.'];
+  if (input.contentSyncDone && input.cloudStatus === 'offline') {
+    reasons.push('تعذر تحميل المسائل من السحابة.');
+  }
+  if (!input.user) return reasons;
+
+  const library: Record<LibrarySyncState, string> = {
+    loading: 'جارٍ تحميل بيانات الحساب.',
+    syncing: 'جارٍ رفع بيانات الحساب.',
+    pending: 'بيانات الحساب محفوظة على الجهاز وتنتظر الرفع.',
+    synced: '',
+    local: 'بيانات الحساب على هذا الجهاز فقط (لم تُؤكَّد من السحابة).',
+    offline: 'لم يصل تأكيد من السحابة لبيانات الحساب.',
+    error: 'تعذرت مزامنة بيانات الحساب.',
+  };
+  const marks: Record<StopMarksSyncState, string> = {
+    loading: 'جارٍ تحميل علامة الوقوف.',
+    pending: 'علامة الوقوف محفوظة على الجهاز وتنتظر الرفع.',
+    synced: '',
+    local: 'علامة الوقوف على هذا الجهاز فقط (لم تُؤكَّد من السحابة).',
+    error: 'تعذرت مزامنة علامة الوقوف.',
+  };
+  const libraryMessage = library[input.librarySyncState];
+  const marksMessage = marks[input.stopMarksSyncState];
+  if (libraryMessage) reasons.push(libraryMessage);
+  if (marksMessage) reasons.push(marksMessage);
+  return reasons;
+}

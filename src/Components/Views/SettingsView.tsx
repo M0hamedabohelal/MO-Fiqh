@@ -16,6 +16,7 @@ const SettingsView = () => {
     checkForUpdates: onCheckForUpdates,
     unifiedSyncState,
     retryAllSync,
+    syncDetails,
     lessonsCount,
     lastSyncedAt,
     stopMarksLastSyncedAt,
@@ -111,6 +112,12 @@ const SettingsView = () => {
         <small className="d-block mt-2 text-muted">
           آخر مزامنة: {new Date(Math.max(lastSyncedAt ?? 0, stopMarksLastSyncedAt ?? 0)).toLocaleString('ar-EG')}
         </small>
+      )}
+      {/* عند عدم اكتمال المزامنة فقط: يسمّي المسار المتوقف بدل ترك المستخدم يخمّن */}
+      {syncDetails.length > 0 && (
+        <ul className="small mt-2 mb-0 ps-0" style={{ listStyle: 'none', color: '#b7791f' }} role="status">
+          {syncDetails.map((detail) => <li key={detail}>• {detail}</li>)}
+        </ul>
       )}
       <p className="text-muted small mt-3 mb-0">
         عند تسجيل الدخول تنتقل المفضلة والملاحظات والمسائل المقروءة وعلامات الوقوف بين أجهزتك. التغييرات دون إنترنت تُحفظ في هذا الجهاز وتُرسل تلقائيًا عند عودة الاتصال.

@@ -19,7 +19,7 @@ import { useStopMarks }        from './hooks/useStopMarks';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { usePWA }              from './hooks/usePWA';
 import { useAppData }          from './hooks/useAppData';
-import { computeUnifiedSyncState, SYNC_STALL_TIMEOUT_MS } from './utils/syncStatus';
+import { computeUnifiedSyncState, describeSyncGap, SYNC_STALL_TIMEOUT_MS } from './utils/syncStatus';
 
 import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
@@ -74,6 +74,22 @@ function App() {
   }, [rawSyncState]);
 
   const unifiedSyncState = rawSyncState === 'syncing' && stalled ? 'partial' : rawSyncState;
+
+  // تفصيل ما لم يُؤكَّد — يُعرض فقط عند عدم اكتمال المزامنة، فيعرف المستخدم أي مسار توقف
+  // بدل التخمين. الحالة السليمة تبقى علامة واحدة بلا أي تفاصيل.
+  const syncDetails = useMemo(() => {
+    if (unifiedSyncState === 'synced') return [];
+    if (unifiedSyncState === 'syncing') return [];
+    return describeSyncGap({
+      isOffline,
+      isFirebaseConfigured,
+      user,
+      cloudStatus,
+      contentSyncDone,
+      librarySyncState,
+      stopMarksSyncState,
+    });
+  }, [unifiedSyncState, isOffline, isFirebaseConfigured, user, cloudStatus, contentSyncDone, librarySyncState, stopMarksSyncState]);
 
   // إعادة المحاولة الموحّدة: تُعيد كل مسارات المزامنة معًا بضغطة واحدة.
   // لا نُعيد فحص صلاحية المشرف هنا: الفحص يتكرر تلقائيًا في سياق المصادقة،
@@ -310,6 +326,7 @@ function App() {
     contentSyncDone,
     isOffline,
     unifiedSyncState, retryAllSync,
+    syncDetails,
     canInstall, isInstalled, promptInstall,
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
@@ -334,6 +351,7 @@ function App() {
     cloudStatus, librarySyncState, retryLibrarySync, cloudLessonsLoaded, localLessonIds, contentSyncDone,
     isOffline,
     unifiedSyncState, retryAllSync,
+    syncDetails,
     canInstall, isInstalled, promptInstall,
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
