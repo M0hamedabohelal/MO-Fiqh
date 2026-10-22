@@ -40,15 +40,9 @@ const AppLayout = () => {
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
     theme, setTheme,
-    cloudStatus,
-    librarySyncState,
-    stopMarksSyncState,
-    isOffline,
-    reloadFromCloud,
-    retryLibrarySync,
-    retryStopMarkSync,
-    canInstall, promptInstall,
+    unifiedSyncState, retryAllSync,
     selectedBookName,
+    canInstall, promptInstall,
     setCurrentView,
     onOpenSearch, onOpenLogin,
   } = useApp();
@@ -80,14 +74,8 @@ const AppLayout = () => {
       <Topbar
         theme={theme}
         toggleTheme={setTheme}
-        cloudStatus={cloudStatus}
-        librarySyncState={librarySyncState}
-        isSignedIn={Boolean(user)}
-        stopMarksSyncState={stopMarksSyncState}
-        isOffline={isOffline}
-        onRetryCloud={() => reloadFromCloud(true)}
-        onRetryLibrary={retryLibrarySync}
-        onRetryStopMarks={retryStopMarkSync}
+        syncState={unifiedSyncState}
+        onRetrySync={retryAllSync}
       />
 
       <div className="container mt-4" style={{ maxWidth: '850px' }}>

@@ -15,6 +15,8 @@ interface AuthResult {
 interface AuthContextValue {
   user: User | null;
   isAdminUser: boolean;
+  // حالة فحص صلاحية المشرف — 'pending' حتى تصل إجابة مؤكدة من الخادم
+  adminCheck: 'pending' | 'done' | 'skipped';
   authLoading: boolean;
   authError: string;
   isFirebaseConfigured: boolean;
@@ -38,6 +40,9 @@ export const useAuth = (): AuthContextValue => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [adminCheck, setAdminCheck] = useState<'pending' | 'done' | 'skipped'>(
+    isFirebaseConfigured ? 'pending' : 'skipped',
+  );
   // مرجع آخر uid فعّال — يمنع نتيجة فحص مشرف متأخرة لحساب سابق من تلويث حالة الحساب الجديد
   const currentUidRef = useRef<string | null>(null);
   // لو Firebase مش مهيأ من البداية مفيش انتظار
@@ -45,11 +50,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authError, setAuthError] = useState('');
 
   // مراقبة حالة تسجيل الدخول — بعد تحميل الـ SDK مؤجلاً
+  // تراجع أسّي لفحص المشرف: التهيئة الباردة/التوكن المتأخر في Firestore كان يجعل الفحص
+  // يفشل فورًا فيُعلن المستخدم غير مشرف (لوحة الإدارة لا تظهر نهائيًا) حتى إعادة التحميل.
+  const adminRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const adminAttemptRef = useRef(0);
+
   useEffect(() => {
     if (!isFirebaseConfigured) return undefined;
 
     let unsubscribe = () => {};
     let cancelled = false;
+
+    const clearAdminRetry = () => {
+      if (adminRetryRef.current) {
+        clearTimeout(adminRetryRef.current);
+        adminRetryRef.current = null;
+      }
+    };
+
+    // يفحص الصلاحية ويُعيد المحاولة بتراجع أسّي ما دامت النتيجة غير مؤكدة (فشل شبكة/توكن).
+    // يُكفّ عن المحاولة عند إجابة مؤكدة، أو تغيّر الحساب، أو مغادرة الجلسة.
+    const runAdminCheck = (uid: string) => {
+      const attempt = () => {
+        void checkAdmin(uid).then((result) => {
+          if (cancelled || currentUidRef.current !== uid) return;
+          // 'unknown' = فشل تقييم وليس رفضًا: نحاول مرة أخرى بدل تثبيت false
+          if (result === 'unknown') {
+            adminAttemptRef.current += 1;
+            const delay = Math.min(2_000 * 2 ** (adminAttemptRef.current - 1), 20_000);
+            adminRetryRef.current = setTimeout(attempt, delay);
+            return;
+          }
+          clearAdminRetry();
+          setIsAdminUser(result);
+          setAdminCheck('done');
+        });
+      };
+      attempt();
+    };
 
     getAuthModule()
       .then(({ auth, authMod }) => {
@@ -63,16 +101,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // لا نحجب التطبيق على فحص المشرف (رحلة شبكة كاملة) — يُفحص في الخلفية
           // وتبويب الإدارة يظهر فور وصول النتيجة؛ المكتبة والمحتوى يبدآن فورًا
           if (!cancelled) setAuthLoading(false);
+          clearAdminRetry();
+          adminAttemptRef.current = 0;
           if (firebaseUser) {
             const uidAtCheck = firebaseUser.uid;
             // إعادة تعيين فورية تمنع ظهور تبويب الإدارة خطأً أثناء فحص الحساب الجديد
             setIsAdminUser(false);
-            checkAdmin(uidAtCheck).then((adminStatus) => {
-              // تجاهل النتيجة إن تغيّر الحساب أو أُلغي التأثير قبل وصول الرد
-              if (!cancelled && currentUidRef.current === uidAtCheck) setIsAdminUser(adminStatus);
-            });
+            setAdminCheck('pending');
+            runAdminCheck(uidAtCheck);
           } else {
             setIsAdminUser(false);
+            setAdminCheck('skipped');
           }
         });
 
@@ -94,6 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       cancelled = true;
+      clearAdminRetry();
       unsubscribe();
     };
   }, []);
@@ -194,13 +234,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!uid) return false;
     const status = await checkAdmin(uid);
     // لا تلوّث حالة حساب جديد إن تغيّر المستخدم أثناء الفحص
-    if (currentUidRef.current === uid) setIsAdminUser(status);
-    return status;
+    if (currentUidRef.current === uid) setIsAdminUser(status === true);
+    return status === true;
   }, []);
 
   const value = {
     user,
     isAdminUser,
+    adminCheck,
     authLoading,
     authError,
     isFirebaseConfigured,

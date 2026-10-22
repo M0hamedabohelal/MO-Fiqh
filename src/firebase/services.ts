@@ -549,14 +549,25 @@ export async function syncAllNotes(uid: string, notesObject: Record<string, stri
 /* ==================== المشرفين (Admins) ==================== */
 
 // هل المستخدم مشرف؟
-export async function isAdmin(uid: string): Promise<boolean> {
+// 'unknown' عند فشل التقييم (شبكة/توكن/تهيئة باردة) بدل false،
+// لأن إرجاع false عند أي خطأ يُخفي لوحة الإدارة نهائيًا عن المشرف الحقيقي.
+export type AdminCheck = boolean | 'unknown';
+
+export async function isAdmin(uid: string): Promise<AdminCheck> {
   if (!isFirebaseConfigured || !uid) return false;
   try {
     const { db, fs } = await getDb();
-    const adminDoc = await fs.getDoc(fs.doc(db, 'admins', uid));
+    // getDocFromServer: قرار \"مشرف أم لا\" لا يُؤخذ من كاش قديم — والإجابة السلبية
+    // المخزّنة (مستند غير موجود) كانت تُبقي اللوحة مخفية بعد إضافة المشرف في الكونسول.
+    const adminDoc = await fs.getDocFromServer(fs.doc(db, 'admins', uid));
     return adminDoc.exists();
-  } catch {
-    return false;
+  } catch (error) {
+    // فشل حقيقي (offline / permission / تهيئة باردة) — ليس رفضًا
+    try {
+      const { logError } = await import('../utils/logError');
+      logError('admins.check', error, { uid });
+    } catch { /* تجاهل */ }
+    return 'unknown';
   }
 }
 

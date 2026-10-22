@@ -11,6 +11,7 @@ import type {
 import type { StopMarkMap } from '../../features/stopMarks/model';
 import type { StopMarksSyncState } from '../../hooks/useStopMarks';
 import type { LibrarySyncState } from '../../hooks/useUserLibrary';
+import type { UnifiedSyncState } from '../../utils/syncStatus';
 
 // قيمة سياق التطبيق — نفس شكل layoutProps سابقًا (مصدر واحد للحقيقة بدل ~40 prop متناثرة)
 export interface AppContextValue {
@@ -34,6 +35,9 @@ export interface AppContextValue {
   contentSyncDone: boolean;
   // هل الجهاز بلا اتصال؟ (لعرض مؤشر الواي فاي المشطوب في الشريط العلوي)
   isOffline: boolean;
+  // العلامة الواحدة للمزامنة: نجاح/جاري/تعذّر — تُعرض في الشريط العلوي فقط
+  unifiedSyncState: UnifiedSyncState;
+  retryAllSync: () => Promise<boolean>;
   canInstall: boolean;
   isInstalled: boolean;
   promptInstall: () => void;

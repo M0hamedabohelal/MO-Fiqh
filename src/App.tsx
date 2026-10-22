@@ -19,6 +19,7 @@ import { useStopMarks }        from './hooks/useStopMarks';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { usePWA }              from './hooks/usePWA';
 import { useAppData }          from './hooks/useAppData';
+import { computeUnifiedSyncState } from './utils/syncStatus';
 
 import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
@@ -33,7 +34,7 @@ import type { StopMarkMap } from './features/stopMarks/model';
 
 function App() {
   // ─── Auth ───
-  const { user, isAdminUser, authLoading } = useAuth();
+  const { user, isAdminUser, adminCheck, authLoading, isFirebaseConfigured, refreshAdminStatus } = useAuth();
 
   // ─── PWA ───
   const { canInstall, isInstalled, promptInstall, needRefresh, applyUpdate, checkForUpdates, offlineReady, dismissOfflineReady, isOffline } = usePWA();
@@ -44,6 +45,30 @@ function App() {
   // ─── المكتبة الشخصية ───
   const { bookmarks, highlights, notes, readLessons, lastSyncedAt, syncState: librarySyncState, retryLibrarySync, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary } = useUserLibrary();
   const { stopMarks, stopMarksReady, stopMarksSyncState, stopMarksLastSyncedAt, retryStopMarkSync, toggleStopMark, restoreStopMarks } = useStopMarks();
+
+  // ─── علامة المزامنة الواحدة ───
+  // كل مؤشرات المزامنة المتفرقة (المحتوى/المكتبة/العلامة/صلاحية المشرف) تُجمَع هنا
+  // وتُعرض كعلامة واحدة فقط في الشريط العلوي — نجاح أو تدخّل، لا خمس علامات.
+  const unifiedSyncState = useMemo(() => computeUnifiedSyncState({
+    isOffline,
+    isFirebaseConfigured,
+    user,
+    adminCheck,
+    cloudStatus,
+    contentSyncDone,
+    isAdminUser,
+    librarySyncState,
+    stopMarksSyncState,
+  }), [isOffline, isFirebaseConfigured, user, adminCheck, cloudStatus, contentSyncDone, isAdminUser, librarySyncState, stopMarksSyncState]);
+
+  // إعادة المحاولة الموحّدة: تُعيد كل المسارات معًا بضغطة واحدة — المحتوى والمكتبة والعلامة وفحص المشرف.
+  const retryAllSync = useCallback(() => {
+    retryLibrarySync();
+    retryStopMarkSync();
+    // الفحص فقط عند حساب مسجّل، وبلا إغراق: لا يُستدعى إلا بضغطة المستخدم
+    if (user) void refreshAdminStatus(user.uid);
+    return reloadFromCloud(true);
+  }, [retryLibrarySync, retryStopMarkSync, reloadFromCloud, refreshAdminStatus, user]);
 
   // ─── التوجيه الهاشي ───
   const { currentView, setCurrentView, currentIndex, setCurrentIndex, selectedBookName, setSelectedBookName, openChapterName, setOpenChapterName, goToNextLesson, goToPrevLesson, goBackToList } = useHashRoute(lessons);
@@ -270,6 +295,7 @@ function App() {
     cloudStatus, librarySyncState, retryLibrarySync, cloudLessonsLoaded, localLessonIds,
     contentSyncDone,
     isOffline,
+    unifiedSyncState, retryAllSync,
     canInstall, isInstalled, promptInstall,
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
@@ -293,6 +319,7 @@ function App() {
     theme, fontSize,
     cloudStatus, librarySyncState, retryLibrarySync, cloudLessonsLoaded, localLessonIds, contentSyncDone,
     isOffline,
+    unifiedSyncState, retryAllSync,
     canInstall, isInstalled, promptInstall,
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,

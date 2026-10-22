@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiAward, FiChevronLeft, FiRefreshCw, FiCloud, FiWifiOff, FiFlag } from 'react-icons/fi';
+import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiAward, FiChevronLeft, FiRefreshCw, FiCloud } from 'react-icons/fi';
 import { useApp } from '../Layout/AppContext';
 import GuestAccountCard from '../UI/GuestAccountCard';
+import SyncIndicator from '../UI/SyncIndicator';
 
 // شاشة الإعدادات وحول التطبيق
 const SettingsView = () => {
@@ -13,20 +14,12 @@ const SettingsView = () => {
     needRefresh,
     applyUpdate: onApplyUpdate,
     checkForUpdates: onCheckForUpdates,
-    librarySyncState,
-    retryLibrarySync,
-    retryStopMarkSync,
-    cloudLessonsLoaded,
-    contentSyncDone,
-    cloudStatus,
-    isOffline,
+    unifiedSyncState,
+    retryAllSync,
     lessonsCount,
-    stopMarksSyncState,
-    stopMarksLastSyncedAt,
-    stopMarksReady,
     lastSyncedAt,
+    stopMarksLastSyncedAt,
     user,
-    reloadFromCloud,
   } = useApp();
   const onOpenAchievements = (): void => setCurrentView('achievements');
   const [checking, setChecking] = useState(false);
@@ -69,71 +62,25 @@ const SettingsView = () => {
     }
   };
 
-  const handleRefreshContent = async (): Promise<void> => {
+  // زر/علامة واحدة موحّدة: تُعيد كل مسارات المزامنة معًا (المحتوى + المكتبة + العلامة + فحص المشرف).
+  // بدل عدة أزرار لنفس الغرض — إجراء واحد واضح للمستخدم.
+  const handleSyncAll = async (): Promise<void> => {
     if (refreshingContent) return;
     setRefreshingContent(true);
     setContentRefreshMessage('');
     try {
-      const ok = await reloadFromCloud(true);
+      const ok = await retryAllSync();
       setContentRefreshMessage(
         ok
-          ? 'تم تحديث المسائل من السحابة بنجاح.'
-          : (isOffline
-              ? 'الجهاز يبدو غير متصل بالإنترنت الآن؛ أعد المحاولة عند تأكّد الاتصال.'
-              : 'تعذر تحديث المسائل الآن؛ سيظل المحتوى المحفوظ متاحًا وأعد المحاولة بعد قليل.'),
+          ? 'تمت المزامنة بنجاح.'
+          : 'تعذرت المزامنة الآن؛ المحفوظ على الجهاز آمن وسيُعاد المحاولة تلقائيًا.',
       );
     } catch {
-      setContentRefreshMessage('تعذر تحديث المحتوى الآن؛ سيظل المحتوى المحفوظ متاحًا.');
+      setContentRefreshMessage('تعذرت المزامنة الآن؛ المحفوظ على الجهاز آمن.');
     } finally {
       setRefreshingContent(false);
     }
   };
-
-  // زر واحد موحّد: يحدّث المحتوى من السحابة ويعيد محاولة مزامنة المكتبة وعلامات الوقوف معًا.
-  // يمنع تكرار عدة أزرار لنفس الغرض ويجعل الإجراء واضحًا للمستخدم.
-  const handleSyncAll = async (): Promise<void> => {
-    if (refreshingContent) return;
-    retryLibrarySync();
-    retryStopMarkSync();
-    await handleRefreshContent();
-  };
-
-  const librarySyncLabel = isOffline
-    ? librarySyncState === 'pending'
-      ? 'التغييرات محفوظة على الجهاز وتنتظر الاتصال'
-      : 'غير متصل — بيانات هذا الجهاز متاحة'
-    : librarySyncState === 'loading'
-      ? 'جارٍ تحميل بيانات الحساب'
-      : librarySyncState === 'syncing'
-        ? 'جارٍ مزامنة بيانات الحساب'
-        : librarySyncState === 'pending'
-          ? 'تغييرات محفوظة محليًا وتنتظر المزامنة'
-          : librarySyncState === 'synced'
-            ? 'متزامنة مع الحساب'
-            : librarySyncState === 'local'
-              ? 'محفوظة على هذا الجهاز فقط'
-              : librarySyncState === 'offline'
-                ? 'مزامنة الحساب غير مؤكدة — النسخة المحفوظة على الجهاز متاحة'
-                : 'تعذرت المزامنة — التغييرات محفوظة محليًا';
-  const contentSourceLabel = cloudLessonsLoaded
-    ? 'المسائل محمّلة من السحابة'
-    : contentSyncDone
-      ? 'المسائل محمّلة من النسخة المحلية'
-      : 'جارٍ تحميل المسائل';
-  // تحذير فقط عند فشل فعلي مؤكد — لا أثناء المحاولة الأولى/إعادة المحاولة،
-  // ولا عند نجاح الاتصال السحابي بمجموعة فارغة (كان التحذير يبقى حينها رغم نجاح الطلب).
-  const contentFailed = !cloudLessonsLoaded && cloudStatus === 'offline';
-  const stopMarkLabel = !stopMarksReady
-    ? 'جارٍ استعادة العلامات'
-    : stopMarksSyncState === 'pending'
-      ? 'محفوظة محليًا وتنتظر المزامنة'
-      : stopMarksSyncState === 'synced'
-        ? 'علامات الوقوف متزامنة'
-        : stopMarksSyncState === 'error'
-          ? 'تعذرت المزامنة — ستُعاد المحاولة عند الاتصال'
-          : user
-            ? 'علامات الحساب محفوظة محليًا'
-            : 'محفوظة على هذا الجهاز للضيف';
 
   return (
   <div className="mt-4 mb-5 text-center">
@@ -144,53 +91,31 @@ const SettingsView = () => {
 
     <div className="custom-card p-3 p-md-4 mx-auto mb-4 text-end" style={{ maxWidth: '600px' }} aria-labelledby="sync-center-title">
       <h5 id="sync-center-title" className="fw-bold mb-3 d-flex align-items-center gap-2" style={{ color: 'var(--primary-color)' }}>
-        {isOffline ? <FiWifiOff /> : <FiCloud />} حالة البيانات والمزامنة
+        <FiCloud /> المزامنة
       </h5>
-      <div className="d-flex flex-column gap-2 small">
-        <div className="d-flex justify-content-between gap-3"><span>المحتوى ({lessonsCount} مسألة)</span><strong>{contentSourceLabel}</strong></div>
-        <div className="d-flex justify-content-between gap-3"><span>مكتبة الحساب</span><strong>{user ? librarySyncLabel : 'الضيف: محفوظة على هذا الجهاز'}</strong></div>
-        {user && <div className="d-flex justify-content-between gap-3"><span>آخر مزامنة للمكتبة</span><strong>{lastSyncedAt ? new Date(lastSyncedAt).toLocaleString('ar-EG') : 'لم تكتمل بعد'}</strong></div>}
-        <div className="d-flex justify-content-between gap-3"><span><FiFlag className="ms-1" />علامة الوقوف</span><strong>{stopMarkLabel}</strong></div>
-        {user && <div className="d-flex justify-content-between gap-3"><span>آخر مزامنة للعلامة</span><strong>{stopMarksLastSyncedAt ? new Date(stopMarksLastSyncedAt).toLocaleString('ar-EG') : 'لم تكتمل بعد'}</strong></div>}
-      </div>
-      <p className="text-muted small mt-3 mb-2">
-        عند تسجيل الدخول، تنتقل المفضلة والملاحظات والمسائل المقروءة وعلامات الوقوف بين أجهزتك. التغييرات دون إنترنت تُحفظ في هذا الجهاز وتُرسل تلقائيًا عند عودة الاتصال.
-      </p>
-      {/* زر واحد موحّد للمزامنة والتحديث: يتحوّل لتنبيه تحذيري بارز عند تعذّر تحميل المسائل
-          من السحابة، ويبقى زرًا هادئًا عاديًا خلاف ذلك — لا تكرار لعمل واحد. */}
-      {contentFailed ? (
-        <div className="alert alert-warning d-flex flex-column gap-2 mb-2 text-start" role="alert">
-          <span className="d-flex align-items-center gap-2 fw-bold">
-            <FiWifiOff /> {isOffline ? 'لا يوجد اتصال بالإنترنت' : 'تعذر تحديث المسائل من السحابة'}
-          </span>
-          <small className="text-muted">
-            {isOffline
-              ? 'ستبقى النسخة المحفوظة على جهازك متاحة، وتُحدَّث تلقائيًا عند عودة الاتصال.'
-              : 'النسخة المحفوظة على هذا الجهاز متاحة الآن. اضغط الزر لإعادة المحاولة.'}
-          </small>
-          <button
-            type="button"
-            className="btn btn-warning btn-sm d-flex align-items-center justify-content-center gap-2 fw-bold"
-            onClick={handleSyncAll}
-            disabled={refreshingContent}
-          >
-            {refreshingContent ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
-            {refreshingContent ? 'جارٍ تحديث المسائل...' : 'تحديث المسائل الآن'}
-          </button>
-        </div>
-      ) : (
+      {/* علامة واحدة فقط — نفس علامة الشريط العلوي، بلا صفوف ولا تفاصيل متفرقة */}
+      <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+        <SyncIndicator state={unifiedSyncState} onRetry={handleSyncAll} retrying={refreshingContent} detail={`${lessonsCount} مسألة`} />
         <button
           type="button"
           className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
           onClick={handleSyncAll}
           disabled={refreshingContent}
-          title={isOffline ? 'يُعاد المحاولة تلقائيًا عند رجوع الاتصال' : 'تحديث المحتوى ومزامنة بيانات الحساب'}
+          title="يحدّث المسائل ويُزامن بيانات الحساب وعلامات الوقوف ويُعيد فحص صلاحية المشرف"
         >
           {refreshingContent ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
-          {refreshingContent ? 'جارٍ التحديث والمزامنة...' : 'تحديث المزامنة والمحتوى'}
+          {refreshingContent ? 'جارٍ المزامنة...' : 'مزامنة الآن'}
         </button>
+      </div>
+      {user && (lastSyncedAt || stopMarksLastSyncedAt) && (
+        <small className="d-block mt-2 text-muted">
+          آخر مزامنة: {new Date(Math.max(lastSyncedAt ?? 0, stopMarksLastSyncedAt ?? 0)).toLocaleString('ar-EG')}
+        </small>
       )}
-      {contentRefreshMessage && <small className="d-block mt-2 text-muted" role="status">{contentRefreshMessage}</small>}
+      <p className="text-muted small mt-3 mb-0">
+        عند تسجيل الدخول تنتقل المفضلة والملاحظات والمسائل المقروءة وعلامات الوقوف بين أجهزتك. التغييرات دون إنترنت تُحفظ في هذا الجهاز وتُرسل تلقائيًا عند عودة الاتصال.
+      </p>
+      {contentRefreshMessage && <small className="d-block mt-2" style={{ color: unifiedSyncState === 'error' ? '#e74c3c' : '#27ae60' }} role="status">{contentRefreshMessage}</small>}
     </div>
 
     {/* قسم تحديث التطبيق */}
