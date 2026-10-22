@@ -34,7 +34,7 @@ import type { StopMarkMap } from './features/stopMarks/model';
 
 function App() {
   // ─── Auth ───
-  const { user, isAdminUser, authLoading, isFirebaseConfigured, refreshAdminStatus } = useAuth();
+  const { user, isAdminUser, authLoading, isFirebaseConfigured } = useAuth();
 
   // ─── PWA ───
   const { canInstall, isInstalled, promptInstall, needRefresh, applyUpdate, checkForUpdates, offlineReady, dismissOfflineReady, isOffline } = usePWA();
@@ -75,14 +75,14 @@ function App() {
 
   const unifiedSyncState = rawSyncState === 'syncing' && stalled ? 'partial' : rawSyncState;
 
-  // إعادة المحاولة الموحّدة: تُعيد كل المسارات معًا بضغطة واحدة — المحتوى والمكتبة والعلامة وفحص المشرف.
+  // إعادة المحاولة الموحّدة: تُعيد كل مسارات المزامنة معًا بضغطة واحدة.
+  // لا نُعيد فحص صلاحية المشرف هنا: الفحص يتكرر تلقائيًا في سياق المصادقة،
+  // وإضافته لكل ضغطة كانت تضيف رحلة شبكة زائدة وتُهدد بوميض لوحة الإدارة.
   const retryAllSync = useCallback(() => {
     retryLibrarySync();
     retryStopMarkSync();
-    // الفحص فقط عند حساب مسجّل، وبلا إغراق: لا يُستدعى إلا بضغطة المستخدم
-    if (user) void refreshAdminStatus(user.uid);
     return reloadFromCloud(true);
-  }, [retryLibrarySync, retryStopMarkSync, reloadFromCloud, refreshAdminStatus, user]);
+  }, [retryLibrarySync, retryStopMarkSync, reloadFromCloud]);
 
   // ─── التوجيه الهاشي ───
   const { currentView, setCurrentView, currentIndex, setCurrentIndex, selectedBookName, setSelectedBookName, openChapterName, setOpenChapterName, goToNextLesson, goToPrevLesson, goBackToList } = useHashRoute(lessons);

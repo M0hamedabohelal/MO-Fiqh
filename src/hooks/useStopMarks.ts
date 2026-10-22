@@ -114,8 +114,10 @@ export function useStopMarks() {
     void enableFirestoreNetwork();
     syncTimedOutRef.current = false;
     listenFailuresRef.current = 0;
-    // إزالة الرسالة الحمراء فورًا وإظهار أن المحاولة جارية
-    setSyncState('pending');
+    // 'pending' تعني "يوجد ما يُرسل الآن". بلا سجلات معلّقة لا شيء يُرسل،
+    // وإبقاء 'pending' كان يجعل مؤشر المزامنة يدور بلا سبب حتى تُعيد الاشتراك اللقطة.
+    // إعادة الاشتراك وحدها تُصحّح الحالة من اللقطة القادمة.
+    if (pendingRecordsRef.current.size > 0) setSyncState('pending');
     pendingRecordsRef.current.forEach((record, bookKey) => persistCloudRecord(currentUid, bookKey, record));
     setListenerRevision((revision) => revision + 1);
   }, [persistCloudRecord]);

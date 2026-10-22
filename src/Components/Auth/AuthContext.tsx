@@ -230,12 +230,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // إعادة فحص صلاحية المشرف
+  // 'unknown' = فشل تقييم (شبكة/توكن) وليس رفضًا: لا نمسّ الحالة الحالية،
+  // وإلا اختفت لوحة الإدارة عند كل فشل عابر ثم عادت في المحاولة التالية (وميض).
   const refreshAdminStatus = useCallback(async (uid: string): Promise<boolean> => {
     if (!uid) return false;
     const status = await checkAdmin(uid);
+    if (status === 'unknown') return false;
     // لا تلوّث حالة حساب جديد إن تغيّر المستخدم أثناء الفحص
-    if (currentUidRef.current === uid) setIsAdminUser(status === true);
-    return status === true;
+    if (currentUidRef.current === uid) {
+      setIsAdminUser(status);
+      setAdminCheck('done');
+    }
+    return status;
   }, []);
 
   const value = {
