@@ -2,20 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Lesson } from '../types';
 import { useAuth } from '../Components/Auth/AuthContext';
 import { safeGet, safeSet } from '../utils/safeStorage';
-import { logError } from '../utils/logError';
-import { subscribeToStopMarks, writeStopMark } from '../firebase/stopMarks';
-import { enableFirestoreNetwork } from '../firebase/config';
-import { probeOnline } from '../utils/connectivity';
 import {
-  compareStopMarks,
   createStopMarkChange,
   createRestoredStopMarks,
-  mergeStopMarkMaps,
   normalizeStopMarkMap,
+  mergeStopMarkMaps,
 } from '../features/stopMarks/model';
-import type { StopMarkMap, StopMarkRecord } from '../features/stopMarks/model';
+import type { StopMarkMap } from '../features/stopMarks/model';
 
-export type StopMarksSyncState = 'loading' | 'local' | 'pending' | 'synced' | 'error';
+// علامة الوقوف — محلية فقط (بدون أي مزامنة سحابية).
+// سجل واحد لكل كتاب يُحفظ في localStorage، معزول لكل حساب ولكل ضيف.
 
 const guestStorageKey = 'guest_stopMarks_v2';
 const accountStorageKey = (uid: string): string => `stopMarks_v2_${uid}`;
@@ -43,223 +39,55 @@ export function useStopMarks() {
   const uid = user?.uid ?? null;
   const [marks, setMarks] = useState<StopMarkMap>({});
   const [loadedUid, setLoadedUid] = useState<string | null | undefined>(undefined);
-  const [syncState, setSyncState] = useState<StopMarksSyncState>('loading');
-  const [lastSyncRecord, setLastSyncRecord] = useState<{ uid: string; at: number } | null>(null);
   const marksRef = useRef<StopMarkMap>({});
-  const activeUidRef = useRef<string | null>(uid);
-  const pendingRecordsRef = useRef(new Map<string, StopMarkRecord>());
-  const pendingTimeoutsRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-  const syncTimedOutRef = useRef(false);
   const deviceIdRef = useRef('');
-  // عدّاد فشل مستمع العلامات — خطأ عابر واحد لا يستحق إظهار "تعذرت مزامنة العلامة".
-  const listenFailuresRef = useRef(0);
-  // إعادة المحاولة اليدوية تُعيد الاشتراك أيضًا؛ خطأ المستمع لا يُصلحه إرسال السجلات وحده
-  // فكانت رسالة الخطأ تبقى في الأعلى مهما ضغط المستخدم.
-  const [listenerRevision, setListenerRevision] = useState(0);
 
-  const persistLocal = useCallback((next: StopMarkMap, currentUid: string | null) => {
+  const persist = useCallback((next: StopMarkMap, currentUid: string | null) => {
     marksRef.current = next;
     setMarks(next);
     safeSet(currentUid ? accountStorageKey(currentUid) : guestStorageKey, JSON.stringify(next));
   }, []);
 
-  const persistCloudRecord = useCallback((currentUid: string, bookKey: string, record: StopMarkRecord) => {
-    pendingRecordsRef.current.set(bookKey, record);
-    syncTimedOutRef.current = false;
-    setSyncState('pending');
-    const oldTimeout = pendingTimeoutsRef.current.get(bookKey);
-    if (oldTimeout) clearTimeout(oldTimeout);
-    const timeout = setTimeout(() => {
-      if (pendingRecordsRef.current.get(bookKey) !== record) return;
-      pendingTimeoutsRef.current.delete(bookKey);
-      if (activeUidRef.current === currentUid) {
-        syncTimedOutRef.current = true;
-        setSyncState('error');
-      }
-    }, 20_000);
-    pendingTimeoutsRef.current.set(bookKey, timeout);
-    void writeStopMark(currentUid, bookKey, record)
-      .then(async () => {
-        clearTimeout(timeout);
-        if (pendingTimeoutsRef.current.get(bookKey) === timeout) pendingTimeoutsRef.current.delete(bookKey);
-        if (activeUidRef.current !== currentUid) return;
-        // كتابة الكاش المحلي (Firestore offline persistence) تُحل فورًا حتى بلا شبكة،
-        // فلا نعلن "synced" إلا عند طلب الخادم فعليًا؛ وإلا بقي سجل العلامة غير مُرسل.
-        // navigator.onLine غير موثوق في PWA على أندرويد (يبقى false رغم وجود الشبكة)،
-        // فنستخدم فحص اتصال فعليًا قبل إعلان "بانتظار الاتصال" — وإلا ظلّت العلامة
-        // "تنتظر الرفع" والإنترنت يعمل.
-        if (!window.navigator.onLine) {
-          const online = await probeOnline(2_500);
-          if (activeUidRef.current !== currentUid) return;
-          if (!online) {
-            syncTimedOutRef.current = false;
-            setSyncState('pending');
-            return;
-          }
-        }
-        if (pendingRecordsRef.current.get(bookKey) === record) pendingRecordsRef.current.delete(bookKey);
-        if (pendingRecordsRef.current.size === 0) {
-          syncTimedOutRef.current = false;
-          setSyncState('synced');
-          setLastSyncRecord({ uid: currentUid, at: Date.now() });
-        }
-      })
-      .catch(async (error: unknown) => {
-        clearTimeout(timeout);
-        if (pendingTimeoutsRef.current.get(bookKey) === timeout) pendingTimeoutsRef.current.delete(bookKey);
-        if (activeUidRef.current !== currentUid) return;
-        logError('stopMarks.write', error);
-        const online = window.navigator.onLine || await probeOnline(2_500);
-        if (activeUidRef.current !== currentUid) return;
-        syncTimedOutRef.current = online;
-        setSyncState(online ? 'error' : 'pending');
-      });
-  }, []);
-
-  const retryStopMarkSync = useCallback(() => {
-    const currentUid = activeUidRef.current;
-    if (!currentUid) return;
-    // لا نحجب المحاولة بـ navigator.onLine (قد يكون خاطئًا بعد عودة الشبكة) —
-    // نجبر Firestore على إعادة الاتصال ونترك الطلب نفسه يحكم.
-    void enableFirestoreNetwork();
-    syncTimedOutRef.current = false;
-    listenFailuresRef.current = 0;
-    // 'pending' تعني "يوجد ما يُرسل الآن". بلا سجلات معلّقة لا شيء يُرسل،
-    // وإبقاء 'pending' كان يجعل مؤشر المزامنة يدور بلا سبب حتى تُعيد الاشتراك اللقطة.
-    // إعادة الاشتراك وحدها تُصحّح الحالة من اللقطة القادمة.
-    if (pendingRecordsRef.current.size > 0) setSyncState('pending');
-    pendingRecordsRef.current.forEach((record, bookKey) => persistCloudRecord(currentUid, bookKey, record));
-    setListenerRevision((revision) => revision + 1);
-  }, [persistCloudRecord]);
-
-  // يحمّل هذا الأثر مخزن الحساب بعد استقرار المصادقة، لذا تحديث الحالة هنا هو مزامنة التخزين المحلي المقصودة.
+  // تحميل علامات الحساب/الضيف من localStorage عند استقرار المصادقة
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (authLoading) return undefined;
-    let cancelled = false;
-    let unsubscribe: (() => void) | undefined;
-    const pendingTimeouts = pendingTimeoutsRef.current;
-    activeUidRef.current = uid;
-    pendingTimeouts.forEach((timeout) => clearTimeout(timeout));
-    pendingTimeouts.clear();
-    pendingRecordsRef.current.clear();
-    syncTimedOutRef.current = false;
-    listenFailuresRef.current = 0;
-
-    const storedMarks = readStoredMarks(uid ? accountStorageKey(uid) : guestStorageKey);
-    persistLocal(storedMarks, uid);
-
-    if (!uid) {
+    if (authLoading) return;
+    const currentUid = uid;
+    if (!currentUid) {
+      const guestMarks = readStoredMarks(guestStorageKey);
+      persist(guestMarks, null);
       setLoadedUid(null);
-      setSyncState('local');
-      return () => { cancelled = true; };
+      return;
     }
-
-    setSyncState('loading');
-    // حارس: إن لم تصل أي لقطة من مستمع العلامات خلال هذه المدة فالاتصال لم يستقر.
-    // ننتقل إلى 'local' (العلامات المحفوظة على الجهاز متاحة) بدل البقاء 'loading'
-    // وهو ما كان يُبقي مؤشر المزامنة في حالة "جاري" بلا نهاية.
-    const loadingGuard = setTimeout(() => {
-      if (cancelled || activeUidRef.current !== uid) return;
-      setSyncState((previous) => (previous === 'loading' ? 'local' : previous));
-    }, 10_000);
-    void subscribeToStopMarks(uid, (cloudDocuments, metadata) => {
-      if (cancelled || activeUidRef.current !== uid) return;
-      listenFailuresRef.current = 0;
-      const normalizedCloud = normalizeStopMarkMap(cloudDocuments);
-      const current = marksRef.current;
-      const merged = mergeStopMarkMaps(current, normalizedCloud);
-      persistLocal(merged, uid);
-      setLoadedUid(uid);
-      if (metadata.hasPendingWrites || pendingRecordsRef.current.size > 0) {
-        setSyncState(syncTimedOutRef.current ? 'error' : 'pending');
-      }
-      else if (metadata.fromCache) setSyncState('local');
-      else {
-        setSyncState('synced');
-        setLastSyncRecord({ uid, at: Date.now() });
-      }
-
-      // جهاز رجع من عدم الاتصال قد يحمل سجلًا أحدث من السحابة؛ أعد رفع الفائز نفسه.
-      Object.entries(current).forEach(([bookKey, localRecord]) => {
-        const cloudRecord = normalizedCloud[bookKey];
-        if (!cloudRecord || compareStopMarks(localRecord, cloudRecord) > 0) {
-          persistCloudRecord(uid, bookKey, localRecord);
-        }
-      });
-    }, (error) => {
-      if (cancelled || activeUidRef.current !== uid) return;
-      logError('stopMarks.listen', error);
-      listenFailuresRef.current += 1;
-      // أثناء انقطاع الاتصال لا نُظهر "تعذرت المزامنة" — مؤشر الواي فاي يكفي،
-      // ومع خطأ عابر واحد نبقى 'pending' ونعيد الاشتراك تلقائيًا.
-      setSyncState(
-        !window.navigator.onLine
-          ? 'pending'
-          : listenFailuresRef.current >= 2 ? 'error' : 'pending',
-      );
-    }).then((stopListening) => {
-      if (cancelled) stopListening();
-      else unsubscribe = stopListening;
-    }).catch((error: unknown) => {
-      if (cancelled || activeUidRef.current !== uid) return;
-      logError('stopMarks.listen', error);
-      listenFailuresRef.current += 1;
-      setSyncState(
-        !window.navigator.onLine
-          ? 'pending'
-          : listenFailuresRef.current >= 2 ? 'error' : 'pending',
-      );
-    });
-
-    return () => {
-      cancelled = true;
-      clearTimeout(loadingGuard);
-      unsubscribe?.();
-      pendingTimeouts.forEach((timeout) => clearTimeout(timeout));
-      pendingTimeouts.clear();
-    };
-  }, [authLoading, uid, persistCloudRecord, persistLocal, listenerRevision]);
+    // ترحيل علامات الضيف إلى الحساب عند أول دخول (مرة واحدة)
+    const guestMarks = readStoredMarks(guestStorageKey);
+    const accountMarks = readStoredMarks(accountStorageKey(currentUid));
+    const merged = Object.keys(guestMarks).length > 0
+      ? mergeStopMarkMaps(accountMarks, guestMarks)
+      : accountMarks;
+    persist(merged, currentUid);
+    setLoadedUid(currentUid);
+  }, [authLoading, uid, persist]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  useEffect(() => {
-    const retryPendingWrites = () => retryStopMarkSync();
-    window.addEventListener('online', retryPendingWrites);
-    return () => window.removeEventListener('online', retryPendingWrites);
-  }, [retryStopMarkSync]);
-
   const toggleStopMark = useCallback((lesson: Lesson) => {
-    if (authLoading || activeUidRef.current !== uid) return;
+    if (authLoading) return;
     if (!deviceIdRef.current) deviceIdRef.current = getDeviceId();
     const change = createStopMarkChange(marksRef.current, lesson, deviceIdRef.current);
     if (!change) return;
-    const next = { ...marksRef.current, [change.bookKey]: change.record };
-    persistLocal(next, uid);
-    if (uid) persistCloudRecord(uid, change.bookKey, change.record);
-    else setSyncState('local');
-  }, [authLoading, uid, persistCloudRecord, persistLocal]);
+    persist({ ...marksRef.current, [change.bookKey]: change.record }, uid);
+  }, [authLoading, uid, persist]);
 
   const restoreStopMarks = useCallback((restored: unknown) => {
-    if (authLoading || activeUidRef.current !== uid) return;
+    if (authLoading) return;
     if (!deviceIdRef.current) deviceIdRef.current = getDeviceId();
     const incoming = normalizeStopMarkMap(restored);
-    const merged = createRestoredStopMarks(marksRef.current, incoming, deviceIdRef.current);
-    persistLocal(merged, uid);
-    if (uid) {
-      Object.entries(merged).forEach(([bookKey, record]) => {
-        if (incoming[bookKey] && record.deviceId === deviceIdRef.current) persistCloudRecord(uid, bookKey, record);
-      });
-    } else {
-      setSyncState('local');
-    }
-  }, [authLoading, uid, persistCloudRecord, persistLocal]);
+    persist(createRestoredStopMarks(marksRef.current, incoming, deviceIdRef.current), uid);
+  }, [authLoading, uid, persist]);
 
   return {
     stopMarks: marks,
     stopMarksReady: loadedUid === uid,
-    stopMarksSyncState: syncState,
-    stopMarksLastSyncedAt: lastSyncRecord?.uid === uid ? lastSyncRecord.at : null,
-    retryStopMarkSync,
     toggleStopMark,
     restoreStopMarks,
   };

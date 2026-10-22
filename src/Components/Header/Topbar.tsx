@@ -3,32 +3,15 @@ import { FiMoon, FiBell } from 'react-icons/fi';
 import { BsBook } from 'react-icons/bs';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import AnnouncementsModal from '../UI/AnnouncementsModal';
-import SyncIndicator from '../UI/SyncIndicator';
-import type { UnifiedSyncState } from '../../utils/syncStatus';
 
 interface TopbarProps {
   theme: string;
   toggleTheme: (theme: string) => void;
-  /** العلامة الموحّدة: كل مسارات المزامنة (المحتوى/المكتبة/العلامة/المشرف) مجمّعة في حالة واحدة */
-  syncState: UnifiedSyncState;
-  onRetrySync: () => Promise<boolean>;
 }
 
-const Topbar = ({ theme, toggleTheme, syncState, onRetrySync }: TopbarProps) => {
+const Topbar = ({ theme, toggleTheme }: TopbarProps) => {
   const { announcements, unreadCount, markAsRead, refresh } = useAnnouncements();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [retrying, setRetrying] = useState(false);
-
-  // العلامة الوحيدة: الضغط عليها (عند التعذّر) يعيد كل المسارات معًا — لا أزرار مزامنة متفرقة.
-  const handleRetry = async (): Promise<void> => {
-    if (retrying) return;
-    setRetrying(true);
-    try {
-      await onRetrySync();
-    } finally {
-      setRetrying(false);
-    }
-  };
 
   const handleOpenAnnouncements = () => {
     refresh();
@@ -81,10 +64,6 @@ const Topbar = ({ theme, toggleTheme, syncState, onRetrySync }: TopbarProps) => 
         <span className="d-none d-md-inline">{getThemeLabel()}</span>
       </button>
 
-      {/* العلامة الوحيدة للمزامنة — لا مؤشرات أخرى في أي مكان بالواجهة */}
-      <div className="ms-auto">
-        <SyncIndicator state={syncState} onRetry={handleRetry} retrying={retrying} compact />
-      </div>
     </div>
     {isModalOpen && (
       <AnnouncementsModal

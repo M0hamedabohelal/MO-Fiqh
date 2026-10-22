@@ -19,14 +19,12 @@ import { useStopMarks }        from './hooks/useStopMarks';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { usePWA }              from './hooks/usePWA';
 import { useAppData }          from './hooks/useAppData';
-import { computeUnifiedSyncState, describeSyncGap, SYNC_STALL_TIMEOUT_MS } from './utils/syncStatus';
 
 import { trackLessonView }     from './firebase/services';
 import { BOOKS_LIST }          from './data/books';
 import { safeGet, safeSet } from './utils/safeStorage';
 import { createUniqueId } from './utils/uniqueId';
 import { useVisitTracking }    from './hooks/useVisitTracking';
-import { useSyncedPreferences } from './hooks/useSyncedPreferences';
 import { useSplash }           from './hooks/useSplash';
 import type { Lesson, ChapterGroup, HighlightItem } from './types';
 import { getLatestStopMark } from './features/stopMarks/model';
@@ -34,71 +32,17 @@ import type { StopMarkMap } from './features/stopMarks/model';
 
 function App() {
   // ─── Auth ───
-  const { user, isAdminUser, authLoading, isFirebaseConfigured } = useAuth();
+  const { user, isAdminUser, authLoading } = useAuth();
 
   // ─── PWA ───
   const { canInstall, isInstalled, promptInstall, needRefresh, applyUpdate, checkForUpdates, offlineReady, dismissOfflineReady, isOffline } = usePWA();
 
   // ─── بيانات المحتوى ───
-  const { lessons, glossary, cloudStatus, reloadFromCloud, cloudLessonsLoaded, contentSyncDone, localLessonIds } = useAppData({ isOffline });
+  const { lessons, glossary, cloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, localLessonIds } = useAppData({ isOffline });
 
   // ─── المكتبة الشخصية ───
-  const { bookmarks, highlights, notes, readLessons, lastSyncedAt, syncState: librarySyncState, retryLibrarySync, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary } = useUserLibrary();
-  const { stopMarks, stopMarksReady, stopMarksSyncState, stopMarksLastSyncedAt, retryStopMarkSync, toggleStopMark, restoreStopMarks } = useStopMarks();
-
-  // ─── علامة المزامنة الواحدة ───
-  // كل مؤشرات المزامنة المتفرقة (المحتوى/المكتبة/العلامة) تُجمَع هنا
-  // وتُعرض كعلامة واحدة فقط في الشريط العلوي — نجاح أو تدخّل، لا خمس علامات.
-  const rawSyncState = useMemo(() => computeUnifiedSyncState({
-    isOffline,
-    isFirebaseConfigured,
-    user,
-    cloudStatus,
-    contentSyncDone,
-    librarySyncState,
-    stopMarksSyncState,
-  }), [isOffline, isFirebaseConfigured, user, cloudStatus, contentSyncDone, librarySyncState, stopMarksSyncState]);
-
-  // حارس التعليق: لو بقيت الحالة 'syncing' أطول من الحد المسموح فالمسار لم يُنهِ حالته.
-  // ننتقل إلى 'partial' بدل دوران لا ينتهي — المستخدم يرى حقيقة الوضع لا مؤشرًا كاذبًا.
-  const [stalled, setStalled] = useState(false);
-  useEffect(() => {
-    if (rawSyncState !== 'syncing') {
-      // مزامنة مقصودة مع حالة مشتقة: تصفير الحارس عند انتهاء الانتظار
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStalled(false);
-      return undefined;
-    }
-    const t = setTimeout(() => setStalled(true), SYNC_STALL_TIMEOUT_MS);
-    return () => clearTimeout(t);
-  }, [rawSyncState]);
-
-  const unifiedSyncState = rawSyncState === 'syncing' && stalled ? 'partial' : rawSyncState;
-
-  // تفصيل ما لم يُؤكَّد — يُعرض فقط عند عدم اكتمال المزامنة، فيعرف المستخدم أي مسار توقف
-  // بدل التخمين. الحالة السليمة تبقى علامة واحدة بلا أي تفاصيل.
-  const syncDetails = useMemo(() => {
-    if (unifiedSyncState === 'synced') return [];
-    if (unifiedSyncState === 'syncing') return [];
-    return describeSyncGap({
-      isOffline,
-      isFirebaseConfigured,
-      user,
-      cloudStatus,
-      contentSyncDone,
-      librarySyncState,
-      stopMarksSyncState,
-    });
-  }, [unifiedSyncState, isOffline, isFirebaseConfigured, user, cloudStatus, contentSyncDone, librarySyncState, stopMarksSyncState]);
-
-  // إعادة المحاولة الموحّدة: تُعيد كل مسارات المزامنة معًا بضغطة واحدة.
-  // لا نُعيد فحص صلاحية المشرف هنا: الفحص يتكرر تلقائيًا في سياق المصادقة،
-  // وإضافته لكل ضغطة كانت تضيف رحلة شبكة زائدة وتُهدد بوميض لوحة الإدارة.
-  const retryAllSync = useCallback(() => {
-    retryLibrarySync();
-    retryStopMarkSync();
-    return reloadFromCloud(true);
-  }, [retryLibrarySync, retryStopMarkSync, reloadFromCloud]);
+  const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary } = useUserLibrary();
+  const { stopMarks, stopMarksReady, toggleStopMark, restoreStopMarks } = useStopMarks();
 
   // ─── التوجيه الهاشي ───
   const { currentView, setCurrentView, currentIndex, setCurrentIndex, selectedBookName, setSelectedBookName, openChapterName, setOpenChapterName, goToNextLesson, goToPrevLesson, goBackToList } = useHashRoute(lessons);
@@ -117,22 +61,17 @@ function App() {
   const [isLoginOpen, setIsLoginOpen]     = useState(false);
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');
   const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
-  // بوابة الشاشة تعتمد على تحميل المحتوى فقط (contentSyncDone) لا على cloudStatus
-  // المُشترك مع مزامنة المكتبة (وإلا علِقت الشاشة للمسجّلين).
-  const { visible: showSplash, progress: splashProgress } = useSplash(authLoading, !contentSyncDone);
-  // صياغة دقيقة حسب وجود الحساب: الضيف "يحمّل" المحتوى العام، والمسجّل "يزامن" بياناته
+  // بوابة الشاشة تعتمد على اكتمال تحميل المحتوى فقط
+  const { visible: showSplash, progress: splashProgress } = useSplash(authLoading, !contentReady);
   const splashStatus = authLoading
     ? 'جارٍ التحقق من الحساب...'
-    : !contentSyncDone
-      ? (user ? 'جارٍ تحميل المسائل ومزامنتها...' : 'جارٍ تحميل المسائل كاملة...')
+    : !contentReady
+      ? 'جارٍ تحميل المسائل...'
       : cloudLessonsLoaded
         ? 'المسائل جاهزة من السحابة'
         : 'اكتمل تحميل المسائل المحلية';
   // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
   const [showOnboarding, setShowOnboarding] = useState(false);
-
-  // المظهر وحجم الخط يتبعان الحساب نفسه على كل أجهزته، مع استمرار التخزين المحلي للضيف.
-  useSyncedPreferences(user?.uid, authLoading, theme, setTheme, fontSize, setFontSize);
 
   // تبديل الحساب يعود إلى الشاشة الرئيسية.
   const previousUidRef = useRef<string | null>(user?.uid ?? null);
@@ -295,7 +234,7 @@ function App() {
       void import('./Components/Views/HighlightsView');
       void import('./Components/Views/SettingsView');
       // حزم Firebase (الأثقل ~118KB مضغوطًا) تُحمَّل وتُحلَّل مبكرًا عند الخمول،
-      // فلا تنتظرها أول مزامنة/أول دخول — نفس المقاطع المعاد استخدامها لاحقًا بلا تحميل مكرر
+      // فلا تنتظرها أول دخول — نفس المقاطع المعاد استخدامها لاحقًا بلا تحميل مكرر
       void import('firebase/firestore');
       void import('firebase/auth');
     };
@@ -322,16 +261,13 @@ function App() {
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
     theme, setTheme, fontSize, setFontSize,
-    cloudStatus, librarySyncState, retryLibrarySync, cloudLessonsLoaded, localLessonIds,
-    contentSyncDone,
+    cloudStatus, cloudLessonsLoaded, localLessonIds,
+    contentReady,
     isOffline,
-    unifiedSyncState, retryAllSync,
-    syncDetails,
     canInstall, isInstalled, promptInstall,
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
-    lastSyncedAt,
-    stopMarks, stopMarksReady, stopMarksSyncState, stopMarksLastSyncedAt, retryStopMarkSync,
+    stopMarks, stopMarksReady,
     booksWithStats, selectedBookName, selectedBookChapters,
     openChapterName,
     setCurrentView, openBookChapters, toggleChapter,
@@ -348,15 +284,12 @@ function App() {
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
     theme, fontSize,
-    cloudStatus, librarySyncState, retryLibrarySync, cloudLessonsLoaded, localLessonIds, contentSyncDone,
+    cloudStatus, cloudLessonsLoaded, localLessonIds, contentReady,
     isOffline,
-    unifiedSyncState, retryAllSync,
-    syncDetails,
     canInstall, isInstalled, promptInstall,
     needRefresh, applyUpdate, checkForUpdates,
     glossary, notes, bookmarks, highlights, readLessons,
-    lastSyncedAt,
-    stopMarks, stopMarksReady, stopMarksSyncState, stopMarksLastSyncedAt, retryStopMarkSync,
+    stopMarks, stopMarksReady,
     booksWithStats, selectedBookName, selectedBookChapters,
     openChapterName,
     setCurrentView, openBookChapters, toggleChapter,

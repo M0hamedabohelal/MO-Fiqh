@@ -38,7 +38,7 @@ const ChaptersView = () => {
     openChapterName,
     toggleChapter: onToggleChapter,
     openLessonById,
-    contentSyncDone,
+    contentReady,
     stopMarks,
     lessons,
   } = useApp();
@@ -66,7 +66,7 @@ const ChaptersView = () => {
     )}
 
     {chapters.length === 0 ? (
-      !contentSyncDone ? (
+      !contentReady ? (
         <div className="custom-card p-5 text-center shadow-sm">
           <div className="spinner-border mb-3" style={{ color: 'var(--primary-color)' }} role="status" aria-hidden="true" />
           <p className="text-muted mb-0 small">جارٍ تحميل مسائل الكتاب من السحابة...</p>

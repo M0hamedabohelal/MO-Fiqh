@@ -65,21 +65,6 @@ export interface HighlightItem {
   text: string;
 }
 
-export interface UserLibraryData {
-  bookmarks: string[];
-  highlights: HighlightItem[];
-  notes: Record<string, string>;
-  readLessons: string[];
-  visits: string[];
-  // شواهد الحذف { section: { key: timestamp } } — تمنع عودة المحذوف من جهاز آخر للأبد
-  tombs: {
-    bookmarks: Record<string, number>;
-    readLessons: Record<string, number>;
-    highlightIds: Record<string, number>;
-    noteKeys: Record<string, number>;
-  };
-}
-
 export interface AnnouncementItem {
   id: string;
   title: string;

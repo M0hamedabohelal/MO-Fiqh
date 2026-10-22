@@ -77,7 +77,6 @@ const ReadingView = () => {
     toggleBookmark,
     stopMarks,
     toggleStopMark,
-    stopMarksSyncState,
     currentIndex,
     lessons,
     goToPrevLesson: onPrev,
@@ -456,7 +455,7 @@ const ReadingView = () => {
               }}
               onClick={onToggleStopMark}
               aria-pressed={isStopMarked}
-              title={stopMarksSyncState === 'pending' ? 'محفوظة محليًا — تنتظر المزامنة' : 'حفظ أو إزالة علامة الوقوف لهذا الكتاب'}
+              title="حفظ أو إزالة علامة الوقوف لهذا الكتاب"
             >
               <FiFlag className="ms-2" style={{ color: 'var(--accent-color)' }} />
               {isStopMarked ? 'علامة الوقوف محفوظة' : 'ضع علامة وقوف'}

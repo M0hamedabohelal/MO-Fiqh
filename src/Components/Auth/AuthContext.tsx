@@ -4,8 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import type { ReactNode } from 'react';
 import type { User } from 'firebase/auth';
 import { getAuthModule, isFirebaseConfigured } from '../../firebase/config';
-import { fetchUserData, isAdmin as checkAdmin } from '../../firebase/services';
-import type { UserLibraryData } from '../../types';
+import { isAdmin as checkAdmin } from '../../firebase/services';
 
 interface AuthResult {
   success: boolean;
@@ -24,7 +23,6 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<AuthResult>;
   loginWithGoogle: () => Promise<AuthResult>;
   logout: () => Promise<void>;
-  loadUserData: (uid: string) => Promise<UserLibraryData | null>;
   refreshAdminStatus: (uid: string) => Promise<boolean>;
 }
 
@@ -228,16 +226,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // جلب بيانات المستخدم من Firestore (المفضلة والفوائد والملاحظات)
-  const loadUserData = useCallback(async (uid: string): Promise<UserLibraryData | null> => {
-    if (!isFirebaseConfigured || !uid) return null;
-    try {
-      return await fetchUserData(uid);
-    } catch {
-      return null;
-    }
-  }, []);
-
   // إعادة فحص صلاحية المشرف
   // 'unknown' = فشل تقييم (شبكة/توكن) وليس رفضًا: لا نمسّ الحالة الحالية،
   // وإلا اختفت لوحة الإدارة عند كل فشل عابر ثم عادت في المحاولة التالية (وميض).
@@ -264,7 +252,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     loginWithGoogle,
     logout,
-    loadUserData,
     refreshAdminStatus,
   };
 

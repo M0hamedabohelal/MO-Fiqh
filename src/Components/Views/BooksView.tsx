@@ -7,7 +7,7 @@ import { getStopMarkForBook } from '../../features/stopMarks/model';
 
 // شاشة فهرس الكتب — كل كتاب بغلاف بصري + إحصاءات التقدم
 const BooksView = memo(() => {
-  const { booksWithStats: books, lessons, stopMarks, openBookChapters: onOpenBook, openLessonById, contentSyncDone } = useApp();
+  const { booksWithStats: books, lessons, stopMarks, openBookChapters: onOpenBook, openLessonById, contentReady } = useApp();
   return (
   <div className="mt-4">
     <GuestAccountCard />
@@ -50,7 +50,7 @@ const BooksView = memo(() => {
                 <div className="book-meta-text" title={bookName}>
                   <span className="book-meta-text-title">{bookName}</span>
                   <span className="book-cover-count">
-                    {issuesCount > 0 ? `${issuesCount} مسألة` : (!contentSyncDone ? 'جارٍ التحميل…' : 'قريباً')}
+                    {issuesCount > 0 ? `${issuesCount} مسألة` : (!contentReady ? 'جارٍ التحميل…' : 'قريباً')}
                   </span>
                 </div>
                 {issuesCount > 0 && (

@@ -43,7 +43,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   const cloudRetryRef = useRef(0);
   // لرصد لحظة عودة الاتصال: عندها نحاول فورًا بلا انتظار تراجع أسّي قد يبلغ 30 ثانية.
   const wasOfflineRef = useRef(isOffline);
-  const contentSyncDone = isOffline
+  const contentReady = isOffline
     ? localLessonsLoaded
     : cloudLessonsLoaded || (localLessonsLoaded && (cloudAttemptDone || cloudGraceElapsed));
 
@@ -291,5 +291,5 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     return () => { cancelled = true; };
   }, []);
 
-  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded, contentSyncDone, localLessonIds };
+  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, localLessonIds };
 }

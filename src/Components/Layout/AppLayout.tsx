@@ -40,7 +40,6 @@ const AppLayout = () => {
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
     theme, setTheme,
-    unifiedSyncState, retryAllSync,
     selectedBookName,
     canInstall, promptInstall,
     setCurrentView,
@@ -74,8 +73,6 @@ const AppLayout = () => {
       <Topbar
         theme={theme}
         toggleTheme={setTheme}
-        syncState={unifiedSyncState}
-        onRetrySync={retryAllSync}
       />
 
       <div className="container mt-4" style={{ maxWidth: '850px' }}>

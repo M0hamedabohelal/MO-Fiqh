@@ -9,9 +9,6 @@ import type {
   HighlightItem,
 } from '../../types';
 import type { StopMarkMap } from '../../features/stopMarks/model';
-import type { StopMarksSyncState } from '../../hooks/useStopMarks';
-import type { LibrarySyncState } from '../../hooks/useUserLibrary';
-import type { UnifiedSyncState } from '../../utils/syncStatus';
 
 // قيمة سياق التطبيق — نفس شكل layoutProps سابقًا (مصدر واحد للحقيقة بدل ~40 prop متناثرة)
 export interface AppContextValue {
@@ -26,20 +23,12 @@ export interface AppContextValue {
   fontSize: number;
   setFontSize: Dispatch<SetStateAction<number>>;
   cloudStatus: string;
-  librarySyncState: LibrarySyncState;
-  retryLibrarySync: () => void;
   cloudLessonsLoaded: boolean;
   localLessonIds: string[];
-  lastSyncedAt: number | null;
   // هل انتهت أول محاولة لتحميل المحتوى؟ (مستقل عن cloudStatus المشترك مع مزامنة المكتبة)
-  contentSyncDone: boolean;
+  contentReady: boolean;
   // هل الجهاز بلا اتصال؟ (لعرض مؤشر الواي فاي المشطوب في الشريط العلوي)
   isOffline: boolean;
-  // العلامة الواحدة للمزامنة: نجاح/جاري/تعذّر — تُعرض في الشريط العلوي فقط
-  unifiedSyncState: UnifiedSyncState;
-  retryAllSync: () => Promise<boolean>;
-  // أسباب عدم اكتمال المزامنة (فارغة عند النجاح) — تُعرض فقط عند الحاجة للتشخيص
-  syncDetails: string[];
   canInstall: boolean;
   isInstalled: boolean;
   promptInstall: () => void;
@@ -53,9 +42,6 @@ export interface AppContextValue {
   readLessons: string[];
   stopMarks: StopMarkMap;
   stopMarksReady: boolean;
-  stopMarksSyncState: StopMarksSyncState;
-  stopMarksLastSyncedAt: number | null;
-  retryStopMarkSync: () => void;
   booksWithStats: BookStats[];
   selectedBookName: string | null;
   selectedBookChapters: ChapterGroup[];

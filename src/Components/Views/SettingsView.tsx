@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiAward, FiChevronLeft, FiRefreshCw, FiCloud } from 'react-icons/fi';
+import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiDownload, FiCheckCircle, FiAward, FiChevronLeft, FiRefreshCw } from 'react-icons/fi';
 import { useApp } from '../Layout/AppContext';
 import GuestAccountCard from '../UI/GuestAccountCard';
-import SyncIndicator from '../UI/SyncIndicator';
 
 // شاشة الإعدادات وحول التطبيق
 const SettingsView = () => {
@@ -14,23 +13,14 @@ const SettingsView = () => {
     needRefresh,
     applyUpdate: onApplyUpdate,
     checkForUpdates: onCheckForUpdates,
-    unifiedSyncState,
-    retryAllSync,
-    syncDetails,
-    lessonsCount,
-    lastSyncedAt,
-    stopMarksLastSyncedAt,
-    user,
   } = useApp();
   const onOpenAchievements = (): void => setCurrentView('achievements');
   const [checking, setChecking] = useState(false);
   const [checkedOnce, setCheckedOnce] = useState(false);
-  const [refreshingContent, setRefreshingContent] = useState(false);
-  const [contentRefreshMessage, setContentRefreshMessage] = useState('');
   const timerRef = useRef<number | null>(null);
 
   // لحظة ظهور تحديث حقيقي ننهي الفحص فورًا — زر التحديث يحل محل زر الفحص تلقائيًا
-  // مزامنة مقصودة مع حالة خارجية (الـ Service Worker) لا بديل تفاعلي لها
+  // حالة خارجية (الـ Service Worker) لا بديل تفاعلي لها
   useEffect(() => {
     if (needRefresh && checking) {
       if (timerRef.current) {
@@ -63,67 +53,12 @@ const SettingsView = () => {
     }
   };
 
-  // زر/علامة واحدة موحّدة: تُعيد كل مسارات المزامنة معًا (المحتوى + المكتبة + العلامة + فحص المشرف).
-  // بدل عدة أزرار لنفس الغرض — إجراء واحد واضح للمستخدم.
-  const handleSyncAll = async (): Promise<void> => {
-    if (refreshingContent) return;
-    setRefreshingContent(true);
-    setContentRefreshMessage('');
-    try {
-      const ok = await retryAllSync();
-      setContentRefreshMessage(
-        ok
-          ? 'تمت المزامنة بنجاح.'
-          : 'تعذرت المزامنة الآن؛ المحفوظ على الجهاز آمن وسيُعاد المحاولة تلقائيًا.',
-      );
-    } catch {
-      setContentRefreshMessage('تعذرت المزامنة الآن؛ المحفوظ على الجهاز آمن.');
-    } finally {
-      setRefreshingContent(false);
-    }
-  };
-
   return (
   <div className="mt-4 mb-5 text-center">
     <GuestAccountCard />
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
       حول التطبيق والإعدادات
     </h3>
-
-    <div className="custom-card p-3 p-md-4 mx-auto mb-4 text-end" style={{ maxWidth: '600px' }} aria-labelledby="sync-center-title">
-      <h5 id="sync-center-title" className="fw-bold mb-3 d-flex align-items-center gap-2" style={{ color: 'var(--primary-color)' }}>
-        <FiCloud /> المزامنة
-      </h5>
-      {/* علامة واحدة فقط — نفس علامة الشريط العلوي، بلا صفوف ولا تفاصيل متفرقة */}
-      <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
-        <SyncIndicator state={unifiedSyncState} onRetry={handleSyncAll} retrying={refreshingContent} detail={`${lessonsCount} مسألة`} />
-        <button
-          type="button"
-          className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
-          onClick={handleSyncAll}
-          disabled={refreshingContent}
-          title="يحدّث المسائل ويُزامن بيانات الحساب وعلامات الوقوف ويُعيد فحص صلاحية المشرف"
-        >
-          {refreshingContent ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
-          {refreshingContent ? 'جارٍ المزامنة...' : 'مزامنة الآن'}
-        </button>
-      </div>
-      {user && (lastSyncedAt || stopMarksLastSyncedAt) && (
-        <small className="d-block mt-2 text-muted">
-          آخر مزامنة: {new Date(Math.max(lastSyncedAt ?? 0, stopMarksLastSyncedAt ?? 0)).toLocaleString('ar-EG')}
-        </small>
-      )}
-      {/* عند عدم اكتمال المزامنة فقط: يسمّي المسار المتوقف بدل ترك المستخدم يخمّن */}
-      {syncDetails.length > 0 && (
-        <ul className="small mt-2 mb-0 ps-0" style={{ listStyle: 'none', color: '#b7791f' }} role="status">
-          {syncDetails.map((detail) => <li key={detail}>• {detail}</li>)}
-        </ul>
-      )}
-      <p className="text-muted small mt-3 mb-0">
-        عند تسجيل الدخول تنتقل المفضلة والملاحظات والمسائل المقروءة وعلامات الوقوف بين أجهزتك. التغييرات دون إنترنت تُحفظ في هذا الجهاز وتُرسل تلقائيًا عند عودة الاتصال.
-      </p>
-      {contentRefreshMessage && <small className="d-block mt-2" style={{ color: unifiedSyncState === 'error' ? '#e74c3c' : '#27ae60' }} role="status">{contentRefreshMessage}</small>}
-    </div>
 
     {/* قسم تحديث التطبيق */}
     <div className="custom-card p-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>
