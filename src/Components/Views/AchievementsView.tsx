@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { FiBook, FiZap, FiAward, FiStar, FiEdit3, FiFileText, FiLock, FiTrendingUp, FiDownload } from 'react-icons/fi';
 import type { IconType } from 'react-icons';
 import CertificateModal from '../UI/CertificateModal';
 import { useApp } from '../Layout/AppContext';
 import type { BookStats } from '../../types';
-import { useEffect } from 'react';
 import { readVisitDays, visitDaysStorageKey, VISIT_DAYS_UPDATED_EVENT } from '../../hooks/useVisitTracking';
 
 

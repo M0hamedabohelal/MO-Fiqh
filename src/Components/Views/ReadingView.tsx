@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -207,10 +207,15 @@ const ReadingView = () => {
   };
 
   // على الفون: أنيميشن دخول بسيط (opacity فقط) بدل حركة 3D الثقيلة على الـ GPU
-  const isSmallScreen = useMemo(
+  const [isSmallScreen, setIsSmallScreen] = useState(
     () => typeof window !== 'undefined' && window.innerWidth < 768,
-    [],
   );
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    const update = (e: MediaQueryListEvent | MediaQueryList) => setIsSmallScreen(e.matches);
+    mql.addEventListener('change', update);
+    return () => mql.removeEventListener('change', update);
+  }, []);
 
   // عنوان لاصق يظهر عند السكرول لأسفل (فون فقط)
   const [showSticky, setShowSticky] = useState(false);

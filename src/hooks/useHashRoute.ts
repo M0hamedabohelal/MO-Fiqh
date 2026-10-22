@@ -48,7 +48,7 @@ export function parseRoute(hash: string, lessons: Lesson[]): RouteState {
     return { view: "chapters", index: 0, lessonId: null, bookName, chapterName };
   }
 
-  const viewMatch = hash.match(/^#\/?(hero|books|lessons|bookmarks|highlights|achievements|admin)$/);
+  const viewMatch = hash.match(/^#\/?(hero|books|lessons|bookmarks|highlights|achievements|admin|settings)$/);
   if (viewMatch) return { view: viewMatch[1], index: 0, lessonId: null, bookName: null, chapterName: null };
 
   return { view: "hero", index: 0, lessonId: null, bookName: null, chapterName: null };
@@ -113,7 +113,7 @@ export function useHashRoute(lessons: Lesson[]) {
 
   // لحفظ التبويب الأخير الذي كان به قائمة (للرجوع إليه)
   const lastListView = useRef<string>(
-    ["books", "chapters", "lessons", "bookmarks", "highlights", "achievements", "admin"].includes(
+    ["books", "chapters", "lessons", "bookmarks", "highlights", "achievements", "admin", "settings"].includes(
       initialRoute.view,
     )
       ? initialRoute.view
@@ -133,7 +133,7 @@ export function useHashRoute(lessons: Lesson[]) {
 
   useEffect(() => {
     if (
-      ["books", "chapters", "lessons", "bookmarks", "highlights", "achievements", "admin"].includes(
+      ["books", "chapters", "lessons", "bookmarks", "highlights", "achievements", "admin", "settings"].includes(
         currentView,
       )
     ) {
@@ -246,7 +246,7 @@ export function useHashRoute(lessons: Lesson[]) {
         hash = `#/book/${encode(selectedBookName)}`;
       }
     } else if (
-      ["hero", "books", "lessons", "bookmarks", "highlights", "achievements", "admin"].includes(
+      ["hero", "books", "lessons", "bookmarks", "highlights", "achievements", "admin", "settings"].includes(
         currentView,
       )
     ) {
