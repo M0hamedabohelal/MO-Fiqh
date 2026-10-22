@@ -111,6 +111,30 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     writeCachedLessons(cached);
   }, []);
 
+  // المسرد: قراءة منفصلة (لا مستمع له). تُؤجَّل حتى تصل أول لقطة خادمية من مستمع
+  // المسائل — القراءة اللحظية كأول عملية على اتصال بارد تُطلق عطل Firestore الداخلي
+  // المعروف (ca9/b815) وتُعطّل العميل كله. مستمع المسائل هو من يُدفّئ الاتصال أولًا.
+  const glossaryFetchedRef = useRef(false);
+  const loadGlossaryOnce = useCallback(() => {
+    if (glossaryFetchedRef.current) return;
+    glossaryFetchedRef.current = true;
+    void fetchGlossary()
+      .then((cloudGlossary) => {
+        if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
+          setGlossary((prev) => ({ ...prev, ...cloudGlossary }));
+        }
+      })
+      .catch(() => null);
+  }, []);
+
+  // شبكة أمان: لو لم تصل أي لقطة خادمية (سحابة محجوبة/بطيئة) نجلب المسرد بعد مدة
+  // بدل تركه بلا تحميل للأبد.
+  useEffect(() => {
+    if (cloudLessonsLoaded) return undefined;
+    const t = setTimeout(loadGlossaryOnce, 8_000);
+    return () => clearTimeout(t);
+  }, [cloudLessonsLoaded, loadGlossaryOnce]);
+
   // مستمع دائم على المسائل يبدأ قبل أي قراءة لقطية.
   // يُدفئ اتصال Firestore ويمنع عطل ca9/b815 المعروف (قراءة عابرة كأول عملية على اتصال بارد)،
   // ويعطي المحتوى تحديثًا حيًا عند تعديله من الإدارة بلا حاجة لإعادة تحميل.
@@ -141,6 +165,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
         cloudRetryRef.current = 0;
         // إعادة تحميل يدوية/تلقائية معلّقة: لقطة الخادم المؤكدة هي إشارة النجاح
         settlePendingReload(true);
+        loadGlossaryOnce();
       },
       (error) => {
         if (cancelled) return;
@@ -163,7 +188,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       unsubscribe?.();
     };
     // settlePendingReload ثابت الهوية (useRef داخلي) فلا يُعاد الاشتراك بسببه
-  }, [applyCachedLessons, listenerRevision]);
+  }, [applyCachedLessons, loadGlossaryOnce, listenerRevision]);
 
   // جلب/تحديث البيانات من السحابة.
   // لا نقرأ من الخادم قراءةً لقطية منفصلة (getDocsFromServer) لأن المستمع الدائم يملك
@@ -177,15 +202,6 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       setCloudStatus('syncing');
       setCloudAttemptDone(false);
     }
-    // المسرد ليس له مستمع، فجلبه المنفصل آمن ولا يحجب عرض المسائل.
-    void fetchGlossary()
-      .then((cloudGlossary) => {
-        if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
-          setGlossary((prev) => ({ ...prev, ...cloudGlossary }));
-        }
-      })
-      .catch(() => null);
-
     const succeeded = await new Promise<boolean>((resolve) => {
       const timer = setTimeout(() => settlePendingReload(false), CLOUD_LESSONS_TIMEOUT_MS);
       pendingReloadRef.current = { resolve, timer };

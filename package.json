@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/generate-seo.mjs && vite build",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.e2e.json",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -23,7 +23,9 @@
     "deploy:rules": "npx -y --engine-strict=false firebase-tools@15 deploy --only firestore:rules",
     "deploy:all": "npm run build && npx -y --engine-strict=false firebase-tools@15 deploy --only hosting,firestore:rules",
     "content:snapshot": "node scripts/snapshot-content.mjs",
-    "check:content": "node scripts/check-content.mjs"
+    "check:content": "node scripts/check-content.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
@@ -37,6 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.4",

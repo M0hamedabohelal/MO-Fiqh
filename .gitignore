@@ -34,3 +34,9 @@ service-account*.json
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright: نتائج التشغيل والتقارير
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

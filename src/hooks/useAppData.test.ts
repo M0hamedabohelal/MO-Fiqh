@@ -8,6 +8,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 const mock = vi.hoisted(() => ({
   listeners: [] as Array<{ onNext: (lessons: unknown[], fromCache: boolean) => void; onError: (e: unknown) => void }>,
   cached: [] as unknown[],
+  glossaryCalls: 0,
 }));
 
 vi.mock('../firebase/config', () => ({
@@ -21,7 +22,7 @@ vi.mock('../firebase/services', () => ({
     return () => {};
   },
   fetchLessons: async () => mock.cached,
-  fetchGlossary: async () => ({}),
+  fetchGlossary: async () => { mock.glossaryCalls += 1; return {}; },
 }));
 
 import { useAppData } from './useAppData';
@@ -42,6 +43,7 @@ beforeEach(() => {
   localStorage.clear();
   mock.listeners.length = 0;
   mock.cached = [];
+  mock.glossaryCalls = 0;
 });
 
 afterEach(() => {
@@ -100,6 +102,29 @@ describe('useAppData — مصدر المحتوى', () => {
     await waitFor(() => expect(result.current.contentSource).toBe('empty'));
     expect(result.current.contentReady).toBe(true);
     expect(result.current.lessons).toEqual([]);
+  });
+});
+
+describe('useAppData — ترتيب قراءة المسرد', () => {
+  it('لا يقرأ المسرد قبل أول لقطة خادمية، ويقرأه مرة واحدة بعدها', async () => {
+    const { result } = await mountAndSettle();
+    expect(mock.glossaryCalls).toBe(0);
+
+    await act(async () => { latest().onNext([lesson(1, TRI)], false); });
+    await waitFor(() => expect(mock.glossaryCalls).toBe(1));
+
+    // لقطة ثانية لا تعيد القراءة
+    await act(async () => { latest().onNext([lesson(1, TRI)], false); });
+    await expect(Promise.resolve()).resolves.toBeUndefined();
+    expect(mock.glossaryCalls).toBe(1);
+    expect(result.current.cloudLessonsLoaded).toBe(true);
+  });
+
+  it('شبكة أمان: يقرأ المسرد بعد 8 ثوانٍ حتى لو لم تصل السحابة', async () => {
+    await mountAndSettle();
+    expect(mock.glossaryCalls).toBe(0);
+    await act(async () => { await vi.advanceTimersByTimeAsync(8_500); });
+    await waitFor(() => expect(mock.glossaryCalls).toBe(1));
   });
 });
 

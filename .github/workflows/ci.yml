@@ -22,3 +22,46 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  # تكامل حقيقي على مقاس فون: DOM + شبكة + حفظ بعد إعادة التحميل.
+  # يعمل على نسخة الإنتاج المحلية (dist) لا على الموقع المنشور.
+  e2e:
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # مفاتيح Firebase اختيارية: بدونها يُبنى الموقع من اللقطة المحلية،
+      # لكن الاختبارات تحتاج محتوى من السحابة (مسار التشغيل لا يستخدم اللقطة).
+      - name: Write Firebase env for build/runtime
+        if: ${{ secrets.VITE_FIREBASE_API_KEY != '' }}
+        run: |
+          cat > .env.local <<EOF
+          VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
+          EOF
+
+      - run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
