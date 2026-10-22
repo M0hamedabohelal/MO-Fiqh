@@ -11,7 +11,6 @@ interface AdminStatsTabProps {
   lessons: Lesson[];
   cloudLessonsLoaded: boolean;
   cloudStatus: string;
-  localLessonIds: string[];
 }
 
 interface StatsRow {
@@ -22,8 +21,11 @@ interface StatsRow {
   views: number;
 }
 
-const AdminStatsTab = ({ lessons, cloudLessonsLoaded, cloudStatus, localLessonIds }: AdminStatsTabProps) => {
+const AdminStatsTab = ({ lessons, cloudLessonsLoaded, cloudStatus }: AdminStatsTabProps) => {
   const [viewStats, setViewStats] = useState<Record<string, number> | null>(null);
+  // معرّفات اللقطة المضمّنة في البناء — تُحمَّل هنا فقط (للمشرف) لمقارنة «البناء ↔ السحابة».
+  // ليست مصدر عرض للمستخدم: أي انحراف بينها وبين السحابة يظهر كتنبيه هنا بدل عرض محتوى ناقص.
+  const [bundledIds, setBundledIds] = useState<string[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
   // سجل أخطاء العملاء — للمراقبة (يُجمَع تلقائيًا من الأجهزة، مخنوقًا)
   const [clientErrors, setClientErrors] = useState<ClientErrorItem[] | null>(null);
@@ -31,6 +33,18 @@ const AdminStatsTab = ({ lessons, cloudLessonsLoaded, cloudStatus, localLessonId
   // تنظيف الأخطاء القديمة دفعة واحدة (بديل سياسة TTL التي تتطلب فوترة)
   const [pruning, setPruning] = useState(false);
   const [pruneMsg, setPruneMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    // اللقطة المضمّنة تُطلب عند فتح تبويب الإحصائيات فقط (حزمة منفصلة، لا تُحمَّل للمستخدم العادي)
+    void import('../../data/lessons')
+      .then((mod) => {
+        if (cancelled) return;
+        setBundledIds((mod.lessonsData || []).map((lesson) => String(lesson.id)));
+      })
+      .catch(() => { /* بلا لقطة: تُخفى المقارنة فقط */ });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,14 +112,14 @@ const AdminStatsTab = ({ lessons, cloudLessonsLoaded, cloudStatus, localLessonId
   const maxViews = statsRows.length > 0 ? statsRows[0].views : 0;
   const contentAudit = useMemo(() => auditLessons(lessons), [lessons]);
   const lessonSourceDiff = useMemo(() => {
-    if (!localLessonIds.length) return { localOnly: [] as string[], activeOnly: [] as string[] };
-    const localIds = new Set(localLessonIds);
+    if (!bundledIds.length) return { localOnly: [] as string[], activeOnly: [] as string[] };
+    const localIds = new Set(bundledIds);
     const activeIds = new Set(lessons.map((lesson) => String(lesson.id)));
     return {
       localOnly: [...localIds].filter((id) => !activeIds.has(id)).sort((a, b) => Number(a) - Number(b)),
       activeOnly: [...activeIds].filter((id) => !localIds.has(id)).sort((a, b) => Number(a) - Number(b)),
     };
-  }, [lessons, localLessonIds]);
+  }, [lessons, bundledIds]);
   const duplicateCount = contentAudit.duplicateIds.length;
   const incompleteCount = contentAudit.incompleteLessonIds.length;
   const invalidLinkCount = contentAudit.invalidAudioUrlIds.length + contentAudit.invalidVideoUrlIds.length + contentAudit.invalidMediaUrlIds.length;

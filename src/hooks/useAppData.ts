@@ -3,6 +3,7 @@ import { fetchLessons, fetchGlossary, subscribeToLessons } from '../firebase/ser
 import { isFirebaseConfigured, enableFirestoreNetwork } from '../firebase/config';
 import { logError } from '../utils/logError';
 import { readCachedLessons, writeCachedLessons } from '../utils/contentCache';
+import { resolveContentSource } from '../utils/contentSource';
 import { BOOKS_LIST } from '../data/books';
 import type { Lesson, GlossaryMap } from '../types';
 
@@ -31,9 +32,6 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   // على الإنترنت ننتظر جواب الخادم (نجاحًا أو فشلًا) ثم نستخدم المحلي عند الحاجة.
   // دون اتصال نفتح فور اكتمال النسخة المحلية من المسائل.
   const [cloudLessonsLoaded, setCloudLessonsLoaded] = useState(false);
-  // النسخة المحلية جاهزة فورًا إن وُجد كاش من جلسة سابقة (بدل انتظار حزمة البيانات المضمّنة).
-  const [localLessonsLoaded, setLocalLessonsLoaded] = useState(cachedAtBoot.length > 0);
-  const [localLessonIds, setLocalLessonIds] = useState<string[]>([]);
   const [cloudAttemptDone, setCloudAttemptDone] = useState(!isFirebaseConfigured);
   // عدّاد إعادة المحاولة التلقائية — يزيد عند فشل الجلب فيُعيد الأثر المحاولة بتراجع أسّي.
   const [cloudRetryNonce, setCloudRetryNonce] = useState(0);
@@ -56,9 +54,10 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   };
   // تنظيف الوعد المعلّق عند إزالة المكوّن حتى لا يبقى مؤقت يعمل بلا مستهلك
   useEffect(() => () => { if (pendingReloadRef.current) settlePendingReload(false); }, []);
-  const contentReady = isOffline
-    ? localLessonsLoaded
-    : cloudLessonsLoaded || (localLessonsLoaded && (cloudAttemptDone || cloudGraceElapsed));
+  // البوابة تُفتح عند: وصول محتوى (سحابة/كاش)، أو انتهاء محاولة السحابة، أو انقضاء مهلة
+  // السماح، أو انقطاع الاتصال. لا يوجد ما يُنتظَر من حزمة مضمّنة، فلا داعي لتعليق الشاشة.
+  const hasLocalContent = rawLessons.length > 0;
+  const contentReady = cloudLessonsLoaded || hasLocalContent || cloudAttemptDone || cloudGraceElapsed || isOffline;
 
   // ترتيب المسائل حسب الكتاب → الباب → الترتيب الأبجدي
   const lessons = useMemo(() => {
@@ -268,22 +267,13 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     return () => clearTimeout(t);
   }, [isOffline, cloudLessonsLoaded]);
 
-  // تحميل البيانات المحلية (نسخة احتياطية عند غياب السحابة) ديناميكيًا
-  // حتى لا تدخل ملفات الداتا الكبيرة في حزمة التحميل الأولية
+  // تحميل المسرد المحلي (نسخة احتياطية) ديناميكيًا.
+  // ملاحظة مهمة: لقطة المسائل المضمّنة (src/data/lessons.ts) **لا تُحمَّل وقت التشغيل**:
+  // كانت نسخة ثابتة (16 مسألة) تُعرض صامتة كأنها الكتاب كله عند فشل السحابة — وهذا خطأ
+  // محتوى لا خطأ عرض. المحتوى الآن: السحابة، وإلا الكاش المحلي، وإلا حالة «لا يوجد محتوى»
+  // صريحة مع إعادة محاولة. اللقطة تبقى مدخلًا لسكربت SEO ومقارنةً في لوحة الإدارة فقط.
   useEffect(() => {
     let cancelled = false;
-    void import('../data/lessons')
-      .then((lmod) => {
-        if (cancelled) return;
-        const bundled = lmod.lessonsData || [];
-        // لا تستبدل كاشًا أحدث (مسائل أُضيفت بعد البناء) باللقطة المضمّنة؛
-        // لكن إن كانت اللقطة المضمّنة أكبر (بناء أحدث فيه مسائل أكثر) فهي الأصدق.
-        setRawLessons((prev) => (prev.length >= bundled.length ? prev : bundled));
-        setLocalLessonIds(bundled.map((lesson) => String(lesson.id)));
-        setLocalLessonsLoaded(true);
-      })
-      .catch(() => {});
-    // تحميل المسرد منفصل: بطء بياناته لا يؤخر ظهور قائمة المسائل.
     void import('../data/glossary')
       .then((gmod) => {
         if (!cancelled) setGlossary((prev) => ({ ...(gmod.glossaryData || {}), ...prev }));
@@ -292,5 +282,11 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     return () => { cancelled = true; };
   }, []);
 
-  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, localLessonIds };
+  // مصدر المحتوى المعروض — قرار واحد صريح (سحابة / كاش / فارغ)
+  const contentSource = useMemo(
+    () => resolveContentSource({ cloudLoaded: cloudLessonsLoaded, cachedCount: rawLessons.length }),
+    [cloudLessonsLoaded, rawLessons.length],
+  );
+
+  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, contentSource };
 }

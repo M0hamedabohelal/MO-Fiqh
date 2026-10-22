@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { FiUser, FiAlertCircle } from 'react-icons/fi';
+import { FiUser, FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -43,7 +43,11 @@ const AppLayout = () => {
     selectedBookName,
     setCurrentView,
     onOpenSearch, onOpenLogin,
+    contentSource, isOffline, reloadFromCloud,
   } = useApp();
+
+  // الشاشات التي تعتمد على المسائل فعليًا — تُستبدل بحالة "تعذّر تحميل المسائل" عند غياب المحتوى
+  const contentViews = ['books', 'chapters', 'lessons', 'reading', 'bookmarks', 'highlights', 'achievements'];
 
   // عنوان الصفحة الدلالي (h1) — لكل شاشة عنوان واحد واضح للزحّاف وقارئ الشاشة
   const viewTitle = currentView === 'reading'
@@ -91,6 +95,30 @@ const AppLayout = () => {
         {/* عنوان الصفحة الدلالي: الشاشات تستخدم h3/h4 للتنسيق، فبدون h1 يفقد
             الزحّاف وقارئ الشاشة عنوان الصفحة الرئيسي. مخفي بصريًا بلا أي أثر على التصميم. */}
         <h1 className="visually-hidden">{viewTitle}</h1>
+        {/* لا يوجد محتوى إطلاقًا (لا سحابة ولا كاش): حالة صريحة مع إعادة محاولة.
+            قبل ذلك كانت اللقطة المضمّنة القديمة (16 مسألة) تُعرض صامتة كأنها الكتاب كله. */}
+        {contentSource === 'empty' && contentViews.includes(currentView) ? (
+          <div className="custom-card p-5 text-center mt-4" role="alert">
+            <FiAlertCircle size={46} className="mb-3" style={{ color: '#e74c3c', opacity: 0.75 }} />
+            <h4 className="fw-bold mb-2" style={{ color: 'var(--text-main)' }}>تعذّر تحميل المسائل</h4>
+            <p className="text-muted mb-3" style={{ lineHeight: '1.8' }}>
+              {isOffline
+                ? 'لا يوجد اتصال بالإنترنت، ولا توجد نسخة محفوظة على هذا الجهاز بعد.'
+                : 'لم يصل المحتوى من السحابة. تحقّق من الاتصال ثم أعد المحاولة.'}
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary d-inline-flex align-items-center gap-2"
+              onClick={() => { void reloadFromCloud(true); }}
+              disabled={isOffline}
+            >
+              <FiRefreshCw size={16} /> إعادة المحاولة
+            </button>
+            <p className="text-muted small mt-3 mb-0">
+              لن تُعرض نسخة قديمة ناقصة بدل المحتوى الحقيقي.
+            </p>
+          </div>
+        ) : (
         <AnimatePresence mode="wait">
           <motion.div
             key={currentView === 'reading' ? `reading-${currentIndex}` : currentView}
@@ -192,6 +220,7 @@ const AppLayout = () => {
             </Suspense>
           </motion.div>
         </AnimatePresence>
+        )}
       </div>
     </div>
   </div>

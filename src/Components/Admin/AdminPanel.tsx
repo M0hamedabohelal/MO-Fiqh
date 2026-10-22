@@ -19,7 +19,7 @@ interface StatusMessage {
 }
 
 const AdminPanel = () => {
-  const { lessons, glossary, cloudLessonsLoaded, cloudStatus, isOffline, localLessonIds, reloadFromCloud: onDataChanged } = useApp();
+  const { lessons, glossary, cloudLessonsLoaded, cloudStatus, isOffline, reloadFromCloud: onDataChanged } = useApp();
   const [tab, setTab] = useState<AdminTab>('lessons'); // lessons | glossary | stats | announcements
   const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null); // { type: 'success'|'error', text }
   const [busy, setBusy] = useState(false);
@@ -96,7 +96,7 @@ const AdminPanel = () => {
         <AdminGlossaryTab glossary={glossary} onDataChanged={onDataChanged} flash={flash} />
       )}
       {tab === 'stats' && (
-        <AdminStatsTab lessons={lessons} cloudLessonsLoaded={cloudLessonsLoaded} cloudStatus={cloudStatus} localLessonIds={localLessonIds} />
+        <AdminStatsTab lessons={lessons} cloudLessonsLoaded={cloudLessonsLoaded} cloudStatus={cloudStatus} />
       )}
       {tab === 'announcements' && (
         <AdminAnnouncements />

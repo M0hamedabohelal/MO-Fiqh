@@ -9,6 +9,7 @@ import type {
   HighlightItem,
 } from '../../types';
 import type { StopMarkMap } from '../../features/stopMarks/model';
+import type { ContentSource } from '../../utils/contentSource';
 
 // قيمة سياق التطبيق — نفس شكل layoutProps سابقًا (مصدر واحد للحقيقة بدل ~40 prop متناثرة)
 export interface AppContextValue {
@@ -24,7 +25,8 @@ export interface AppContextValue {
   setFontSize: Dispatch<SetStateAction<number>>;
   cloudStatus: string;
   cloudLessonsLoaded: boolean;
-  localLessonIds: string[];
+  // مصدر المحتوى المعروض: سحابة / كاش / لا شيء (حالة خطأ صريحة)
+  contentSource: ContentSource;
   // هل انتهت أول محاولة لتحميل المحتوى؟ (مستقل عن cloudStatus المشترك مع مزامنة المكتبة)
   contentReady: boolean;
   // هل الجهاز بلا اتصال؟ (لعرض مؤشر الواي فاي المشطوب في الشريط العلوي)

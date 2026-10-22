@@ -145,6 +145,24 @@ if (!liveLessons && backupLessons) {
 } else if (!liveLessons) {
   console.log(`📄 SEO: استخدام البيانات المحلية (${lessonsData.length} مسألة).`);
 }
+
+// ── حارس تقادم اللقطة المضمّنة (src/data/lessons.ts) ──
+// اللقطة لم تعد تُعرض للمستخدم وقت التشغيل (المحتوى: سحابة ← كاش ← حالة خطأ صريحة)،
+// لكنها ما زالت مدخل صفحات SEO ومقارنة لوحة الإدارة؛ فإن تقادمت يضيع التنبيه الإداري.
+// تنبيه غير مُوقف للبناء (البناء يجب ألا يفشل لأن المحتوى تغيّر)، والفحص الصارم عبر
+// `npm run check:content` في CI بعد التحديث.
+if (liveLessons) {
+  const localCount = (validLessons(localLessons) ?? []).length;
+  const liveCount = liveLessons.length;
+  if (localCount !== liveCount) {
+    const diff = liveCount - localCount;
+    console.warn(
+      `⚠️  لقطة المحتوى المضمّنة متقادمة: ${localCount} من ${liveCount} مسألة` +
+      (diff > 0 ? ` (ناقصة ${diff})` : ` (زائدة ${-diff})`) +
+      '. شغّل `npm run content:snapshot` قبل النشر لتحديث مقارنة لوحة الإدارة.',
+    );
+  }
+}
 const { BOOKS_LIST } = await import('../src/data/books.ts');
 
 // مساعدة: اسم آمن للمجلد (ترميز عربي URL-صديق)

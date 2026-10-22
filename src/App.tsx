@@ -37,7 +37,7 @@ function App() {
   const isOffline = useOnlineStatus();
 
   // ─── بيانات المحتوى ───
-  const { lessons, glossary, cloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, localLessonIds } = useAppData({ isOffline });
+  const { lessons, glossary, cloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, contentSource } = useAppData({ isOffline });
 
   // ─── المكتبة الشخصية ───
   const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary } = useUserLibrary();
@@ -260,7 +260,7 @@ function App() {
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
     theme, setTheme, fontSize, setFontSize,
-    cloudStatus, cloudLessonsLoaded, localLessonIds,
+    cloudStatus, cloudLessonsLoaded, contentSource,
     contentReady,
     isOffline,
     glossary, notes, bookmarks, highlights, readLessons,
@@ -281,7 +281,7 @@ function App() {
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
     theme, fontSize,
-    cloudStatus, cloudLessonsLoaded, localLessonIds, contentReady,
+    cloudStatus, cloudLessonsLoaded, contentSource, contentReady,
     isOffline,
     glossary, notes, bookmarks, highlights, readLessons,
     stopMarks, stopMarksReady,

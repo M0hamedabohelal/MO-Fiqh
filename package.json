@@ -20,7 +20,8 @@
     "create-admin": "node scripts/create-admin.mjs",
     "upload:pdf": "node scripts/upload-pdf.mjs",
     "deploy:hosting": "npm run build && firebase deploy --only hosting",
-    "content:snapshot": "node scripts/snapshot-content.mjs"
+    "content:snapshot": "node scripts/snapshot-content.mjs",
+    "check:content": "node scripts/check-content.mjs"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
