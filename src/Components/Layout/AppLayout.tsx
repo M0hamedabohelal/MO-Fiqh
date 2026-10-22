@@ -44,6 +44,21 @@ const AppLayout = () => {
     setCurrentView,
     onOpenSearch, onOpenLogin,
   } = useApp();
+
+  // عنوان الصفحة الدلالي (h1) — لكل شاشة عنوان واحد واضح للزحّاف وقارئ الشاشة
+  const viewTitle = currentView === 'reading'
+    ? (currentLesson?.title ?? 'قراءة مسألة')
+    : ({
+        books: 'فهرس الكتب',
+        chapters: selectedBookName ? `${selectedBookName} — الفصول` : 'الفصول',
+        lessons: 'المسائل',
+        bookmarks: 'المفضلة',
+        highlights: 'الفوائد المقتبسة',
+        achievements: 'إنجازاتي ومواظبتي',
+        settings: 'الإعدادات',
+        admin: 'لوحة الإدارة',
+      } as Record<string, string>)[currentView] ?? 'الباحث الفقهي';
+
   return (
   <div className="row g-0">
 
@@ -73,6 +88,9 @@ const AppLayout = () => {
       />
 
       <div className="container mt-4" style={{ maxWidth: '850px' }}>
+        {/* عنوان الصفحة الدلالي: الشاشات تستخدم h3/h4 للتنسيق، فبدون h1 يفقد
+            الزحّاف وقارئ الشاشة عنوان الصفحة الرئيسي. مخفي بصريًا بلا أي أثر على التصميم. */}
+        <h1 className="visually-hidden">{viewTitle}</h1>
         <AnimatePresence mode="wait">
           <motion.div
             key={currentView === 'reading' ? `reading-${currentIndex}` : currentView}

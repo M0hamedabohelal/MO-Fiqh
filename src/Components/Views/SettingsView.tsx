@@ -1,17 +1,54 @@
-import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiAward, FiChevronLeft } from 'react-icons/fi';
+import { useState } from 'react';
+import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiAward, FiChevronLeft, FiRefreshCw } from 'react-icons/fi';
 import { useApp } from '../Layout/AppContext';
 import GuestAccountCard from '../UI/GuestAccountCard';
 
 // شاشة الإعدادات وحول التطبيق
 const SettingsView = () => {
-  const { setCurrentView } = useApp();
+  const { setCurrentView, reloadFromCloud, lessonsCount } = useApp();
   const onOpenAchievements = (): void => setCurrentView('achievements');
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState('');
+
+  // تحديث المحتوى من السحابة (مسائل + قاموس) — ليس مزامنة بيانات حساب، فقط جلب أحدث نسخة.
+  const handleRefreshContent = async (): Promise<void> => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setRefreshMessage('');
+    try {
+      const ok = await reloadFromCloud(true);
+      setRefreshMessage(ok ? 'تم تحديث المسائل من السحابة.' : 'تعذر التحديث الآن؛ النسخة المحفوظة متاحة.');
+    } catch {
+      setRefreshMessage('تعذر التحديث الآن؛ النسخة المحفوظة متاحة.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
   <div className="mt-4 mb-5 text-center">
     <GuestAccountCard />
     <h3 className="mb-4 fw-bold" style={{ color: 'var(--primary-color)' }}>
       حول التطبيق والإعدادات
     </h3>
+
+    {/* تحديث المحتوى — جلب أحدث المسائل والقاموس من السحابة */}
+    <div className="custom-card p-3 p-md-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>
+      <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+        <span className="small text-muted">{lessonsCount} مسألة متاحة على هذا الجهاز</span>
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
+          onClick={handleRefreshContent}
+          disabled={refreshing}
+          title="جلب أحدث المسائل والقاموس من السحابة"
+        >
+          {refreshing ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
+          {refreshing ? 'جارٍ التحديث...' : 'تحديث المحتوى'}
+        </button>
+      </div>
+      {refreshMessage && <small className="d-block mt-2 text-muted" role="status">{refreshMessage}</small>}
+    </div>
 
     {/* بطاقة الدخول للإنجازات */}
     <div className="custom-card p-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { fetchLessonsFromServer, fetchLessons, fetchGlossary, subscribeToLessons } from '../firebase/services';
+import { fetchLessons, fetchGlossary, subscribeToLessons } from '../firebase/services';
 import { isFirebaseConfigured, enableFirestoreNetwork } from '../firebase/config';
 import { logError } from '../utils/logError';
 import { readCachedLessons, writeCachedLessons } from '../utils/contentCache';
@@ -43,6 +43,19 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   const cloudRetryRef = useRef(0);
   // لرصد لحظة عودة الاتصال: عندها نحاول فورًا بلا انتظار تراجع أسّي قد يبلغ 30 ثانية.
   const wasOfflineRef = useRef(isOffline);
+  // إعادة التحميل = إعادة فتح مستمع المسائل. العدّاد يُغيّر هوية الأثر فيُعاد الاشتراك،
+  // والوعد المعلّق يُحسم بأول لقطة خادمية مؤكدة (أو بمهلة) بدل قراءة لقطية منفصلة.
+  const [listenerRevision, setListenerRevision] = useState(0);
+  const pendingReloadRef = useRef<{ resolve: (ok: boolean) => void; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const settlePendingReload = (ok: boolean): void => {
+    const pending = pendingReloadRef.current;
+    if (!pending) return;
+    pendingReloadRef.current = null;
+    clearTimeout(pending.timer);
+    pending.resolve(ok);
+  };
+  // تنظيف الوعد المعلّق عند إزالة المكوّن حتى لا يبقى مؤقت يعمل بلا مستهلك
+  useEffect(() => () => { if (pendingReloadRef.current) settlePendingReload(false); }, []);
   const contentReady = isOffline
     ? localLessonsLoaded
     : cloudLessonsLoaded || (localLessonsLoaded && (cloudAttemptDone || cloudGraceElapsed));
@@ -102,27 +115,38 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   // مستمع دائم على المسائل يبدأ قبل أي قراءة لقطية.
   // يُدفئ اتصال Firestore ويمنع عطل ca9/b815 المعروف (قراءة عابرة كأول عملية على اتصال بارد)،
   // ويعطي المحتوى تحديثًا حيًا عند تعديله من الإدارة بلا حاجة لإعادة تحميل.
+  //
+  // ⚠️ هذا المستمع هو المصدر الوحيد لبيانات المسائل. تعددّه مع قراءة لقطية على نفس
+  // الاستعلام (getDocsFromServer) كان يرمي «Target ID already exists» ويُفشل التحديث
+  // اليدوي — لذلك «إعادة التحميل» تُعيد فتح هذا المستمع بدل قراءة منفصلة.
   useEffect(() => {
     if (!isFirebaseConfigured) return undefined;
     let cancelled = false;
     let unsubscribe: (() => void) | null = null;
     void subscribeToLessons(
       (cloudLessons, fromCache) => {
-        if (cancelled || cloudLessons.length === 0) return;
+        if (cancelled) return;
         if (fromCache) {
           // لقطة كاش فقط: اعرضها إن كانت أحدث، ولا تُعلن نجاح السحابة بعد.
-          applyCachedLessons(cloudLessons);
+          if (cloudLessons.length > 0) applyCachedLessons(cloudLessons);
           return;
         }
-        rawLessonsRef.current = cloudLessons;
-        setRawLessons(cloudLessons);
-        writeCachedLessons(cloudLessons);
+        if (cloudLessons.length > 0) {
+          rawLessonsRef.current = cloudLessons;
+          setRawLessons(cloudLessons);
+          writeCachedLessons(cloudLessons);
+        }
         setCloudLessonsLoaded(true);
         setCloudStatus('synced');
         setCloudAttemptDone(true);
+        cloudRetryRef.current = 0;
+        // إعادة تحميل يدوية/تلقائية معلّقة: لقطة الخادم المؤكدة هي إشارة النجاح
+        settlePendingReload(true);
       },
       (error) => {
-        if (!cancelled) logError('appData.lessonsListener', error);
+        if (cancelled) return;
+        logError('appData.lessonsListener', error);
+        settlePendingReload(false);
       },
     )
       .then((unsub) => {
@@ -130,83 +154,60 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
         else unsubscribe = unsub;
       })
       .catch((error) => {
-        if (!cancelled) logError('appData.lessonsListener', error);
+        if (!cancelled) {
+          logError('appData.lessonsListener', error);
+          settlePendingReload(false);
+        }
       });
     return () => {
       cancelled = true;
       unsubscribe?.();
     };
-  }, [applyCachedLessons]);
+    // settlePendingReload ثابت الهوية (useRef داخلي) فلا يُعاد الاشتراك بسببه
+  }, [applyCachedLessons, listenerRevision]);
 
-  // جلب البيانات من السحابة
-  // manual = إعادة محاولة يدوية (زر المستخدم): تُظهر حالة "جارٍ التحديث" فورًا حتى
-  // يرى المستخدم أن الضغط بدأ فعلًا، وتعيد عدّاد التراجع للصفر لمحاولة سريعة.
+  // جلب/تحديث البيانات من السحابة.
+  // لا نقرأ من الخادم قراءةً لقطية منفصلة (getDocsFromServer) لأن المستمع الدائم يملك
+  // نفس هدف Firestore؛ اجتماعهما كان يرمي «Target ID already exists» ويُفشل التحديث.
+  // بدلًا من ذلك: نُعيد فتح المستمع ونعتبر أول لقطة خادمية مؤكدة = نجاح.
   const reloadFromCloud = useCallback(async (manual = false): Promise<boolean> => {
     if (!isFirebaseConfigured) return false;
-    // بعد عودة الشبكة قد يكون Firestore عالقًا في وضع "غير متصل" فيفشل كل طلب بالمهلة.
-    // نجبره على إعادة الاتصال قبل كل محاولة (لا يُكلف شيئًا إن كان متصلًا أصلًا).
     await enableFirestoreNetwork();
     if (manual) {
       cloudRetryRef.current = 0;
       setCloudStatus('syncing');
       setCloudAttemptDone(false);
     }
-    const glossaryRequest = fetchGlossary().catch(() => null);
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    const cloudLessonsRequest = Promise.race([
-      fetchLessonsFromServer(),
-      new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('انتهت مهلة تحميل المسائل من السحابة')), CLOUD_LESSONS_TIMEOUT_MS);
-      }),
-    ]);
-    let succeeded = false;
-    let failure: unknown = null;
-    try {
-      const cloudLessons = await cloudLessonsRequest;
-      if (cloudLessons.length > 0) {
-        rawLessonsRef.current = cloudLessons;
-        setRawLessons(cloudLessons);
-        // احفظ آخر نسخة نزلت فعلًا — تُعرض عند الفتح لاحقًا بلا إنترنت حتى لو تغيّرت اللقطة المضمّنة.
-        writeCachedLessons(cloudLessons);
-        setCloudLessonsLoaded(true);
-        setCloudStatus('synced');
-        succeeded = true;
-      } else {
-        // نجح الاتصال لكن المجموعة فارغة (نادر) — ليست حالة "غير متصل"
-        setCloudStatus('available');
-        succeeded = true;
-      }
-    } catch (error) {
-      failure = error;
-      // فشل الخادم لا يعني بالضرورة انقطاع الاتصال: قد تكون التهيئة الباردة/الشبكة بطيئة.
-      // نجرّب الكاش المحلي (getDocs يقرأ من IndexedDB فورًا) لعرض أي نسخة سحابية سابقة،
-      // ونبقي الحالة 'syncing' في أول محاولات حتى لا تظهر رسالة "تعذر" مبكرًا بلا داعٍ.
-      try {
-        const cached = await fetchLessons();
-        // الكاش السحابي أصدق من اللقطة المضمّنة إن كان أحدث (عددًا أكبر = مسائل أُضيفت بعد البناء).
-        applyCachedLessons(cached);
-      } catch { /* تجاهل — الداتا المحلية المضمّنة تغطي */ }
-    } finally {
-      if (timeoutId) clearTimeout(timeoutId);
-      setCloudAttemptDone(true);
-    }
-    // نجاح = إعادة تصفير عدّاد التراجع؛ فشل = جدولة محاولة تلقائية لاحقة.
-    cloudRetryRef.current = succeeded ? 0 : cloudRetryRef.current + 1;
-    if (!succeeded) {
-      const attempts = cloudRetryRef.current;
-      // نُظهر "تعذر تحديث المسائل" فقط بعد فشل متكرر (≥3 محاولات) والجهاز يزعم أنه متصل،
-      // وإلا نبقى على 'syncing' مع إعادة المحاولة فلا تقفز الرسالة عند مجرد بطء البداية.
-      setCloudStatus((prev) => (manual || attempts >= 3 ? 'offline' : (prev === 'synced' ? prev : 'syncing')));
-      // تسجيل السبب الفعلي مرة واحدة (مخنوق داخليًا) ليمكن تشخيصه من سجل الأخطاء
-      if (attempts === 1) logError('appData.reloadFromCloud', failure, { attempt: attempts });
-      setCloudRetryNonce((n) => n + 1);
-    }
-    // المسرد غير مطلوب لعرض المسائل، لذلك لا يحجب اكتمال التحميل أو شاشة البداية.
-    void glossaryRequest.then((cloudGlossary) => {
+    // المسرد ليس له مستمع، فجلبه المنفصل آمن ولا يحجب عرض المسائل.
+    void fetchGlossary()
+      .then((cloudGlossary) => {
         if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
           setGlossary((prev) => ({ ...prev, ...cloudGlossary }));
         }
-      });
+      })
+      .catch(() => null);
+
+    const succeeded = await new Promise<boolean>((resolve) => {
+      const timer = setTimeout(() => settlePendingReload(false), CLOUD_LESSONS_TIMEOUT_MS);
+      pendingReloadRef.current = { resolve, timer };
+      // إعادة فتح المستمع = طلب لقطة خادمية جديدة
+      setListenerRevision((revision) => revision + 1);
+    });
+
+    setCloudAttemptDone(true);
+    cloudRetryRef.current = succeeded ? 0 : cloudRetryRef.current + 1;
+    if (!succeeded) {
+      try {
+        const cached = await fetchLessons();
+        applyCachedLessons(cached);
+      } catch { /* تجاهل — الداتا المحلية المضمّنة تغطي */ }
+      const attempts = cloudRetryRef.current;
+      setCloudStatus((prev) => (manual || attempts >= 3 ? 'offline' : (prev === 'synced' ? prev : 'syncing')));
+      if (attempts === 1) {
+        logError('appData.reloadFromCloud', new Error('لم تصل لقطة خادمية من مستمع المسائل'), { attempt: attempts });
+      }
+      setCloudRetryNonce((n) => n + 1);
+    }
     return succeeded;
   }, [applyCachedLessons]);
 

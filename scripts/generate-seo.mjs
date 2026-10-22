@@ -277,6 +277,7 @@ ${chLessons
   return (
     head(`${name} — الباحث الفقهي`, desc, url, jsonld) +
     `<div class="breadcrumb"><a href="/">الباحث الفقهي</a> › ${escapeHtml(name)}</div>
+<h1>${escapeHtml(name)}</h1>
 <p class="meta">${chapters.length} أبواب • ${lessons.length} مسألة (قراءة كاملة بدون تسجيل)</p>
 <div class="meta">${escapeHtml(snippet(lessons[0]?.mainText, 160))}…</div>
 ${chaptersHtml}` +
@@ -309,6 +310,7 @@ function lessonPage(l) {
   return (
     head(`${l.title} — ${bookName} — الباحث الفقهي`, desc, url, jsonld) +
     `<div class="breadcrumb"><a href="/">الرئيسية</a> › <a href="/books/${enc(bookName)}/">${escapeHtml(bookName)}</a> › ${escapeHtml(l.title)}</div>
+<h1>${escapeHtml(l.title)}</h1>
 <pre>${mainText}</pre>
 ${l.audioUrl ? (() => { const s = toSeconds(l.startTime); const e = toSeconds(l.endTime); const frag = s > 0 ? `#t=${s}${e > s ? `,${e}` : ''}` : ''; return `<div class="exp"><h3>🎧 استمع للدرس</h3><audio controls preload="none" src="${escapeHtml(l.audioUrl)}${frag}" style="width:100%"></audio><br><a href="${escapeHtml(l.audioUrl)}${frag}" rel="noopener">تحميل الصوت (MP3)</a></div>`; })() : ''}
 ${l.sheikhExplanation ? `<div class="exp"><h3>📖 تعليق الشيخ</h3><pre>${escapeHtml(l.sheikhExplanation)}</pre></div>` : ''}` +
@@ -333,7 +335,9 @@ rmSync(join(PUBLIC, 'lessons'), { recursive: true, force: true });
 let count = 0;
 for (const name of bookNames) {
   const lessons = byBook[name];
-  const dir = join(PUBLIC, 'books', enc(name));
+  // اسم المجلد = الاسم الحقيقي لا المُرمَّز: الخادم يفكّ ترميز المسار قبل البحث عن الملف،
+  // فمجلد باسم %D9%83… كان لا يُطابَق أبدًا فتسقط صفحة الكتاب إلى الـ SPA (404 محتوى للزحّاف).
+  const dir = join(PUBLIC, 'books', name);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'index.html'), bookPage(name, lessons), 'utf8');
   count += 1;
