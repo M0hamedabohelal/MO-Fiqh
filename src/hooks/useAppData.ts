@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchLessonsFromServer, fetchLessons, fetchGlossary } from '../firebase/services';
 import { isFirebaseConfigured } from '../firebase/config';
 import { logError } from '../utils/logError';
+import { readCachedLessons, writeCachedLessons } from '../utils/contentCache';
 import { BOOKS_LIST } from '../data/books';
 import type { Lesson, GlossaryMap } from '../types';
 
@@ -18,13 +19,20 @@ const CLOUD_RETRY_MAX_MS = 30_000;
  * من الداتا المحلية أولاً، ثم دمج بيانات السحابة عند توفرها
  */
 export function useAppData({ isOffline }: { isOffline: boolean }) {
-  const [rawLessons, setRawLessons] = useState<Lesson[]>([]);
+  // آخر نسخة نزلت من السحابة (تُقرأ مرة واحدة عند الإقلاع قبل أي رسم) —
+  // هي الأحدث من اللقطة المضمّنة في البناء، خصوصًا بعد إضافة مسائل جديدة.
+  const [cachedAtBoot] = useState<Lesson[]>(() => readCachedLessons() ?? []);
+  const [rawLessons, setRawLessons] = useState<Lesson[]>(cachedAtBoot);
+  // مرجع لأحدث مجموعة معروضة — يمنع استبدال نسخة أحدث (من السحابة) بنسخة كاش أقدم.
+  const rawLessonsRef = useRef<Lesson[]>(cachedAtBoot);
+  useEffect(() => { rawLessonsRef.current = rawLessons; }, [rawLessons]);
   const [glossary, setGlossary] = useState<GlossaryMap>({});
   const [cloudStatus, setCloudStatus] = useState(isFirebaseConfigured ? 'syncing' : 'local');
   // على الإنترنت ننتظر جواب الخادم (نجاحًا أو فشلًا) ثم نستخدم المحلي عند الحاجة.
   // دون اتصال نفتح فور اكتمال النسخة المحلية من المسائل.
   const [cloudLessonsLoaded, setCloudLessonsLoaded] = useState(false);
-  const [localLessonsLoaded, setLocalLessonsLoaded] = useState(false);
+  // النسخة المحلية جاهزة فورًا إن وُجد كاش من جلسة سابقة (بدل انتظار حزمة البيانات المضمّنة).
+  const [localLessonsLoaded, setLocalLessonsLoaded] = useState(cachedAtBoot.length > 0);
   const [localLessonIds, setLocalLessonIds] = useState<string[]>([]);
   const [cloudAttemptDone, setCloudAttemptDone] = useState(!isFirebaseConfigured);
   // عدّاد إعادة المحاولة التلقائية — يزيد عند فشل الجلب فيُعيد الأثر المحاولة بتراجع أسّي.
@@ -81,6 +89,14 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     });
   }, [rawLessons]);
 
+  // اعتماد نسخة محلية (كاش) فقط إن كانت لا تقل عن المعروض حاليًا — لا نتراجع لنسخة أقدم.
+  const applyCachedLessons = useCallback((cached: Lesson[]): void => {
+    if (cached.length === 0 || cached.length < rawLessonsRef.current.length) return;
+    rawLessonsRef.current = cached;
+    setRawLessons(cached);
+    writeCachedLessons(cached);
+  }, []);
+
   // جلب البيانات من السحابة
   // manual = إعادة محاولة يدوية (زر المستخدم): تُظهر حالة "جارٍ التحديث" فورًا حتى
   // يرى المستخدم أن الضغط بدأ فعلًا، وتعيد عدّاد التراجع للصفر لمحاولة سريعة.
@@ -104,7 +120,10 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     try {
       const cloudLessons = await cloudLessonsRequest;
       if (cloudLessons.length > 0) {
+        rawLessonsRef.current = cloudLessons;
         setRawLessons(cloudLessons);
+        // احفظ آخر نسخة نزلت فعلًا — تُعرض عند الفتح لاحقًا بلا إنترنت حتى لو تغيّرت اللقطة المضمّنة.
+        writeCachedLessons(cloudLessons);
         setCloudLessonsLoaded(true);
         setCloudStatus('synced');
         succeeded = true;
@@ -120,9 +139,8 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       // ونبقي الحالة 'syncing' في أول محاولات حتى لا تظهر رسالة "تعذر" مبكرًا بلا داعٍ.
       try {
         const cached = await fetchLessons();
-        if (cached.length > 0) {
-          setRawLessons((prev) => (prev.length ? prev : cached));
-        }
+        // الكاش السحابي أصدق من اللقطة المضمّنة إن كان أحدث (عددًا أكبر = مسائل أُضيفت بعد البناء).
+        applyCachedLessons(cached);
       } catch { /* تجاهل — الداتا المحلية المضمّنة تغطي */ }
     } finally {
       if (timeoutId) clearTimeout(timeoutId);
@@ -146,7 +164,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
         }
       });
     return succeeded;
-  }, []);
+  }, [applyCachedLessons]);
 
   // تحميل البيانات من السحابة مؤجّلاً بحيث لا ينافس أول رسم للشاشة
   // (يُجدول بعد ~0.6 ثانية — بعد اكتمال أول رسم عادةً — ويُعاد عند تغيّر حالة الاتصال)
@@ -156,7 +174,16 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     if (isOffline) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCloudStatus(isFirebaseConfigured ? 'offline' : 'local');
-      return;
+      // بلا إنترنت: اقرأ كاش Firestore (IndexedDB) مباشرةً — قد يحمل مسائل أُضيفت
+      // بعد بناء النسخة المضمّنة، فلا نكتفي باللقطة القديمة.
+      let cancelled = false;
+      void (async () => {
+        try {
+          const cached = await fetchLessons();
+          if (!cancelled) applyCachedLessons(cached);
+        } catch { /* تجاهل — النسخة المحلية المتاحة تكفي */ }
+      })();
+      return () => { cancelled = true; };
     }
     // إن سبق نجاح الجلب السحابي، لا نعيد جلب المحتوى كاملًا عند كل عودة أونلاين
     // (المحتوى العام نادر التغيّر؛ التحديث اليدوي متاح عبر reloadFromCloud)
@@ -177,7 +204,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       : Math.min(CLOUD_RETRY_BASE_MS * 2 ** (cloudRetryNonce - 1), CLOUD_RETRY_MAX_MS);
     const t = setTimeout(() => { void reloadFromCloud(); }, delay);
     return () => clearTimeout(t);
-  }, [isOffline, reloadFromCloud, cloudLessonsLoaded, cloudRetryNonce]);
+  }, [isOffline, reloadFromCloud, cloudLessonsLoaded, cloudRetryNonce, applyCachedLessons]);
 
   // مهلة السماح: بعدها نفتح التطبيق بالنسخة المحلية حتى لو تأخر الخادم (فيتابع في الخلفية).
   // هذا يمنع بقاء المستخدم على شاشة البداية 15 ثانية ثم رؤية رسالة "تعذر" لمجرد بطء البداية.
@@ -194,8 +221,11 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     void import('../data/lessons')
       .then((lmod) => {
         if (cancelled) return;
-        setRawLessons((prev) => (prev.length ? prev : lmod.lessonsData || []));
-        setLocalLessonIds((lmod.lessonsData || []).map((lesson) => String(lesson.id)));
+        const bundled = lmod.lessonsData || [];
+        // لا تستبدل كاشًا أحدث (مسائل أُضيفت بعد البناء) باللقطة المضمّنة؛
+        // لكن إن كانت اللقطة المضمّنة أكبر (بناء أحدث فيه مسائل أكثر) فهي الأصدق.
+        setRawLessons((prev) => (prev.length >= bundled.length ? prev : bundled));
+        setLocalLessonIds(bundled.map((lesson) => String(lesson.id)));
         setLocalLessonsLoaded(true);
       })
       .catch(() => {});
