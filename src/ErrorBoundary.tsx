@@ -2,7 +2,7 @@ import { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import EmptyState from './Components/UI/EmptyState';
 import { FiAlertTriangle } from 'react-icons/fi';
-import { isFatalFirestoreError, firestoreFatalRecovery } from './utils/firestoreRecovery';
+import { isFatalFirestoreError, firestoreFatalRecovery, isStaleChunkError, reloadToLatest } from './utils/firestoreRecovery';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -48,6 +48,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     // (الجلسة كانت في نافذة الحماية) فنبقى على شاشة الخطأ بلا فعل — الآن نُبلّغ دائمًا.
     if (isFatalFirestoreError(error)) {
       void firestoreFatalRecovery(error);
+      return;
+    }
+    // شارد (chunk) اختفى بعد نشر جديد: التبويب القديم يطلب اسم ملف لم يعد موجودًا (404).
+    // هذا ليس عطلًا في التطبيق بل دليل قاطع على وجود نسخة أحدث — نُحدّث بدل عرض خطأ.
+    // بدونه يرى المستخدم «تعذّر عرض هذه الشاشة» ويظن أن التطبيق مكسور.
+    if (isStaleChunkError(error)) {
+      void reloadToLatest();
     }
   }
 

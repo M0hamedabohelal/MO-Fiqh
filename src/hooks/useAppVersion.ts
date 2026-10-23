@@ -96,7 +96,9 @@ export function useAppVersion(): AppVersionState {
   // وتبقى ثابتة، فنضعها في حالة لا في ref (قراءة ref أثناء العرض تُخالف قواعد React
   // وتُنتج دالة عرض غير نقية).
   const [runningBuild] = useState<string | null>(() => currentEntryAsset());
-  const [bootBuild, setBootBuild] = useState<string | null>(() => readBootBuild(currentEntryAsset()));
+  // حزمة الإقلاع تُقرأ مرة واحدة فقط ولا تتغيّر داخل التبويب: الأساس يُعاد حسابه عند
+  // الإقلاع التالي (readBootBuild) لا أثناء حياته. لذلك قيمة ثابتة لا setter.
+  const [bootBuild] = useState<string | null>(() => readBootBuild(currentEntryAsset()));
   // الأساس الفعلي للمقارنة — يتغيّر بعد إعادة التحميل عند التحديث (انظر reloadNow)
   const bootRef = useRef<string | null>(bootBuild);
   // آخر حزمة رآها الخادم — تُصبح الأساس بعد التحديث
@@ -106,15 +108,6 @@ export function useAppVersion(): AppVersionState {
   const [checking, setChecking] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const inFlightRef = useRef(false);
-
-  // أي تغيّر في الأساس يُعكس في الحالة حتى تراه الواجهة
-  const adoptBaseline = useCallback((next: string | null): void => {
-    bootRef.current = next;
-    setBootBuild(next);
-    try {
-      if (next) sessionStorage.setItem(BOOT_BUILD_KEY, next);
-    } catch { /* يكفي ال memo */ }
-  }, []);
 
   const checkNow = useCallback(async (): Promise<boolean> => {
     // نقارن بحزمة الإقلاع لا بالحزمة الحالية: بعد إعادة التحميل تكون الحالية هي الجديدة
@@ -151,9 +144,10 @@ export function useAppVersion(): AppVersionState {
   }, []);
 
   const reloadNow = useCallback((): void => {
-    // بعد إعادة التحميل ستكون الحزمة المخدومة هي العاملة: نعتبرها الأساس الجديد
-    // حتى لا يظل شريط «نسخة جديدة» ظاهرًا بعد أن حدّث المستخدم فعلًا.
-    adoptBaseline(lastServedRef.current ?? bootRef.current);
+    // ⚠️ لا نكتب حزمة الأساس هنا. كتابتها قبل نجاح التحميل تجعل التبويب "مقتنعًا"
+    // أنه محدّث بينما لسه شغّالًا على القديم — ولو فشل التحميل (شبكة/كاش/404) يبقى
+    // الزر بلا أثر ولا يظهر التنبيه مرة أخرى أبدًا. الأساس يُحدَّث بعد نجاح التحميل
+    // فقط، أي عند الإقلاع التالي عبر readBootBuild حين يتطابق مع الحزمة العاملة.
     try {
       if ('caches' in window) {
         caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
@@ -161,8 +155,9 @@ export function useAppVersion(): AppVersionState {
     } catch { /* ignore */ }
     const url = new URL(window.location.href);
     url.searchParams.set('v', String(Date.now()));
+    // replace لا assign: يمنع زر الرجوع من العودة إلى الحالة القديمة
     window.location.replace(url.toString());
-  }, [adoptBaseline]);
+  }, []);
 
   // «تحقّق الآن» في الإعدادات: يفحص، وإن وُجد نشر أحدث يُحدّث فورًا بدل الاكتفاء
   // برسالة. يعيد true إن أُعيد التحميل (فلا معنى لرسالة بعدها).

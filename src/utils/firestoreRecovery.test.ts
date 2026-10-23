@@ -4,6 +4,8 @@ import {
   isFatalFirestoreError,
   recoverFromFatalFirestoreError,
   firestoreFatalRecovery,
+  isStaleChunkError,
+  reloadToLatest,
   __resetRecoveryForTests,
 } from './firestoreRecovery';
 
@@ -114,5 +116,37 @@ describe('recoverFromFatalFirestoreError — مسار window', () => {
   it('لا يعيد التحميل للخطأ غير القاتل', () => {
     expect(recoverFromFatalFirestoreError(new Error('network-request-failed'))).toBe(false);
     expect(reload).not.toHaveBeenCalled();
+  });
+});
+
+// الشارد المفقود بعد نشر: التبويب القديم يطلب /assets/SettingsView-<hash قديم>.js
+// فيرجع 404. بدل «تعذّر عرض هذه الشاشة» يجب أن يُحدَّث التطبيق.
+describe('isStaleChunkError — شارد اختفى بعد نشر', () => {
+  it('يكتشف رسائل فشل تحميل الوحدات الديناميكية في المتصفحات المختلفة', () => {
+    expect(isStaleChunkError(new Error('Failed to fetch dynamically imported module: https://fqh.me/assets/SettingsView-BrGW-o-e.js'))).toBe(true);
+    expect(isStaleChunkError(new Error('error loading dynamically imported module'))).toBe(true);
+    expect(isStaleChunkError(new Error('Importing a module script failed.'))).toBe(true);
+    expect(isStaleChunkError(new Error('ChunkLoadError: Loading chunk 12 failed.'))).toBe(true);
+    expect(isStaleChunkError('Unable to preload CSS for /assets/x.css')).toBe(true);
+  });
+
+  it('لا يخلط بينه وبين أخطاء أخرى', () => {
+    expect(isStaleChunkError(new Error('network-request-failed'))).toBe(false);
+    expect(isStaleChunkError(new Error('INTERNAL ASSERTION FAILED: Unexpected state (ID: b815)'))).toBe(false);
+    expect(isStaleChunkError(null)).toBe(false);
+    expect(isStaleChunkError(undefined)).toBe(false);
+  });
+
+  it('reloadToLatest يطلب صفحة جديدة ويتجاوز الكاش ويمسح حزمة الإقلاع', async () => {
+    sessionStorage.setItem('active_build', 'assets/index-OLD.js');
+    const replaced = vi.fn();
+    vi.stubGlobal('location', { ...window.location, replace: replaced, href: 'https://fqh.me/#/settings' });
+
+    await reloadToLatest();
+
+    expect(replaced).toHaveBeenCalledTimes(1);
+    expect(String(replaced.mock.calls[0]?.[0])).toContain('v=');
+    // بلا هذه الخطوة يظل التطبيق يقارن حزمة الإقلاع القديمة بعد التحديث
+    expect(sessionStorage.getItem('active_build')).toBeNull();
   });
 });

@@ -173,19 +173,51 @@ describe('useAppVersion', () => {
     expect(afterReload.current.updateReady).toBe(false);
   });
 
-  // الحالة المضادّة: إعادة تحميل **عادية** (نفس الحزمة) لا يجوز أن تُنسي التبويب أنه
-  // على نسخة قديمة بينما الخادم يقدّم أحدث — وهذا أصل الشكوى: «لم يظهر زر تحديث».
-  it('إعادة التحميل العادية تحفظ حزمة الإقلاع فيظل كشف النشر الجديد صحيحًا', async () => {
-    const { result } = renderHook(() => useAppVersion());
-    expect(result.current.bootBuild).toBe(RUNNING);
-
-    // نفس الصفحة، نفس الحزمة — لكن الخادم نشر حزمة أحدث
-    __resetBootBuildForTests();
+  // العيب الذي شكا منه المستخدم: «بضغط على زر تحديث لا يتحدث».
+  // السبب: كان reloadNow يكتب الحزمة المخدومة كأساس **قبل** نجاح التحميل. لو فشل
+  // التحميل (شبكة/كاش) يصبح التبويب مقتنعًا أنه محدّث، فيختفي التنبيه ولا يعود أبدًا
+  // والعمل رغم ذلك على الحزمة القديمة — زر بلا أثر.
+  it('الضغط على التحديث لا يُعلن الجديدة كأساس قبل نجاح التحميل', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, text: async () => pageHtml(SERVED_NEW) })));
-    const { result: afterPlainReload } = renderHook(() => useAppVersion());
+    const replaced = vi.fn();
+    vi.stubGlobal('location', { ...window.location, replace: replaced, href: 'https://fqh.me/#/settings' });
 
-    expect(afterPlainReload.current.bootBuild).toBe(RUNNING);
-    await act(async () => { await afterPlainReload.current.checkNow(); });
-    expect(afterPlainReload.current.updateReady).toBe(true);
+    const { result } = renderHook(() => useAppVersion());
+    await act(async () => { await result.current.checkNow(); });
+    expect(result.current.updateReady).toBe(true);
+
+    act(() => result.current.reloadNow());
+
+    // طُلب التحميل…
+    expect(replaced).toHaveBeenCalledTimes(1);
+    // …لكن الأساس لم يُكتب قبل النجاح، فقد فشل التحميل مثلًا وما زلنا على القديم
+    expect(sessionStorage.getItem('active_build')).toBe(RUNNING);
+  });
+
+  // بعد تحميل ناجح فعليًا: صفحة جديدة تحمل الحزمة الحديثة → تُتبنّى كأساس
+  it('الإقلاع التالي بعد تحميل ناجح يُحدّث الأساس فيصمت التنبيه', async () => {
+    sessionStorage.setItem('active_build', RUNNING);
+    __resetBootBuildForTests();
+    document.head.innerHTML = `<script type="module" crossorigin src="/${SERVED_NEW}"></script>`;
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, text: async () => pageHtml(SERVED_NEW) })));
+
+    const { result } = renderHook(() => useAppVersion());
+    expect(result.current.bootBuild).toBe(SERVED_NEW);
+    await act(async () => { await result.current.checkNow(); });
+    expect(result.current.updateReady).toBe(false);
+  });
+
+  // حالة حقيقية: نشر جديد يحدث والتبويب كان قد حدّث نفسه قبل قليل. الأساس يجب أن
+  // يبقى الحزمة العاملة الحقيقية، فأي نشر لاحق يُكتشف (لا يصبح الكشف أعمى بعد أول تحديث).
+  it('نشر جديد بعد تحديث سابق يُكتشف مرة أخرى', async () => {
+    const NEWER = 'assets/index-LATERrr.js';
+    sessionStorage.setItem('active_build', RUNNING);
+    __resetBootBuildForTests();
+    document.head.innerHTML = `<script type="module" crossorigin src="/${RUNNING}"></script>`;
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, text: async () => pageHtml(NEWER) })));
+
+    const { result } = renderHook(() => useAppVersion());
+    await act(async () => { await result.current.checkNow(); });
+    expect(result.current.updateReady).toBe(true);
   });
 });

@@ -131,3 +131,52 @@ export function __resetRecoveryForTests(): void {
   recovering = false;
   hardResetting = false;
 }
+
+/* ── شاردات قديمة (stale chunks) ──
+ *
+ * بعد كل نشر تُبنى أسماء ملفات جديدة (hash)، والقديمة تُحذف من Hosting فتصرِف 404.
+ * التبويب المفتوح من قبل النشر يحمل في ذاكرته أسماء الشاردات القديمة، فأول انتقال
+ * إلى شاشة لم تُحمّل بعد يفشل بـ «Failed to fetch dynamically imported module»
+ * أو ChunkLoadError. هذه ليست عطلًا برمجيًا — هي دليل قاطع على وجود نسخة أحدث،
+ * والعلاج الصحيح تحديث لا رسالة خطأ.
+ *
+ * نُرجع هنا رسالة عربية واضحة في شاشة الخطأ لأن المستخدم لا يفهم «Failed to fetch».
+ */
+const STALE_CHUNK_PATTERNS = [
+  /Failed to fetch dynamically imported module/i,
+  /error loading dynamically imported module/i,
+  /Importing a module script failed/i,
+  /ChunkLoadError/i,
+  /Loading chunk \d+ failed/i,
+  /Unable to preload CSS/i,
+  /\/assets\/[A-Za-z0-9_.-]+\.js.*(404|Not Found)/i,
+];
+
+export function isStaleChunkError(reason: unknown): boolean {
+  let message = '';
+  if (typeof reason === 'string') message = reason;
+  else if (reason instanceof Error) message = reason.message;
+  else if (reason && typeof (reason as { message?: unknown }).message === 'string') {
+    message = String((reason as { message: unknown }).message);
+  }
+  if (!message) return false;
+  return STALE_CHUNK_PATTERNS.some((re) => re.test(message));
+}
+
+// إعادة تحميل لتجاوز الحزمة القديمة. لا نستخدم reloadNow هنا (يعيش في hook) لأن
+// هذه الدالة تُستدعى من ErrorBoundary خارج شجرة الخطافات.
+// نمسح اسم حزمة الإقلاع حتى يعيد التطبيق بناء أساسه على الحزمة الجديدة فعلًا.
+export function reloadToLatest(): Promise<void> {
+  try {
+    sessionStorage.removeItem('active_build');
+  } catch { /* بلا sessionStorage: يكفي التحميل */ }
+  try {
+    if ('caches' in window) {
+      void caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+    }
+  } catch { /* ignore */ }
+  const url = new URL(window.location.href);
+  url.searchParams.set('v', String(Date.now()));
+  window.location.replace(url.toString());
+  return Promise.resolve();
+}
