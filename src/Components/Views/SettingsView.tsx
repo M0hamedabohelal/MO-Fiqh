@@ -57,8 +57,10 @@ const SettingsView = () => {
             type="button"
             className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
             onClick={async () => {
-              const newer = await appVersion.checkNow();
-              setVersionMessage(newer ? 'توجد نسخة جديدة متاحة!' : 'تطبيقك محدّث بالكامل إلى آخر إصدار.');
+              setVersionMessage('');
+              const reloaded = await appVersion.checkAndReload();
+              // إن أُعيد التحميل فلا معنى لرسالة (الصفحة ستُستبدل الآن)
+              if (!reloaded) setVersionMessage('تطبيقك محدّث بالكامل إلى آخر إصدار.');
             }}
             disabled={appVersion.checking}
           >
@@ -68,6 +70,12 @@ const SettingsView = () => {
         )}
       </div>
       {versionMessage && <small className="d-block mt-2 text-muted" role="status">{versionMessage}</small>}
+      {/* شفافية: النسخة العاملة فعلًا — يمنع التباس «محدّث» مع تبويب قديم مفتوح */}
+      {appVersion.runningBuild && (
+        <small className="d-block mt-1 text-muted" dir="ltr" style={{ opacity: 0.7 }}>
+          build: {appVersion.runningBuild.replace('assets/index-', '').replace('.js', '')}
+        </small>
+      )}
     </div>
 
     <div className="custom-card p-3 p-md-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>

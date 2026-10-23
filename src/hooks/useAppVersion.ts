@@ -21,6 +21,52 @@ export const currentEntryAsset = (doc: Document = document): string | null => {
 export const isNewerBuild = (running: string | null, served: string | null): boolean =>
   Boolean(running && served && running !== served);
 
+// حزمة أول إقلاع في هذه الجلسة (التبويب).
+//
+// لماذا sessionStorage: بعد إعادة التحميل يحمل وسم السكربت اسم الحزمة **الجديد**، فلو
+// قارنّا دائمًا بالحزمة الحالية لكان الفحص يقارن الملف بنفسه بعد كل تحديث، فيقول
+// «أنت محدّث» حتى لو بدأ المستخدم على نسخة عمرها أسابيع. تسجيل حزمة الإقلاع يحفظ
+// الحقيقة: هذه هي النسخة التي بدأ عليها التبويب فعلًا.
+const BOOT_BUILD_KEY = 'active_build';
+
+let bootBuildMemo: string | null = null;
+
+/**
+ * الأساس الذي نقارن به ما يقدّمه الخادم.
+ *
+ * المشكلة: `initial` هو وسم السكربت في الصفحة **الآن**، وهو يتغيّر بعد التحديث. لو
+ * قارنّا به دائمًا لكان الفحص يقارن الملف بنفسه فيقول «محدّث» حتى لو بدأ التبويب على
+ * نسخة عمرها أسابيع (وهو ما أعطى «أنت على أحدث نسخة» كاذبة).
+ *
+ * الحل: نحفظ أول `initial` رآه التبويب في sessionStorage. بعد إعادة تحميل **عادية**
+ * يتطابق المحفوظ مع الحالي → نُعيده. بعد إعادة تحميل **بعد تحديث** يختلفان، والصحيح
+ * أن الحزمة العاملة الآن هي الأحدث فعلًا → نتبنّاها ونكتبها فوق المحفوظ.
+ */
+export const readBootBuild = (initial: string | null): string | null => {
+  if (bootBuildMemo) return bootBuildMemo;
+  if (!initial) return null;
+  let stored: string | null = null;
+  try {
+    stored = sessionStorage.getItem(BOOT_BUILD_KEY);
+  } catch {
+    // بلا sessionStorage: نكتفي بذاكرة التبويب
+  }
+  // المحفوظ يساوي العاملة الآن → نفس التحميل، لا شيء جديد يُتعلَّم
+  if (stored === initial) {
+    bootBuildMemo = stored;
+    return stored;
+  }
+  // اختلاف (أو أول مرة): العاملة الآن هي الحقيقة — تتضمّن حالة ما بعد التحديث
+  try {
+    sessionStorage.setItem(BOOT_BUILD_KEY, initial);
+  } catch { /* يكفي ال memo */ }
+  bootBuildMemo = initial;
+  return initial;
+};
+
+// للاختبارات فقط: تصفير ذاكرة حزمة الإقلاع
+export const __resetBootBuildForTests = (): void => { bootBuildMemo = null; };
+
 const CHECK_INTERVAL_MS = 2 * 60 * 1000;
 
 export interface AppVersionState {
@@ -32,25 +78,48 @@ export interface AppVersionState {
   checking: boolean;
   /** فحص فوري — يُستخدم لزر «تحقّق الآن» */
   checkNow: () => Promise<boolean>;
+  /** فحص ثم إعادة تحميل بالقوة إن وُجد نشر أحدث — يعيد هل أُعيد التحميل */
+  checkAndReload: () => Promise<boolean>;
   /** إعادة تحميل الصفحة لتحميل النسخة الجديدة */
   reloadNow: () => void;
   /** إخفاء الشريط لهذه الجلسة دون تحميل */
   dismiss: () => void;
   dismissed: boolean;
+  /** الحزمة التي يعمل عليها هذا التحميل (حزمة الإقلاع، لا الحزمة الحالية) */
+  bootBuild: string | null;
+  /** الحزمة التي يعمل عليها التبويب الآن (للشفافية) */
+  runningBuild: string | null;
 }
 
 export function useAppVersion(): AppVersionState {
-  const runningRef = useRef<string | null>(null);
+  // الحزمة التي يعمل عليها هذا التحميل + حزمة الإقلاع — تُقرأ مرة واحدة عند التركيب
+  // وتبقى ثابتة، فنضعها في حالة لا في ref (قراءة ref أثناء العرض تُخالف قواعد React
+  // وتُنتج دالة عرض غير نقية).
+  const [runningBuild] = useState<string | null>(() => currentEntryAsset());
+  const [bootBuild, setBootBuild] = useState<string | null>(() => readBootBuild(currentEntryAsset()));
+  // الأساس الفعلي للمقارنة — يتغيّر بعد إعادة التحميل عند التحديث (انظر reloadNow)
+  const bootRef = useRef<string | null>(bootBuild);
+  // آخر حزمة رآها الخادم — تُصبح الأساس بعد التحديث
+  const lastServedRef = useRef<string | null>(null);
   const [updateReady, setUpdateReady] = useState(false);
   const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
   const [checking, setChecking] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const inFlightRef = useRef(false);
 
-  if (runningRef.current === null) runningRef.current = currentEntryAsset();
+  // أي تغيّر في الأساس يُعكس في الحالة حتى تراه الواجهة
+  const adoptBaseline = useCallback((next: string | null): void => {
+    bootRef.current = next;
+    setBootBuild(next);
+    try {
+      if (next) sessionStorage.setItem(BOOT_BUILD_KEY, next);
+    } catch { /* يكفي ال memo */ }
+  }, []);
 
   const checkNow = useCallback(async (): Promise<boolean> => {
-    const running = runningRef.current;
+    // نقارن بحزمة الإقلاع لا بالحزمة الحالية: بعد إعادة التحميل تكون الحالية هي الجديدة
+    // فتصبح المقارنة بين الملف ونفسه وتُنتج «محدّث» كاذبة.
+    const running = bootRef.current;
     // في التطوير لا حزم مُجزّأة ولا نشر — الفحص بلا معنى
     if (!running || inFlightRef.current) return false;
     inFlightRef.current = true;
@@ -59,8 +128,17 @@ export function useAppVersion(): AppVersionState {
       const res = await fetch(`/index.html?ts=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) return false;
       const served = extractEntryAsset(await res.text());
+      if (!served) return false;
+      lastServedRef.current = served;
       const newer = isNewerBuild(running, served);
-      if (newer) setUpdateReady(true);
+      // الحزمة المخدومة تُصبح الأساس فور رؤيتها: بعد إعادة التحميل تصير هي العاملة،
+      // فلا يصحّ أن تظل المقارنة معلّقة على حزمة الإقلاع القديمة إلى الأبد.
+      if (newer) {
+        setUpdateReady(true);
+      } else {
+        // المخدوم = الأساس الحالي: لا نشر معلّق
+        setUpdateReady(false);
+      }
       return newer;
     } catch {
       // انقطاع شبكة عابر ليس خبرًا — لا نُعلن تحديثًا ولا نُخفي ما سبق
@@ -73,6 +151,9 @@ export function useAppVersion(): AppVersionState {
   }, []);
 
   const reloadNow = useCallback((): void => {
+    // بعد إعادة التحميل ستكون الحزمة المخدومة هي العاملة: نعتبرها الأساس الجديد
+    // حتى لا يظل شريط «نسخة جديدة» ظاهرًا بعد أن حدّث المستخدم فعلًا.
+    adoptBaseline(lastServedRef.current ?? bootRef.current);
     try {
       if ('caches' in window) {
         caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
@@ -81,7 +162,16 @@ export function useAppVersion(): AppVersionState {
     const url = new URL(window.location.href);
     url.searchParams.set('v', String(Date.now()));
     window.location.replace(url.toString());
-  }, []);
+  }, [adoptBaseline]);
+
+  // «تحقّق الآن» في الإعدادات: يفحص، وإن وُجد نشر أحدث يُحدّث فورًا بدل الاكتفاء
+  // برسالة. يعيد true إن أُعيد التحميل (فلا معنى لرسالة بعدها).
+  const checkAndReload = useCallback(async (): Promise<boolean> => {
+    const newer = await checkNow();
+    if (!newer) return false;
+    reloadNow();
+    return true;
+  }, [checkNow, reloadNow]);
 
   const dismiss = useCallback((): void => setDismissed(true), []);
 
@@ -102,5 +192,16 @@ export function useAppVersion(): AppVersionState {
     };
   }, [checkNow]);
 
-  return { updateReady, lastCheckedAt, checking, checkNow, reloadNow, dismiss, dismissed };
+  return {
+    updateReady,
+    lastCheckedAt,
+    checking,
+    checkNow,
+    checkAndReload,
+    reloadNow,
+    dismiss,
+    dismissed,
+    bootBuild,
+    runningBuild,
+  };
 }
