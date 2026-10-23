@@ -1,0 +1,80 @@
+# نشر تلقائي على Firebase Hosting عند كل دفع إلى main.
+#
+# لماذا: النشر اليدوي وحده يجعل نجاح/فشل النشرة غير مرئي — لا سجل، ولا تنبيه،
+# ولا ضمان أن المنشور يطابق main. هذه المهمة تنشر **فقط** إذا نجحت بوابة CI
+# كاملة (verify + e2e)، فلا يصل كود مكسور إلى الموقع.
+#
+# الإعداد المطلوب لمرة واحدة:
+#   1) Settings → Secrets and variables → Actions → Secrets → New secret
+#      الاسم: FIREBASE_TOKEN
+#      القيمة: ناتج `npx firebase-tools login:ci` على جهازك.
+#      (سرّ حقيقي — لا يوضع في Variables ولا في الكود.)
+#   2) متغيّرات VITE_FIREBASE_* موجودة أصلًا لمهمة e2e (Variables لا Secrets).
+#
+# بدون FIREBASE_TOKEN تُتخطّى المهمة بهدوء بدل أن تفشل — من لا يريد النشر
+# التلقائي يكفيه ألا يضيف السرّ، ويبقى `npm run deploy:hosting` متاحًا يدويًا.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  # إتاحة النشر اليدوي من تبويب Actions بلا دفعة جديدة
+  workflow_dispatch:
+
+# لا تتزامن نشرتان: الثانية تنتظر أو تُلغى إن جاءت دفعة أحدث
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # لا ننشر من forks
+    # ملاحظة: `secrets` ممنوع داخل `if` (GitHub يرفض الملف: Unrecognized named-value)،
+    # فنشرط على اسم المستودع فقط ونترك غياب السرّ يُفشل خطوة النشر وحدها.
+    if: ${{ github.repository_owner == 'M0hamedabohelal' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # بوابة الجودة أولًا: لا نشر لكود مكسور
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+      # قيمة المفاتيح تُشحن داخل حزمة الموقع أصلًا، لكن البناء يحتاجها لحظة التجميع.
+      - name: Write Firebase config
+        run: |
+          cat > .env.local <<EOF
+          VITE_FIREBASE_API_KEY=${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN=${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID=${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET=${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID=${{ vars.VITE_FIREBASE_APP_ID }}
+          EOF
+
+      # build ينفّذ generate-seo.mjs (يولّد public/lessons وpublic/books لأنها غير متتبعة)
+      - run: npm run build
+
+      # حارس قبل النشر: لو تلوّث dist لا ننشره
+      - run: npm run check:seo
+
+      - name: Deploy to Firebase Hosting
+        run: npx -y --engine-strict=false firebase-tools@15 deploy --only hosting --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "### ✅ نُشر على https://fqh.me" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "الالتزام: \`${GITHUB_SHA::7}\`" >> "$GITHUB_STEP_SUMMARY"

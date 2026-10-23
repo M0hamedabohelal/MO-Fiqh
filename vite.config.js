@@ -2,11 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-// وضع ghpages للنشر على GitHub Pages (مسار فرعي /MO-Fiqh/)
-// أي وضع آخر — Firebase Hosting أو غيره — يخدم من الجذر /
-export default defineConfig(({ mode }) => ({
+// النشر على Firebase Hosting من الجذر /. (وضع GitHub Pages للمسار الفرعي /MO-Fiqh/
+// أُزيل مع فرع gh-pages — كان ميتًا من غير أي مستخدم.)
+export default defineConfig({
   plugins: [react()],
-  base: mode === 'ghpages' ? '/MO-Fiqh/' : '/',
+  base: '/',
   build: {
     rollupOptions: {
       output: {
@@ -26,4 +26,4 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-}))
+})
