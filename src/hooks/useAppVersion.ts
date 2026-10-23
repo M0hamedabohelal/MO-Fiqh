@@ -21,7 +21,7 @@ export const currentEntryAsset = (doc: Document = document): string | null => {
 export const isNewerBuild = (running: string | null, served: string | null): boolean =>
   Boolean(running && served && running !== served);
 
-const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const CHECK_INTERVAL_MS = 2 * 60 * 1000;
 
 export interface AppVersionState {
   /** يوجد نشر أحدث من الحزمة العاملة */
@@ -73,24 +73,32 @@ export function useAppVersion(): AppVersionState {
   }, []);
 
   const reloadNow = useCallback((): void => {
-    // إعادة تحميل كاملة تتجاوز الكاش بطلب لا-تخزين للحزمة الجديدة
-    window.location.reload();
+    try {
+      if ('caches' in window) {
+        caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+      }
+    } catch { /* ignore */ }
+    const url = new URL(window.location.href);
+    url.searchParams.set('v', String(Date.now()));
+    window.location.replace(url.toString());
   }, []);
 
   const dismiss = useCallback((): void => setDismissed(true), []);
 
   // الفحص الأول بعد استقرار الإقلاع + دوري + عند عودة التبويب للمقدمة
   useEffect(() => {
-    const first = setTimeout(() => void checkNow(), 8_000);
+    const first = setTimeout(() => void checkNow(), 2_000);
     const timer = setInterval(() => void checkNow(), CHECK_INTERVAL_MS);
     const onVisible = (): void => {
       if (document.visibilityState === 'visible') void checkNow();
     };
     document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
     return () => {
       clearTimeout(first);
       clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
     };
   }, [checkNow]);
 

@@ -266,18 +266,18 @@ const ogImageFor = (bookName) =>
 // لنفس المشكلة لأن نطاق الـ SW يغطي الموقع كله، فلا يكفي حقن هذا في index.html وحده.
 const SW_CLEANUP = `<script>
 (function(){try{
-  if(localStorage.getItem('sw-cleared')==='1')return;
-  var done=function(){try{localStorage.setItem('sw-cleared','1')}catch(e){}};
-  if(!('serviceWorker' in navigator)){done();return;}
+  if(!('serviceWorker' in navigator))return;
   navigator.serviceWorker.getRegistrations().then(function(regs){
-    if(!regs.length){done();return;}
+    if(!regs.length)return;
     Promise.all(regs.map(function(r){return r.unregister()}))
       .then(function(){ if(!window.caches)return null;
         return caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k)}))}); })
-      .then(function(){ done();
-        if(!sessionStorage.getItem('sw-reloaded')){sessionStorage.setItem('sw-reloaded','1');location.reload();} })
-      .catch(done);
-  }).catch(done);
+      .then(function(){
+        try{localStorage.setItem('sw-cleared','1')}catch(e){}
+        if(!sessionStorage.getItem('sw-reloaded')){sessionStorage.setItem('sw-reloaded','1');location.reload();}
+      })
+      .catch(function(){});
+  }).catch(function(){});
 }catch(e){}})();
 </script>`;
 

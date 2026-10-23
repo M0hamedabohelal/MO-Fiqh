@@ -5,7 +5,8 @@ import GuestAccountCard from '../UI/GuestAccountCard';
 
 // شاشة الإعدادات وحول التطبيق
 const SettingsView = () => {
-  const { setCurrentView, reloadFromCloud, lessonsCount } = useApp();
+  const { setCurrentView, reloadFromCloud, lessonsCount, appVersion } = useApp();
+  const [versionMessage, setVersionMessage] = useState('');
   const onOpenAchievements = (): void => setCurrentView('achievements');
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState('');
@@ -33,6 +34,42 @@ const SettingsView = () => {
     </h3>
 
     {/* تحديث المحتوى — جلب أحدث المسائل والقاموس من السحابة */}
+    {/* تحديث التطبيق — التحقق من وجود نسخة جديدة تم نشرها */}
+    <div className="custom-card p-3 p-md-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>
+      <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+        <div className="text-start text-md-end flex-grow-1">
+          <div className="fw-bold" style={{ color: 'var(--text-main)' }}>نسخة التطبيق</div>
+          <span className="small text-muted">
+            {appVersion.updateReady ? 'توجد نسخة جديدة منشورة للموقع!' : 'أنت تستخدم أحدث نسخة من الموقع.'}
+          </span>
+        </div>
+        {appVersion.updateReady ? (
+          <button
+            type="button"
+            className="btn btn-sm btn-primary d-flex align-items-center gap-2"
+            onClick={appVersion.reloadNow}
+            style={{ backgroundColor: 'var(--accent-color)', color: '#1d1d1d', fontWeight: 'bold', border: 'none' }}
+          >
+            <FiRefreshCw /> تحديث التطبيق الآن
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2"
+            onClick={async () => {
+              const newer = await appVersion.checkNow();
+              setVersionMessage(newer ? 'توجد نسخة جديدة متاحة!' : 'تطبيقك محدّث بالكامل إلى آخر إصدار.');
+            }}
+            disabled={appVersion.checking}
+          >
+            {appVersion.checking ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
+            {appVersion.checking ? 'جارٍ الفحص...' : 'التحقق من التحديثات'}
+          </button>
+        )}
+      </div>
+      {versionMessage && <small className="d-block mt-2 text-muted" role="status">{versionMessage}</small>}
+    </div>
+
     <div className="custom-card p-3 p-md-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>
       <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
         <span className="small text-muted">{lessonsCount} مسألة متاحة على هذا الجهاز</span>

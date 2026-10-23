@@ -84,7 +84,7 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "no-cache, must-revalidate"
+            "value": "no-cache, no-store, must-revalidate, max-age=0"
           }
         ]
       },
@@ -93,7 +93,7 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "no-cache, must-revalidate"
+            "value": "no-cache, no-store, must-revalidate, max-age=0"
           }
         ]
       },
@@ -102,7 +102,7 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "no-cache, must-revalidate"
+            "value": "no-cache, no-store, must-revalidate, max-age=0"
           }
         ]
       },
@@ -111,7 +111,7 @@
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "no-cache, must-revalidate"
+            "value": "no-cache, no-store, must-revalidate, max-age=0"
           }
         ]
       },
@@ -130,6 +130,19 @@
           {
             "key": "Cache-Control",
             "value": "public, max-age=3600"
+          }
+        ]
+      },
+      {
+        "source": "/@(sw|service-worker).js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate, max-age=0"
+          },
+          {
+            "key": "Clear-Site-Data",
+            "value": "\"cache\""
           }
         ]
       }

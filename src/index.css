@@ -1033,6 +1033,7 @@ button:active:not(:disabled),
   font-weight: 700;
   font-size: 0.86rem;
   cursor: pointer;
+  animation: updateBtnPulse 2.5s infinite;
 }
 
 .update-banner-btn:hover {

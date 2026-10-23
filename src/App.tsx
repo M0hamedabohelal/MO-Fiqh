@@ -280,6 +280,7 @@ function App() {
     reloadFromCloud,
     currentSearchQuery,
     lessonsCount: lessons.length,
+    appVersion,
   }), [
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
@@ -297,6 +298,7 @@ function App() {
     restoreFullLibrary,
     onOpenSearch, onOpenLogin, reloadFromCloud,
     currentSearchQuery,
+    appVersion,
   ]);
 
   return (

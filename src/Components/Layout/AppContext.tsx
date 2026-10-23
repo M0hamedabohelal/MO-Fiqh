@@ -10,6 +10,7 @@ import type {
 } from '../../types';
 import type { StopMarkMap } from '../../features/stopMarks/model';
 import type { ContentSource } from '../../utils/contentSource';
+import type { AppVersionState } from '../../hooks/useAppVersion';
 
 // قيمة سياق التطبيق — نفس شكل layoutProps سابقًا (مصدر واحد للحقيقة بدل ~40 prop متناثرة)
 export interface AppContextValue {
@@ -67,6 +68,7 @@ export interface AppContextValue {
   reloadFromCloud: (manual?: boolean) => Promise<boolean>;
   currentSearchQuery: string;
   lessonsCount: number;
+  appVersion: AppVersionState;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
