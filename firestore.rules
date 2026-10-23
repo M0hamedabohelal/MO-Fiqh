@@ -64,13 +64,17 @@ service cloud.firestore {
     // في القاعدة لكن لا كود يقرأها أو يكتبها، فالمسار مغلق افتراضيًا عبر القاعدة العامة
     // في نهاية الملف (match /{document=**} → allow false) حتى تُعاد المزامنة من جديد.
 
-    // ─── استثناء واحد مقصود: مقروء الإشعارات ───
-    // التطبيق يزامن «الإشعارات المقروءة» بين أجهزة المستخدم عبر مستند واحد فقط:
-    //   users/{uid}/data/announcementReads
-    // كان محجوبًا بالقاعدة العامة فتظهر في الكونسول:
+    // ─── استثناء مقصود: مكتبة المستخدم ومقروء الإشعارات ───
+    // التطبيق يزامن بيانات المستخدم بين أجهزته عبر مستندين فقط تحت users/{uid}/data:
+    //   announcementReads  — الإشعارات المقروءة
+    //   library            — المفضلة · الفوائد · الملاحظات · المقروءة · الثيم · علامات الوقف
+    // كان المسار محجوبًا بالقاعدة العامة فتظهر في الكونسول:
     //   [announcements.listen] Missing or insufficient permissions
-    // الفتح هنا **مضيّق بقصد** لا يعيد فتح طبقة المستخدم: المسار محصور في مستند
-    // بالاسم، وشكله مقيد (مصفوفة نصوص فقط). أي مستند آخر تحت users يبقى مغلقًا.
+    //
+    // الفتح هنا **مضيّق بقصد** ولا يعيد فتح طبقة المستخدم القديمة:
+    //   - المسار محصور في مستندين بالاسم، وأي مستند آخر تحت users يبقى مغلقًا
+    //   - المالك وحده يقرأ ويكتب (request.auth.uid == uid)
+    //   - الشكل مقيد بمفاتيح معروفة وحدود حجم، فلا يتحول لمخزن حر
     match /users/{uid}/data/announcementReads {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow create, update: if isSignedIn()
@@ -80,6 +84,30 @@ service cloud.firestore {
         && request.resource.data.items.size() <= 500
         && request.resource.data.updatedAt is number;
       // لا حذف من العميل: إعادة الكتابة بـ merge هي المسار الشرعي
+      allow delete: if false;
+    }
+
+    // مكتبة المستخدم: المخطط مطابق لـ src/utils/librarySync.ts (SyncableLibrary)
+    // updatedAt: خريطة «مفتاح العنصر → طابعه الزمني» وهي أساس حلّ التعارض بين الأجهزة.
+    match /users/{uid}/data/library {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(
+             ['bookmarks', 'highlights', 'notes', 'readLessons', 'stopMarks', 'theme', 'updatedAt'])
+        && request.resource.data.bookmarks is list
+        && request.resource.data.bookmarks.size() <= 3000
+        && request.resource.data.readLessons is list
+        && request.resource.data.readLessons.size() <= 3000
+        && request.resource.data.highlights is list
+        && request.resource.data.highlights.size() <= 3000
+        && request.resource.data.notes is map
+        && request.resource.data.notes.size() <= 2000
+        && request.resource.data.updatedAt is map
+        // الحقول الاختيارية: تُفحص فقط عند وجودها (العميل يكتب بـ merge فقد تنسحب)
+        && (!('stopMarks' in request.resource.data)
+             || (request.resource.data.stopMarks is map && request.resource.data.stopMarks.size() <= 200))
+        && (!('theme' in request.resource.data) || request.resource.data.theme is string);
       allow delete: if false;
     }
 

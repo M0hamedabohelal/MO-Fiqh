@@ -5,7 +5,9 @@ import SearchModal    from './Components/UI/SearchModal';
 import ShortcutsHelpModal from './Components/UI/ShortcutsHelpModal';
 import MobileBottomNav from './Components/Navigation/MobileBottomNav';
 import SplashScreen   from './Components/UI/SplashScreen';
-import UpdateBanner   from './Components/UI/UpdateBanner';
+import UpdateBanner   from './Components/UI/UpdateBanner'
+import GuestLoginPrompt from './Components/UI/GuestLoginPrompt'
+import { requireLogin } from './utils/guestPrompt';
 import LoginModal     from './Components/Auth/LoginModal';
 import AppLayout      from './Components/Layout/AppLayout';
 import { AppProvider } from './Components/Layout/AppContext';
@@ -16,6 +18,7 @@ import { useAuth }             from './Components/Auth/AuthContext';
 import { useHashRoute }        from './hooks/useHashRoute';
 import { useUserLibrary }      from './hooks/useUserLibrary';
 import { useStopMarks }        from './hooks/useStopMarks';
+import { useLibrarySync }      from './hooks/useLibrarySync';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useOnlineStatus }     from './hooks/useOnlineStatus';
 import { useAppData }          from './hooks/useAppData';
@@ -43,7 +46,7 @@ function App() {
   const appVersion = useAppVersion();
 
   // ─── المكتبة الشخصية ───
-  const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary } = useUserLibrary();
+  const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary, isDataLoaded } = useUserLibrary();
   const { stopMarks, stopMarksReady, toggleStopMark, restoreStopMarks } = useStopMarks();
 
   // ─── التوجيه الهاشي ───
@@ -59,8 +62,30 @@ function App() {
     const saved = safeGet('theme');
     return (saved === 'sepia' || saved === 'dark') ? saved : 'dark';
   });
+  // الثيم يُحفظ للجميع محليًا (لا يحتاج حسابًا للعرض)، لكن مزامنته بين الأجهزة
+  // تتطلب حسابًا — وهذا ما يظهر له التحذير عند التبديل كزائر.
+  const changeTheme = useCallback((next: 'dark' | 'sepia') => {
+    if (!user?.uid) { requireLogin({ action: 'الثيم' }); return; }
+    setTheme(next);
+  }, [user?.uid]);
   const [isSearchOpen, setIsSearchOpen]   = useState(false);
   const [isLoginOpen, setIsLoginOpen]     = useState(false);
+
+  // ─── مزامنة المكتبة بين الأجهزة (لا تفعل شيئًا بلا حساب) ───
+  // تُستدعى بعد تعريف theme والكتابات المحلية، وقبل أي استخدام للسياق.
+  useLibrarySync({
+    ready: isDataLoaded && stopMarksReady,
+    data: { bookmarks, highlights, notes, readLessons, stopMarks, theme },
+    onMerged: (merged) => {
+      // تطبيق نتيجة الدمج محليًا: لا نفقد شيئًا، ونرى بيانات بقية الأجهزة
+      merged.bookmarks.forEach((id) => { if (!bookmarks.includes(id)) toggleBookmark(id); });
+      merged.readLessons.forEach((id) => { if (!readLessons.includes(id)) toggleReadLesson(id); });
+      Object.entries(merged.notes).forEach(([id, text]) => {
+        if (notes[id] !== text) saveNoteForLesson(id, text);
+      });
+      merged.highlights.forEach((h) => addHighlight(h));
+    },
+  });
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');
   const [showShortcutsHelp, setShowShortcutsHelp]   = useState(false);
   // بوابة الشاشة تعتمد على اكتمال تحميل المحتوى فقط
@@ -262,7 +287,7 @@ function App() {
   const layoutProps: AppContextValue = useMemo(() => ({
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
-    theme, setTheme, fontSize, setFontSize,
+    theme, setTheme: changeTheme, fontSize, setFontSize,
     cloudStatus, cloudLessonsLoaded, contentSource,
     contentReady,
     isOffline,
@@ -284,7 +309,7 @@ function App() {
   }), [
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
-    theme, fontSize,
+    theme, changeTheme, fontSize,
     cloudStatus, cloudLessonsLoaded, contentSource, contentReady,
     isOffline,
     glossary, notes, bookmarks, highlights, readLessons,
@@ -307,6 +332,8 @@ function App() {
 
       {/* إشعار نشر نسخة جديدة — يظهر تلقائيًا بلا Service Worker */}
       <UpdateBanner version={appVersion} />
+      {/* تحذير الزائر عند محاولة حفظ شيء يحتاج حسابًا */}
+      <GuestLoginPrompt onOpenLogin={onOpenLogin} />
 
       {/* ✅ Onboarding — مرة واحدة للمستخدم الجديد */}
       {showOnboarding && <OnboardingSlides onDone={() => setShowOnboarding(false)} />}

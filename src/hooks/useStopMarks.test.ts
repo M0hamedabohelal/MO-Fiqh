@@ -25,28 +25,36 @@ beforeEach(() => {
 });
 
 describe('useStopMarks — ضيف', () => {
-  it('يضع علامة الوقوف ويحفظها محليًا، والضغط مرة أخرى يزيلها منطقيًا', async () => {
+  // سياسة 2026: إضافة علامة وقف تتطلب حسابًا (تُزامَن بين الأجهزة). الزائر يحصل على
+  // تحذير بدل حفظ صامت. الإزالة تبقى مسموحة (اختبار منفصل أدناه).
+  it('الزائر لا يستطيع إضافة علامة وقف — يُنبَّه ولا تُحفظ', async () => {
     const { result } = renderHook(() => useStopMarks());
     await waitFor(() => expect(result.current.stopMarksReady).toBe(true));
 
     act(() => result.current.toggleStopMark(lesson(4)));
-    await waitFor(() => expect(Object.keys(result.current.stopMarks).length).toBe(1));
+    await waitFor(() => expect(Object.keys(result.current.stopMarks).length).toBe(0));
+    expect(readMarks(GUEST_KEY)[TRI]?.lessonId ?? null).toBeNull();
+  });
 
-    const [bookKey] = Object.keys(result.current.stopMarks);
-    expect(result.current.stopMarks[bookKey].lessonId).toBe('4');
-    expect(readMarks(GUEST_KEY)[bookKey].lessonId).toBe('4');
+  it('الزائر يستطيع إزالة علامة قديمة محفوظة', async () => {
+    localStorage.setItem(GUEST_KEY, JSON.stringify({
+      [TRI]: { bookName: 'كتاب الطهارة', lessonId: '4', updatedAt: 1, deviceId: 'd1' },
+    }));
+    const { result } = renderHook(() => useStopMarks());
+    await waitFor(() => expect(result.current.stopMarks[TRI]?.lessonId).toBe('4'));
 
-    // نفس المسألة = إلغاء (سجل حذف منطقي لا حذف مستند)
     act(() => result.current.toggleStopMark(lesson(4)));
-    await waitFor(() => expect(result.current.stopMarks[bookKey].lessonId).toBeNull());
-    expect(readMarks(GUEST_KEY)[bookKey].lessonId).toBeNull();
+    await waitFor(() => expect(result.current.stopMarks[TRI].lessonId).toBeNull());
   });
 
   it('لا يكتب في مفاتيح الحساب وهو ضيف', async () => {
+    localStorage.setItem(GUEST_KEY, JSON.stringify({
+      [TRI]: { bookName: 'كتاب الطهارة', lessonId: '4', updatedAt: 1, deviceId: 'd1' },
+    }));
     const { result } = renderHook(() => useStopMarks());
     await waitFor(() => expect(result.current.stopMarksReady).toBe(true));
-    act(() => result.current.toggleStopMark(lesson(2)));
-    await waitFor(() => expect(Object.keys(result.current.stopMarks).length).toBe(1));
+    act(() => result.current.toggleStopMark(lesson(4)));
+    await waitFor(() => expect(result.current.stopMarks[TRI].lessonId).toBeNull());
 
     const accountKeys = Object.keys(localStorage).filter((k) => k.startsWith('stopMarks_v2_'));
     expect(accountKeys).toEqual([]);

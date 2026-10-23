@@ -1,31 +1,82 @@
+import { useEffect, useState } from 'react';
 import { FiRefreshCw, FiX } from 'react-icons/fi';
 import type { AppVersionState } from '../../hooks/useAppVersion';
 
-// شريط «نسخة جديدة متاحة» — يظهر تلقائيًا عند نشر تحديث، ويختفي بتحميل الصفحة
-// أو بالإخفاء اليدوي لهذه الجلسة. بلا Service Worker: مجرد مقارنة اسم الحزمة.
+// بوب «نسخة جديدة متاحة» — يظهر **أسفل الشاشة** فجأة بأنيميشن قصير.
+//
+// لماذا بوب لا شريط: الشريط العلوي كان يدفع المحتوى ويُقطع مع أول تمرير، والبوب
+// يحفظ مساحة شريط التنقل السفلي على الفون ويُقرأ دون أن يقطع القراءة.
+//
+// مفاتيح السلوك:
+// - تأخير 350ms: «يظهر فجأة» بعد استقرار أول رسم، لا يرتجف أثناء الإقلاع.
+// - data-reduced-motion: من يفضّل تقليل الحركة يحصل على ظهور بلا انزلاق.
+// - role="status" + aria-live: يُعلَن لقارئ الشاشة دون سرقة تركيز.
+const APPEAR_DELAY_MS = 350;
+
+const prefersReducedMotion = (): boolean => {
+  try {
+    return typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
+};
+
 const UpdateBanner = ({ version }: { version: AppVersionState }) => {
-  if (!version.updateReady || version.dismissed) return null;
+  const [shown, setShown] = useState(false);
+  const [reduced, setReduced] = useState(false);
+
+  const active = version.updateReady && !version.dismissed;
+
+  useEffect(() => {
+    if (!active) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShown(false);
+      return undefined;
+    }
+     
+    setReduced(prefersReducedMotion());
+    const t = setTimeout(() => setShown(true), APPEAR_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [active]);
+
+  if (!active || !shown) return null;
 
   return (
-    <div className="update-banner" role="status" aria-live="polite">
-      <span className="update-banner-text">نسخة جديدة متاحة</span>
-      <div className="update-banner-actions">
+    <div
+      className="update-pop"
+      data-placement="bottom"
+      data-reduced-motion={reduced ? 'true' : 'false'}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="update-pop-icon" aria-hidden="true">
+        <FiRefreshCw size={17} />
+      </span>
+
+      <div className="update-pop-body">
+        <span className="update-pop-title">نسخة جديدة متاحة</span>
+        <span className="update-pop-sub">حدّث لتظهر آخر التعديلات</span>
+      </div>
+
+      <div className="update-pop-actions">
         <button
           type="button"
-          className="update-banner-btn"
+          className="update-pop-btn"
           onClick={version.reloadNow}
           aria-label="تحديث الآن — إعادة تحميل الصفحة بالنسخة الجديدة"
         >
-          <FiRefreshCw size={15} aria-hidden="true" /> تحديث الآن
+          تحديث الآن
         </button>
         <button
           type="button"
-          className="update-banner-dismiss"
+          className="update-pop-dismiss"
           onClick={version.dismiss}
-          aria-label="إخفاء إشعار التحديث"
+          aria-label="إغلاق إشعار التحديث"
           title="لاحقًا"
         >
-          <FiX size={16} aria-hidden="true" />
+          <FiX size={17} aria-hidden="true" />
         </button>
       </div>
     </div>

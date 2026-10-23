@@ -992,67 +992,268 @@ button:active:not(:disabled),
   }
 }
 
-/* شريط «نسخة جديدة متاحة» — ثابت أعلى الشاشة، فوق كل شيء، بمقاس فون */
-.update-banner {
+/* ─── بوب «نسخة جديدة متاحة» — أسفل الشاشة ───
+   يظهر فجأة فوق شريط التنقل مباشرة، لا يدفع المحتوى ولا يُقطع مع التمرير.
+   data-placement="bottom" يثبّت الموضع، وdata-reduced-motion="true" يلغي الحركة. */
+.update-pop {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1100;
+  /* فوق شريط التنقل (--z-nav) والزر العائم، وتحته فقط عن الإشعارات/المساعدة */
+  z-index: var(--z-banner);
+  /* فوق شريط التنقل السفلي على الفون + المساحة الآمنة للـ notch */
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.5rem 0.85rem;
-  background-color: var(--primary-color);
-  color: #fff;
+  gap: 0.7rem;
+  width: max-content;
+  max-width: min(92vw, 460px);
+  padding: 0.6rem 0.7rem 0.6rem 0.9rem;
+  border-radius: 16px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  border: 1px solid color-mix(in srgb, var(--accent-color) 40%, transparent);
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.22),
+    0 2px 8px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   font-family: 'Tajawal', sans-serif;
-  font-size: 0.92rem;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  /* يظهر «فجأة» لكن بحركة ناعمة لا ترتجف */
+  animation: updatePopIn 0.42s cubic-bezier(0.22, 1.2, 0.36, 1) both;
 }
 
-.update-banner-text {
-  font-weight: 600;
+/* سطح المكتب: لا شريط تنقل سفلي، فنقترب من الأسفل أكثر */
+@media (min-width: 768px) {
+  .update-pop {
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
-.update-banner-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+/* من يفضّل تقليل الحركة: ظهور بلا انزلاق (الشيء نفسه يحدث فورًا) */
+.update-pop[data-reduced-motion="true"] {
+  animation: updatePopFade 0.2s ease-out both;
 }
 
-.update-banner-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border: 0;
-  border-radius: 999px;
-  padding: 0.32rem 0.85rem;
-  background-color: var(--accent-color);
-  color: #1d1d1d;
-  font-weight: 700;
-  font-size: 0.86rem;
-  cursor: pointer;
-  animation: updateBtnPulse 2.5s infinite;
+@keyframes updatePopIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
 }
 
-.update-banner-btn:hover {
-  filter: brightness(0.95);
+@keyframes updatePopFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.update-banner-dismiss {
+.update-pop-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 0;
-  background: transparent;
-  color: #fff;
-  opacity: 0.8;
-  cursor: pointer;
-  padding: 0.2rem;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--accent-color) 16%, transparent);
+  color: var(--accent-color);
 }
 
-.update-banner-dismiss:hover {
+.update-pop-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.update-pop-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  line-height: 1.3;
+}
+
+.update-pop-sub {
+  font-size: 0.76rem;
+  opacity: 0.68;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.update-pop-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.update-pop-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.42rem 0.95rem;
+  background: var(--accent-color);
+  color: #1d1d1d;
+  font-weight: 700;
+  font-size: 0.82rem;
+  font-family: 'Tajawal', sans-serif;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.update-pop-btn:hover { filter: brightness(1.06); }
+.update-pop-btn:active { transform: scale(0.97); }
+
+.update-pop-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-main);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.update-pop-dismiss:hover {
   opacity: 1;
+  background: color-mix(in srgb, var(--text-main) 8%, transparent);
+}
+
+/* على الشاشات الضيقة جدًا: نص أصغر وزر أنحف حتى لا يلتفّ */
+@media (max-width: 380px) {
+  .update-pop { gap: 0.55rem; padding: 0.55rem; }
+  .update-pop-icon { display: none; }
+  .update-pop-sub { display: none; }
+  .update-pop-btn { padding: 0.4rem 0.75rem; font-size: 0.78rem; }
+}
+
+@media print {
+  .update-pop { display: none !important; }
+}
+
+/* ─── بوب «يلزم تسجيل الدخول» — نفس لغة بوب التحديث، بلون تنبيهي ─── */
+.guest-pop {
+  position: fixed;
+  z-index: var(--z-banner);
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: max-content;
+  max-width: min(92vw, 470px);
+  padding: 0.65rem 0.7rem 0.65rem 0.9rem;
+  border-radius: 16px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  border: 1px solid color-mix(in srgb, #e0a33a 55%, transparent);
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.24),
+    0 2px 8px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-family: 'Tajawal', sans-serif;
+  animation: updatePopIn 0.42s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+@media (min-width: 768px) {
+  .guest-pop { bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+}
+
+.guest-pop-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: color-mix(in srgb, #e0a33a 18%, transparent);
+  color: #d99a2b;
+}
+
+.guest-pop-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.guest-pop-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.guest-pop-sub {
+  font-size: 0.75rem;
+  opacity: 0.72;
+  line-height: 1.45;
+}
+
+.guest-pop-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.guest-pop-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.42rem 0.9rem;
+  background: var(--accent-color);
+  color: #1d1d1d;
+  font-weight: 700;
+  font-size: 0.8rem;
+  font-family: 'Tajawal', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.guest-pop-btn:hover { filter: brightness(1.06); }
+.guest-pop-btn:active { transform: scale(0.97); }
+
+.guest-pop-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-main);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.guest-pop-dismiss:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--text-main) 8%, transparent);
+}
+
+@media (max-width: 380px) {
+  .guest-pop { gap: 0.5rem; padding: 0.55rem; }
+  .guest-pop-icon { display: none; }
+  .guest-pop-title { font-size: 0.84rem; }
+  .guest-pop-sub { font-size: 0.72rem; }
+  .guest-pop-btn { padding: 0.4rem 0.7rem; font-size: 0.76rem; }
+}
+
+@media print {
+  .guest-pop { display: none !important; }
 }
 

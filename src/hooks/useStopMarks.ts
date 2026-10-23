@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Lesson } from '../types';
 import { useAuth } from '../Components/Auth/AuthContext';
 import { safeGet, safeSet } from '../utils/safeStorage';
+import { requireLogin } from '../utils/guestPrompt';
 import {
   createStopMarkChange,
   createRestoredStopMarks,
@@ -75,6 +76,12 @@ export function useStopMarks() {
     if (!deviceIdRef.current) deviceIdRef.current = getDeviceId();
     const change = createStopMarkChange(marksRef.current, lesson, deviceIdRef.current);
     if (!change) return;
+    // حارس الزائر: إضافة/تعديل علامة يتطلب حسابًا. الإزالة (lessonId=null) مسموحة دائمًا.
+    const isRemoval = change.record.lessonId === null;
+    if (!uid && !isRemoval) {
+      requireLogin({ action: 'علامة الوقف' });
+      return;
+    }
     persist({ ...marksRef.current, [change.bookKey]: change.record }, uid);
   }, [authLoading, uid, persist]);
 

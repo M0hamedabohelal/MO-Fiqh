@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
 import { safeGet, safeSet, safeRemove } from '../utils/safeStorage';
+import { requireLogin } from '../utils/guestPrompt';
 import type { HighlightItem } from '../types';
 
 // مكتبة المستخدم — محلية فقط (بدون أي مزامنة سحابية).
@@ -139,15 +140,26 @@ export function useUserLibrary() {
     commit(patch(snapshotRef.current));
   }, [commit]);
 
+  // حارس الزائر: الإضافة/التعديل يتطلب حسابًا، أما الإلغاء فمسموح (لا نحبس مستخدمًا
+  // في بيانات أنشأها قبل هذا القيد، ولا نمنعه من تنظيفها).
+  const isGuest = !user?.uid;
+  const guardWrite = useCallback((): boolean => {
+    if (!isGuest) return true;
+    requireLogin({ action: 'هذه البيانات' });
+    return false;
+  }, [isGuest]);
+
   const toggleBookmark = useCallback((lessonId: string | number) => {
     const id = String(lessonId);
+    // إلغاء مفضلة موجودة مسموح للزائر؛ الإضافة تتطلب حسابًا
+    if (!snapshotRef.current.bookmarks.includes(id) && !guardWrite()) return;
     update((current) => ({
       ...current,
       bookmarks: current.bookmarks.includes(id)
         ? current.bookmarks.filter((b) => b !== id)
         : [...current.bookmarks, id],
     }));
-  }, [update]);
+  }, [update, guardWrite]);
 
   const toggleReadLesson = useCallback((lessonId: string | number) => {
     const id = String(lessonId);
@@ -160,6 +172,7 @@ export function useUserLibrary() {
   }, [update]);
 
   const addHighlight = useCallback((highlight: HighlightItem) => {
+    if (!guardWrite()) return;
     update((current) => ({
       ...current,
       highlights: [
@@ -167,7 +180,7 @@ export function useUserLibrary() {
         highlight,
       ],
     }));
-  }, [update]);
+  }, [update, guardWrite]);
 
   const deleteHighlight = useCallback((highlightId: string | number) => {
     const id = String(highlightId);
@@ -179,13 +192,16 @@ export function useUserLibrary() {
 
   const saveNoteForLesson = useCallback((lessonId: string | number, text: string) => {
     const id = String(lessonId);
+    // حفظ نص جديد يتطلب حسابًا؛ أما مسح ملاحظة قائمة فمسموح للزائر
+    const isClearing = !text.trim() && Boolean(snapshotRef.current.notes[id]);
+    if (!isClearing && !guardWrite()) return;
     update((current) => {
       const notes = { ...current.notes };
       if (text.trim()) notes[id] = text;
       else delete notes[id];
       return { ...current, notes };
     });
-  }, [update]);
+  }, [update, guardWrite]);
 
   // استعادة من ملف نسخة احتياطية — دمج محلي فقط
   const restoreLibrary = useCallback((data: {

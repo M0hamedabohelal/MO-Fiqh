@@ -88,7 +88,7 @@ const AppLayout = () => {
     >
       <Topbar
         theme={theme}
-        toggleTheme={setTheme}
+        toggleTheme={() => setTheme(theme === 'dark' ? 'sepia' : 'dark')}
       />
 
       <div className="container mt-4" style={{ maxWidth: '850px' }}>

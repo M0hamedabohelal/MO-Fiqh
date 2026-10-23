@@ -26,26 +26,38 @@ describe('useUserLibrary — ضيف', () => {
     expect(result.current.isDataLoaded).toBe(true);
   });
 
-  it('toggleBookmark يضيف ثم يزيل، ويُحفظ محليًا', async () => {
+  // سياسة 2026: الحفظ يتطلب حسابًا (البيانات تُزامَن بين الأجهزة)، القراءة حرة.
+  // الزائر يحصل على تحذير بدل حفظ صامت. تفاصيل الحارس في useUserLibrary.guest.test.ts
+  it('الزائر لا يستطيع إضافة مفضلة — يُنبَّه بدل الحفظ', async () => {
     const { result } = renderHook(() => useUserLibrary());
     await waitFor(() => expect(result.current.isDataLoaded).toBe(true));
-
-    act(() => result.current.toggleBookmark(5));
-    await waitFor(() => expect(result.current.bookmarks).toEqual(['5']));
-    expect(JSON.parse(localStorage.getItem('guest_bookmarks') || '[]')).toEqual(['5']);
 
     act(() => result.current.toggleBookmark(5));
     await waitFor(() => expect(result.current.bookmarks).toEqual([]));
     expect(JSON.parse(localStorage.getItem('guest_bookmarks') || '[]')).toEqual([]);
   });
 
-  it('حفظ الملاحظة الفارغة يحذفها بدل تخزين سلسلة فارغة', async () => {
+  it('الزائر يستطيع إزالة مفضلة قديمة (لا يُحبَس في بيانات سابقة)', async () => {
+    localStorage.setItem('guest_bookmarks', JSON.stringify(['5']));
     const { result } = renderHook(() => useUserLibrary());
-    await waitFor(() => expect(result.current.isDataLoaded).toBe(true));
+    await waitFor(() => expect(result.current.bookmarks).toEqual(['5']));
 
+    act(() => result.current.toggleBookmark(5));
+    await waitFor(() => expect(result.current.bookmarks).toEqual([]));
+    expect(JSON.parse(localStorage.getItem('guest_bookmarks') || '[]')).toEqual([]);
+  });
+
+    // الزائر لا يكتب ملاحظات (تحتاج حسابًا)، لكنه يقدر يمسح ملاحظة قديمة موجودة.
+  it('الزائر: حفظ ملاحظة مرفوض، ومسح ملاحظة قديمة مسموح', async () => {
+    localStorage.setItem('guest_notes', JSON.stringify({ '9': 'قديمة' }));
+    const { result } = renderHook(() => useUserLibrary());
+    await waitFor(() => expect(result.current.notes).toEqual({ '9': 'قديمة' }));
+
+    // إضافة/تعديل: مرفوضة
     act(() => result.current.saveNoteForLesson(9, 'نص'));
-    await waitFor(() => expect(result.current.notes).toEqual({ '9': 'نص' }));
+    await waitFor(() => expect(result.current.notes).toEqual({ '9': 'قديمة' }));
 
+    // مسح: مسموح
     act(() => result.current.saveNoteForLesson(9, '   '));
     await waitFor(() => expect(result.current.notes).toEqual({}));
     expect(JSON.parse(localStorage.getItem('guest_notes') || '{}')).toEqual({});
