@@ -54,13 +54,13 @@ export function parseBackupFile(text: string): Omit<LibraryBackup, 'app' | 'vers
       stopMarks: parsed.version === 3 ? normalizeStopMarkMap(parsed.stopMarks) : {},
     };
   }
-  throw new Error('ملف غير صالح — ليس نسخة احتياطية من الباحث الفقهي.');
+  throw new Error('ملف غير صالح — ليس نسخة احتياطية من يُسْر.');
 }
 
 export function backupToText(input: {
   bookmarks?: unknown; highlights?: unknown; notes?: unknown; readLessons?: unknown; stopMarks?: unknown;
 }, lessonTitleOf: (id: string) => string): string {
-  const lines: string[] = ['الباحث الفقهي — مكتبتي', ''];
+  const lines: string[] = ['يُسْر — مكتبتي', ''];
   const bookmarks = Array.isArray(input.bookmarks) ? input.bookmarks.map(String) : [];
   const highlights = Array.isArray(input.highlights) ? (input.highlights as HighlightItem[]) : [];
   const notes = input.notes && typeof input.notes === 'object' ? (input.notes as Record<string, string>) : {};

@@ -158,7 +158,7 @@ const SplashScreen = ({ visible, progress, statusText = 'جارٍ التحميل
             >
               <motion.img
                 src={logo}
-                alt="الباحث الفقهي"
+                alt="يُسْر"
                 width={104}
                 height={104}
                 decoding="async"
@@ -191,7 +191,7 @@ const SplashScreen = ({ visible, progress, statusText = 'جارٍ التحميل
               letterSpacing: '0.03em',
               fontFamily: 'inherit',
             }}>
-              الباحث الفقهي
+              يُسْر
             </h1>
             <p style={{
               color: 'rgba(255,255,255,0.42)',

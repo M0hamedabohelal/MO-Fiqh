@@ -151,7 +151,7 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
                     {source}
                   </div>
                 ) : null}
-                <span style={{ fontFamily: "'Amiri', serif", fontWeight: '700', fontSize: '16px', color: '#d8b96c' }}>الباحث الفقهي</span>
+                <span style={{ fontFamily: "'Amiri', serif", fontWeight: '700', fontSize: '16px', color: '#d8b96c' }}>يُسْر</span>
                 <span style={{ color: '#9aa5b1', fontSize: '12px', margin: '0 8px', fontFamily: "'Tajawal', 'Segoe UI', sans-serif" }}>•</span>
                 <span style={{ color: '#9aa5b1', fontSize: '13px', fontFamily: "'Tajawal', 'Segoe UI', sans-serif", direction: 'ltr', unicodeBidi: 'embed' }}>fqh.me</span>
               </div>
