@@ -24,7 +24,8 @@ export const isFirebaseConfigured = Boolean(
 );
 
 // تطبيق واحد مشترك عبر كل المسارات (initializeApp آمن للتكرار)
-export function getApp(): Promise<{ app: FirebaseApp; appMod: typeof AppMod }> {
+// داخلي فقط: لا مستهلك خارج هذا الملف (كل المسارات تمر عبر getFirestore/getAuth/getAppCheck)
+function getApp(): Promise<{ app: FirebaseApp; appMod: typeof AppMod }> {
   if (!isFirebaseConfigured) {
     return Promise.reject(new Error('Firebase غير مهيأ'));
   }
@@ -59,14 +60,55 @@ export function getFirestore(): Promise<{ app: FirebaseApp; db: Firestore; fsMod
 // بعد انقطاع الشبكة قد يبقى العميل في وضع "غير متصل" إن فات حدث online (شائع في متصفحات الجوال
 // على أندرويد حيث يبقى navigator.onLine=false رغم عودة الشبكة)، فلا تُرسل أي طلب ويظل
 // كل تحديث يفشل بالمهلة. enableNetwork يعيد تشغيل قنوات الاتصال بغض النظر عن الحدث.
+//
+// ⚠️ تحذير مقيس (سبب عطل b815 على الإنتاج): استدعاء enableNetwork مرات متتالية **بلا**
+// disableNetwork بينها يفسد عدّاد pendingResponses في SDK (يصبح -1) فيرمي ca9، ثم يموت
+// طابور العمليات كله ويُصبح كل استدعاء لاحق يرمي b815 — حتى إعادة تحميل الصفحة.
+// المرجع: firebase-js-sdk#9968 (نفس جدول الاستدعاءات، أُعيد إنتاجه بنفس الطريقة).
+// لذلك: لا نستدعيها إلا بعد أن ينقطع الاتصال فعلًا (disableNetwork صريح)، ومرة واحدة
+// لكل انقطاع. النداء الأول وحده آمن لأن العميل يبدأ متصلًا.
+let networkEnabled = true;
+let pendingReconnect: Promise<void> | null = null;
+
 export async function enableFirestoreNetwork(): Promise<void> {
   if (!isFirebaseConfigured) return;
+  // متصل أصلًا: تكرار النداء هو ما يفسد العميل — نتجاهله.
+  if (networkEnabled) return;
+  // انقطاعات متلاحقة تشارك نفس إعادة التشغيل بدل تشغيل متوازٍ
+  if (pendingReconnect) return pendingReconnect;
+  pendingReconnect = (async () => {
+    try {
+      const { db, fsMod } = await getFirestore();
+      await fsMod.enableNetwork(db);
+      networkEnabled = true;
+    } catch {
+      // تجاهل — العملية التالية ستحاول وتفشل بوضوح إن كانت الشبكة فعلًا مقطوعة
+    } finally {
+      pendingReconnect = null;
+    }
+  })();
+  return pendingReconnect;
+}
+
+// يحوّل العميل إلى وضع عدم الاتصال بشكل صريح حتى تصبح إعادة الاتصال اللاحقة مشروعة.
+// بلا هذا، انقطاع الشبكة لا يُعلِم SDK، فيبقى networkEnabled = true ويُتجاهل النداء — وهو
+// بالضبط السلوك المرغوب (لا حاجة لإصلاح عميل يعمل)، لكن عند عودة الشبكة فعلًا سنحتاج
+// إعادة تشغيل القنوات، فنُعلن الانقطاع أولًا.
+export async function disableFirestoreNetwork(): Promise<void> {
+  if (!isFirebaseConfigured || !networkEnabled) return;
   try {
     const { db, fsMod } = await getFirestore();
-    await fsMod.enableNetwork(db);
+    await fsMod.disableNetwork(db);
+    networkEnabled = false;
   } catch {
-    // تجاهل — العملية التالية ستحاول وتفشل بوضوح إن كانت الشبكة فعلًا مقطوعة
+    // تجاهل — الأسوأ أن نبقى متصلين، وهو الوضع الطبيعي
   }
+}
+
+// للاختبارات فقط: إعادة الحالة الداخلية
+export function __resetNetworkStateForTests(): void {
+  networkEnabled = true;
+  pendingReconnect = null;
 }
 
 let authPromise: Promise<{ app: FirebaseApp; auth: Auth; authMod: typeof AuthMod }> | null = null;

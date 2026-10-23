@@ -1,12 +1,26 @@
 // إنقاذ من أعطال Firestore الداخلية القاتلة (ca9 ثم b815).
 // بعد ca9 يُعطّل SDK طابور العمليات كله، فلا ينجح أي طلب أو مستمع حتى إعادة تحميل الصفحة.
-// نُعيد التحميل تلقائيًا مرة واحدة كل فترة بدل ترك التطبيق ميتًا، مع حماية من حلقة إعادة تحميل.
+//
+// ⚠️ لماذا لا يكفي مستمعا window وحدها:
+// الكول باك يُستدعى داخل flush لتحديث React، فالرمي فيه يمرّ على ErrorBoundary **قبل**
+// أن يصل إلى window.error. لذلك مساران لا بد أن يُغطّى كلاهما:
+//   1) window.error / unhandledrejection — للأخطاء خارج التصيير.
+//   2) componentDidCatch في ErrorBoundary — للأخطاء داخل التصيير (هذا ما أسقط #/settings).
+//
+// وحماية إعادة التحميل يجب أن تسمح دائمًا بمحاولة عند عطل قاتل، لأن بقاء المستخدم
+// على شاشة خطأ دائمة أسوأ من إعادة تحميل إضافية. التكرار يُعالَج بإبطال الكاش، لا بالامتناع.
 
 const RECOVERY_KEY = 'firestore_assertion_reload_at';
 // مرة واحدة كل 5 دقائق كحد أقصى — العمل نفسه عابر، فلا نُغرق المستخدم بإعادات تحميل.
 const MIN_INTERVAL_MS = 5 * 60_000;
+// إن تكرر العطل رغم إعادة التحميل فإن الكاش المحلي هو المشتبه الأول: قد يُعيد إنتاج
+// نفس العدّاد المكسور (-1) عند كل إقلاع. نمسحه ثم نُعيد التحميل مرة أخرى.
+const HARD_RESET_KEY = 'firestore_hard_reset_at';
+// سقف انتظار مسح الكاش: التعافي أهم من نظافة الكاش.
+const CACHE_CLEAR_TIMEOUT_MS = 1500;
 
 let recovering = false;
+let hardResetting = false;
 
 export function isFatalFirestoreError(reason: unknown): boolean {
   let message = '';
@@ -18,17 +32,83 @@ export function isFatalFirestoreError(reason: unknown): boolean {
   return message.includes('INTERNAL ASSERTION FAILED') && /\(ID: (ca9|b815)\)/.test(message);
 }
 
+function readTimestamp(key: string): number {
+  try {
+    const raw = Number(sessionStorage.getItem(key) || 0);
+    return Number.isFinite(raw) ? raw : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeTimestamp(key: string): void {
+  try {
+    sessionStorage.setItem(key, String(Date.now()));
+  } catch {
+    // بلا sessionStorage: نكتفي بحماية المتغير داخل الصفحة
+  }
+}
+
+// يمسح كاش Firestore (IndexedDB + المفاتيح المحلية) ليعود العميل على حالة نظيفة.
+// سقف زمني صارم: المسح مساعد للتعافي، ولا يجوز أن يمنع إعادة التحميل إن تعطّل
+// (IndexedDB مقفلة، أو حزمة Firebase لم تُحمّل بعد).
+async function clearFirestoreCache(): Promise<void> {
+  const clearDb = (async () => {
+    try {
+      const { getFirestore, isFirebaseConfigured } = await import('../firebase/config');
+      if (!isFirebaseConfigured) return;
+      const { db, fsMod } = await getFirestore();
+      await fsMod.clearIndexedDbPersistence(db);
+    } catch {
+      // غير متاحة في كل الحالات (كاش في الذاكرة فقط، أو وصول متعدد للتبويبات)
+    }
+  })();
+  const localKeys = (async () => {
+    try {
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('firestore_') && key !== RECOVERY_KEY && key !== HARD_RESET_KEY) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch {
+      // بلا localStorage: لا شيء نمسحه
+    }
+  })();
+  const timeout = new Promise<void>((resolve) => setTimeout(resolve, CACHE_CLEAR_TIMEOUT_MS));
+  await Promise.race([Promise.all([clearDb, localKeys]).then(() => undefined), timeout]);
+}
+
+/**
+ * يتعافى من عطل Firestore قاتل داخل التصيير (يُستدعى من ErrorBoundary).
+ * يعيد التحميل دائمًا — لا يترك المستخدم على شاشة خطأ — مع تفريغ الكاش إن تكرر العطل.
+ */
+export async function firestoreFatalRecovery(reason: unknown): Promise<void> {
+  if (!isFatalFirestoreError(reason)) return;
+  if (hardResetting) return;
+  hardResetting = true;
+  const lastAttempt = readTimestamp(RECOVERY_KEY);
+  const repeated = lastAttempt > 0 && Date.now() - lastAttempt < MIN_INTERVAL_MS;
+  writeTimestamp(RECOVERY_KEY);
+  if (repeated) {
+    writeTimestamp(HARD_RESET_KEY);
+    await clearFirestoreCache();
+  }
+  window.location.reload();
+}
+
 // يعيد true إن كان الخطأ من النوع القاتل (سواء أُعيد التحميل أو كان ضمن فترة الحماية).
+// يُستخدم من مستمعي window، حيث لا توجد شاشة خطأ ظاهرة نُخفّف عنها.
 export function recoverFromFatalFirestoreError(reason: unknown): boolean {
   if (!isFatalFirestoreError(reason)) return false;
   if (recovering) return true;
   recovering = true;
-  try {
-    const last = Number(sessionStorage.getItem(RECOVERY_KEY) || 0);
-    if (Number.isFinite(last) && Date.now() - last < MIN_INTERVAL_MS) return true;
-    sessionStorage.setItem(RECOVERY_KEY, String(Date.now()));
-  } catch {
-    // بلا sessionStorage: نكتفي بحماية المتغير داخل الصفحة
+  const last = readTimestamp(RECOVERY_KEY);
+  const repeated = last > 0 && Date.now() - last < MIN_INTERVAL_MS;
+  writeTimestamp(RECOVERY_KEY);
+  if (repeated) {
+    writeTimestamp(HARD_RESET_KEY);
+    void clearFirestoreCache().finally(() => window.location.reload());
+    return true;
   }
   window.location.reload();
   return true;
@@ -44,4 +124,10 @@ export function installFirestoreRecovery(): void {
       (event as ErrorEvent).error ?? (event as ErrorEvent).message,
     );
   });
+}
+
+// للاختبارات فقط: إعادة الحالة الداخلية
+export function __resetRecoveryForTests(): void {
+  recovering = false;
+  hardResetting = false;
 }

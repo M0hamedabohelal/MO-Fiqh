@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchLessons, fetchGlossary, subscribeToLessons } from '../firebase/services';
-import { isFirebaseConfigured, enableFirestoreNetwork } from '../firebase/config';
+import { isFirebaseConfigured, enableFirestoreNetwork, disableFirestoreNetwork } from '../firebase/config';
 import { logError } from '../utils/logError';
 import { readCachedLessons, writeCachedLessons } from '../utils/contentCache';
 import { resolveContentSource } from '../utils/contentSource';
@@ -194,9 +194,12 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   // لا نقرأ من الخادم قراءةً لقطية منفصلة (getDocsFromServer) لأن المستمع الدائم يملك
   // نفس هدف Firestore؛ اجتماعهما كان يرمي «Target ID already exists» ويُفشل التحديث.
   // بدلًا من ذلك: نُعيد فتح المستمع ونعتبر أول لقطة خادمية مؤكدة = نجاح.
+  // فتح المستمع = طلب لقطة خادمية جديدة.
+  // لا نستدعي enableNetwork هنا: كان يُستدعى عند كل إعادة تحميل بلا disableNetwork بينها،
+  // وهو ما يفسد pendingResponses في SDK (ca9) ثم يقتل الطابور كله (b815) — عطل الإنتاج.
+  // نداء واحد مشروع فقط عند العودة من انقطاع حقيقي، تديره enableFirestoreNetwork نفسها.
   const reloadFromCloud = useCallback(async (manual = false): Promise<boolean> => {
     if (!isFirebaseConfigured) return false;
-    await enableFirestoreNetwork();
     if (manual) {
       cloudRetryRef.current = 0;
       setCloudStatus('syncing');
@@ -235,6 +238,9 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
     if (comingOnline) {
       cloudRetryRef.current = 0;
       setCloudStatus(isFirebaseConfigured ? 'syncing' : 'local');
+      // إعادة تشغيل القنوات مشروعة الآن: مررنا بانقطاع معلن، فـ enableNetwork لن يتكرر
+      // بلا disableNetwork قبله (وهو ما كان يقتل طابور العميل).
+      void disableFirestoreNetwork().then(() => enableFirestoreNetwork());
     }
     // بلا اتصال: الحالة الأولية 'syncing' كانت تعلق للأبد — نعلنها بصراحة
     // مزامنة مقصودة مع حالة خارجية (الاتصال) لا بديل تفاعلي لها

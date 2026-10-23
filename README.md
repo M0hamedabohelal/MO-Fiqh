@@ -164,6 +164,15 @@ npm run deploy:all       # الاثنان معًا
 - أي وصول لـ `localStorage` داخل `try/catch` (انظر `src/utils/safeStorage.ts`)
 - **لا تقرأ من الخادم قراءةً لقطية (`getDocsFromServer`) على استعلام له مستمع مفتوح** — يرمي
   `Target ID already exists` ويُفشل التحديث. أعِد فتح المستمع بدلًا من ذلك (انظر `useAppData`)
+- **لا تستدعِ `enableNetwork` مرتين بلا `disableNetwork` بينهما** — يُفسد `pendingResponses`
+  في SDK (يصبح `-1`) فيرمي `ca9`، ثم يموت طابور العمليات كله ويُصبح كل استدعاء لاحق يرمي
+  `b815` حتى إعادة تحميل الصفحة. المرجع: `firebase-js-sdk#9968` (أُعيد إنتاجه بنفس الجدول).
+  لذلك `enableFirestoreNetwork()` في `config.ts` تتجاهل النداء وهي متصلة، ولا تُستخدم إلا بعد
+  `disableFirestoreNetwork()` صريح. (`reloadFromCloud` لا تستدعيها إطلاقًا.)
+- **أخطاء التصيير لا تصل إلى `window.error`** — كول باك مستمع يُطلق أثناء flush لتحديث React
+  يمرّ على `ErrorBoundary` أولًا. أي عطل قاتل يجب أن يُغطّى من **المسارين**: مستمعي window
+  و`componentDidCatch`. ولا يجوز أن تمنع نافذة حماية إعادة التحميل إعادةَ التحميل: شاشة الخطأ
+  الدائمة أسوأ من إعادة تحميل زائدة (الاختبار يثبّت هذا في `firestoreRecovery.test.ts`).
 - شغّل النسخة الاحتياطية دوريًا قبل أي تعديل إداري واسع: `npm run backup`
 
 ## الاختبارات

@@ -2,7 +2,7 @@ import { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
 import EmptyState from './Components/UI/EmptyState';
 import { FiAlertTriangle } from 'react-icons/fi';
-import { recoverFromFatalFirestoreError } from './utils/firestoreRecovery';
+import { isFatalFirestoreError, firestoreFatalRecovery } from './utils/firestoreRecovery';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -42,9 +42,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error', error, errorInfo);
     this.setState({ errorInfo });
-    // عطل Firestore الداخلي القاتل (ca9/b815) يُعطّل كل الطلبات حتى إعادة التحميل؛
-    // نتعافى تلقائيًا (بحد مرة كل عدة دقائق) بدل ترك المستخدم أمام شاشة خطأ دائمة.
-    recoverFromFatalFirestoreError(error);
+    // عطل Firestore الداخلي القاتل (ca9/b815) يُعطّل كل الطلبات حتى إعادة التحميل.
+    // لا نترك المستخدم أمام شاشة خطأ دائمة: نتجاهل حدود هذا المكوّن ونُعيد التحميل.
+    // كان هذا المسار لا يعمل على الإنتاج لأن recoverFromFatalFirestoreError تعيد true
+    // (الجلسة كانت في نافذة الحماية) فنبقى على شاشة الخطأ بلا فعل — الآن نُبلّغ دائمًا.
+    if (isFatalFirestoreError(error)) {
+      void firestoreFatalRecovery(error);
+    }
   }
 
   render() {
