@@ -27,7 +27,7 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
         >
           <img
             src={logo}
-            alt="شعار يُسْر"
+            alt="شعار يَسْر"
             className="sidebar-logo-img"
             width="100"
             height="100"

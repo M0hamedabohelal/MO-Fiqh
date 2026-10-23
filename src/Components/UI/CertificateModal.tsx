@@ -98,7 +98,7 @@ const CertificateModal = ({ show, bookName, userName, lessonsCount, dateLabel, o
                 </div>
                 <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #d8b96c, transparent)', margin: '10px 30px 14px', opacity: 0.8 }} />
                 <div style={{ fontFamily: "'Amiri', serif", textAlign: 'center', fontSize: '15px', color: '#c9d3d0', lineHeight: '2' }}>
-                  يتشرف <strong style={{ color: '#e9cf8f' }}>يُسْر</strong> بأن يمنح هذه الشهادة إلى
+                  يتشرف <strong style={{ color: '#e9cf8f' }}>يَسْر</strong> بأن يمنح هذه الشهادة إلى
                 </div>
                 <div style={{
                   fontFamily: "'Amiri', serif", fontWeight: '700', textAlign: 'center',
@@ -124,7 +124,7 @@ const CertificateModal = ({ show, bookName, userName, lessonsCount, dateLabel, o
                 {/* الختم والتوقيع */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '18px', padding: '0 8px' }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontFamily: "'Amiri', serif", fontWeight: '700', fontSize: '15px', color: '#d8b96c' }}>يُسْر</div>
+                    <div style={{ fontFamily: "'Amiri', serif", fontWeight: '700', fontSize: '15px', color: '#d8b96c' }}>يَسْر</div>
                     <div style={{ fontSize: '11px', color: '#9aa5b1', fontFamily: "'Tajawal', 'Segoe UI', sans-serif", direction: 'ltr', unicodeBidi: 'embed' }}>fqh.me</div>
                   </div>
                   <div style={{

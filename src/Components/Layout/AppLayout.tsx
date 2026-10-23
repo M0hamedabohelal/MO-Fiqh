@@ -61,7 +61,7 @@ const AppLayout = () => {
         achievements: 'إنجازاتي ومواظبتي',
         settings: 'الإعدادات',
         admin: 'لوحة الإدارة',
-      } as Record<string, string>)[currentView] ?? 'يُسْر';
+      } as Record<string, string>)[currentView] ?? 'يَسْر';
 
   return (
   <div className="row g-0">

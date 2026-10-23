@@ -8,7 +8,7 @@ import { safeGet, safeSet } from '../../utils/safeStorage';
 const SLIDES = [
   {
     emoji: '📖',
-    title: 'أهلاً بك في يُسْر',
+    title: 'أهلاً بك في يَسْر',
     body: 'منصة متكاملة لدراسة الفقه الإسلامي — مسائل مرتبة، شروح الشيخ، وفيديوهات تعليمية كلها في مكان واحد.',
     color: 'var(--primary-color)',
   },

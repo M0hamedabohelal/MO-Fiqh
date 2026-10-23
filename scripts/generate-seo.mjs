@@ -295,7 +295,7 @@ function head({ title, desc, url, jsonld, ogType = 'article', ogImage = ogImageF
 ${prev ? `<link rel="prev" href="${prev}">` : ''}
 ${next ? `<link rel="next" href="${next}">` : ''}
 <meta property="og:type" content="${ogType}">
-<meta property="og:site_name" content="يُسْر">
+<meta property="og:site_name" content="يَسْر">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(desc)}">
 <meta property="og:url" content="${url}">
@@ -320,7 +320,7 @@ ${SW_CLEANUP}
 
 const foot = (appLink) => `
 <a class="cta" href="${appLink}" rel="noopener">📖 افتح في الموقع التفاعلي</a>
-<div class="footer">يُسْر — منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر — <a href="/">fqh.me</a> · <a href="/lessons/">كل المسائل</a></div>
+<div class="footer">يَسْر — منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر — <a href="/">fqh.me</a> · <a href="/lessons/">كل المسائل</a></div>
 </div></body></html>`;
 
 // ← توليد صفحات الكتب
@@ -334,7 +334,7 @@ function bookPage(name, lessons) {
     numberOfPages: lessons.length,
     inLanguage: 'ar',
     url,
-    publisher: { '@type': 'Organization', name: 'يُسْر', url: BASE },
+    publisher: { '@type': 'Organization', name: 'يَسْر', url: BASE },
   };
 
   const chapters = lessonChapters(lessons);
@@ -360,14 +360,14 @@ ${chLessons
 
   return (
     head({
-      title: `${name} — يُسْر`,
+      title: `${name} — يَسْر`,
       desc,
       url,
       jsonld,
       ogType: 'book',
       ogImage: ogImageFor(name),
     }) +
-    `<div class="breadcrumb"><a href="/">يُسْر</a> › ${escapeHtml(name)}</div>
+    `<div class="breadcrumb"><a href="/">يَسْر</a> › ${escapeHtml(name)}</div>
 <h1>${escapeHtml(name)}</h1>
 <p class="meta">${chapters.length} أبواب • ${lessons.length} مسألة (قراءة كاملة بدون تسجيل)</p>
 <div class="meta">${escapeHtml(snippet(lessons[0]?.mainText, 160))}…</div>
@@ -398,7 +398,7 @@ function lessonPage(l, bookLessons, bookName) {
     isPartOf: { '@type': 'Book', name: bookName },
     url,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
-    publisher: { '@type': 'Organization', name: 'يُسْر', url: BASE },
+    publisher: { '@type': 'Organization', name: 'يَسْر', url: BASE },
   };
 
   // تنسيق نص المتن: استبدال أقواس الآيات بعلامات ملونة
@@ -415,7 +415,7 @@ ${nextLesson ? `<a href="/lessons/${encId(nextLesson.id)}/" rel="next"><span>ا�
 
   return (
     head({
-      title: `${l.title} — ${bookName} — يُسْر`,
+      title: `${l.title} — ${bookName} — يَسْر`,
       desc,
       url,
       jsonld,
@@ -448,8 +448,8 @@ function lessonsIndexPage() {
     description: desc,
     inLanguage: 'ar',
     url,
-    isPartOf: { '@type': 'WebSite', name: 'يُسْر', url: `${BASE}/` },
-    publisher: { '@type': 'Organization', name: 'يُسْر', url: BASE },
+    isPartOf: { '@type': 'WebSite', name: 'يَسْر', url: `${BASE}/` },
+    publisher: { '@type': 'Organization', name: 'يَسْر', url: BASE },
   };
 
   const groupsHtml = bookNames
@@ -468,7 +468,7 @@ ${chapters
 
   return (
     head({
-      title: 'كل المسائل — يُسْر',
+      title: 'كل المسائل — يَسْر',
       desc,
       url,
       jsonld,
@@ -551,7 +551,7 @@ async function writeBookOgImages(sharp) {
     const chapters = lessonChapters(lessons).length;
     const title = escapeHtml(name);
     const stats = `${chapters} أبواب • ${lessons.length} مسألة`;
-    const brand = 'يُسْر';
+    const brand = 'يَسْر';
     const tagline = 'قراءة كاملة بدون تسجيل — fqh.me';
     // كل سطر يُقاس ويُصغَّر ليقع داخل textMaxWidth — فلا تراكب مع الشعار ولا قطع
     const [brandSize, titleSize, statsSize, tagSize] = await Promise.all([
@@ -601,7 +601,7 @@ async function writeDefaultOgImage(sharp) {
   <rect width="${OG_W}" height="${OG_H}" fill="#101414"/>
   <rect x="0" y="${OG_H - 10}" width="${OG_W}" height="10" fill="#5cc0b5"/>
   <g text-anchor="middle" direction="rtl">
-    <text x="${OG_W / 2}" y="260" font-family="Amiri, serif" font-size="82" font-weight="700" fill="#e6e8e6">يُسْر</text>
+    <text x="${OG_W / 2}" y="260" font-family="Amiri, serif" font-size="82" font-weight="700" fill="#e6e8e6">يَسْر</text>
     <text x="${OG_W / 2}" y="340" font-family="Tajawal, sans-serif" font-size="34" fill="#a9b1ad">منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر</text>
     <text x="${OG_W / 2}" y="410" font-family="Tajawal, sans-serif" font-size="28" fill="#d8a06a">قراءة كاملة بدون تسجيل — fqh.me</text>
   </g>
