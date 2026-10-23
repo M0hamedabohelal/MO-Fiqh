@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseRoute } from './useHashRoute';
+import { parseRoute, hashFromCleanPath, canonicalPathFor } from './useHashRoute';
 import type { Lesson } from '../types';
 
 const sampleLessons: Lesson[] = [
@@ -48,5 +48,56 @@ describe('parseRoute', () => {
     expect(parseRoute('', sampleLessons).view).toBe('hero');
     expect(parseRoute('#/unknown', sampleLessons).view).toBe('hero');
     expect(parseRoute('#/books', sampleLessons).view).toBe('books');
+  });
+});
+
+// الجسر بين الصفحات الثابتة (canonical) والتطبيق — الروابط النظيفة لا الهاش.
+// الصفحة الثابتة /lessons/1/ تعلن نفسها canonical وزرّها يشير إليها، فلو لم يترجمها
+// التطبيق لوقع الزائر على الصفحة الرئيسية بعد أن قرأ المسألة في نتائج جوجل.
+describe('hashFromCleanPath', () => {
+  it('يحوّل مسار مسألة نظيفًا (بشرطة نهائية أو بدونها) إلى هاش', () => {
+    expect(hashFromCleanPath('/lessons/1/')).toBe('#/lesson/1');
+    expect(hashFromCleanPath('/lessons/91')).toBe('#/lesson/91');
+    expect(hashFromCleanPath('/lessons/')).toBe('#/lessons');
+    expect(hashFromCleanPath('/lessons')).toBe('#/lessons');
+  });
+
+  it('يحوّل مسار كتاب عربي مُرمَّزًا ثم يفكّ ترميزه', () => {
+    const encoded = `/books/${encodeURIComponent('كتاب الصلاة')}/`;
+    expect(hashFromCleanPath(encoded)).toBe(`#/book/${encodeURIComponent('كتاب الصلاة')}`);
+  });
+
+  it('يتجاهل جذر الموقع والمسارات غير المعروفة', () => {
+    expect(hashFromCleanPath('/')).toBeNull();
+    expect(hashFromCleanPath('/about')).toBeNull();
+    expect(hashFromCleanPath('/lessons/1/extra')).toBeNull();
+  });
+
+  it('مسار بترميز فاسد لا يرمي استثناء', () => {
+    expect(() => hashFromCleanPath('/books/%E0%A4%A/')).not.toThrow();
+    expect(hashFromCleanPath('/books/%E0%A4%A/')).toBe('#/book/%E0%A4%A');
+  });
+});
+
+// المسار الذي تُشارك به المسألة يجب أن يكون هو نفسه الـ canonical المُعلَن في
+// public/lessons/{id}/index.html — وإلا شارك المستخدمون رابطًا غير قابل للفهرسة.
+describe('canonicalPathFor', () => {
+  it('يعطي مسار الصفحة الثابتة للمسألة', () => {
+    expect(canonicalPathFor('reading', '15')).toBe('/lessons/15/');
+  });
+
+  it('يعطي مسار صفحة فهرس المسائل', () => {
+    expect(canonicalPathFor('lessons')).toBe('/lessons/');
+  });
+
+  it('يعطي مسار صفحة الكتاب (بعد تقليم المسافات)', () => {
+    expect(canonicalPathFor('chapters', null, ' كتاب الطهارة ')).toBe(
+      `/books/${encodeURIComponent('كتاب الطهارة')}/`,
+    );
+  });
+
+  it('لا يعطي مسارًا لشاشات بلا صفحة ثابتة', () => {
+    expect(canonicalPathFor('hero')).toBeNull();
+    expect(canonicalPathFor('reading', null)).toBeNull();
   });
 });

@@ -75,5 +75,7 @@ export interface AnnouncementItem {
 declare global {
   interface Window {
     __forceHeroOnPopstate?: boolean;
+    /** المسار النظيف الحالي (/lessons/1/) — يُضبط قبل التصيير لضبط canonical/og:url */
+    __currentCleanPath?: string | null;
   }
 }

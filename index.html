@@ -17,7 +17,7 @@
       })();
     </script>
     <meta name="description" content="الباحث الفقهي - منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر" />
-    <link rel="canonical" href="https://www.fqh.me/" />
+    <link rel="canonical" href="https://fqh.me/" />
     <title>الباحث الفقهي</title>
     <meta name="google" content="notranslate">
 
@@ -47,14 +47,46 @@
     <meta property="og:locale" content="ar_AR" />
     <meta property="og:title" content="الباحث الفقهي — منصة تعليم الفقه الإسلامي" />
     <meta property="og:description" content="منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر" />
-    <meta property="og:image" content="https://www.fqh.me/og-image.jpg" />
-    <meta property="og:url" content="https://www.fqh.me/" />
+    <meta property="og:image" content="https://fqh.me/og-image.jpg" />
+    <meta property="og:url" content="https://fqh.me/" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="الباحث الفقهي — منصة تعليم الفقه الإسلامي" />
     <meta name="twitter:description" content="منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر" />
-    <meta name="twitter:image" content="https://www.fqh.me/og-image.jpg" />
+    <meta name="twitter:image" content="https://fqh.me/og-image.jpg" />
   </head>
   <body>
+    <!-- تنظيف آثار الـ PWA القديمة (مرة واحدة لكل متصفح) -->
+    <!-- الموقع صار ويب عاديًا، لكن زوّار ما قبل الإزالة ما زال عندهم Service Worker مسجَّل -->
+    <!-- وذاكرة كاش تحرس مسار الصفحة. النتيجة: يفتحون رابطًا فيرون نسخة قديمة جدًا، ولا -->
+    <!-- تُحدَّث إلا بريفرش قسري. إلغاء التسجيل + مسح الكاش مرة واحدة يحلّها نهائيًا. -->
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem('sw-cleared') === '1') return;
+          var done = function () { try { localStorage.setItem('sw-cleared', '1'); } catch (e) {} };
+          if (!('serviceWorker' in navigator)) { done(); return; }
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            if (!regs.length) { done(); return; }
+            Promise.all(regs.map(function (r) { return r.unregister(); }))
+              .then(function () {
+                if (!window.caches) return null;
+                return caches.keys().then(function (keys) {
+                  return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                });
+              })
+              .then(function () {
+                done();
+                // إعادة التحميل مرة واحدة حتى لا يبقى المستخدم على صفحة قديمة في الذاكرة
+                if (!sessionStorage.getItem('sw-reloaded')) {
+                  sessionStorage.setItem('sw-reloaded', '1');
+                  location.reload();
+                }
+              })
+              .catch(done);
+          }).catch(done);
+        } catch (e) { /* بيئة بلا تخزين — لا شيء يُنظَّف */ }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

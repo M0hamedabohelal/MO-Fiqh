@@ -8,7 +8,11 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const PUBLIC = join(root, 'public');
-const BASE = 'https://www.fqh.me';
+// النطاق الأساسي للروابط المطلقة (canonical / og:url / sitemap).
+// مهم: www.fqh.me يحوّل بـ 301 إلى fqh.me، فالـ canonical يجب أن يكون الرابط النهائي
+// (fqh.me) لا المحوِّل — وإلا أعلنّا لكل صفحة «النسخة الأصلية عندي على رابط يُحوِّل»،
+// وهو إشارة متناقضة تُضعف الفهرسة.
+const BASE = 'https://fqh.me';
 
 // ── البيانات: السحابة الحية أولًا، ثم أحدث نسخة احتياطية، ثم المحلية ──
 // بهذا تعكس صفحات SEO تعديلات لوحة الإدارة لحظة البناء بدل التأخر بعمر النسخة.
@@ -232,9 +236,54 @@ const PAGE_CSS = `
   .exp h3{color:#d8a06a;font-size:1.05rem;margin-top:0}
   .cta{display:block;text-align:center;background:linear-gradient(135deg,#5cc0b5,#2a9d8f);color:#0f3d3e;padding:.9rem;border-radius:12px;font-weight:700;font-size:1.05rem;margin-top:2rem;border:none}
   .footer{color:#6a726e;text-align:center;margin-top:2.5rem;font-size:.8rem;font-family:'Tajawal',sans-serif}
-  pre{white-space:pre-wrap;font-family:inherit;margin:0}`;
+  pre{white-space:pre-wrap;font-family:inherit;margin:0}
+  .pager{display:flex;gap:.6rem;justify-content:space-between;margin-top:2rem;font-family:'Tajawal',sans-serif;font-size:.9rem}
+  .pager a{flex:1;background:#1a2020;border:1px solid rgba(92,192,181,.25);border-radius:10px;padding:.7rem .8rem;text-align:center;border-bottom:1px solid rgba(92,192,181,.25)}
+  .pager a span{display:block;color:#6a726e;font-size:.72rem;margin-bottom:.2rem}
+  .pager .empty{flex:1}
+  h3.chapter{color:#8fa39c;font-size:.95rem;margin:1rem 0 .3rem;font-family:'Tajawal',sans-serif;font-weight:600}
+  .hub li a{border-bottom:none}
+  .hub ul{margin:0 0 .8rem}
+  .hub h2{margin-top:2rem;border-top:1px solid rgba(92,192,181,.15);padding-top:1.2rem}
+  .hub h2 a{border-bottom:none}
+  @media(max-width:520px){.pager{flex-direction:column}}`;
 
-function head(title, desc, url, jsonld) {
+// صورة المشاركة: كتاب له صورته، والمسألة تشارك صورة كتابها حتى لا تبقى الميتا بلا صورة.
+// الأبعاد تتبع الملف فعليًا — إعلان 1024×1024 لصورة 1200×630 يخرب قصّ البطاقة في تيليجرام/واتساب.
+// مكان الصور /og/ خارج /books/ و /lessons/ عمدًا: قواعد الكاش في firebase.json تجعل كل
+// ما تحت هذين المسارين HTML بلا كاش، ولو وُضعت الصور تحتهما لاحتاجت تعارضًا في الترتيب.
+const OG_DEFAULT = `${BASE}/og-image.jpg`;
+const OG_BOOK_SIZE = { width: 1200, height: 630 };
+const OG_DEFAULT_SIZE = { width: 1024, height: 1024 }; // ملف الهوية الحالي (مربّع)
+const ogImageFor = (bookName) =>
+  bookName
+    ? { url: `${BASE}/og/${enc(bookName)}.jpg`, ...OG_BOOK_SIZE }
+    : { url: OG_DEFAULT, ...OG_DEFAULT_SIZE };
+
+// تنظيف آثار الـ PWA القديمة — يُحقن في كل صفحة (تطبيق + صفحات ثابتة).
+// زوّار ما قبل إزالة الـ PWA ما زال عندهم Service Worker مسجَّل يخدّم حزمة قديمة من الكاش،
+// فتظهر نسخة قديمة عند فتح أي رابط ولا تُحدَّث إلا بريفرش قسري. الصفحات الثابتة تعرضت
+// لنفس المشكلة لأن نطاق الـ SW يغطي الموقع كله، فلا يكفي حقن هذا في index.html وحده.
+const SW_CLEANUP = `<script>
+(function(){try{
+  if(localStorage.getItem('sw-cleared')==='1')return;
+  var done=function(){try{localStorage.setItem('sw-cleared','1')}catch(e){}};
+  if(!('serviceWorker' in navigator)){done();return;}
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    if(!regs.length){done();return;}
+    Promise.all(regs.map(function(r){return r.unregister()}))
+      .then(function(){ if(!window.caches)return null;
+        return caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k)}))}); })
+      .then(function(){ done();
+        if(!sessionStorage.getItem('sw-reloaded')){sessionStorage.setItem('sw-reloaded','1');location.reload();} })
+      .catch(done);
+  }).catch(done);
+}catch(e){}})();
+</script>`;
+
+// زر "افتح في الموقع التفاعلي" — يفتح هاش التطبيق (/ #/lesson/id) لا الملف الثابت نفسه،
+// فالنقر على القناة الصحيحة ينقل الزائر إلى شاشة القراءة التفاعلية.
+function head({ title, desc, url, jsonld, ogType = 'article', ogImage = ogImageFor(null), prev = null, next = null }) {
   return `<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -243,23 +292,35 @@ function head(title, desc, url, jsonld) {
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(desc)}">
 <link rel="canonical" href="${url}">
-<meta property="og:type" content="article">
+${prev ? `<link rel="prev" href="${prev}">` : ''}
+${next ? `<link rel="next" href="${next}">` : ''}
+<meta property="og:type" content="${ogType}">
 <meta property="og:site_name" content="الباحث الفقهي">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(desc)}">
 <meta property="og:url" content="${url}">
+<meta property="og:image" content="${ogImage.url}">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="${ogImage.width}">
+<meta property="og:image:height" content="${ogImage.height}">
+<meta property="og:image:alt" content="${escapeHtml(title)}">
+<meta property="og:locale" content="ar_AR">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(desc)}">
+<meta name="twitter:image" content="${ogImage.url}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Amiri+Quran&family=Tajawal:wght@400;700&display=swap">
 <script type="application/ld+json">${jsonLdString(jsonld)}</script>
 <style>${PAGE_CSS}</style>
+${SW_CLEANUP}
 </head>
 <body><div class="wrap">`;
 }
 
 const foot = (appLink) => `
 <a class="cta" href="${appLink}" rel="noopener">📖 افتح في الموقع التفاعلي</a>
-<div class="footer">الباحث الفقهي — منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر — <a href="/">fqh.me</a></div>
+<div class="footer">الباحث الفقهي — منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر — <a href="/">fqh.me</a> · <a href="/lessons/">كل المسائل</a></div>
 </div></body></html>`;
 
 // ← توليد صفحات الكتب
@@ -292,21 +353,41 @@ ${chLessons
     )
     .join('');
 
+  const siblings = bookNames.filter((b) => b !== name);
+  const otherBooks = siblings.length
+    ? `\n<h2>كتب أخرى</h2>\n<ul>${siblings.map((b) => `<li><a href="/books/${enc(b)}/">${escapeHtml(b)}</a></li>`).join('')}</ul>`
+    : '';
+
   return (
-    head(`${name} — الباحث الفقهي`, desc, url, jsonld) +
+    head({
+      title: `${name} — الباحث الفقهي`,
+      desc,
+      url,
+      jsonld,
+      ogType: 'book',
+      ogImage: ogImageFor(name),
+    }) +
     `<div class="breadcrumb"><a href="/">الباحث الفقهي</a> › ${escapeHtml(name)}</div>
 <h1>${escapeHtml(name)}</h1>
 <p class="meta">${chapters.length} أبواب • ${lessons.length} مسألة (قراءة كاملة بدون تسجيل)</p>
 <div class="meta">${escapeHtml(snippet(lessons[0]?.mainText, 160))}…</div>
-${chaptersHtml}` +
+${chaptersHtml}${otherBooks}` +
+    // الزر يقود إلى التطبيق التفاعلي (هاش) — لا إلى هذا الملف نفسه، وإلا أعاد تحميل
+    // الصفحة الثابتة نفسها ولم يصل الزائر إلى تجربة القراءة التفاعلية أبدًا.
     foot(`/#/book/${enc(name)}`)
   );
 }
 
 // ← توليد صفحات المسائل
-function lessonPage(l) {
+// prev/next بالسابق والتالي الفعليين في المحتوى (المعرّفات بها فجوات: 11–16 و78)،
+// فيسير القارئ والزاحف على سلسلة متصلة من الروابط بدل الاعتماد على الحساب العددي.
+function lessonPage(l, bookLessons, bookName) {
   const url = `${BASE}/lessons/${encId(l.id)}/`;
-  const bookName = l.bookName || '';
+  const idx = bookLessons.findIndex((x) => String(x.id) === String(l.id));
+  const prevLesson = idx > 0 ? bookLessons[idx - 1] : null;
+  const nextLesson = idx >= 0 && idx < bookLessons.length - 1 ? bookLessons[idx + 1] : null;
+  const prevUrl = prevLesson ? `${BASE}/lessons/${encId(prevLesson.id)}/` : null;
+  const nextUrl = nextLesson ? `${BASE}/lessons/${encId(nextLesson.id)}/` : null;
   const desc = snippet(l.mainText, 155);
   const jsonld = {
     '@context': 'https://schema.org',
@@ -316,6 +397,7 @@ function lessonPage(l) {
     inLanguage: 'ar',
     isPartOf: { '@type': 'Book', name: bookName },
     url,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     publisher: { '@type': 'Organization', name: 'الباحث الفقهي', url: BASE },
   };
 
@@ -325,16 +407,84 @@ function lessonPage(l) {
     '<span class="quran">﴿$1﴾</span>',
   );
 
+  const pager = `
+<div class="pager">
+${prevLesson ? `<a href="/lessons/${encId(prevLesson.id)}/" rel="prev"><span>‹ السابق</span>${escapeHtml(prevLesson.title)}</a>` : '<div class="empty"></div>'}
+${nextLesson ? `<a href="/lessons/${encId(nextLesson.id)}/" rel="next"><span>التالي ›</span>${escapeHtml(nextLesson.title)}</a>` : '<div class="empty"></div>'}
+</div>`;
+
   return (
-    head(`${l.title} — ${bookName} — الباحث الفقهي`, desc, url, jsonld) +
+    head({
+      title: `${l.title} — ${bookName} — الباحث الفقهي`,
+      desc,
+      url,
+      jsonld,
+      ogImage: ogImageFor(bookName),
+      prev: prevUrl,
+      next: nextUrl,
+    }) +
     `<div class="breadcrumb"><a href="/">الرئيسية</a> › <a href="/books/${enc(bookName)}/">${escapeHtml(bookName)}</a> › ${escapeHtml(l.title)}</div>
 <h1>${escapeHtml(l.title)}</h1>
 <pre>${mainText}</pre>
 ${l.audioUrl ? (() => { const s = toSeconds(l.startTime); const e = toSeconds(l.endTime); const frag = s > 0 ? `#t=${s}${e > s ? `,${e}` : ''}` : ''; return `<div class="exp"><h3>🎧 استمع للدرس</h3><audio controls preload="none" src="${escapeHtml(l.audioUrl)}${frag}" style="width:100%"></audio><br><a href="${escapeHtml(l.audioUrl)}${frag}" rel="noopener">تحميل الصوت (MP3)</a></div>`; })() : ''}
-${l.sheikhExplanation ? `<div class="exp"><h3>📖 تعليق الشيخ</h3><pre>${escapeHtml(l.sheikhExplanation)}</pre></div>` : ''}` +
+${l.sheikhExplanation ? `<div class="exp"><h3>📖 تعليق الشيخ</h3><pre>${escapeHtml(l.sheikhExplanation)}</pre></div>` : ''}
+${pager}` +
     foot(`/#/lesson/${encId(l.id)}`)
   );
 }
+
+// ← صفحة فهرس كل المسائل (/lessons/) — محور ربط داخلي
+// الصفحات الثابتة كانت موجودة لكن يتيمة: لا رابط داخلي واحد يقود إليها غير sitemap.
+// هذه الصفحة تجمع كل المسائل في صفحة واحدة، وكل صفحة ثابتة تربط بها من الفوتر، فيصير
+// للزحف مسار واضح: الرئيسية ← الأبواب ← هذا الفهرس ← المسألة ← التالية/السابقة.
+// (لا نكتب public/index.html: هو مقصد Vite نفسه وكتابتنا فوقه تُستبدل أو تتصادم.)
+function lessonsIndexPage() {
+  const url = `${BASE}/lessons/`;
+  const desc = `كل مسائل الكتب الفقهية في صفحة واحدة — ${lessonsData.length} مسألة موثّقة بنصها وتعليق الشيخ، قراءة كاملة بدون تسجيل.`;
+  const jsonld = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'كل المسائل',
+    description: desc,
+    inLanguage: 'ar',
+    url,
+    isPartOf: { '@type': 'WebSite', name: 'الباحث الفقهي', url: `${BASE}/` },
+    publisher: { '@type': 'Organization', name: 'الباحث الفقهي', url: BASE },
+  };
+
+  const groupsHtml = bookNames
+    .map((name) => {
+      const bookLessons = bookLessonsSorted[name] ?? [];
+      const chapters = lessonChapters(bookLessons);
+      return `<h2><a href="/books/${enc(name)}/">${escapeHtml(name)}</a></h2>
+${chapters
+  .map(
+    ([chName, chLessons]) => `<h3 class="chapter">${escapeHtml(chName)}</h3>
+<ul>${chLessons.map((l) => `<li><a href="/lessons/${encId(l.id)}/">${escapeHtml(l.title)}</a></li>`).join('')}</ul>`,
+  )
+  .join('')}`;
+    })
+    .join('\n');
+
+  return (
+    head({
+      title: 'كل المسائل — الباحث الفقهي',
+      desc,
+      url,
+      jsonld,
+      ogType: 'website',
+      ogImage: ogImageFor(null),
+    }) +
+    `<div class="breadcrumb"><a href="/">الرئيسية</a> › كل المسائل</div>
+<h1>كل المسائل</h1>
+<p class="meta">${bookNames.length} كتب • ${lessonsData.length} مسألة</p>
+<div class="hub">
+${groupsHtml}
+</div>` +
+    foot(`/#/lessons`)
+  );
+}
+
 
 function lessonChapters(lessons) {
   const map = new Map();
@@ -346,11 +496,146 @@ function lessonChapters(lessons) {
   return [...map.entries()];
 }
 
+// ── صورة مشاركة لكل كتاب (1200×630) — تُولَّد بـ sharp داخل البناء ──
+// بلا صورة، تُشارك الرسائل والمحرّكات بطاقةً بلا رسم؛ ومعنونة بالكتاب صارت كل صفحة مسألة
+// تحمل صورة كتابها. تُعاد في كل بناء لأن عناوين الأبواب وعدد المسائل يتغيّران من الإدارة.
+// الأبواب تُرسم بالنص SVG فلا نحتاج تحميل خطوط عربية (لا تبعية شبكة في البناء).
+const BRAND_LOGO = join(root, 'src', 'assets', 'logo-circle.webp');
+const OG_W = 1200;
+const OG_H = 630;
+
+async function writeBookOgImages(sharp) {
+  if (!sharp) {
+    console.warn('⚠️ SEO: sharp غير متاح — تخطّي صور المشاركة (تبقى og-image.jpg العامة).');
+    return;
+  }
+
+  // الشعار في المنتصف الأيمن (RTL) والنص يشغل المساحة اليسرى
+  const logoSize = 360;
+  const logoLeft = OG_W - logoSize - 70;
+  const logoTop = Math.round((OG_H - logoSize) / 2);
+  // ⚠️ مع direction="rtl" يكون text-anchor="end" هو الحرف **الأخير** فيمتد النص يمينًا
+  // خارج الصورة. الصحيح "start": يُثبَّت أول حرف عند الإحداثي ويمتد النص يسارًا.
+  const textRight = logoLeft - 40;
+  const textMaxWidth = textRight - 70;
+
+  // عرض النص العربي مقيس فعليًا من sharp (لا يوجد قياس نصوص في SVG بلا خط مُحمَّل)
+  const measure = async (text, size, family = 'Amiri, serif', weight = 700) => {
+    const probe = Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="240"><rect width="2400" height="240" fill="#000"/>` +
+        `<text x="1200" y="170" text-anchor="start" direction="rtl" font-family="${family}" font-size="${size}" font-weight="${weight}" fill="#fff">${escapeHtml(text)}</text></svg>`,
+    );
+    const { data: px, info: meta } = await sharp(probe).raw().toBuffer({ resolveWithObject: true });
+    let minX = meta.width;
+    for (let y = 0; y < meta.height; y += 1) {
+      for (let x = 0; x < meta.width; x += 1) {
+        if (px[(y * meta.width + x) * meta.channels] > 128 && x < minX) minX = x;
+      }
+    }
+    return 1200 - minX;
+  };
+  // تصغير تدريجي حتى يدخل النص المساحة (بلا قطع ولا تراكب مع الشعار)
+  const fit = async (text, size, family, weight) => {
+    let s = size;
+    while (s > 16 && (await measure(text, s, family, weight)) > textMaxWidth) s -= 4;
+    return s;
+  };
+
+  let logo = null;
+  if (existsSync(BRAND_LOGO)) {
+    logo = await sharp(BRAND_LOGO).resize(logoSize, logoSize, { fit: 'contain' }).png().toBuffer();
+  }
+
+  for (const name of bookNames) {
+    const lessons = byBook[name];
+    const chapters = lessonChapters(lessons).length;
+    const title = escapeHtml(name);
+    const stats = `${chapters} أبواب • ${lessons.length} مسألة`;
+    const brand = 'الباحث الفقهي';
+    const tagline = 'قراءة كاملة بدون تسجيل — fqh.me';
+    // كل سطر يُقاس ويُصغَّر ليقع داخل textMaxWidth — فلا تراكب مع الشعار ولا قطع
+    const [brandSize, titleSize, statsSize, tagSize] = await Promise.all([
+      fit(brand, 34, 'Tajawal, Amiri, sans-serif', 400),
+      fit(name, 66, 'Amiri, serif', 700),
+      fit(stats, 32, 'Tajawal, sans-serif', 400),
+      fit(tagline, 26, 'Tajawal, sans-serif', 400),
+    ]);
+    const svg = Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${OG_W}" height="${OG_H}">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#101414"/>
+      <stop offset="100%" stop-color="#16201f"/>
+    </linearGradient>
+  </defs>
+  <rect width="${OG_W}" height="${OG_H}" fill="url(#g)"/>
+  <rect x="0" y="${OG_H - 10}" width="${OG_W}" height="10" fill="#5cc0b5"/>
+  <g text-anchor="start" direction="rtl">
+    <text x="${textRight}" y="150" font-family="Tajawal, Amiri, sans-serif" font-size="${brandSize}" fill="#5cc0b5">${brand}</text>
+    <text x="${textRight}" y="262" font-family="Amiri, serif" font-size="${titleSize}" font-weight="700" fill="#e6e8e6">${title}</text>
+    <text x="${textRight}" y="340" font-family="Tajawal, sans-serif" font-size="${statsSize}" fill="#a9b1ad">${stats}</text>
+    <text x="${textRight}" y="414" font-family="Tajawal, sans-serif" font-size="${tagSize}" fill="#d8a06a">${tagline}</text>
+  </g>
+</svg>`,
+    );
+
+    const out = sharp(svg).composite(
+      logo ? [{ input: logo, top: logoTop, left: logoLeft }] : [],
+    );
+    const ogDir = join(PUBLIC, 'og');
+    mkdirSync(ogDir, { recursive: true });
+    await out.jpeg({ quality: 82, mozjpeg: true }).toFile(join(ogDir, `${name}.jpg`));
+  }
+  console.log(`🖼️  SEO: صور مشاركة لـ ${bookNames.length} كتاب (${OG_W}×${OG_H})`);
+}
+
+// ── صورة المشاركة العامة (1200×630) إن غابت ──
+// og-image.jpg القديمة 1024 مربعة؛ البطاقات الكبيرة تريد 1.91:1. لا نكتب فوق ملف موجود
+// يملكه `npm run brand` — نولّده فقط عند غيابه، ويبقى ملف الهوية هو المصدر.
+const OG_DEFAULT_PATH = join(PUBLIC, 'og-image.jpg');
+
+async function writeDefaultOgImage(sharp) {
+  if (existsSync(OG_DEFAULT_PATH)) return;
+  const svg = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${OG_W}" height="${OG_H}">
+  <rect width="${OG_W}" height="${OG_H}" fill="#101414"/>
+  <rect x="0" y="${OG_H - 10}" width="${OG_W}" height="10" fill="#5cc0b5"/>
+  <g text-anchor="middle" direction="rtl">
+    <text x="${OG_W / 2}" y="260" font-family="Amiri, serif" font-size="82" font-weight="700" fill="#e6e8e6">الباحث الفقهي</text>
+    <text x="${OG_W / 2}" y="340" font-family="Tajawal, sans-serif" font-size="34" fill="#a9b1ad">منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر</text>
+    <text x="${OG_W / 2}" y="410" font-family="Tajawal, sans-serif" font-size="28" fill="#d8a06a">قراءة كاملة بدون تسجيل — fqh.me</text>
+  </g>
+</svg>`,
+  );
+  await sharp(svg).jpeg({ quality: 84, mozjpeg: true }).toFile(OG_DEFAULT_PATH);
+  console.log('🖼️  SEO: og-image.jpg العامة (1200×630)');
+}
+
 // ── التنظيف والكتابة ──
 rmSync(join(PUBLIC, 'books'), { recursive: true, force: true });
 rmSync(join(PUBLIC, 'lessons'), { recursive: true, force: true });
 
+// ترتيب المسائل داخل كل كتاب كما يظهر في التصفح (باب ← معرّف) لتسلسل prev/next
+const bookLessonsSorted = {};
+for (const name of bookNames) {
+  bookLessonsSorted[name] = [...byBook[name]].sort(
+    (a, b) =>
+      Number(a.id) - Number(b.id) || String(a.title).localeCompare(String(b.title), 'ar'),
+  );
+}
+
+// تاريخ التعديل الحقيقي: أحدث طابع زمني في بيانات ذلك الكتاب (سحابة/نسخة احتياطية)
+const timestampOf = (l) =>
+  [l.updatedAt, l.updated_at, l.updatedOn, l.createdAt]
+    .map((v) => (v ? new Date(v).getTime() : NaN))
+    .find((t) => Number.isFinite(t)) ?? null;
+const lastmodOf = (list) => {
+  const t = list.map(timestampOf).filter(Boolean).sort((a, b) => b - a)[0];
+  return t ? new Date(t).toISOString().slice(0, 10) : null;
+};
+
 let count = 0;
+const bookLastmod = {};
 for (const name of bookNames) {
   const lessons = byBook[name];
   // اسم المجلد = الاسم الحقيقي لا المُرمَّز: الخادم يفكّ ترميز المسار قبل البحث عن الملف،
@@ -358,25 +643,50 @@ for (const name of bookNames) {
   const dir = join(PUBLIC, 'books', name);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'index.html'), bookPage(name, lessons), 'utf8');
+  bookLastmod[name] = lastmodOf(lessons);
   count += 1;
 }
 
+const lessonLastmod = {};
 for (const l of lessonsData) {
+  const bookName = (l.bookName || '').trim();
+  const bookLessons = bookLessonsSorted[bookName] ?? [l];
   const dir = join(PUBLIC, 'lessons', String(l.id));
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'index.html'), lessonPage(l), 'utf8');
+  writeFileSync(join(dir, 'index.html'), lessonPage(l, bookLessons, bookName), 'utf8');
+  lessonLastmod[String(l.id)] = timestampOf(l) ? new Date(timestampOf(l)).toISOString().slice(0, 10) : null;
   count += 1;
 }
 
+// ── صور المشاركة + استدعاء التوليد ──
+try {
+  const { default: sharp } = await import('sharp');
+  await writeDefaultOgImage(sharp);
+  await writeBookOgImages(sharp);
+} catch (e) {
+  console.warn('⚠️ SEO: تعذّر توليد صور المشاركة —', e?.message);
+}
+
+// ── صفحة فهرس المسائل (/lessons/) ──
+writeFileSync(join(PUBLIC, 'lessons', 'index.html'), lessonsIndexPage(), 'utf8');
+console.log(`🔗 SEO: صفحة فهرس كل المسائل (/lessons/) تربط ${lessonsData.length} مسألة`);
+
 // ── sitemap شامل ──
-const urls = [`${BASE}/`];
-bookNames.forEach((n) => urls.push(`${BASE}/books/${enc(n)}/`));
-lessonsData.forEach((l) => urls.push(`${BASE}/lessons/${encId(l.id)}/`));
+const urlEntry = (loc, lastmod, extra = '') =>
+  `  <url><loc>${loc}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>weekly</changefreq>${extra}</url>`;
+const urls = [
+  urlEntry(`${BASE}/`, lastmodOf(lessonsData)),
+  urlEntry(`${BASE}/lessons/`, lastmodOf(lessonsData)),
+];
+bookNames.forEach((n) => urls.push(urlEntry(`${BASE}/books/${enc(n)}/`, bookLastmod[n])));
+lessonsData.forEach((l) =>
+  urls.push(urlEntry(`${BASE}/lessons/${encId(l.id)}/`, lessonLastmod[String(l.id)])),
+);
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((u) => `  <url><loc>${u}</loc><changefreq>weekly</changefreq></url>`).join('\n')}
+${urls.join('\n')}
 </urlset>
 `;
 writeFileSync(join(PUBLIC, 'sitemap.xml'), sitemap, 'utf8');
 
-console.log(`✅ بريرندرينج: ${count} صفحة ثابتة (${bookNames.length} كتاب + ${lessonsData.length} مسألة) + sitemap.xml`);
+console.log(`✅ بريرندرينج: ${count} صفحة ثابتة (${bookNames.length} كتاب + ${lessonsData.length} مسألة) + فهرس + sitemap.xml`);

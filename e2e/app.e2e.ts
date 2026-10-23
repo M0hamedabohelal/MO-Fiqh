@@ -158,4 +158,38 @@ test.describe('المسارات الحرجة', () => {
     await expect(page.locator('.update-banner')).toHaveCount(0, { timeout: 30_000 });
     expect(errors, errors.join('\n')).toEqual([]);
   });
+
+  // ── الصفحات الثابتة (SEO) هي المدخل الأول لزوّار جوجل، فيجب ألا تكون طريقًا مسدودًا:
+  // زر «افتح في الموقع التفاعلي» كان يشير إلى المسار النظيف نفسه، فيعيد تحميل الصفحة
+  // الثابتة ويعيد الزائر إلى نفس النص بلا أي تجربة تفاعلية.
+  test('8) صفحة المسألة الثابتة تُقرأ ثم زرّها يدخل التطبيق التفاعلي فعلًا', async ({ page }) => {
+    const errors = collectErrors(page);
+    // مسار نظيف (/lessons/5/) — يُخدَم ملفًا ثابتًا لا تطبيق React
+    await page.goto('/lessons/5/', { waitUntil: 'domcontentloaded' });
+
+    // المحتوى موجود في HTML نفسه بلا جافاسكربت: هذا ما تفهرسه محركات البحث
+    await expect(page.locator('h1')).toContainText('المسألة');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/lessons\/5\/$/);
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/og\/.+\.jpg$/);
+    // رابط التالي/السابق يبني سلسلة تصفّح متصلة للزاحف
+    expect(await page.locator('.pager a').count()).toBeGreaterThan(0);
+
+    // الزر يجب أن ينتقل إلى /#/lesson/{id} لا أن يعيد تحميل نفس الملف
+    const ctaHref = await page.locator('a.cta').getAttribute('href');
+    expect(ctaHref, 'زر الصفحة الثابتة يجب أن يقود إلى التطبيق التفاعلي لا إلى الملف نفسه').toMatch(/\/#\/lesson\/5$/);
+
+    await page.locator('a.cta').click();
+    await expect(page).toHaveURL(/#\/lesson\/5$/);
+    // وصلنا فعليًا إلى شاشة القراءة التفاعلية (بطاقة الملاحظات لا توجد إلا في التطبيق)
+    await expect(page.getByRole('textbox', { name: 'ملاحظاتك حول هذه المسألة' })).toBeVisible({ timeout: 30_000 });
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
+
+  // التطبيق على رابط هاش يجب أن يعلن canonical = المسار النظيف، وإلا تنافس نسختان
+  // من نفس النص في نتائج البحث وتُضعف كلتاهما.
+  test('9) التطبيق يعلن canonical النظيف ولا يبعثر معاينة المشاركة', async ({ page }) => {
+    await openLesson(page, 5);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/lessons\/5\/$/);
+    await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', /\/lessons\/5\/$/);
+  });
 });

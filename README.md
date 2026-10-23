@@ -87,6 +87,7 @@ VITE_CLOUDINARY_UPLOAD_PRESET=...
 | `npm run backup` | تنزيل نسخة احتياطية من Firestore إلى `backups/` |
 | `npm run content:snapshot` | توليد اللقطة المحلية `src/data/lessons.ts` من Firestore |
 | `npm run check:content` | فحص تطابق اللقطة مع السحابة (`-- --strict` يفشل عند الانحراف) |
+| `npm run check:seo` | فحص الصفحات الثابتة: canonical + صورة معاينة + زر يقود للتطبيق (يفشل عند الكسر) |
 | `npm run audit:data` | تحليل تغطية المحتوى |
 | `npm run create-admin -- "email" "pass"` | إنشاء/تحديث حساب مشرف عبر Admin SDK (يحتاج مفتاح حساب خدمة) |
 | `npm run upload:pdf` | رفع `public/fiqh-book.pdf` إلى Firebase Storage عبر Admin SDK |

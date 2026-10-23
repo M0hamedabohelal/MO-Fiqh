@@ -69,8 +69,43 @@ function updateSharePreview({ title, description }: { title: string; description
     );
     el?.setAttribute("content", description);
   });
+  // og:url و canonical يشيران للمسار النظيف لا للهاش — نفس URL الصفحة الثابتة،
+  // وإلا أعلن التطبيق عنوانين لنفس المحتوى (تكرار) عند كل تنقّل.
+  const cleanPath = (window.__currentCleanPath as string | undefined) ?? null;
+  const canonicalUrl = cleanPath ? `${window.location.origin}${cleanPath}` : `${window.location.origin}/`;
   const ogUrl = document.querySelector('meta[property="og:url"]');
-  ogUrl?.setAttribute("content", window.location.href);
+  ogUrl?.setAttribute("content", canonicalUrl);
+  document.querySelector('link[rel="canonical"]')?.setAttribute("href", canonicalUrl);
+}
+
+// المسار النظيف القابل للفهرسة لكل شاشة — هو الـ canonical الذي تعلنه الصفحات الثابتة
+// (public/lessons/{id}/index.html). المشاركة والنسخ يفضلان أن يعطيا هذا الرابط بدل الهاش.
+export function canonicalPathFor(view: string, lessonId?: string | null, bookName?: string | null): string | null {
+  if (view === "reading" && lessonId) return `/lessons/${encodeURIComponent(lessonId)}/`;
+  if (view === "chapters" && bookName) return `/books/${encodeURIComponent(bookName.trim())}/`;
+  if (view === "lessons") return `/lessons/`;
+  return null;
+}
+
+// المسار النظيف → معرفة الشاشة/intent. الدور الأساسي: الصفحات الثابتة القابلة للفهرسة
+// (/lessons/1/) تعرض زر «افتح في الموقع التفاعلي» يشير إلى المسار نفسه، فيجب أن يفتح
+// التطبيق المسألة بدل السقوط إلى الصفحة الرئيسية (أو صفحة 404).
+// عند تحويل مسار نظيف إلى هاش نستبدل السجل (replace) حتى لا يترك زر الرجوع مسارًا
+// بلا حالة تطبيق مطابقة له.
+export function hashFromCleanPath(pathname: string): string | null {
+  const path = pathname.replace(/\/+$/, ""); // إزالة الشرطة الأخيرة: /lessons/1/ === /lessons/1
+  if (path === "/lessons") return "#/lessons";
+  const lesson = path.match(/^\/lessons\/([^/]+)$/);
+  if (lesson) return `#/lesson/${lesson[1]}`;
+  const book = path.match(/^\/books\/([^/]+)$/);
+  if (book) {
+    try {
+      return `#/book/${encodeURIComponent(decodeURIComponent(book[1]))}`;
+    } catch {
+      return `#/book/${book[1]}`;
+    }
+  }
+  return null;
 }
 
 // تحديث بيانات منظمة (JSON-LD) لأجل النتائج الغنية في محركات البحث
@@ -277,6 +312,12 @@ export function useHashRoute(lessons: Lesson[]) {
     }
 
     // تحديث العنوان ومعاينة المشاركة حسب الشاشة المعروضة
+    // المسار النظيف يُحدَّث أولًا لأن updateSharePreview يقرأه لضبط canonical/og:url
+    window.__currentCleanPath = canonicalPathFor(
+      currentView,
+      currentLesson?.id != null ? String(currentLesson.id) : null,
+      currentView === "chapters" ? selectedBookName : null,
+    );
     if (currentView === "reading" && currentLesson?.title) {
       document.title = `${currentLesson.title} — الباحث الفقهي`;
       const snippet = (currentLesson.mainText || "").replace(/\s+/g, " ").trim().slice(0, 150);

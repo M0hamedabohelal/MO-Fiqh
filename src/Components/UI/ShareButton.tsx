@@ -1,18 +1,23 @@
 import { useState } from 'react';
-import { FiDownload, FiCheck } from 'react-icons/fi';
+import { FiDownload, FiCheck, FiLink } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { canonicalPathFor } from '../../hooks/useHashRoute';
+import { copyText } from '../../utils/clipboard';
 
 interface ShareButtonProps {
   title: string;
   text: string;
   sheikhComment?: string;
   isSmall?: boolean;
+  /** معرّف المسألة — لبناء رابط المشاركة النظيف (/lessons/{id}/) */
+  lessonId?: string | number;
 }
 
-const ShareButton = ({ title, text, sheikhComment, isSmall }: ShareButtonProps) => {
+const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareButtonProps) => {
   const [downloaded, setDownloaded] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // دالة لف النص مع دعم RTL
   const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
@@ -271,6 +276,15 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }: ShareButtonProps) 
     return canvas;
   };
 
+  // رابط المشاركة = المسار النظيف (canonical) لا الهاش، فيُفهرس ويُفتح على أي جهاز
+  const handleCopyLink = async () => {
+    const path = canonicalPathFor('reading', lessonId != null ? String(lessonId) : null);
+    const url = path ? `${window.location.origin}${path}` : window.location.href;
+    const ok = await copyText(url);
+    setLinkCopied(ok);
+    setTimeout(() => setLinkCopied(false), 2200);
+  };
+
   const handleDownload = () => {
     if (generating) return;
     setGenerating(true);
@@ -318,6 +332,26 @@ const ShareButton = ({ title, text, sheikhComment, isSmall }: ShareButtonProps) 
           : generating ? (isSmall ? 'جارٍ...' : 'جارٍ التوليد...')
           : failed ? (isSmall ? 'فشل' : 'فشل التوليد')
           : <><FiDownload size={isSmall ? 14 : 16} /> {isSmall ? 'تنزيل' : 'حفظ كصورة'}</>}
+      </button>
+
+      {/* نسخ الرابط النظيف (/lessons/{id}/) — يُفهرس ويُشارك مع معاينة صحيحة */}
+      <button
+        type="button"
+        onClick={handleCopyLink}
+        className={`btn d-flex align-items-center gap-2 shadow-sm ${isSmall ? 'btn-sm px-2 py-1' : 'px-3 py-2'}`}
+        style={{
+          backgroundColor: linkCopied ? '#27ae60' : 'transparent',
+          color: linkCopied ? '#fff' : 'var(--text-main)',
+          borderRadius: '20px',
+          border: '1px solid var(--border-color, rgba(255,255,255,0.18))',
+          fontSize: isSmall ? '0.8rem' : '0.9rem',
+          transition: 'all 0.3s ease',
+        }}
+        title="نسخ رابط المسألة"
+      >
+        {linkCopied
+          ? <><FiCheck size={isSmall ? 14 : 16} /> نسخ</>
+          : <><FiLink size={isSmall ? 14 : 16} /> نسخ الرابط</>}
       </button>
     </motion.div>
   );

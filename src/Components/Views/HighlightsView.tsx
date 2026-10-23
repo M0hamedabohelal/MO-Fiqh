@@ -192,7 +192,13 @@ const HighlightsView = () => {
                   </button>
                 </div>
 
-                <ShareButton title="فائدة مقتبسة" text={highlight.text} sheikhComment="" isSmall />
+                <ShareButton
+                  title="فائدة مقتبسة"
+                  text={highlight.text}
+                  sheikhComment=""
+                  isSmall
+                  lessonId={highlight.lessonId}
+                />
                 <hr style={{ opacity: 0.1 }} />
                 <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
                   <span className="badge badge-custom text-muted d-flex flex-column align-items-start py-2 px-3" style={{ maxWidth: '65%' }}>

@@ -16,6 +16,7 @@ dist-ssr
 .firebase/
 public/books/
 public/lessons/
+public/og/
 
 # نسخ Firestore الاحتياطية (قد تكون كبيرة ومتكررة — تُحفظ خارج git)
 backups/

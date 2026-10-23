@@ -481,6 +481,7 @@ const ReadingView = () => {
             title={lesson.title}
             text={lesson.mainText}
             sheikhComment={lesson.sheikhExplanation}
+            lessonId={lesson.id}
           />
 
           <ArabesqueDivider />
