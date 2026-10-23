@@ -9,7 +9,7 @@ export interface StopMarkRecord {
 
 export type StopMarkMap = Record<string, StopMarkRecord>;
 
-export function normalizeBookName(value: unknown): string {
+function normalizeBookName(value: unknown): string {
   return typeof value === 'string' ? value.normalize('NFC').trim().replace(/\s+/g, ' ') : '';
 }
 

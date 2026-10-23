@@ -30,7 +30,7 @@ export function normalizeWithIndex(s: string): { norm: string; map: number[] } {
   return { norm, map };
 }
 
-export interface GlossaryEntry {
+interface GlossaryEntry {
   term: string;
   def: string;
   norm: string;
@@ -46,7 +46,7 @@ export function sortedGlossaryTerms(glossary: GlossaryMap | undefined): Glossary
 
 type ParseLinksFn = (text: string, key: string) => ReactNode;
 
-export interface GlossaryHandlers {
+interface GlossaryHandlers {
   onHover: (e: MouseEvent, term: string) => void;
   onClick: (e: MouseEvent, term: string) => void;
   onLeave: () => void;

@@ -16,7 +16,7 @@ export const isHadithText = (part: string): boolean => {
 };
 
 // تظليل كلمة البحث بخلفية ذهبية
-export const highlightSearch = (plainText: string, searchQuery: string, baseKey: string | number): ReactNode => {
+const highlightSearch = (plainText: string, searchQuery: string, baseKey: string | number): ReactNode => {
   if (!searchQuery || !searchQuery.trim()) {
     return <span key={baseKey}>{plainText}</span>;
   }

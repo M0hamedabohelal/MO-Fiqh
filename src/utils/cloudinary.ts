@@ -15,9 +15,9 @@ export const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NA
 export const CLOUDINARY_UPLOAD_PRESET = UPLOAD_PRESET;
 
 // حد أقصى محلي للملف قبل الرفع (حماية أولية من سوء الاستخدام العرضي)
-export const CLOUDINARY_MAX_FILE_BYTES = 25 * 1024 * 1024;
+const CLOUDINARY_MAX_FILE_BYTES = 25 * 1024 * 1024;
 
-export const ALLOWED_UPLOAD_EXT = ['pdf', 'mp3', 'm4a', 'jpg', 'jpeg', 'png', 'webp'];
+const ALLOWED_UPLOAD_EXT = ['pdf', 'mp3', 'm4a', 'jpg', 'jpeg', 'png', 'webp'];
 
 export function validateUploadFile(file: File): string | null {
   if (file.size > CLOUDINARY_MAX_FILE_BYTES) {

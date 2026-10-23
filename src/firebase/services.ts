@@ -15,7 +15,6 @@ async function getDb(): Promise<{ db: Firestore; fs: typeof FsMod }> {
 
 // جلب كل المسائل مرتبة حسب id
 // ملاحظة أداء: للمجموعات الصغيرة (< ~2000) الجلب الكامل مقبول ومخزّن محليًا.
-// للمجموعات الكبيرة استخدم fetchLessonsPaged بالأسفل (ترقيم + startAfter).
 export async function fetchLessons(): Promise<Lesson[]> {
   const { db, fs } = await getDb();
   const snapshot = await fs.getDocs(fs.collection(db, 'lessons'));
@@ -47,48 +46,6 @@ export async function subscribeToLessons(
     },
     onError,
   );
-}
-
-// تحميل مؤكد من الخادم لشاشة البداية؛ getDocs العادي قد يعيد لقطة الكاش
-// ويجعل التطبيق يعتقد أن المزامنة اكتملت قبل التواصل مع Firebase.
-export async function fetchLessonsFromServer(): Promise<Lesson[]> {
-  const { db, fs } = await getDb();
-  const snapshot = await fs.getDocsFromServer(fs.collection(db, 'lessons'));
-  return snapshot.docs
-    .map((d) => ({ ...d.data(), _docId: d.id }) as Lesson)
-    .sort((a, b) => Number(a.id) - Number(b.id));
-}
-
-// جلب مرقّم للمسائل (للتوسع المستقبلي — لا يكسر السلوك الحالي)
-// يُستخدم مع orderBy('id') + limit لتجنّب جلب آلاف المستندات دفعة واحدة.
-export async function fetchLessonsPaged(
-  pageSize = 50,
-  cursorId?: number,
-): Promise<{ items: Lesson[]; lastId: number | null; hasMore: boolean }> {
-  const { db, fs } = await getDb();
-  const constraints: unknown[] = [fs.orderBy('id', 'asc'), fs.limit(pageSize + 1)];
-  // startAfter يحتاج DocumentSnapshot في الـ SDK — نبنيه عبر استعلام تمهيدي رخيص بالـ id
-  let q = fs.query(fs.collection(db, 'lessons'), ...(constraints as never[]));
-  if (cursorId != null) {
-    const cursorSnap = await fs.getDocs(
-      fs.query(fs.collection(db, 'lessons'), fs.where('id', '==', cursorId), fs.limit(1)),
-    );
-    const cursorDoc = cursorSnap.docs[0];
-    // مؤشر مفقود (مسألة حُذفت) → صفحة فارغة بدل تكرار الصفحة الأولى خطأً
-    if (!cursorDoc) return { items: [], lastId: cursorId, hasMore: false };
-    q = fs.query(
-      fs.collection(db, 'lessons'),
-      fs.orderBy('id', 'asc'),
-      fs.startAfter(cursorDoc),
-      fs.limit(pageSize + 1),
-    );
-  }
-  const snapshot = await fs.getDocs(q);
-  const all = snapshot.docs.map((d) => ({ ...d.data(), _docId: d.id }) as Lesson);
-  const hasMore = all.length > pageSize;
-  const items = hasMore ? all.slice(0, pageSize) : all;
-  const lastId = items.length > 0 ? Number(items[items.length - 1].id) : null;
-  return { items, lastId, hasMore };
 }
 
 // ─── عدّاد ذري لمعرّفات المسائل — يمنع race بين مشرفَين ───
@@ -348,7 +305,7 @@ export async function fetchLessonViews(): Promise<Record<string, number>> {
 // هل المستخدم مشرف؟
 // 'unknown' عند فشل التقييم (شبكة/توكن/تهيئة باردة) بدل false،
 // لأن إرجاع false عند أي خطأ يُخفي لوحة الإدارة نهائيًا عن المشرف الحقيقي.
-export type AdminCheck = boolean | 'unknown';
+type AdminCheck = boolean | 'unknown';
 
 // server = قراءة من الخادم بدل الكاش.
 // ⚠️ لا تُستخدم في أول عملية على عميل Firestore البارد: القراءة اللحظية كأول عملية
@@ -418,27 +375,6 @@ export async function pruneOldClientErrors(
     await batch.commit();
   }
   return docs.length;
-}
-
-/* ==================== الترحيل الأولي (Migration) ==================== */
-// رفع الداتا المحلية للـ Firestore مرة واحدة فقط
-
-export async function migrateInitialData(lessonsArray: Lesson[], glossaryObject: GlossaryMap): Promise<number> {
-  const { db, fs } = await getDb();
-
-  let uploaded = 0;
-
-  for (const lesson of lessonsArray) {
-    await fs.setDoc(fs.doc(db, 'lessons', String(lesson.id)), lesson);
-    uploaded += 1;
-  }
-
-  for (const [term, definition] of Object.entries(glossaryObject)) {
-    await fs.setDoc(fs.doc(db, 'glossary', term), { definition });
-    uploaded += 1;
-  }
-
-  return uploaded;
 }
 
 /* ==================== الإشعارات (Announcements) ==================== */

@@ -84,7 +84,7 @@ export async function removeAudio(url: string): Promise<void> {
 
 // يقلّص المتجر إلى السقف بحذف الأقدم وصولًا (بالطابع الزمني) عند تجاوزه.
 // الصيغة القديمة بلا طابع تُعامَل كالأقدم فتُحذف أولًا عند التجاوز.
-export async function pruneAudioCache(max = MAX_ENTRIES): Promise<void> {
+async function pruneAudioCache(max = MAX_ENTRIES): Promise<void> {
   try {
     const db = await openDb();
     const entries = await new Promise<Array<[string, unknown]>>((resolve, reject) => {

@@ -17,7 +17,7 @@ export function hideDelay(elapsedMs: number): number {
   return Math.max(SPLASH_MIN_MS - elapsedMs, 0);
 }
 
-export interface SplashState {
+interface SplashState {
   visible: boolean;
   progress: number;
 }

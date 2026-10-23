@@ -2,7 +2,7 @@
 // بدون اعتماديات خارجية (صفر زيادة في الحزمة) — نفس قواعد zod المقترحة يدويًا
 import type { Lesson } from '../types';
 
-export interface LessonInput {
+interface LessonInput {
   bookName?: unknown;
   chapterName?: unknown;
   title?: unknown;

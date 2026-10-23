@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "index.html"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "scripts/**/*.mjs",
+    "e2e/**/*.ts"
+  ],
+  "ignore": [
+    "public/lessons/**",
+    "public/books/**"
+  ],
+  "ignoreDependencies": [
+    "bootstrap"
+  ],
+  "ignoreExportsUsedInFile": true
+}

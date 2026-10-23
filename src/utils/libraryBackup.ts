@@ -3,7 +3,7 @@ import type { HighlightItem } from '../types';
 import { normalizeStopMarkMap } from '../features/stopMarks/model';
 import type { StopMarkMap } from '../features/stopMarks/model';
 
-export interface LibraryBackup {
+interface LibraryBackup {
   app: 'fqh';
   version: 3;
   exportedAt: string;

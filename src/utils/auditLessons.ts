@@ -1,6 +1,6 @@
 import type { Lesson } from '../types';
 
-export interface LessonAudit {
+interface LessonAudit {
   total: number;
   numericIdCount: number;
   maximumId: number | null;

@@ -42,20 +42,6 @@ export interface BookStats {
 
 export type GlossaryMap = Record<string, string>;
 
-export type ThemeName = 'dark' | 'sepia';
-
-export type ViewName =
-  | 'hero'
-  | 'books'
-  | 'chapters'
-  | 'lessons'
-  | 'reading'
-  | 'bookmarks'
-  | 'highlights'
-  | 'admin'
-  | 'settings'
-  | 'achievements';
-
 export interface HighlightItem {
   id: number | string;
   lessonId: number | string;

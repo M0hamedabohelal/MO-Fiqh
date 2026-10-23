@@ -289,5 +289,3 @@ function translateAuthError(code: string): string {
       return 'حدث خطأ غير متوقع — حاول مرة أخرى.';
   }
 }
-
-export default AuthContext;

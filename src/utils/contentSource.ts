@@ -6,7 +6,7 @@
 //   2) مقارنة «البناء ↔ السحابة» داخل لوحة الإدارة.
 export type ContentSource = 'cloud' | 'cache' | 'empty';
 
-export interface ContentSourceInput {
+interface ContentSourceInput {
   /** وصلت لقطة خادمية مؤكدة من مستمع المسائل */
   cloudLoaded: boolean;
   /** عدد المسائل المتاحة من الكاش المحلي (IndexedDB/localStorage) */

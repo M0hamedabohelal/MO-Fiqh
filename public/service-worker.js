@@ -1,5 +1,7 @@
 // Self-destructing Service Worker
 // تنظيف أي نسخ قديمة من Service Worker
+// ملف حيّ: يُخدَّم على /sw.js و /service-worker.js فقط، ويسجّل نفسه ليُنظّف كاش الزوار القدامى ثم يلغي تسجيله.
+// لذا لا يستورده أي كود — مستثنى عمدًا في knip.json (لا تحذفه بوصفه "غير مستخدم").
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
