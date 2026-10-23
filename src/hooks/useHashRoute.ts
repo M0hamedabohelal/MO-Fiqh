@@ -120,7 +120,7 @@ function updateStructuredData(obj: Record<string, unknown>): void {
   el.textContent = JSON.stringify(obj);
 }
 
-const PUBLISHER = { "@type": "Organization", name: "يَسْر", url: "https://fqh.me" };
+const PUBLISHER = { "@type": "Organization", name: "يَسِّر", url: "https://fqh.me" };
 
 /**
  * موجّه التطبيق بالروابط الهاشية: يدير الشاشة الحالية والمسألة/الكتاب/الباب المعروض،
@@ -319,10 +319,10 @@ export function useHashRoute(lessons: Lesson[]) {
       currentView === "chapters" ? selectedBookName : null,
     );
     if (currentView === "reading" && currentLesson?.title) {
-      document.title = `${currentLesson.title} — يَسْر`;
+      document.title = `${currentLesson.title} — يَسِّر`;
       const snippet = (currentLesson.mainText || "").replace(/\s+/g, " ").trim().slice(0, 150);
       updateSharePreview({
-        title: `${currentLesson.title} — يَسْر`,
+        title: `${currentLesson.title} — يَسِّر`,
         description: snippet ? `${snippet}…` : "منصة تعليمية متكاملة لدراسة الفقه الإسلامي",
       });
       updateStructuredData({
@@ -341,9 +341,9 @@ export function useHashRoute(lessons: Lesson[]) {
         // صفحة باب معيّن — عنوان ووصف خاص بالباب
         const chLessons = bookLessons.filter((l) => (l.chapterName || "").trim() === openChapterName);
         const snippet = (chLessons[0]?.mainText || "").replace(/\s+/g, " ").trim().slice(0, 150);
-        document.title = `${openChapterName} — ${selectedBookName} — يَسْر`;
+        document.title = `${openChapterName} — ${selectedBookName} — يَسِّر`;
         updateSharePreview({
-          title: `${openChapterName} — ${selectedBookName} — يَسْر`,
+          title: `${openChapterName} — ${selectedBookName} — يَسِّر`,
           description: snippet
             ? `${snippet}…`
             : `${openChapterName} من ${selectedBookName} — مسائل فقهية موثّقة بأسلوب ميسّر.`,
@@ -362,9 +362,9 @@ export function useHashRoute(lessons: Lesson[]) {
         // صفحة كتاب معيّن — عنوان ووصف خاص بالكتاب
         const chaptersCount = new Set(bookLessons.map((l) => (l.chapterName || "").trim())).size;
         const snippet = (bookLessons[0]?.mainText || "").replace(/\s+/g, " ").trim().slice(0, 150);
-        document.title = `${selectedBookName} — يَسْر`;
+        document.title = `${selectedBookName} — يَسِّر`;
         updateSharePreview({
-          title: `${selectedBookName} — يَسْر`,
+          title: `${selectedBookName} — يَسِّر`,
           description: snippet
             ? `${snippet}…`
             : `${selectedBookName} — ${chaptersCount} أبواب من المسائل الفقهية.`,
@@ -380,15 +380,15 @@ export function useHashRoute(lessons: Lesson[]) {
         });
       }
     } else {
-      document.title = "يَسْر";
+      document.title = "يَسِّر";
       updateSharePreview({
-        title: "يَسْر — منصة تعليم الفقه الإسلامي",
+        title: "يَسِّر — منصة تعليم الفقه الإسلامي",
         description: "منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر",
       });
       updateStructuredData({
         "@context": "https://schema.org",
         "@type": "WebSite",
-        name: "يَسْر",
+        name: "يَسِّر",
         url: "https://fqh.me",
         inLanguage: "ar",
         potentialAction: {

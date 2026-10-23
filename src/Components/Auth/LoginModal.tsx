@@ -144,7 +144,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
             {user ? '👤 حسابك' : mode === 'login' ? '🔐 تسجيل الدخول' : '✨ إنشاء حساب جديد'}
           </h5>
           <p className="mb-0 text-center mt-1" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem' }}>
-            {user ? 'مفضلتك وفوائدك متزامنة' : 'يَسْر — منصة الفقه الإسلامي'}
+            {user ? 'مفضلتك وفوائدك متزامنة' : 'يَسِّر — منصة الفقه الإسلامي'}
           </p>
         </div>
 

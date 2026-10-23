@@ -266,7 +266,7 @@ const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareBut
     ctx.textAlign = 'center';
     ctx.fillStyle = '#fbdc99';
     ctx.font = "bold 22px 'Amiri', serif";
-    ctx.fillText('يَسْر — دراسة وتدبر', width / 2, footerY + 10);
+    ctx.fillText('يَسِّر — دراسة وتدبر', width / 2, footerY + 10);
 
     // نجوم
     ctx.font = '18px Arial';

@@ -54,7 +54,7 @@ export function exportNotesPrint({ highlights, notes, lessons }: NotesPrintInput
     .islamic-divider-print { text-align: center; color: #c9a54e; font-size: 16pt; margin: 15px 0; line-height: 1; display: block; }
   </style></head><body>
     <div class='brand-header'>
-      <div class='brand-name'>تطبيق يَسْر</div>
+      <div class='brand-name'>تطبيق يَسِّر</div>
       <div class='brand-sub'>${date}</div>
     </div>
     <div class='report-title'>دفتر الفوائد والملاحظات</div>
@@ -85,7 +85,7 @@ export function exportChapterPrint({ chapterName, bookName, lessons }: { chapter
     .islamic-divider-print { text-align: center; color: #c9a54e; font-size: 16pt; margin: 15px 0; line-height: 1; display: block; }
   </style></head><body>
     <div class='brand-header'>
-      <div class='brand-name'>تطبيق يَسْر</div>
+      <div class='brand-name'>تطبيق يَسِّر</div>
       <div class='brand-sub'>${date}</div>
     </div>
     <div class='book-title'>${escapeHtml(bookName)}</div>

@@ -120,7 +120,7 @@ const HeroSection = ({ onStartBrowsing, stopLessonTitle, onContinueStopMark, onO
               <div className={styles['hero-mandala-bg']}></div>
               <img
                 src={logo}
-                alt="شعار يَسْر"
+                alt="شعار يَسِّر"
                 className={styles['hero-logo-img']}
                 width="150"
                 height="150"
@@ -131,7 +131,7 @@ const HeroSection = ({ onStartBrowsing, stopLessonTitle, onContinueStopMark, onO
 
             {/* Title with Gold separator */}
             <div className={styles['hero-title-area']}>
-              <h1 className={styles['hero-title']}>يَسْر</h1>
+              <h1 className={styles['hero-title']}>يَسِّر</h1>
               <div className={styles['hero-separator']}>
                 <span className={styles['sep-line']}></span>
                 <span className={styles['sep-icon']}>✦</span>
