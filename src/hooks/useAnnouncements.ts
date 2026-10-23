@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchAnnouncements } from '../firebase/services';
 import { isFirebaseConfigured } from '../firebase/config';
 import { useAuth } from '../Components/Auth/AuthContext';
@@ -6,6 +6,15 @@ import { logError } from '../utils/logError';
 import type { AnnouncementItem } from '../types';
 
 const readKey = (uid?: string): string => uid ? `readAnnouncements_${uid}` : 'readAnnouncements';
+
+// permission-denied يعني أن قاعدة Firestore لا تسمح بهذا المسار. التطبيق يعمل
+// محليًا بالكامل حينها، فهي ليست عطلًا يحتاج تشخيصًا متكررًا.
+function isPermissionDenied(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  if (typeof code === 'string' && code.includes('permission-denied')) return true;
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return /missing or insufficient permissions/i.test(message);
+}
 
 function readLocalIds(key: string): string[] {
   try {
@@ -21,6 +30,8 @@ export function useAnnouncements() {
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
   const key = readKey(user?.uid);
+  // رفض الصلاحيات يُسجَّل مرة واحدة لكل جلسة، لا عند كل إعادة اشتراك (كان ثلاث مرات).
+  const announcedDeniedRef = useRef(false);
   const unreadCount = announcements.filter((item) => !readIds.includes(item.id)).length;
 
   const load = useCallback(async () => {
@@ -54,6 +65,10 @@ export function useAnnouncements() {
         const { db } = await getFirestore();
         if (cancelled) return;
         const readsRef = fs.doc(db, 'users', uid, 'data', 'announcementReads');
+        // حارس ضد حلقة كتابة: المستمع يشتعل بعد كل كتابة، فلو كتبنا كل مرة نعود بلا
+        // نهاية (كتابة → لقطة → كتابة). نكتب فقط عند اختلاف حقيقي، ومرة واحدة لكل تغيير.
+        let lastSyncedSignature = '';
+        let pushed = false;
         unsubscribe = fs.onSnapshot(readsRef, (snapshot) => {
           if (cancelled) return;
           const cloudIds = snapshot.exists() && Array.isArray(snapshot.data().items)
@@ -63,12 +78,24 @@ export function useAnnouncements() {
           const merged = Array.from(new Set([...cloudIds, ...localIds]));
           setReadIds(merged);
           try { localStorage.setItem(localKey, JSON.stringify(merged)); } catch { /* الذاكرة تكفي للجلسة */ }
-          if (!snapshot.exists() || merged.length !== cloudIds.length) {
-            void fs.setDoc(readsRef, { items: merged, updatedAt: Date.now() }, { merge: true })
-              .catch((error) => logError('announcements.sync', error));
-          }
+
+          const signature = merged.join('|');
+          if (signature === lastSyncedSignature) return; // لا تغيير: لا كتابة
+          const needsPush = merged.length !== cloudIds.length || !snapshot.exists();
+          if (!needsPush) { lastSyncedSignature = signature; return; }
+          if (pushed) { lastSyncedSignature = signature; return; } // كتابة واحدة كافية
+          lastSyncedSignature = signature;
+          pushed = true;
+          // المعرّف في الطلب هو نفسه uid المستخدم، والقاعدة تسمح بهذا المستند فقط.
+          fs.setDoc(readsRef, { items: merged, updatedAt: Date.now() }, { merge: true })
+            .catch((error) => logError('announcements.sync', error))
+            .finally(() => { pushed = false; });
         }, (error) => {
-          if (!cancelled) logError('announcements.listen', error);
+          // صلاحيات مرفوضة ليست عطلًا: التطبيق يعمل محليًا بالكامل (localStorage).
+          // سجّلها مرة واحدة لكل جلسة بدل إغراق الكونسول عند كل إعادة اشتراك.
+          if (cancelled || announcedDeniedRef.current) return;
+          if (isPermissionDenied(error)) announcedDeniedRef.current = true;
+          logError('announcements.listen', error);
         });
       } catch (error) {
         if (!cancelled) logError('announcements.listen', error);

@@ -64,6 +64,25 @@ service cloud.firestore {
     // في القاعدة لكن لا كود يقرأها أو يكتبها، فالمسار مغلق افتراضيًا عبر القاعدة العامة
     // في نهاية الملف (match /{document=**} → allow false) حتى تُعاد المزامنة من جديد.
 
+    // ─── استثناء واحد مقصود: مقروء الإشعارات ───
+    // التطبيق يزامن «الإشعارات المقروءة» بين أجهزة المستخدم عبر مستند واحد فقط:
+    //   users/{uid}/data/announcementReads
+    // كان محجوبًا بالقاعدة العامة فتظهر في الكونسول:
+    //   [announcements.listen] Missing or insufficient permissions
+    // الفتح هنا **مضيّق بقصد** لا يعيد فتح طبقة المستخدم: المسار محصور في مستند
+    // بالاسم، وشكله مقيد (مصفوفة نصوص فقط). أي مستند آخر تحت users يبقى مغلقًا.
+    match /users/{uid}/data/announcementReads {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['items', 'updatedAt'])
+        && request.resource.data.items is list
+        && request.resource.data.items.size() <= 500
+        && request.resource.data.updatedAt is number;
+      // لا حذف من العميل: إعادة الكتابة بـ merge هي المسار الشرعي
+      allow delete: if false;
+    }
+
     // ─── إحصائيات المشاهدات: قراءة للجميع، وتحديث تراكمي للجميع (تتبع مجهول من trackLessonView) ───
     // القيد يمنع العبث الواسع: الإنشاء بمفتاح واحد فقط، وكل تحديث يمس مفتاحًا واحدًا
     // بالضبط (بلا حذف، ونمو مفتاح واحد كحد أقصى لكل كتابة). العميل الشرعي يكتب مفتاحًا
