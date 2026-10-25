@@ -86,7 +86,7 @@ const SettingsView = () => {
         {appVersion.updateReady ? (
           <button
             type="button"
-            className="btn btn-sm btn-primary d-flex align-items-center gap-2"
+            className="btn btn-sm btn-primary update-ready-btn d-flex align-items-center gap-2"
             onClick={appVersion.reloadNow}
             disabled={appVersion.reloading}
             style={{ backgroundColor: 'var(--accent-color)', color: '#1d1d1d', fontWeight: 'bold', border: 'none' }}

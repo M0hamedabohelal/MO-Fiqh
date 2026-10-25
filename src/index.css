@@ -1036,11 +1036,15 @@ button:active:not(:disabled),
 }
 
 @keyframes updatePopIn {
-  from {
+  0% {
     opacity: 0;
-    transform: translateX(-50%) translateY(18px) scale(0.96);
+    transform: translateX(-50%) translateY(22px) scale(0.88);
   }
-  to {
+  65% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-2px) scale(1.02);
+  }
+  100% {
     opacity: 1;
     transform: translateX(-50%) translateY(0) scale(1);
   }
@@ -1056,11 +1060,20 @@ button:active:not(:disabled),
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--accent-color) 16%, transparent);
   color: var(--accent-color);
+}
+
+.update-pop-icon svg {
+  animation: updateIconSpin 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes updateIconSpin {
+  0%, 15% { transform: rotate(0deg); }
+  40%, 100% { transform: rotate(360deg); }
 }
 
 .update-pop-body {
@@ -1092,21 +1105,85 @@ button:active:not(:disabled),
   flex: 0 0 auto;
 }
 
+/* زر التحديث التفاعلي بأنيميشن scale جذاب ونبض ضوئي */
 .update-pop-btn {
+  position: relative;
+  overflow: hidden;
   border: 0;
   border-radius: 999px;
-  padding: 0.42rem 0.95rem;
+  padding: 0.45rem 1.05rem;
   background: var(--accent-color);
   color: #1d1d1d;
   font-weight: 700;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-family: 'Tajawal', sans-serif;
   cursor: pointer;
-  transition: filter 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--accent-color) 45%, transparent);
+  transition: filter 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  animation: updateBtnPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.12s both, updateBtnGlow 2.4s ease-in-out 0.7s infinite alternate;
 }
 
-.update-pop-btn:hover { filter: brightness(1.06); }
-.update-pop-btn:active { transform: scale(0.97); }
+.update-pop-btn::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -75%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.45),
+    transparent
+  );
+  transform: rotate(25deg);
+  animation: updateBtnShine 3.6s ease-in-out 1s infinite;
+  pointer-events: none;
+}
+
+@keyframes updateBtnPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  85% {
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes updateBtnGlow {
+  0% {
+    box-shadow: 0 3px 12px color-mix(in srgb, var(--accent-color) 40%, transparent);
+    filter: brightness(1);
+  }
+  100% {
+    box-shadow: 0 5px 22px color-mix(in srgb, var(--accent-color) 75%, transparent);
+    filter: brightness(1.06);
+  }
+}
+
+@keyframes updateBtnShine {
+  0%, 25% { left: -75%; }
+  50%, 100% { left: 140%; }
+}
+
+.update-pop-btn:hover {
+  filter: brightness(1.08);
+  transform: scale(1.08);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--accent-color) 80%, transparent);
+}
+
+.update-pop-btn:active {
+  transform: scale(0.94);
+}
 
 .update-pop-dismiss {
   display: inline-flex;
@@ -1257,3 +1334,55 @@ button:active:not(:disabled),
   .guest-pop { display: none !important; }
 }
 
+
+
+/* زر تحديث التطبيق داخل شاشة الإعدادات عند توفر نسخة جديدة */
+.update-ready-btn {
+  position: relative;
+  overflow: hidden;
+  animation: updateReadyPulse 2.2s ease-in-out infinite alternate;
+  box-shadow: 0 3px 14px color-mix(in srgb, var(--accent-color) 45%, transparent);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.update-ready-btn:hover {
+  transform: scale(1.05);
+  filter: brightness(1.08);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-color) 70%, transparent);
+}
+
+.update-ready-btn:active {
+  transform: scale(0.95);
+}
+
+@keyframes updateReadyPulse {
+  0% {
+    box-shadow: 0 3px 12px color-mix(in srgb, var(--accent-color) 35%, transparent);
+    filter: brightness(1);
+  }
+  100% {
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-color) 65%, transparent);
+    filter: brightness(1.06);
+  }
+}
+
+[data-reduced-motion="true"] .update-pop-btn,
+[data-reduced-motion="true"] .update-ready-btn {
+  animation: none !important;
+  transform: none !important;
+}
+
+[data-reduced-motion="true"] .update-pop-btn::after {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .update-pop-btn,
+  .update-ready-btn {
+    animation: none !important;
+    transform: none !important;
+  }
+  .update-pop-btn::after {
+    display: none !important;
+  }
+}
