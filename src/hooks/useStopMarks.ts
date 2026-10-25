@@ -11,7 +11,7 @@ import {
 } from '../features/stopMarks/model';
 import type { StopMarkMap } from '../features/stopMarks/model';
 
-// علامة الوقوف — محلية فقط (بدون أي مزامنة سحابية).
+// علامات الوقوف — تُحفظ محليًا للضيف، وتُزامَن سحابيًا بين الأجهزة عند تسجيل الدخول
 // سجل واحد لكل كتاب يُحفظ في localStorage، معزول لكل حساب ولكل ضيف.
 
 const guestStorageKey = 'guest_stopMarks_v2';
@@ -91,10 +91,17 @@ export function useStopMarks() {
     persist(createRestoredStopMarks(marksRef.current, incoming, deviceIdRef.current), uid);
   }, [authLoading, uid, persist]);
 
+  // تطبيق مباشر لعلامات وقف مدمجة من السحابة دون تغيير الطوابع أو المعرفات
+  const applyMergedStopMarks = useCallback((merged: StopMarkMap) => {
+    const normalized = normalizeStopMarkMap(merged);
+    persist(normalized, uid);
+  }, [uid, persist]);
+
   return {
     stopMarks: marks,
     stopMarksReady: loadedUid === uid,
     toggleStopMark,
     restoreStopMarks,
+    applyMergedStopMarks,
   };
 }

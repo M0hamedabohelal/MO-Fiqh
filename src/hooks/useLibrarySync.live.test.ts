@@ -33,6 +33,8 @@ vi.mock('../utils/logError', () => ({ logError: vi.fn() }));
 
 import { useLibrarySync } from './useLibrarySync';
 import { setSyncDisabled, isSyncDisabled } from '../utils/librarySync';
+import { stopMarkBookKey } from '../features/stopMarks/model';
+import type { StopMarkMap } from '../features/stopMarks/model';
 
 const snap = (over: Record<string, unknown> = {}) => ({
   exists: () => true,
@@ -338,4 +340,66 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true });
     unmount();
   }, 10000);
+
+  it('مزامنة علامات الوقف ثنائية الاتجاه وسريعة بين الأجهزة دون حلقات', async () => {
+    const onMerged = vi.fn();
+    const keyTaharah = stopMarkBookKey('كتاب الطهارة');
+    const keySalat = stopMarkBookKey('كتاب الصلاة');
+
+    const initialMarks: StopMarkMap = {
+      [keyTaharah]: { bookName: 'كتاب الطهارة', lessonId: '5', updatedAt: 100, deviceId: 'device-1' },
+    };
+
+    const { rerender, unmount } = renderHook(
+      ({ marks }) => useLibrarySync({
+        ready: true,
+        data: baseData({ stopMarks: marks }),
+        onMerged,
+      }),
+      { initialProps: { marks: initialMarks } },
+    );
+
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    // الدفعة الأولى ترفع علامة book1
+    await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 2000 });
+    const firstCall = setDoc.mock.calls[0] as unknown[];
+    const payload1 = firstCall?.[1] as { stopMarks: Record<string, unknown> };
+    expect(payload1.stopMarks[keyTaharah]).toBeDefined();
+
+    // ورود تعديل من جهاز آخر (وضع علامة في book2 وحذف علامة book1 بـ lessonId: null)
+    await act(async () => {
+      snapshotCb?.(snap({
+        stopMarks: {
+          [keyTaharah]: { bookName: 'كتاب الطهارة', lessonId: null, updatedAt: 200, deviceId: 'device-2' },
+          [keySalat]: { bookName: 'كتاب الصلاة', lessonId: '15', updatedAt: 200, deviceId: 'device-2' },
+        },
+      }));
+    });
+
+    // يُطبّق الدمج محليًا فورًا ويصل لـ onMerged
+    await waitFor(() => {
+      expect(onMerged).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stopMarks: expect.objectContaining({
+            [keyTaharah]: expect.objectContaining({ lessonId: null }),
+            [keySalat]: expect.objectContaining({ lessonId: '15' }),
+          }),
+        }),
+      );
+    }, { timeout: 3000 });
+
+    // تطبيق النتيجة محليًا لا يُنتج كتابة صدى جديدة
+    const currentCalls = setDoc.mock.calls.length;
+    rerender({
+      marks: {
+        [keyTaharah]: { bookName: 'كتاب الطهارة', lessonId: null, updatedAt: 200, deviceId: 'device-2' },
+        [keySalat]: { bookName: 'كتاب الصلاة', lessonId: '15', updatedAt: 200, deviceId: 'device-2' },
+      },
+    });
+
+    await new Promise((r) => setTimeout(r, 600));
+    expect(setDoc.mock.calls.length).toBe(currentCalls);
+
+    unmount();
+  }, 15000);
 });

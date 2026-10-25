@@ -47,7 +47,7 @@ function App() {
 
   // ─── المكتبة الشخصية ───
   const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary, applyMergedLibrary, isDataLoaded } = useUserLibrary();
-  const { stopMarks, stopMarksReady, toggleStopMark, restoreStopMarks } = useStopMarks();
+  const { stopMarks, stopMarksReady, toggleStopMark, restoreStopMarks, applyMergedStopMarks } = useStopMarks();
 
   // ─── التوجيه الهاشي ───
   const { currentView, setCurrentView, currentIndex, setCurrentIndex, selectedBookName, setSelectedBookName, openChapterName, setOpenChapterName, goToNextLesson, goToPrevLesson, goBackToList } = useHashRoute(lessons);
@@ -84,9 +84,9 @@ function App() {
         notes: merged.notes,
         readLessons: merged.readLessons,
       });
-      // ── علامات الوقف: تطبيق النتيجة المدمجة ──
-      if (merged.stopMarks && Object.keys(merged.stopMarks).length > 0) {
-        restoreStopMarks(merged.stopMarks);
+      // ── علامات الوقف: تطبيق النتيجة المدمجة سحابيًا فورًا ──
+      if (merged.stopMarks) {
+        applyMergedStopMarks(merged.stopMarks);
       }
       // ── الثيم: تطبيق الأحدث ──
       if (merged.theme && (merged.theme === 'dark' || merged.theme === 'sepia') && merged.theme !== theme) {

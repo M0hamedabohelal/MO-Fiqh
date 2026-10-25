@@ -122,8 +122,8 @@ const HeroSection = ({ onStartBrowsing, stopLessonTitle, onContinueStopMark, onO
                 src={logo}
                 alt="شعار يَسِّر"
                 className={styles['hero-logo-img']}
-                width="150"
-                height="150"
+                width="92"
+                height="92"
                 fetchPriority="high"
                 decoding="async"
               />

@@ -109,4 +109,26 @@ describe('useStopMarks — حساب', () => {
     expect(result.current.stopMarks[SALAT].lessonId).toBe('2');
     expect(result.current.stopMarks[TRI].lessonId).toBe('1');
   });
+
+  it('applyMergedStopMarks يطبّق علامات السحابة ويحفظ الحذف (lessonId: null) بدقة ودون تغيير المعرفات', async () => {
+    authState.user = { uid: 'user-D' };
+    localStorage.setItem(accountKey('user-D'), JSON.stringify({
+      [TRI]: { bookName: 'كتاب الطهارة', lessonId: '5', updatedAt: 100, deviceId: 'device-A' },
+    }));
+    const { result } = renderHook(() => useStopMarks());
+    await waitFor(() => expect(result.current.stopMarksReady).toBe(true));
+
+    // ورود تحديث من السحابة (جهاز آخر حذف علامة كتاب الطهارة ووضع علامة في كتاب الصلاة)
+    act(() => result.current.applyMergedStopMarks({
+      [TRI]: { bookName: 'كتاب الطهارة', lessonId: null, updatedAt: 200, deviceId: 'device-B' },
+      [SALAT]: { bookName: 'كتاب الصلاة', lessonId: '12', updatedAt: 250, deviceId: 'device-B' },
+    }));
+
+    await waitFor(() => expect(result.current.stopMarks[SALAT]?.lessonId).toBe('12'));
+    // علامة كتاب الطهارة أصبحت ملغاة (null)
+    expect(result.current.stopMarks[TRI]?.lessonId).toBeNull();
+    expect(result.current.stopMarks[TRI]?.updatedAt).toBe(200);
+    expect(result.current.stopMarks[TRI]?.deviceId).toBe('device-B');
+    expect(readMarks(accountKey('user-D'))[TRI]?.lessonId).toBeNull();
+  });
 });
