@@ -8,6 +8,7 @@ import {
   FiBookmark,
   FiHeadphones,
   FiLayers,
+  FiCompass,
 } from 'react-icons/fi';
 import type { User } from 'firebase/auth';
 import logo from '../../assets/logo-circle.webp';
@@ -19,6 +20,7 @@ interface HeroSectionProps {
   onContinueStopMark: () => void;
   onOpenLogin: () => void;
   user: User | null;
+  onSelectBook?: (bookName: string) => void;
 }
 
 const HeroSection = ({
@@ -27,6 +29,7 @@ const HeroSection = ({
   onContinueStopMark,
   onOpenLogin,
   user,
+  onSelectBook,
 }: HeroSectionProps) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -35,32 +38,41 @@ const HeroSection = ({
     return () => clearTimeout(timer);
   }, []);
 
+  const handleBookClick = (bookName: string) => {
+    if (onSelectBook) {
+      onSelectBook(bookName);
+    } else {
+      onStartBrowsing();
+    }
+  };
+
   return (
     <section
       className={`${styles['hero-container']} ${isVisible ? styles['visible'] : ''}`}
       id="hero-section"
       aria-label="الصفحة الترحيبية لمنصة يَسِّر"
     >
-      {/* خلفيات إضاءة أثيرية وزخرفة عصرية راقية */}
+      {/* خلفيات إضاءة أثيرية وزخرفة عصرية راقية ومريحة للعين */}
       <div className={styles['ambient-mesh']} aria-hidden="true" />
       <div className={styles['ambient-glow-gold']} aria-hidden="true" />
       <div className={styles['ambient-glow-emerald']} aria-hidden="true" />
       <div className={styles['pattern-overlay']} aria-hidden="true" />
 
-      {/* الشريط العلوي المصغر (Header Bar) */}
+      {/* الشريط العلوي (Header Bar) */}
       <header className={styles['top-bar']}>
         <div className={styles['brand-pill']}>
           <img
             src={logo}
             alt=""
             className={styles['brand-pill-img']}
-            width="30"
-            height="30"
+            width="32"
+            height="32"
             loading="eager"
           />
-          <span className={styles['brand-pill-title']}>يَسِّر</span>
-          <span className={styles['brand-pill-dot']} />
-          <span className={styles['brand-pill-tag']}>منصة الفقه الميسر</span>
+          <div className={styles['brand-text-col']}>
+            <span className={styles['brand-pill-title']}>يَسِّر</span>
+            <span className={styles['brand-pill-tag']}>منصة الفقه الميسر</span>
+          </div>
         </div>
 
         <button
@@ -79,119 +91,158 @@ const HeroSection = ({
         </button>
       </header>
 
-      {/* المحتوى المركزي الترحيبي */}
+      {/* المسرح الرئيسي المتوازن — يستغل المساحات أفقياً وعمودياً */}
       <main className={styles['main-stage']}>
-        {/* الشعار المركزي الفاخر مع حلقة الإضاءة الهادئة */}
-        <div className={styles['emblem-wrapper']}>
-          <div className={styles['emblem-ring']} />
-          <div className={styles['emblem-core']}>
-            <img
-              src={logo}
-              alt="شعار منصة يَسِّر"
-              className={styles['emblem-img']}
-              width="130"
-              height="130"
-              fetchPriority="high"
-              decoding="async"
-            />
+        {/* الجانب الأيمن: الهوية والنصوص والأزرار الأساسية */}
+        <div className={styles['info-column']}>
+          <div className={styles['badge-capsule']}>
+            <span className={styles['badge-sparkle']}>✦</span>
+            <span>في ضوء الكتاب والسنة • قراءة وشرح صوتي</span>
+            <span className={styles['badge-sparkle']}>✦</span>
           </div>
-        </div>
 
-        {/* الكبسولة العلوية التقديمية */}
-        <div className={styles['badge-capsule']}>
-          <span className={styles['badge-sparkle']}>✦</span>
-          <span>في ضوء الكتاب والسنة • قراءة وشرح صوتي</span>
-          <span className={styles['badge-sparkle']}>✦</span>
-        </div>
-
-        {/* العنوان والوصف */}
-        <div className={styles['title-group']}>
           <h1 className={styles['hero-heading']}>يَسِّر</h1>
+
           <p className={styles['hero-subtitle']}>
             «الفقه الميسر في رداءٍ عصري»
           </p>
-          <p className={styles['hadith-quote']}>
-            «مَنْ يُرِدِ اللهُ بِهِ خَيْرًا يُفَقِّهْهُ فِي الدِّينِ»
+
+          <p className={styles['hero-description']}>
+            منصة تعليمية تفاعلية لدراسة أحكام الفقه الإسلامي بأسلوب منهجي مبسّط، تجمع بين تحرير المسائل والشرح الصوتي المتقن مع المزامنة السحابية الذكية.
           </p>
+
+          {/* أزرار الإجراء الرئيسية */}
+          <div className={styles['actions-wrapper']}>
+            <button
+              className={styles['btn-main-cta']}
+              onClick={onStartBrowsing}
+              type="button"
+            >
+              <FiBookOpen size={22} className={styles['btn-cta-icon']} />
+              <span className={styles['btn-cta-text']}>تصفّح أبواب الفقه الآن</span>
+              <FiArrowLeft size={20} className={styles['btn-cta-arrow']} />
+            </button>
+
+            <div className={styles['secondary-row']}>
+              <a
+                className={styles['btn-ghost']}
+                href={import.meta.env.VITE_FIQH_PDF_URL || '/fiqh-book.pdf'}
+                download="الفقه-الميسر.pdf"
+                title="تحميل الكتاب كاملًا بصيغة PDF"
+              >
+                <FiDownload size={16} />
+                <span>تحميل الكتاب PDF</span>
+              </a>
+
+              <a
+                className={styles['btn-ghost']}
+                href="https://www.youtube.com/playlist?list=PL1i_D1Vw3d5P5Q6IHHW22JHrnLCwm60Bn"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="مشاهدة السلسلة المرئية على يوتيوب"
+              >
+                <FiYoutube size={17} className={styles['yt-icon']} />
+                <span>السلسلة المرئية</span>
+              </a>
+            </div>
+          </div>
+
+          {/* وسوم المزايا العصرية */}
+          <div className={styles['features-strip']}>
+            <div className={styles['feature-chip']}>
+              <span className={styles['chip-icon']}><FiLayers size={15} /></span>
+              <span>٨٥ مسألة مُحققة</span>
+            </div>
+            <div className={styles['feature-chip']}>
+              <span className={styles['chip-icon']}><FiHeadphones size={15} /></span>
+              <span>شرح صوتي متقن</span>
+            </div>
+            <div className={styles['feature-chip']}>
+              <span className={styles['chip-icon']}><FiBookmark size={15} /></span>
+              <span>مزامنة سحابية فورية</span>
+            </div>
+          </div>
         </div>
 
-        {/* بطاقات المزايا الثلاث العصرية (Bento Chips) */}
-        <div className={styles['features-strip']}>
-          <div className={styles['feature-chip']}>
-            <span className={styles['chip-icon']}><FiLayers size={16} /></span>
-            <span>٨٥ مسألة مُحققة</span>
+        {/* الجانب الأيسر: الشعار الفاخر وبطاقات البوابات السريعة */}
+        <div className={styles['portal-column']}>
+          {/* الشعار المركزي الفاخر */}
+          <div className={styles['emblem-showcase']}>
+            <div className={styles['emblem-ring']} />
+            <div className={styles['emblem-core']}>
+              <img
+                src={logo}
+                alt="شعار منصة يَسِّر"
+                className={styles['emblem-img']}
+                width="140"
+                height="140"
+                fetchPriority="high"
+                decoding="async"
+              />
+            </div>
           </div>
-          <div className={styles['feature-chip']}>
-            <span className={styles['chip-icon']}><FiHeadphones size={16} /></span>
-            <span>شرح صوتي متقن</span>
-          </div>
-          <div className={styles['feature-chip']}>
-            <span className={styles['chip-icon']}><FiBookmark size={16} /></span>
-            <span>مزامنة سحابية فورية</span>
-          </div>
-        </div>
 
-        {/* شريط مواصلة القراءة من علامة الوقف إن وجدت */}
-        {stopLessonTitle && (
-          <button
-            className={styles['resume-card']}
-            onClick={onContinueStopMark}
-            type="button"
-          >
-            <span className={styles['resume-badge']}>
-              <FiBookmark size={14} />
-              <span>آخر وقفة</span>
-            </span>
-            <span className={styles['resume-text']}>{stopLessonTitle}</span>
-            <span className={styles['resume-action']}>
-              <span>متابعة</span>
-              <FiArrowLeft size={14} />
-            </span>
-          </button>
-        )}
-
-        {/* أزرار الإجراء الأساسية والثانوية */}
-        <div className={styles['cta-container']}>
-          <button
-            className={styles['btn-main-cta']}
-            onClick={onStartBrowsing}
-            type="button"
-          >
-            <FiBookOpen size={22} className={styles['btn-cta-icon']} />
-            <span className={styles['btn-cta-text']}>تصفّح أبواب الفقه الآن</span>
-            <FiArrowLeft size={19} className={styles['btn-cta-arrow']} />
-          </button>
-
-          <div className={styles['secondary-row']}>
-            <a
-              className={styles['btn-ghost']}
-              href={import.meta.env.VITE_FIQH_PDF_URL || '/fiqh-book.pdf'}
-              download="الفقه-الميسر.pdf"
-              title="تحميل الكتاب كاملًا بصيغة PDF"
+          {/* بطاقة مواصلة القراءة من آخر وقفة (إذا وُجدت) */}
+          {stopLessonTitle && (
+            <button
+              className={styles['resume-card']}
+              onClick={onContinueStopMark}
+              type="button"
             >
-              <FiDownload size={17} />
-              <span>تحميل الكتاب PDF</span>
-            </a>
+              <div className={styles['resume-header']}>
+                <span className={styles['resume-badge']}>
+                  <FiBookmark size={14} />
+                  <span>آخر وقفة</span>
+                </span>
+                <span className={styles['resume-action']}>
+                  <span>متابعة</span>
+                  <FiArrowLeft size={14} />
+                </span>
+              </div>
+              <p className={styles['resume-text']}>{stopLessonTitle}</p>
+            </button>
+          )}
 
-            <a
-              className={styles['btn-ghost']}
-              href="https://www.youtube.com/playlist?list=PL1i_D1Vw3d5P5Q6IHHW22JHrnLCwm60Bn"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="مشاهدة السلسلة المرئية على يوتيوب"
+          {/* بوابات الكتب الفقهية السريعة */}
+          <div className={styles['books-portal-grid']}>
+            <button
+              type="button"
+              className={`${styles['book-portal-card']} ${styles['taharah-card']}`}
+              onClick={() => handleBookClick('كتاب الطهارة')}
             >
-              <FiYoutube size={18} className={styles['yt-icon']} />
-              <span>السلسلة المرئية</span>
-            </a>
+              <div className={styles['book-card-header']}>
+                <span className={styles['book-badge']}>الكتاب الأول</span>
+                <FiCompass size={16} className={styles['book-icon']} />
+              </div>
+              <h3 className={styles['book-card-title']}>كتاب الطهارة</h3>
+              <p className={styles['book-card-meta']}>١١ بابًا • ٤٠ مسألة فقهية</p>
+            </button>
+
+            <button
+              type="button"
+              className={`${styles['book-portal-card']} ${styles['salat-card']}`}
+              onClick={() => handleBookClick('كتاب الصلاة')}
+            >
+              <div className={styles['book-card-header']}>
+                <span className={styles['book-badge']}>الكتاب الثاني</span>
+                <FiCompass size={16} className={styles['book-icon']} />
+              </div>
+              <h3 className={styles['book-card-title']}>كتاب الصلاة</h3>
+              <p className={styles['book-card-meta']}>١٢ بابًا • ٤٥ مسألة فقهية</p>
+            </button>
           </div>
         </div>
       </main>
 
-      {/* تذييل ناعم ومختصر */}
+      {/* التذييل: الحديث الشريف النبوي كما طلب المستخدم بدلاً من وقف لله */}
       <footer className={styles['bottom-bar']}>
-        <span className={styles['footer-text']}>
-          وقفٌ لله تعالى • علمٌ يُنتفع به
-        </span>
+        <div className={styles['hadith-container']}>
+          <span className={styles['hadith-ornament']}>✦</span>
+          <span className={styles['hadith-text']}>
+            قال رسول الله ﷺ: «مَنْ يُرِدِ اللهُ بِهِ خَيْرًا يُفَقِّهْهُ فِي الدِّينِ»
+          </span>
+          <span className={styles['hadith-ornament']}>✦</span>
+        </div>
       </footer>
     </section>
   );

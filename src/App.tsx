@@ -357,6 +357,7 @@ function App() {
           onContinueStopMark={() => { if (latestStopMark?.lessonId) openLessonById(latestStopMark.lessonId); }}
           onOpenLogin={() => setIsLoginOpen(true)}
           user={user}
+          onSelectBook={openBookChapters}
         />
       ) : (
         <AppProvider value={layoutProps}>

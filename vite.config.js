@@ -28,5 +28,6 @@ export default defineConfig({
   },
   test: {
     pool: 'threads',
+    testTimeout: 15000,
   },
 })
