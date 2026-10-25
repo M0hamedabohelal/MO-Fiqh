@@ -83,12 +83,13 @@ service cloud.firestore {
         && request.resource.data.items is list
         && request.resource.data.items.size() <= 500
         && request.resource.data.updatedAt is number;
-      // لا حذف من العميل: إعادة الكتابة بـ merge هي المسار الشرعي
-      allow delete: if false;
+      // السماح للمستخدم بمسح بياناته وحق النسيان
+      allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
     // مكتبة المستخدم: المخطط مطابق لـ src/utils/librarySync.ts (SyncableLibrary)
     // updatedAt: خريطة «مفتاح العنصر → طابعه الزمني» وهي أساس حلّ التعارض بين الأجهزة.
+    // سقف updatedAt (12000) يغطي مجموع الحدود القصوى لكافة العناصر (3000+3000+3000+2000) + 500 شاهد قبر.
     match /users/{uid}/data/library {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow create, update: if isSignedIn()
@@ -104,12 +105,13 @@ service cloud.firestore {
         && request.resource.data.notes is map
         && request.resource.data.notes.size() <= 2000
         && request.resource.data.updatedAt is map
-        && request.resource.data.updatedAt.size() <= 3000
+        && request.resource.data.updatedAt.size() <= 12000
         // الحقول الاختيارية: تُفحص فقط عند وجودها (العميل يكتب بـ merge فقد تنسحب)
         && (!('stopMarks' in request.resource.data)
              || (request.resource.data.stopMarks is map && request.resource.data.stopMarks.size() <= 200))
         && (!('theme' in request.resource.data) || request.resource.data.theme is string);
-      allow delete: if false;
+      // السماح بحذف المكتبة السحابية بالكامل للمالك
+      allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
     // ─── إحصائيات المشاهدات: قراءة للجميع، وتحديث تراكمي للجميع (تتبع مجهول من trackLessonView) ───

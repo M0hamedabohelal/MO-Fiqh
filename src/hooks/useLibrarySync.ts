@@ -59,6 +59,7 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
 
   const stampsStorageKey = (u: string) => `library_stamps_v1_${u}`;
   const stampsRef = useRef<Record<string, number>>({});
+  const currentUidRef = useRef<string | null>(uid);
 
   // تحميل الأختام الزمنية المحلية عند معرفة المستخدم
   useEffect(() => {
@@ -77,6 +78,8 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   const applyingRef = useRef<boolean>(false);
   // هل توجد عملية دفع جارية الآن؟
   const pushingRef = useRef<boolean>(false);
+  // عداد محاولات إعادة الدفع عند الفشل (لتطبيق التراجع الأسي والتوقف بعد سقف محدد)
+  const retryCountRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMergedRef = useRef(onMerged);
   const dataRef = useRef(data);
@@ -95,6 +98,22 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   });
 
   const previousDataRef = useRef<SyncableLibrary>(toSyncable(data, {}));
+
+  // عزل الحسابات عند تبديل المستخدم في نفس التبويب: تصفير المراجع السابقة لمنع تلوث شواهد الحذف
+  useEffect(() => {
+    if (currentUidRef.current !== uid) {
+      currentUidRef.current = uid;
+      lastPushedRef.current = '';
+      previousDataRef.current = toSyncable(dataRef.current, {});
+      retryCountRef.current = 0;
+      pushingRef.current = false;
+      applyingRef.current = false;
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+  }, [uid]);
 
   const mergeAndApply = useCallback((cloudRaw: Partial<SyncableLibrary> | null): void => {
     const local = toSyncable(dataRef.current, stampsRef.current);
@@ -294,13 +313,23 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
           previousDataRef.current = payload;
           lastPushedRef.current = signature;
           stampsRef.current = cleanStamps;
+          retryCountRef.current = 0;
           if (uid) safeSet(stampsStorageKey(uid), JSON.stringify(cleanStamps));
         } catch (error) {
           logError('library.sync.push', error);
           // في حال فشل الكتابة (أوفلاين/حصة): لا نقدّم previousDataRef حتى تظل المحذوفات محفوظة
           lastPushedRef.current = '';
           suppressUntilRef.current = 0;
-          timerRef.current = setTimeout(schedulePush, 4000);
+
+          // تراجع أسي بسقف محدد (4s -> 8s -> 16s -> 32s -> 60s) مع توقف بعد 5 محاولات
+          if (retryCountRef.current < 5) {
+            const delay = Math.min(4000 * Math.pow(2, retryCountRef.current), 60000);
+            retryCountRef.current += 1;
+            timerRef.current = setTimeout(schedulePush, delay);
+          } else {
+            // التوقف بعد 5 محاولات متتالية لمنع استهلاك البطارية حتى يطرأ تعديل جديد
+            retryCountRef.current = 0;
+          }
         } finally {
           pushingRef.current = false;
         }

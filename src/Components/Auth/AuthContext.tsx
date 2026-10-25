@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import type { User } from 'firebase/auth';
 import { getAuthModule, isFirebaseConfigured } from '../../firebase/config';
 import { isAdmin as checkAdmin } from '../../firebase/services';
+import { safeRemove } from '../../utils/safeStorage';
 
 interface AuthResult {
   success: boolean;
@@ -219,12 +220,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // تسجيل خروج — لا يرمي أبدًا حتى لا يعلق المتصل به (النافذة تُغلق دائمًا)
   const logout = useCallback(async () => {
     try {
+      const currentUid = user?.uid;
       const { auth, authMod } = await getAuthModule();
       await authMod.signOut(auth);
+      if (currentUid) {
+        safeRemove(`library_stamps_v1_${currentUid}`);
+      }
     } catch (err) {
       console.error('فشل تسجيل الخروج:', err);
     }
-  }, []);
+  }, [user]);
 
   // إعادة فحص صلاحية المشرف
   // 'unknown' = فشل تقييم (شبكة/توكن) وليس رفضًا: لا نمسّ الحالة الحالية،

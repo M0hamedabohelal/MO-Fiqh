@@ -24,8 +24,10 @@ vi.mock('../firebase/config', () => ({
   isFirebaseConfigured: true,
   getFirestore: async () => ({ db: { __db: true }, fsMod: {} }),
 }));
+let currentUid: string | null = 'u1';
+
 vi.mock('../Components/Auth/AuthContext', () => ({
-  useAuth: () => ({ user: { uid: 'u1' }, authLoading: false }),
+  useAuth: () => ({ user: currentUid ? { uid: currentUid } : null, authLoading: false }),
 }));
 vi.mock('../utils/logError', () => ({ logError: vi.fn() }));
 
@@ -175,5 +177,35 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     expect(typeof writtenData.updatedAt['bm:10']).toBe('number');
 
     unmount();
+  }, 20000);
+
+  it('تبديل الحساب يصفّر المراجع السابقة ولا يلوّث الحساب الجديد بشواهد حذف وهمية', async () => {
+    currentUid = 'userA';
+    const onMerged = vi.fn();
+    const { rerender, unmount } = renderHook(
+      ({ d }) => useLibrarySync({ ready: true, data: d, onMerged }),
+      { initialProps: { d: baseData({ bookmarks: ['1', '2'] }) } },
+    );
+
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 6000 });
+
+    // تبديل المستخدم إلى userB في نفس التبويب، ومعه مكتبة تخص userB فقط (مثلاً مفضلة 9)
+    currentUid = 'userB';
+    rerender({ d: baseData({ bookmarks: ['9'] }) });
+
+    await waitFor(() => expect(setDoc.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 6000 });
+
+    const lastCall = setDoc.mock.calls[setDoc.mock.calls.length - 1] as unknown[];
+    const writtenData = lastCall?.[1] as { bookmarks: string[]; updatedAt: Record<string, number> };
+
+    // لا تلوث: لا شواهد حذف لـ bm:1 أو bm:2 في حساب userB
+    expect(writtenData.bookmarks).toEqual(['9']);
+    expect(writtenData.updatedAt['bm:1']).toBeUndefined();
+    expect(writtenData.updatedAt['bm:2']).toBeUndefined();
+    expect(writtenData.updatedAt['bm:9']).toBeDefined();
+
+    unmount();
+    currentUid = 'u1';
   }, 20000);
 });

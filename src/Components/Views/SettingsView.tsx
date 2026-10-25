@@ -1,16 +1,43 @@
 import { useState } from 'react';
-import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiAward, FiChevronLeft, FiRefreshCw } from 'react-icons/fi';
+import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiAward, FiChevronLeft, FiRefreshCw, FiTrash2 } from 'react-icons/fi';
 import { useApp } from '../Layout/AppContext';
 import { isFirebaseConfigured } from '../../firebase/config';
+import { safeRemove } from '../../utils/safeStorage';
 import GuestAccountCard from '../UI/GuestAccountCard';
 
 // شاشة الإعدادات وحول التطبيق
 const SettingsView = () => {
-  const { setCurrentView, reloadFromCloud, lessonsCount, appVersion } = useApp();
+  const { user, setCurrentView, reloadFromCloud, lessonsCount, appVersion } = useApp();
   const [versionMessage, setVersionMessage] = useState('');
   const onOpenAchievements = (): void => setCurrentView('achievements');
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState('');
+  const [clearingCloud, setClearingCloud] = useState(false);
+  const [clearMessage, setClearMessage] = useState('');
+
+  const handleClearCloudData = async (): Promise<void> => {
+    if (!user) return;
+    if (!window.confirm('هل أنت متأكد من رغبتك في حذف مكتبتك وقراءة الإشعارات من السحابة نهائيًا؟ لن يتم مسح بيانات جهازك الحالي.')) return;
+    setClearingCloud(true);
+    setClearMessage('');
+    try {
+      const [{ getFirestore }, fs] = await Promise.all([
+        import('../../firebase/config'),
+        import('firebase/firestore'),
+      ]);
+      const { db } = await getFirestore();
+      await Promise.all([
+        fs.deleteDoc(fs.doc(db, `users/${user.uid}/data/library`)).catch(() => {}),
+        fs.deleteDoc(fs.doc(db, `users/${user.uid}/data/announcementReads`)).catch(() => {}),
+      ]);
+      safeRemove(`library_stamps_v1_${user.uid}`);
+      setClearMessage('تم مسح بياناتك السحابية بنجاح.');
+    } catch {
+      setClearMessage('تعذر مسح البيانات من السحابة؛ تأكد من اتصال الإنترنت.');
+    } finally {
+      setClearingCloud(false);
+    }
+  };
 
   // تحديث المحتوى من السحابة (مسائل + قاموس) — ليس مزامنة بيانات حساب، فقط جلب أحدث نسخة.
   const handleRefreshContent = async (): Promise<void> => {
@@ -129,6 +156,33 @@ const SettingsView = () => {
         <FiChevronLeft style={{ color: 'var(--accent-color)' }} />
       </button>
     </div>
+
+    {/* الخصوصية وحذف البيانات السحابية للمستخدم المسجل */}
+    {user && (
+      <div className="custom-card p-3 p-md-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>
+        <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+          <div className="text-start text-md-end flex-grow-1">
+            <div className="fw-bold" style={{ color: 'var(--text-main)' }}>الخصوصية والمزامنة السحابية</div>
+            <span className="small text-muted">
+              حسابك مرتبط بالسحابة: {user.email || user.displayName || 'مستخدم مسجل'}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-danger d-flex align-items-center gap-2"
+            disabled={clearingCloud}
+            onClick={handleClearCloudData}
+          >
+            <FiTrash2 /> {clearingCloud ? 'جارٍ المسح...' : 'مسح بياناتي السحابية'}
+          </button>
+        </div>
+        {clearMessage && (
+          <div className="small mt-2" style={{ color: clearMessage.includes('نجاح') ? '#27ae60' : '#e74c3c' }}>
+            {clearMessage}
+          </div>
+        )}
+      </div>
+    )}
 
     <div className="custom-card p-5 mx-auto text-center" style={{ maxWidth: '600px' }}>
 
