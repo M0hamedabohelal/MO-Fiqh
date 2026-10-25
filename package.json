@@ -15,6 +15,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "backup": "node scripts/backup-firestore.mjs",
+    "restore": "node scripts/restore-firestore.mjs",
     "audit:data": "node scripts/audit-content.mjs",
     "migrate": "node scripts/migrate-to-firestore.mjs",
     "brand": "node scripts/build-brand-assets.mjs",

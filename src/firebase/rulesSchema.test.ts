@@ -18,6 +18,18 @@ describe('Firestore Rules — فحص تطابق نصي ومحاكاة منطقي
     expect(rulesContent).toContain('match /lessons/{docId}');
   });
 
+  it('فحص مباشر لملف firestore.rules: التحقق من وجود كافة الحقول والحدود داخل كود القواعد الفعلي', () => {
+    // فحص مباشر لملف القواعد على القرص لمنع أي انفصال بين القواعد الحقيقية ومحاكي العقد
+    expect(rulesContent).toContain("request.auth.uid == uid");
+    expect(rulesContent).toContain("['bookmarks', 'highlights', 'notes', 'readLessons', 'stopMarks', 'theme', 'updatedAt']");
+    expect(rulesContent).toContain("request.resource.data.bookmarks.size() <= 3000");
+    expect(rulesContent).toContain("request.resource.data.readLessons.size() <= 3000");
+    expect(rulesContent).toContain("request.resource.data.highlights.size() <= 3000");
+    expect(rulesContent).toContain("request.resource.data.updatedAt.size() <= 12000");
+    expect(rulesContent).toContain("allow delete: if isSignedIn() && request.auth.uid == uid;");
+    expect(rulesContent).toContain("allow create, update, delete: if isAdmin();");
+  });
+
   // محاكي قواعد Firestore لمستند المكتبة (Users Library Rules Evaluator)
   const evaluateLibraryRule = (
     authUid: string | null,

@@ -685,44 +685,119 @@
   font-size: clamp(0.95rem, 1.5vh, 1.15rem);
 }
 
-/* 6. Responsive Breakdown for Mobile & Small Laptops */
+/* 6. Responsive Breakdown for Mobile & Small Laptops — Strict Zero-Scroll Fit */
 @media (max-width: 900px) {
   .hero-container {
-    overflow-y: auto;
-    max-height: none;
-    height: auto;
-    min-height: 100vh;
-    padding: 1rem 0.8rem 1.2rem;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow: hidden;
+    padding: clamp(0.45rem, 1vh, 0.75rem) clamp(0.75rem, 2.5vw, 1.2rem);
+    justify-content: space-between;
   }
   .main-stage {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 1.5rem;
-    padding: 1rem 0;
+    gap: clamp(0.35rem, 0.8vh, 0.7rem);
+    padding: 0;
+    flex: 1;
+    justify-content: space-evenly;
   }
   .info-column {
     align-items: center;
     text-align: center;
+    width: 100%;
+  }
+  .badge-capsule {
+    margin-bottom: clamp(0.2rem, 0.5vh, 0.35rem);
+    padding: 3px 12px;
+    font-size: 0.78rem;
+  }
+  .hero-heading {
+    font-size: clamp(2.1rem, 4.6vh, 2.6rem);
+    margin: 0 0 0.1rem;
+    line-height: 1.05;
+  }
+  .hero-subtitle {
+    font-size: clamp(0.92rem, 1.7vh, 1.1rem);
+    margin: 0 0 clamp(0.2rem, 0.5vh, 0.35rem);
+  }
+  .hero-description {
+    display: none; /* إخفاء الوصف النصي المكرر على شاشات الجوال لضمان الصمود بدون سكرول */
   }
   .actions-wrapper {
     align-items: center;
+    gap: clamp(0.35rem, 0.7vh, 0.55rem);
+    margin-bottom: clamp(0.35rem, 0.7vh, 0.55rem);
+    width: 100%;
   }
   .btn-main-cta {
     align-self: center;
     width: 100%;
-    max-width: 340px;
+    max-width: 310px;
+    padding: clamp(8px, 1.3vh, 11px) 22px;
+    font-size: 0.98rem;
+    gap: 8px;
   }
   .secondary-row {
     justify-content: center;
+    gap: 8px;
+  }
+  .btn-ghost {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    gap: 5px;
   }
   .features-strip {
     justify-content: center;
+    gap: 6px;
+  }
+  .feature-chip {
+    padding: 3px 8px;
+    font-size: 0.74rem;
+  }
+  .portal-column {
+    width: 100%;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .emblem-showcase {
+    display: none; /* الشعار معروض بدقة ووضوح في الشريط العلوي (brand-pill) */
+  }
+  .resume-card {
+    max-width: 340px;
+    padding: 5px 12px;
+  }
+  .books-portal-grid {
+    grid-template-columns: 1fr 1fr; /* عرض الكتابين جنبًا إلى جنب لتوفير نصف الارتفاع */
+    gap: 8px;
+    width: 100%;
+    max-width: 360px;
+  }
+  .book-portal-card {
+    padding: 7px 10px;
+    border-radius: 14px;
+  }
+  .book-card-title {
+    font-size: 0.92rem;
+    margin-bottom: 2px;
+  }
+  .book-card-meta {
+    font-size: 0.68rem;
   }
   .brand-text-col {
     flex-direction: column;
     gap: 0;
     align-items: flex-start;
+  }
+  .hadith-container {
+    padding: 4px 14px;
+    gap: 8px;
+  }
+  .hadith-text {
+    font-size: clamp(0.85rem, 1.4vh, 0.98rem);
   }
 }
 
@@ -743,16 +818,12 @@
   .brand-pill-tag {
     display: none;
   }
-  .books-portal-grid {
-    grid-template-columns: 1fr;
-    max-width: 320px;
-  }
   .hadith-container {
     padding: 3px 10px;
     gap: 6px;
   }
   .hadith-text {
-    font-size: 0.86rem;
+    font-size: 0.84rem;
   }
 }
 

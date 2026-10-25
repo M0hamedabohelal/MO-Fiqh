@@ -86,6 +86,7 @@ VITE_CLOUDINARY_UPLOAD_PRESET=...
 | `npm run lint` | فحص ESLint |
 | `npm test` | اختبارات vitest |
 | `npm run backup` | تنزيل نسخة احتياطية شاملة من Firestore إلى `backups/` (تدعم بيانات المستخدمين ومكتباتهم بالكامل) |
+| `npm run restore -- "file" [--confirm]` | استعادة آمنة لبيانات Firestore (المحتوى أو مكتبات المستخدمين) مع حارس تأكيد صريح |
 | `npm run content:snapshot` | توليد اللقطة المحلية `data/content/lessons.json` من Firestore (مفصولة خارج src/) |
 | `npm run check:content` | فحص تطابق اللقطة مع السحابة (`-- --strict` يفشل عند الانحراف) |
 | `npm run check:seo` | فحص الصفحات الثابتة: canonical + صورة معاينة + زر يقود للتطبيق (يفشل عند الكسر) |
