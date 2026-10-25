@@ -54,8 +54,8 @@ const HeroSection = ({
             src={logo}
             alt=""
             className={styles['brand-pill-img']}
-            width="26"
-            height="26"
+            width="30"
+            height="30"
             loading="eager"
           />
           <span className={styles['brand-pill-title']}>يَسِّر</span>
@@ -70,7 +70,7 @@ const HeroSection = ({
           title={user ? `حساب: ${user.displayName || user.email}` : 'تسجيل الدخول'}
         >
           <span className={styles['user-btn-icon']}>
-            <FiUser size={15} />
+            <FiUser size={16} />
           </span>
           <span className={styles['user-btn-label']}>
             {user ? (user.displayName || user.email?.split('@')[0] || 'حسابي') : 'تسجيل الدخول'}
@@ -89,8 +89,8 @@ const HeroSection = ({
               src={logo}
               alt="شعار منصة يَسِّر"
               className={styles['emblem-img']}
-              width="98"
-              height="98"
+              width="130"
+              height="130"
               fetchPriority="high"
               decoding="async"
             />
@@ -118,15 +118,15 @@ const HeroSection = ({
         {/* بطاقات المزايا الثلاث العصرية (Bento Chips) */}
         <div className={styles['features-strip']}>
           <div className={styles['feature-chip']}>
-            <span className={styles['chip-icon']}><FiLayers size={14} /></span>
+            <span className={styles['chip-icon']}><FiLayers size={16} /></span>
             <span>٨٥ مسألة مُحققة</span>
           </div>
           <div className={styles['feature-chip']}>
-            <span className={styles['chip-icon']}><FiHeadphones size={14} /></span>
+            <span className={styles['chip-icon']}><FiHeadphones size={16} /></span>
             <span>شرح صوتي متقن</span>
           </div>
           <div className={styles['feature-chip']}>
-            <span className={styles['chip-icon']}><FiBookmark size={14} /></span>
+            <span className={styles['chip-icon']}><FiBookmark size={16} /></span>
             <span>مزامنة سحابية فورية</span>
           </div>
         </div>
@@ -139,13 +139,13 @@ const HeroSection = ({
             type="button"
           >
             <span className={styles['resume-badge']}>
-              <FiBookmark size={13} />
+              <FiBookmark size={14} />
               <span>آخر وقفة</span>
             </span>
             <span className={styles['resume-text']}>{stopLessonTitle}</span>
             <span className={styles['resume-action']}>
               <span>متابعة</span>
-              <FiArrowLeft size={13} />
+              <FiArrowLeft size={14} />
             </span>
           </button>
         )}
@@ -157,9 +157,9 @@ const HeroSection = ({
             onClick={onStartBrowsing}
             type="button"
           >
-            <FiBookOpen size={19} className={styles['btn-cta-icon']} />
+            <FiBookOpen size={22} className={styles['btn-cta-icon']} />
             <span className={styles['btn-cta-text']}>تصفّح أبواب الفقه الآن</span>
-            <FiArrowLeft size={17} className={styles['btn-cta-arrow']} />
+            <FiArrowLeft size={19} className={styles['btn-cta-arrow']} />
           </button>
 
           <div className={styles['secondary-row']}>
@@ -169,7 +169,7 @@ const HeroSection = ({
               download="الفقه-الميسر.pdf"
               title="تحميل الكتاب كاملًا بصيغة PDF"
             >
-              <FiDownload size={15} />
+              <FiDownload size={17} />
               <span>تحميل الكتاب PDF</span>
             </a>
 
@@ -180,7 +180,7 @@ const HeroSection = ({
               rel="noopener noreferrer"
               title="مشاهدة السلسلة المرئية على يوتيوب"
             >
-              <FiYoutube size={16} className={styles['yt-icon']} />
+              <FiYoutube size={18} className={styles['yt-icon']} />
               <span>السلسلة المرئية</span>
             </a>
           </div>
