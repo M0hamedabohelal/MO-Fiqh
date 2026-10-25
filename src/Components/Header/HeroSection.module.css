@@ -202,7 +202,7 @@
 .brand-pill-title {
   font-family: 'Aref Ruqaa', 'Amiri', serif;
   font-weight: 700;
-  font-size: clamp(1.75rem, 3.2vh, 2.35rem);
+  font-size: clamp(1.9rem, 3.5vh, 2.6rem);
   color: var(--hero-gold-primary);
   line-height: 1;
   padding-inline-end: 6px;
@@ -322,22 +322,23 @@
 
 .hero-heading {
   font-family: 'Aref Ruqaa', 'Amiri', serif;
-  font-size: clamp(3.2rem, 7vh, 4.8rem);
+  font-size: clamp(5.4rem, 14vh, 8.8rem);
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.02;
   margin: 0 0 clamp(0.2rem, 0.5vh, 0.4rem);
   background: linear-gradient(180deg, #dfbf68 0%, #c49d48 50%, #95732d 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.15));
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.22));
+  letter-spacing: 1.5px;
 }
 
 [data-theme="dark"] .hero-heading {
   background: linear-gradient(180deg, #fcedca 0%, #e6c56e 50%, #c29c45 100%);
   -webkit-background-clip: text;
   background-clip: text;
-  filter: drop-shadow(0 3px 14px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 4px 18px rgba(226, 192, 106, 0.35));
 }
 
 .hero-subtitle {
