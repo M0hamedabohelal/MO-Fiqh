@@ -233,7 +233,7 @@ export function useUserLibrary() {
     highlights: snapshot.highlights,
     notes: snapshot.notes,
     readLessons: snapshot.readLessons,
-    isDataLoaded: loadedUid !== undefined,
+    isDataLoaded: loadedUid === (user?.uid ?? null),
     toggleBookmark,
     toggleReadLesson,
     addHighlight,

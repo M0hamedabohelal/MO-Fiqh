@@ -48,10 +48,10 @@ const baseData = (over: Record<string, unknown> = {}) => ({
 
 describe('useLibrarySync — مزامنة حيّة', () => {
   beforeEach(() => {
+    currentUid = 'u1';
     setDoc.mockClear();
     getDoc.mockClear();
     snapshotCb = null;
-
   });
 
   afterEach(() => { vi.clearAllMocks(); });
@@ -209,6 +209,38 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     unmount();
     currentUid = 'u1';
   }, 20000);
+
+  it('تبديل الحساب مع انتقال غير متزامن (ready=false ثم true) لا يُنشئ أي شواهد وهمية', async () => {
+    currentUid = 'accountAlpha';
+    const onMerged = vi.fn();
+    const { rerender, unmount } = renderHook(
+      ({ r, d }) => useLibrarySync({ ready: r, data: d, onMerged }),
+      { initialProps: { r: true, d: baseData({ bookmarks: ['10', '20'] }) } },
+    );
+
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 4000 });
+
+    // تبديل الحساب: إطار انتقالي تكون فيه البيانات لم تُحمّل بعد لحساب Beta
+    currentUid = 'accountBeta';
+    rerender({ r: false, d: baseData({ bookmarks: ['10', '20'] }) });
+
+    // بعد لحظات: اكتمل تحميل بيانات Beta المحلية (مفضلة 99 فقط)
+    rerender({ r: true, d: baseData({ bookmarks: ['99'] }) });
+
+    await waitFor(() => expect(setDoc.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 6000 });
+
+    const lastCall = setDoc.mock.calls[setDoc.mock.calls.length - 1] as unknown[];
+    const writtenData = lastCall?.[1] as { bookmarks: string[]; updatedAt: Record<string, number> };
+
+    expect(writtenData.bookmarks).toEqual(['99']);
+    expect(writtenData.updatedAt['bm:10']).toBeUndefined();
+    expect(writtenData.updatedAt['bm:20']).toBeUndefined();
+    expect(writtenData.updatedAt['bm:99']).toBeDefined();
+
+    unmount();
+    currentUid = 'u1';
+  }, 20000);
   it('تعطيل المزامنة يمنع الدفع التلقائي تمامًا حتى مع وجود بيانات محلية', async () => {
     localStorage.clear();
     setDoc.mockClear();
@@ -254,7 +286,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
 
   it('استقبال تعديل جهاز آخر فورًا بعد كتابتنا دون نافذة حجب للصدى', async () => {
     const onMerged = vi.fn();
-    const { rerender, unmount } = renderHook(
+    const { unmount } = renderHook(
       ({ bm }) => useLibrarySync({ ready: true, data: baseData({ bookmarks: bm }), onMerged }),
       { initialProps: { bm: ['1'] as string[] } },
     );

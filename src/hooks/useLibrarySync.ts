@@ -11,6 +11,7 @@ import {
   KEYS,
   byId,
   pruneTombstones,
+  emptyLibrary,
   isSyncDisabled,
   setSyncDisabled,
   subscribeSyncDisabled,
@@ -122,7 +123,7 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
       lastPushedRef.current = '';
       pendingPushSignatureRef.current = '';
       pendingSnapshotRef.current = undefined;
-      previousDataRef.current = toSyncable(dataRef.current, {});
+      previousDataRef.current = emptyLibrary();
       retryCountRef.current = 0;
       pushingRef.current = false;
       applyingRef.current = false;
@@ -177,6 +178,7 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
     // حفظ وتحديث الأختام المدمجة محليًا مع تقليم الشواهد القديمة
     const cleanStamps = pruneTombstones(merged.updatedAt ?? {}, merged);
     stampsRef.current = cleanStamps;
+    previousDataRef.current = merged;
     if (uid) safeSet(stampsStorageKey(uid), JSON.stringify(cleanStamps));
 
     if (mergedSignature !== localSignature) {
