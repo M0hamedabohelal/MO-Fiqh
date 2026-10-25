@@ -184,12 +184,6 @@ const HeroSection = ({
         {/* الجانب الأيسر: محراب العرض الفاخر وبطاقات البوابات السريعة */}
         <div className={styles['portal-column']}>
           <div className={styles['portal-showcase-frame']}>
-            <div className={styles['portal-header-tag']}>
-              <span className={styles['badge-sparkle']}>✦</span>
-              <span>المتن والشرح الصوتي المتقن</span>
-              <span className={styles['badge-sparkle']}>✦</span>
-            </div>
-
             {/* الشعار المركزي الفاخر */}
             <div className={styles['emblem-showcase']}>
               <div className={styles['emblem-ring']} />

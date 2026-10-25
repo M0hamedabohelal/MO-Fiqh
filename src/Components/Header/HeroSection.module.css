@@ -526,20 +526,6 @@
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.08), 0 0 32px var(--hero-gold-glow);
 }
 
-.portal-header-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 4px 16px;
-  border-radius: 20px;
-  background: rgba(226, 192, 106, 0.1);
-  border: 1px solid rgba(226, 192, 106, 0.22);
-  font-family: 'Tajawal', sans-serif;
-  font-size: clamp(0.76rem, 1.25vh, 0.86rem);
-  font-weight: 700;
-  color: var(--hero-gold-primary);
-}
-
 /* Emblem Showcase */
 .emblem-showcase {
   position: relative;
@@ -858,9 +844,6 @@
     padding: 0;
     max-width: 100%;
     gap: 0.35rem;
-  }
-  .portal-header-tag {
-    display: none;
   }
   .book-card-cta {
     display: none;
