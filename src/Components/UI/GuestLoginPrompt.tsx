@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FiLogIn, FiX } from 'react-icons/fi';
-import { onRequireLogin } from '../../utils/guestPrompt';
+import { onRequireLogin, clearPendingAction } from '../../utils/guestPrompt';
 import type { GuestPromptDetail } from '../../utils/guestPrompt';
 
 // بوب «يلزم تسجيل الدخول» — أسفل الشاشة، بنفس لغة بوب التحديث.
@@ -49,7 +49,7 @@ const GuestLoginPrompt = ({ onOpenLogin }: Props) => {
         <button
           type="button"
           className="guest-pop-dismiss"
-          onClick={() => setDetail(null)}
+          onClick={() => { setDetail(null); clearPendingAction(); }}
           aria-label="إغلاق التنبيه"
           title="لاحقًا"
         >

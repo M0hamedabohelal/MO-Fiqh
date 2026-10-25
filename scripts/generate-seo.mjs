@@ -589,26 +589,50 @@ async function writeBookOgImages(sharp) {
   console.log(`🖼️  SEO: صور مشاركة لـ ${bookNames.length} كتاب (${OG_W}×${OG_H})`);
 }
 
-// ── صورة المشاركة العامة (1200×630) إن غابت ──
-// og-image.jpg القديمة 1024 مربعة؛ البطاقات الكبيرة تريد 1.91:1. لا نكتب فوق ملف موجود
-// يملكه `npm run brand` — نولّده فقط عند غيابه، ويبقى ملف الهوية هو المصدر.
+// ── صورة المشاركة العامة للمنصة (1200×630 القياسية 1.91:1) ──
+// تُولَّد دائمًا بهوية «يَسِّر» والشعار الجديد المعتمد
 const OG_DEFAULT_PATH = join(PUBLIC, 'og-image.jpg');
 
 async function writeDefaultOgImage(sharp) {
-  if (existsSync(OG_DEFAULT_PATH)) return;
+  const brand = 'يَسِّر';
+  const title = 'منصة تعليم الفقه الإسلامي';
+  const subtitle = 'عرض تفاعلي ميسّر لأبواب الفقه ومسائله';
+  const tagline = 'قراءة كاملة بدون تسجيل — fqh.me';
+
+  const logoSize = 360;
+  const logoLeft = 70;
+  const logoTop = Math.round((OG_H - logoSize) / 2);
+  const textRight = OG_W - 70;
+
+  let logo = null;
+  if (existsSync(BRAND_LOGO)) {
+    logo = await sharp(BRAND_LOGO).resize(logoSize, logoSize, { fit: 'contain' }).png().toBuffer();
+  }
+
   const svg = Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${OG_W}" height="${OG_H}">
-  <rect width="${OG_W}" height="${OG_H}" fill="#101414"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#101414"/>
+      <stop offset="100%" stop-color="#16201f"/>
+    </linearGradient>
+  </defs>
+  <rect width="${OG_W}" height="${OG_H}" fill="url(#bg)"/>
   <rect x="0" y="${OG_H - 10}" width="${OG_W}" height="10" fill="#5cc0b5"/>
-  <g text-anchor="middle" direction="rtl">
-    <text x="${OG_W / 2}" y="260" font-family="Amiri, serif" font-size="82" font-weight="700" fill="#e6e8e6">يَسِّر</text>
-    <text x="${OG_W / 2}" y="340" font-family="Tajawal, sans-serif" font-size="34" fill="#a9b1ad">منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر</text>
-    <text x="${OG_W / 2}" y="410" font-family="Tajawal, sans-serif" font-size="28" fill="#d8a06a">قراءة كاملة بدون تسجيل — fqh.me</text>
+  <g text-anchor="start" direction="rtl">
+    <text x="${textRight}" y="170" font-family="Tajawal, Amiri, sans-serif" font-size="38" fill="#5cc0b5">${brand}</text>
+    <text x="${textRight}" y="275" font-family="Amiri, serif" font-size="64" font-weight="700" fill="#e6e8e6">${title}</text>
+    <text x="${textRight}" y="355" font-family="Tajawal, sans-serif" font-size="30" fill="#a9b1ad">${subtitle}</text>
+    <text x="${textRight}" y="430" font-family="Tajawal, sans-serif" font-size="26" fill="#d8a06a">${tagline}</text>
   </g>
 </svg>`,
   );
-  await sharp(svg).jpeg({ quality: 84, mozjpeg: true }).toFile(OG_DEFAULT_PATH);
-  console.log('🖼️  SEO: og-image.jpg العامة (1200×630)');
+
+  const out = sharp(svg).composite(
+    logo ? [{ input: logo, top: logoTop, left: logoLeft }] : [],
+  );
+  await out.jpeg({ quality: 86, mozjpeg: true }).toFile(OG_DEFAULT_PATH);
+  console.log('🖼️  SEO: og-image.jpg العامة بهوية «يَسِّر» والشعار الجديد (1200×630)');
 }
 
 // ── التنظيف والكتابة ──

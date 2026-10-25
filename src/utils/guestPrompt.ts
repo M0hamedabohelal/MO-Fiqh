@@ -13,19 +13,54 @@ export interface GuestPromptDetail {
   action?: string;
   /** نص مخصّص يتجاوز الافتراضي */
   message?: string;
+  /** عملية معلقة لإعادة تنفيذها تلقائيًا بعد نجاح تسجيل الدخول */
+  retry?: () => void;
 }
 
 const EVENT = 'fqh:require-login';
 
 let lastPromptAt = 0;
-// لا نُغرق المستخدم: ضغطات متتالية بنفس النية تُظهر بوبًا واحدًا
-const THROTTLE_MS = 1200;
+let lastAction = '';
+let pendingRetry: (() => void) | null = null;
+// خانق قصير لنفس الإجراء لمنع النقر العشوائي المزدوج (400ms بدل 1200ms)
+const THROTTLE_MS = 400;
 
-/** ينادي البوب. throttled لأن ضغط زر المفضلة سريعًا لا يعني تحذيرين. */
+/** تسجيل عملية معلقة للتنفيذ بعد تسجيل الدخول */
+export function setPendingAction(fn: (() => void) | null): void {
+  pendingRetry = fn;
+}
+
+/** تنفيذ العملية المعلقة بعد نجاح تسجيل الدخول */
+export function executePendingAction(): void {
+  if (pendingRetry) {
+    const fn = pendingRetry;
+    pendingRetry = null;
+    try {
+      fn();
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+/** مسح العملية المعلقة */
+export function clearPendingAction(): void {
+  pendingRetry = null;
+}
+
+/** ينادي البوب. يُظهر التنبيه فورًا لو كان إجراءً مختلفًا، ويخنق النقر المزدوج على نفس الزر */
 export function requireLogin(detail: GuestPromptDetail = {}): void {
   const now = Date.now();
-  if (now - lastPromptAt < THROTTLE_MS) return;
+  const action = detail.action ?? '';
+  // إذا كان نفس الإجراء مكررًا خلال نافذة الخانق، نتجاهله
+  if (action === lastAction && now - lastPromptAt < THROTTLE_MS) return;
   lastPromptAt = now;
+  lastAction = action;
+
+  if (typeof detail.retry === 'function') {
+    setPendingAction(detail.retry);
+  }
+
   try {
     window.dispatchEvent(new CustomEvent<GuestPromptDetail>(EVENT, { detail }));
   } catch {
@@ -51,4 +86,6 @@ export function onRequireLogin(handler: (detail: GuestPromptDetail) => void): ()
 // للاختبارات: لا throttle بين الحالات
 export function __resetGuestPromptForTests(): void {
   lastPromptAt = 0;
+  lastAction = '';
+  pendingRetry = null;
 }

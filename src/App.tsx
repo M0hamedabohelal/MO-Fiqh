@@ -7,7 +7,7 @@ import MobileBottomNav from './Components/Navigation/MobileBottomNav';
 import SplashScreen   from './Components/UI/SplashScreen';
 import UpdateBanner   from './Components/UI/UpdateBanner'
 import GuestLoginPrompt from './Components/UI/GuestLoginPrompt'
-import { requireLogin } from './utils/guestPrompt';
+import { requireLogin, executePendingAction } from './utils/guestPrompt';
 import LoginModal     from './Components/Auth/LoginModal';
 import AppLayout      from './Components/Layout/AppLayout';
 import { AppProvider } from './Components/Layout/AppContext';
@@ -363,7 +363,7 @@ function App() {
       {showOnboarding && <OnboardingSlides onDone={() => setShowOnboarding(false)} />}
 
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} data={lessons} onSelect={handleSearchResultSelect} />
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { if (currentView === 'hero') setCurrentView('books'); }} />
+      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { executePendingAction(); if (currentView === 'hero') setCurrentView('books'); }} />
       <ShortcutsHelpModal open={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
 
       {currentView === 'hero' ? (
