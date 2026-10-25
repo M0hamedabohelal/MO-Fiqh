@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync, readdirSync, utimesSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-// @ts-expect-error mjs script without d.ts
 import { applyRetentionPolicy } from '../../scripts/backup-retention.mjs';
 
 describe('applyRetentionPolicy', () => {
