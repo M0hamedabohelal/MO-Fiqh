@@ -129,7 +129,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     };
     // نستخدم renderHook مع دالة تُغلق على الحالة
     let harnessRerender: (p: Record<string, unknown>) => void = () => {};
-    const { rerender } = renderHook((p: Record<string, unknown>) => harness(p), { initialProps: {} });
+    const { rerender, unmount } = renderHook((p: Record<string, unknown>) => harness(p), { initialProps: {} });
     harnessRerender = rerender;
 
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
@@ -144,5 +144,36 @@ describe('useLibrarySync — مزامنة حيّة', () => {
 
     // الحلقة كانت ستنتج 2+ كتابات متتالية. المسموح: دفعة واحدة على الأكثر.
     expect(setDoc.mock.calls.length).toBeLessThanOrEqual(1);
+
+    unmount();
   }, 25000);
+
+  it('فشل الكتابة الأول لا يُسقط شاهد الحذف في المحاولة التالية', async () => {
+    // المحاولة الأولى تفشل (شبكة/أوفلاين)
+    setDoc.mockRejectedValueOnce(new Error('Network offline'));
+
+    const onMerged = vi.fn();
+    const { rerender, unmount } = renderHook(
+      ({ bm }) => useLibrarySync({ ready: true, data: baseData({ bookmarks: bm }), onMerged }),
+      { initialProps: { bm: ['10'] as string[] } },
+    );
+
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+
+    // حذف المفضلة 10 محليًا
+    rerender({ bm: [] });
+
+    // ننتظر حتى تفشل المحاولة الأولى ثم يُعاد جدولتها وتنجح
+    await waitFor(() => expect(setDoc.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 12000 });
+
+    // المكالمة الناجحة الثانية يجب أن تحتوي على شاهد حذف bm:10
+    const lastCall = setDoc.mock.calls[setDoc.mock.calls.length - 1] as unknown[];
+    const writtenData = lastCall?.[1] as { bookmarks: string[]; updatedAt: Record<string, number> };
+
+    expect(writtenData.bookmarks).toEqual([]);
+    expect(writtenData.updatedAt['bm:10']).toBeDefined();
+    expect(typeof writtenData.updatedAt['bm:10']).toBe('number');
+
+    unmount();
+  }, 20000);
 });

@@ -104,6 +104,7 @@ service cloud.firestore {
         && request.resource.data.notes is map
         && request.resource.data.notes.size() <= 2000
         && request.resource.data.updatedAt is map
+        && request.resource.data.updatedAt.size() <= 3000
         // الحقول الاختيارية: تُفحص فقط عند وجودها (العميل يكتب بـ merge فقد تنسحب)
         && (!('stopMarks' in request.resource.data)
              || (request.resource.data.stopMarks is map && request.resource.data.stopMarks.size() <= 200))

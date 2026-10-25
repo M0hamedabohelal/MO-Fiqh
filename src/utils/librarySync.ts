@@ -47,7 +47,7 @@ export const libraryDocPath = (uid: string): string => `users/${uid}/data/librar
 export const cloudEnabled = (uid: string | null | undefined): uid is string =>
   typeof uid === 'string' && uid.length > 0;
 
-const KEYS = {
+export const KEYS = {
   note: (id: string) => `note:${id}`,
   highlight: (id: string) => `hl:${id}`,
   bookmark: (id: string) => `bm:${id}`,
@@ -55,12 +55,64 @@ const KEYS = {
   theme: 'theme',
 } as const;
 
-const ts = (lib: SyncableLibrary, key: string): number => {
+export const ts = (lib: SyncableLibrary, key: string): number => {
   const v = lib.updatedAt?.[key];
   return typeof v === 'number' && Number.isFinite(v) ? v : 0;
 };
 
-const byId = (h: HighlightItem): string => String(h?.id ?? h?.text ?? '');
+export const byId = (h: HighlightItem): string => String(h?.id ?? h?.text ?? '');
+
+export const TOMBSTONE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+export const MAX_TOMBSTONES = 500;
+
+/**
+ * تقليم شواهد القبور القديمة لمنع تضخم مستند updatedAt مع مرور الوقت.
+ * - الأختام النشطة (العناصر الموجودة حاليًا في المكتبة) تُحفظ دومًا.
+ * - شواهد القبور (عناصر محذوفة) الأقدم من 30 يومًا تُحذف.
+ * - إذا تجاوز عدد الشواهد 500، يُحتفظ بالأحدث فقط.
+ */
+export function pruneTombstones(
+  updatedAt: Record<string, number>,
+  activeLib: {
+    bookmarks?: string[];
+    readLessons?: string[];
+    notes?: Record<string, string>;
+    highlights?: HighlightItem[];
+  },
+  now = Date.now(),
+): Record<string, number> {
+  const activeKeys = new Set<string>([
+    KEYS.theme,
+    ...(activeLib.bookmarks ?? []).map((id) => KEYS.bookmark(String(id))),
+    ...(activeLib.readLessons ?? []).map((id) => KEYS.read(String(id))),
+    ...Object.keys(activeLib.notes ?? {}).map((id) => KEYS.note(id)),
+    ...(activeLib.highlights ?? []).map((h) => KEYS.highlight(byId(h))),
+  ]);
+
+  const out: Record<string, number> = {};
+  const tombstones: Array<{ key: string; stamp: number }> = [];
+
+  for (const [key, stamp] of Object.entries(updatedAt ?? {})) {
+    if (activeKeys.has(key)) {
+      out[key] = stamp;
+    } else {
+      if (typeof stamp === 'number' && Number.isFinite(stamp) && now - stamp < TOMBSTONE_TTL_MS) {
+        tombstones.push({ key, stamp });
+      }
+    }
+  }
+
+  if (tombstones.length > MAX_TOMBSTONES) {
+    tombstones.sort((x, y) => y.stamp - x.stamp);
+    tombstones.length = MAX_TOMBSTONES;
+  }
+
+  for (const t of tombstones) {
+    out[t.key] = t.stamp;
+  }
+
+  return out;
+}
 
 /**
  * دمج مكتبتين بلا فقدان بيانات.

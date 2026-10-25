@@ -27,6 +27,9 @@ import {
   librarySignature,
   libraryDocPath,
   cloudEnabled,
+  pruneTombstones,
+  TOMBSTONE_TTL_MS,
+  MAX_TOMBSTONES,
 } from './librarySync';
 import type { SyncableLibrary } from './librarySync';
 
@@ -173,5 +176,101 @@ describe('المسار والتفعيل', () => {
     expect(cloudEnabled(null)).toBe(false);
     expect(cloudEnabled('')).toBe(false);
     expect(cloudEnabled('u1')).toBe(true);
+  });
+});
+
+describe('pruneTombstones — تقليم شواهد القبور والسقف', () => {
+  const now = 100_000_000;
+
+  it('يحتفظ بالأختام النشطة للعناصر الموجودة في المكتبة بغض النظر عن عمرها', () => {
+    const updatedAt = {
+      'bm:1': 100, // قديم جدًا لكن المفضلة 1 موجودة
+      'read:2': 200,
+      'note:3': 300,
+      theme: 400,
+    };
+    const active = {
+      bookmarks: ['1'],
+      readLessons: ['2'],
+      notes: { '3': 'نص' },
+      highlights: [],
+    };
+    const res = pruneTombstones(updatedAt, active, now);
+    expect(res).toEqual(updatedAt);
+  });
+
+  it('يحذف شواهد الحذف الأقدم من 30 يومًا ويُبقي الأحدث منها', () => {
+    const expiredStamp = now - TOMBSTONE_TTL_MS - 5000;
+    const freshStamp = now - 1000;
+    const updatedAt = {
+      'bm:old': expiredStamp, // محذوف من أكثر من 30 يومًا
+      'bm:recent': freshStamp, // محذوف حديثًا
+    };
+    const active = {
+      bookmarks: [],
+      readLessons: [],
+      notes: {},
+      highlights: [],
+    };
+    const res = pruneTombstones(updatedAt, active, now);
+    expect(res['bm:old']).toBeUndefined();
+    expect(res['bm:recent']).toBe(freshStamp);
+  });
+
+  it('يقيد عدد شواهد القبور بـ MAX_TOMBSTONES محتفظًا بالأحدث فقط', () => {
+    const updatedAt: Record<string, number> = {};
+    for (let i = 0; i < MAX_TOMBSTONES + 50; i++) {
+      updatedAt[`bm:${i}`] = now - 1000 + i;
+    }
+    const res = pruneTombstones(updatedAt, { bookmarks: [] }, now);
+    expect(Object.keys(res).length).toBe(MAX_TOMBSTONES);
+    // الأحدث (الأعلى طابعًا) محفوظ
+    expect(res[`bm:${MAX_TOMBSTONES + 49}`]).toBeDefined();
+    // الأقدم حُذف
+    expect(res['bm:0']).toBeUndefined();
+  });
+});
+
+describe('تعارض الأوفلاين في mergeLibraries', () => {
+  it('حذف السحابة الأحدث يغلب العنصر الموجود في جهاز كان أوفلاين', () => {
+    const t0 = Date.now() - 10000;
+    const t1 = t0 + 2000;
+    // جهاز كان أوفلاين منذ وقت t0 ويحمل المفضلة 7
+    const offlineDevice: SyncableLibrary = {
+      ...empty(),
+      bookmarks: ['7'],
+      updatedAt: { 'bm:7': t0 },
+    };
+    // سحابة حذفت المفضلة 7 في وقت t1
+    const cloud: SyncableLibrary = {
+      ...empty(),
+      bookmarks: [],
+      updatedAt: { 'bm:7': t1 },
+    };
+
+    const res = mergeLibraries(cloud, offlineDevice);
+    expect(res.bookmarks).not.includes('7');
+    expect(res.updatedAt['bm:7']).toBe(t1);
+  });
+
+  it('إضافة محلية أحدث من حذف السحابة تغلب الحذف (إعادة إضافة واعية)', () => {
+    const t0 = Date.now() - 10000;
+    const t1 = t0 + 2000;
+    // السحابة حذفت المفضلة 7 في وقت t0
+    const cloud: SyncableLibrary = {
+      ...empty(),
+      bookmarks: [],
+      updatedAt: { 'bm:7': t0 },
+    };
+    // المستخدم أعاد إضافة المفضلة 7 محليًا في وقت t1
+    const localDevice: SyncableLibrary = {
+      ...empty(),
+      bookmarks: ['7'],
+      updatedAt: { 'bm:7': t1 },
+    };
+
+    const res = mergeLibraries(cloud, localDevice);
+    expect(res.bookmarks).toContain('7');
+    expect(res.updatedAt['bm:7']).toBe(t1);
   });
 });

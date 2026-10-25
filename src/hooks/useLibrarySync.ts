@@ -2,11 +2,15 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
 import { isFirebaseConfigured } from '../firebase/config';
 import { logError } from '../utils/logError';
+import { safeGet, safeSet, safeParse } from '../utils/safeStorage';
 import {
   cloudEnabled,
   libraryDocPath,
   librarySignature,
   mergeLibraries,
+  KEYS,
+  byId,
+  pruneTombstones,
 } from '../utils/librarySync';
 import type { SyncableLibrary } from '../utils/librarySync';
 import type { HighlightItem } from '../types';
@@ -53,12 +57,26 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   const { user } = useAuth();
   const uid = user?.uid ?? null;
 
+  const stampsStorageKey = (u: string) => `library_stamps_v1_${u}`;
+  const stampsRef = useRef<Record<string, number>>({});
+
+  // تحميل الأختام الزمنية المحلية عند معرفة المستخدم
+  useEffect(() => {
+    if (uid) {
+      stampsRef.current = safeParse<Record<string, number>>(safeGet(stampsStorageKey(uid)), {});
+    } else {
+      stampsRef.current = {};
+    }
+  }, [uid]);
+
   // آخر توقيع كتبناه — يقطع حلقة الكتابة ويوفّر كتابات زائدة
   const lastPushedRef = useRef<string>('');
   // حتى متى نبتلع صدى كتابتنا (epoch ms)
   const suppressUntilRef = useRef<number>(0);
   // هل نطبّق دمجًا الآن؟ (منع إطلاق دفعة أثناء التطبيق)
   const applyingRef = useRef<boolean>(false);
+  // هل توجد عملية دفع جارية الآن؟
+  const pushingRef = useRef<boolean>(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMergedRef = useRef(onMerged);
   const dataRef = useRef(data);
@@ -79,7 +97,7 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   const previousDataRef = useRef<SyncableLibrary>(toSyncable(data, {}));
 
   const mergeAndApply = useCallback((cloudRaw: Partial<SyncableLibrary> | null): void => {
-    const local = toSyncable(dataRef.current, {});
+    const local = toSyncable(dataRef.current, stampsRef.current);
     if (!cloudRaw) {
       // لا شيء سحابيًا بعد: ارفع المحلي كأساس أول
       lastPushedRef.current = '';
@@ -107,6 +125,11 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
     const localSignature = librarySignature(local);
     const mergedSignature = librarySignature(merged);
 
+    // حفظ وتحديث الأختام المدمجة محليًا مع تقليم الشواهد القديمة
+    const cleanStamps = pruneTombstones(merged.updatedAt ?? {}, merged);
+    stampsRef.current = cleanStamps;
+    if (uid) safeSet(stampsStorageKey(uid), JSON.stringify(cleanStamps));
+
     if (mergedSignature !== localSignature) {
       applyingRef.current = true;
       lastPushedRef.current = mergedSignature;
@@ -124,7 +147,7 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
       lastPushedRef.current = mergedSignature;
       applyingRef.current = false;
     }
-  }, []);
+  }, [uid]);
 
   // 1) مستمع حيّ على مستند المكتبة — يصل تعديل كل الأجهزة فورًا
   useEffect(() => {
@@ -168,8 +191,8 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
     if (!ready || !cloudEnabled(uid) || !isFirebaseConfigured) return undefined;
 
     const schedulePush = () => {
-      // أثناء تطبيق دمج لا نُسقط الدفعة بل نُعيد جدولتها حتى ينتهي الدمج
-      if (applyingRef.current) {
+      // أثناء تطبيق دمج أو دفع جارٍ لا نُسقط الدفعة بل نُعيد جدولتها
+      if (applyingRef.current || pushingRef.current) {
         timerRef.current = setTimeout(schedulePush, 400);
         return;
       }
@@ -177,7 +200,8 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
       const payload = toSyncable(dataRef.current, {});
       const signature = librarySignature(payload);
       if (signature === lastPushedRef.current) return;
-      lastPushedRef.current = signature;
+
+      pushingRef.current = true;
       // نافذة ابتلاع: صدى هذه الكتابة سيصل عبر المستمع بعد قليل
       suppressUntilRef.current = Date.now() + ECHO_WINDOW_MS;
 
@@ -191,45 +215,67 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
           // updatedAt: طابع زمني لكل مفتاح قابل للاستبدال أو الحذف — أساس حلّ التعارض
           const now = Date.now();
           const prev = previousDataRef.current;
-          previousDataRef.current = payload;
+          const stamps: Record<string, number> = { ...stampsRef.current };
 
-          const stamps: Record<string, number> = {};
-          // أختام الملاحظات الحالية والمحذوفة حديثًا
-          Object.keys(payload.notes).forEach((id) => { stamps[`note:${id}`] = now; });
+          // أختام الملاحظات الحالية (المعدلة/الجديدة) والمحذوفة حديثًا
+          Object.entries(payload.notes).forEach(([id, text]) => {
+            const key = KEYS.note(id);
+            if (prev.notes[id] !== text || !(key in stamps)) {
+              stamps[key] = now;
+            }
+          });
           Object.keys(prev.notes ?? {}).forEach((id) => {
-            if (!(id in payload.notes)) stamps[`note:${id}`] = now;
+            if (!(id in payload.notes)) stamps[KEYS.note(id)] = now;
           });
 
           // أختام الفوائد الحالية والمحذوفة حديثًا
           payload.highlights.forEach((h: HighlightItem) => {
-            stamps[`hl:${String(h?.id ?? h?.text ?? '')}`] = now;
+            const hid = byId(h);
+            const key = KEYS.highlight(hid);
+            if (!prev.highlights.some((curr) => byId(curr) === hid) || !(key in stamps)) {
+              stamps[key] = now;
+            }
           });
           (prev.highlights ?? []).forEach((h: HighlightItem) => {
-            const hid = String(h?.id ?? h?.text ?? '');
-            if (!payload.highlights.some((curr) => String(curr?.id ?? curr?.text ?? '') === hid)) {
-              stamps[`hl:${hid}`] = now;
+            const hid = byId(h);
+            if (!payload.highlights.some((curr) => byId(curr) === hid)) {
+              stamps[KEYS.highlight(hid)] = now;
             }
           });
 
-          // أختام المفضلة الحالية والمحذوفة حديثًا (حذف المفضلة يصبح قابلاً للنشر)
-          payload.bookmarks.forEach((id: string) => { stamps[`bm:${id}`] = now; });
+          // أختام المفضلة الحالية (الجديدة) والمحذوفة حديثًا (حذف المفضلة يصبح قابلاً للنشر)
+          payload.bookmarks.forEach((id: string) => {
+            const key = KEYS.bookmark(id);
+            if (!prev.bookmarks.includes(id) || !(key in stamps)) {
+              stamps[key] = now;
+            }
+          });
           (prev.bookmarks ?? []).forEach((id: string | number) => {
             const bid = String(id);
             if (!payload.bookmarks.includes(bid)) {
-              stamps[`bm:${bid}`] = now;
+              stamps[KEYS.bookmark(bid)] = now;
             }
           });
 
-          // أختام المسائل المقروءة الحالية والمحذوفة حديثًا
-          payload.readLessons.forEach((id: string) => { stamps[`read:${id}`] = now; });
+          // أختام المسائل المقروءة الحالية (الجديدة) والمحذوفة حديثًا
+          payload.readLessons.forEach((id: string) => {
+            const key = KEYS.read(id);
+            if (!prev.readLessons.includes(id) || !(key in stamps)) {
+              stamps[key] = now;
+            }
+          });
           (prev.readLessons ?? []).forEach((id: string | number) => {
             const rid = String(id);
             if (!payload.readLessons.includes(rid)) {
-              stamps[`read:${rid}`] = now;
+              stamps[KEYS.read(rid)] = now;
             }
           });
 
-          stamps.theme = now;
+          if (payload.theme !== prev.theme || !(KEYS.theme in stamps)) {
+            stamps[KEYS.theme] = now;
+          }
+
+          const cleanStamps = pruneTombstones(stamps, payload, now);
 
           await fs.setDoc(
             fs.doc(db, libraryDocPath(uid)),
@@ -240,11 +286,23 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
               readLessons: payload.readLessons,
               stopMarks: payload.stopMarks ?? {},
               theme: payload.theme,
-              updatedAt: stamps,
+              updatedAt: cleanStamps,
             },
           );
+
+          // نجحت الكتابة: الآن فقط نعتمد الحالة السابقة والأختام وآخر توقيع
+          previousDataRef.current = payload;
+          lastPushedRef.current = signature;
+          stampsRef.current = cleanStamps;
+          if (uid) safeSet(stampsStorageKey(uid), JSON.stringify(cleanStamps));
         } catch (error) {
           logError('library.sync.push', error);
+          // في حال فشل الكتابة (أوفلاين/حصة): لا نقدّم previousDataRef حتى تظل المحذوفات محفوظة
+          lastPushedRef.current = '';
+          suppressUntilRef.current = 0;
+          timerRef.current = setTimeout(schedulePush, 4000);
+        } finally {
+          pushingRef.current = false;
         }
       })();
     };
