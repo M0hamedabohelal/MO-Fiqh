@@ -76,16 +76,13 @@ const HeroSection = ({
         <div className={styles['brand-pill']}>
           <img
             src={logo}
-            alt=""
+            alt="شعار منصة يَسِّر"
             className={styles['brand-pill-img']}
-            width="44"
-            height="44"
+            width="60"
+            height="60"
             loading="eager"
           />
-          <div className={styles['brand-text-col']}>
-            <span className={styles['brand-pill-title']}>يَسِّر</span>
-            <span className={styles['brand-pill-tag']}>منصة شرح الفقه الميسر</span>
-          </div>
+          <span className={styles['brand-pill-title']}>يَسِّر</span>
         </div>
 
         {/* وسام المنتصف لشاشات العرض الكبيرة لموازنة الفراغ العلوي */}
@@ -102,7 +99,7 @@ const HeroSection = ({
           title={user ? `حساب: ${user.displayName || user.email}` : 'تسجيل الدخول'}
         >
           <span className={styles['user-btn-icon']}>
-            <FiUser size={22} />
+            <FiUser size={26} />
           </span>
           <span className={styles['user-btn-label']}>
             {user ? (user.displayName || user.email?.split('@')[0] || 'حسابي') : 'تسجيل الدخول'}
