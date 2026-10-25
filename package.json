@@ -21,13 +21,14 @@
     "create-admin": "node scripts/create-admin.mjs",
     "upload:pdf": "node scripts/upload-pdf.mjs",
     "deploy:hosting": "npm run typecheck && npm run build && npx -y --engine-strict=false firebase-tools@15 deploy --only hosting",
-    "deploy:rules": "npx -y --engine-strict=false firebase-tools@15 deploy --only firestore:rules",
-    "deploy:all": "npm run typecheck && npm run build && npx -y --engine-strict=false firebase-tools@15 deploy --only hosting,firestore:rules",
+    "deploy:rules": "npx -y --engine-strict=false firebase-tools@15 deploy --only firestore:rules,storage",
+    "deploy:all": "npm run typecheck && npm run build && npx -y --engine-strict=false firebase-tools@15 deploy --only hosting,firestore:rules,storage",
     "content:snapshot": "node scripts/snapshot-content.mjs",
     "check:content": "node scripts/check-content.mjs",
     "check:seo": "node scripts/check-seo.mjs",
     "test:e2e": "playwright test",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "update:readme": "node scripts/update-readme-stats.mjs"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",

@@ -165,7 +165,7 @@ const HeroSection = ({
           <div className={styles['secondary-row']}>
             <a
               className={styles['btn-ghost']}
-              href="/fiqh-book.pdf"
+              href={import.meta.env.VITE_FIQH_PDF_URL || '/fiqh-book.pdf'}
               download="الفقه-الميسر.pdf"
               title="تحميل الكتاب كاملًا بصيغة PDF"
             >

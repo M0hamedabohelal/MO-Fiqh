@@ -5,6 +5,11 @@ rules_version = '2';
 // لذا كل الوصول من العميل مغلق افتراضيًا. افتحه فقط عند الحاجة الفعلية.
 service firebase.storage {
   match /b/{bucket}/o {
+    // ملفات عامة للتحميل المباشر (مثل كتاب الفقه الميسر PDF)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
     match /{allPaths=**} {
       allow read, write: if false;
     }

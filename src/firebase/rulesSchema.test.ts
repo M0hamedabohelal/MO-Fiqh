@@ -3,10 +3,11 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-// اختبارات تطابق مخطط قواعد Firestore مع كتابات العميل (إيجابية وسلبية)
-// تضمن أن العميل لا يكتب أبدًا بنية ترفضها firestore.rules، وأن القواعد تقبل البيانات الشرعية وتمنع التجاوزات.
+// اختبارات فحص تطابق نصي ومحاكاة منطقية لمخطط قواعد Firestore مع بيانات العميل.
+// تنبيه للشفافية: هذا فحص تطابق نصوص ومحاكاة منطقية للقيود (Contract Verification)
+// وليس اختبارًا رسميًا عبر محاكي Firestore Emulator (@firebase/rules-unit-testing).
 
-describe('Firestore Rules — فحص المخطط وقواعد الأمان', () => {
+describe('Firestore Rules — فحص تطابق نصي ومحاكاة منطقية لعقد المخطط', () => {
   const rulesContent = readFileSync(resolve(process.cwd(), 'firestore.rules'), 'utf8');
 
   it('ملف firestore.rules موجود ويحتوي على النسخة 2 ومسارات المزامنة', () => {
