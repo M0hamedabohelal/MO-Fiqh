@@ -8,6 +8,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { applyRetentionPolicy } from './backup-retention.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -149,6 +150,7 @@ if (serviceAccount) {
   const outPath = join(backupsDir, `firestore-full-backup-${stamp}.json`);
   writeFileSync(outPath, JSON.stringify(payload, null, 2), 'utf8');
   console.log(`\n🎉 تم حفظ النسخة الاحتياطية الشاملة الكاملة: ${outPath}`);
+  applyRetentionPolicy(backupsDir);
   process.exit(0);
 
 } else {
@@ -220,5 +222,6 @@ if (serviceAccount) {
   console.log(`\n🎉 تم حفظ النسخة الاحتياطية للمحتوى العام: ${outPath}`);
   console.log('💡 ملاحظة هامة: بيانات المستخدمين الشخصية (users/{uid}/data/library) محمية بقواعد أمان Firestore.');
   console.log('   لشمول بيانات كل المستخدمين وسجلات الأخطاء، وفّر مفتاح scripts/service-account.json لتفعيل النسخ الشامل.');
+  applyRetentionPolicy(backupsDir);
   process.exit(0);
 }
