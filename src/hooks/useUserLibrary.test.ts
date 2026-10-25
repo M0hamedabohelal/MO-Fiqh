@@ -26,15 +26,14 @@ describe('useUserLibrary — ضيف', () => {
     expect(result.current.isDataLoaded).toBe(true);
   });
 
-  // سياسة 2026: الحفظ يتطلب حسابًا (البيانات تُزامَن بين الأجهزة)، القراءة حرة.
-  // الزائر يحصل على تحذير بدل حفظ صامت. تفاصيل الحارس في useUserLibrary.guest.test.ts
-  it('الزائر لا يستطيع إضافة مفضلة — يُنبَّه بدل الحفظ', async () => {
+  // سياسة 2026: الحفظ المحلي يعمل للضيف وتُدمج بياناته عند أول تسجيل دخول.
+  it('الزائر يستطيع إضافة مفضلة محليًا ويُحفظ في التخزين', async () => {
     const { result } = renderHook(() => useUserLibrary());
     await waitFor(() => expect(result.current.isDataLoaded).toBe(true));
 
     act(() => result.current.toggleBookmark(5));
-    await waitFor(() => expect(result.current.bookmarks).toEqual([]));
-    expect(JSON.parse(localStorage.getItem('guest_bookmarks') || '[]')).toEqual([]);
+    await waitFor(() => expect(result.current.bookmarks).toEqual(['5']));
+    expect(JSON.parse(localStorage.getItem('guest_bookmarks') || '[]')).toEqual(['5']);
   });
 
   it('الزائر يستطيع إزالة مفضلة قديمة (لا يُحبَس في بيانات سابقة)', async () => {
@@ -47,15 +46,14 @@ describe('useUserLibrary — ضيف', () => {
     expect(JSON.parse(localStorage.getItem('guest_bookmarks') || '[]')).toEqual([]);
   });
 
-    // الزائر لا يكتب ملاحظات (تحتاج حسابًا)، لكنه يقدر يمسح ملاحظة قديمة موجودة.
-  it('الزائر: حفظ ملاحظة مرفوض، ومسح ملاحظة قديمة مسموح', async () => {
+  it('الزائر: حفظ الملاحظة وتعديلها ومسحها يعمل محليًا', async () => {
     localStorage.setItem('guest_notes', JSON.stringify({ '9': 'قديمة' }));
     const { result } = renderHook(() => useUserLibrary());
     await waitFor(() => expect(result.current.notes).toEqual({ '9': 'قديمة' }));
 
-    // إضافة/تعديل: مرفوضة
+    // إضافة/تعديل: مسموح محليًا
     act(() => result.current.saveNoteForLesson(9, 'نص'));
-    await waitFor(() => expect(result.current.notes).toEqual({ '9': 'قديمة' }));
+    await waitFor(() => expect(result.current.notes).toEqual({ '9': 'نص' }));
 
     // مسح: مسموح
     act(() => result.current.saveNoteForLesson(9, '   '));

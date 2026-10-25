@@ -140,26 +140,24 @@ export function useUserLibrary() {
     commit(patch(snapshotRef.current));
   }, [commit]);
 
-  // حارس الزائر: الإضافة/التعديل يتطلب حسابًا، أما الإلغاء فمسموح (لا نحبس مستخدمًا
-  // في بيانات أنشأها قبل هذا القيد، ولا نمنعه من تنظيفها).
+  // حارس الزائر: الإضافة/التعديل تعمل محليًا ولكن يظهر تنبيه إرشادي يشجع على التسجيل
+  // للمزامنة بين الأجهزة. الحفظ المحلي ضروري حتى تُدمج البيانات عند أول تسجيل دخول.
   const isGuest = !user?.uid;
-  const guardWrite = useCallback((): boolean => {
-    if (!isGuest) return true;
-    requireLogin({ action: 'هذه البيانات' });
-    return false;
+  const nudgeLogin = useCallback((action?: string): void => {
+    if (isGuest) requireLogin({ action: action ?? 'هذه البيانات' });
   }, [isGuest]);
 
   const toggleBookmark = useCallback((lessonId: string | number) => {
     const id = String(lessonId);
-    // إلغاء مفضلة موجودة مسموح للزائر؛ الإضافة تتطلب حسابًا
-    if (!snapshotRef.current.bookmarks.includes(id) && !guardWrite()) return;
+    const isAdding = !snapshotRef.current.bookmarks.includes(id);
+    if (isAdding) nudgeLogin('المفضلة');
     update((current) => ({
       ...current,
       bookmarks: current.bookmarks.includes(id)
         ? current.bookmarks.filter((b) => b !== id)
         : [...current.bookmarks, id],
     }));
-  }, [update, guardWrite]);
+  }, [update, nudgeLogin]);
 
   const toggleReadLesson = useCallback((lessonId: string | number) => {
     const id = String(lessonId);
@@ -172,7 +170,7 @@ export function useUserLibrary() {
   }, [update]);
 
   const addHighlight = useCallback((highlight: HighlightItem) => {
-    if (!guardWrite()) return;
+    nudgeLogin('الفوائد');
     update((current) => ({
       ...current,
       highlights: [
@@ -180,7 +178,7 @@ export function useUserLibrary() {
         highlight,
       ],
     }));
-  }, [update, guardWrite]);
+  }, [update, nudgeLogin]);
 
   const deleteHighlight = useCallback((highlightId: string | number) => {
     const id = String(highlightId);
@@ -192,16 +190,18 @@ export function useUserLibrary() {
 
   const saveNoteForLesson = useCallback((lessonId: string | number, text: string) => {
     const id = String(lessonId);
-    // حفظ نص جديد يتطلب حسابًا؛ أما مسح ملاحظة قائمة فمسموح للزائر
-    const isClearing = !text.trim() && Boolean(snapshotRef.current.notes[id]);
-    if (!isClearing && !guardWrite()) return;
+    // حد أقصى لطول الملاحظة الواحدة (10,000 حرف) لحماية حجم المستند في السحابة
+    const sanitizedText = text.length > 10_000 ? text.slice(0, 10_000) : text;
+    // حفظ نص جديد يُنبّه الزائر للتسجيل؛ أما مسح ملاحظة قائمة فلا ينبّه
+    const isClearing = !sanitizedText.trim() && Boolean(snapshotRef.current.notes[id]);
+    if (!isClearing) nudgeLogin('الملاحظات');
     update((current) => {
       const notes = { ...current.notes };
-      if (text.trim()) notes[id] = text;
+      if (sanitizedText.trim()) notes[id] = sanitizedText;
       else delete notes[id];
       return { ...current, notes };
     });
-  }, [update, guardWrite]);
+  }, [update, nudgeLogin]);
 
   // استعادة من ملف نسخة احتياطية — دمج محلي فقط
   const restoreLibrary = useCallback((data: {

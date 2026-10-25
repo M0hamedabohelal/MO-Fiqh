@@ -9,6 +9,8 @@ const base = (over: Partial<AppVersionState> = {}): AppVersionState => ({
   updateReady: true,
   lastCheckedAt: Date.now(),
   checking: false,
+  reloading: false,
+  checkStatus: 'idle',
   checkNow: vi.fn(async () => true),
   checkAndReload: vi.fn(async () => true),
   reloadNow: vi.fn(),
@@ -21,7 +23,7 @@ const base = (over: Partial<AppVersionState> = {}): AppVersionState => ({
 
 describe('UpdateBanner', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
   afterEach(() => {
@@ -53,6 +55,15 @@ describe('UpdateBanner', () => {
     act(() => { vi.advanceTimersByTime(400); });
     (screen.getByRole('button', { name: /تحديث الآن/ }) as HTMLButtonElement).click();
     expect(version.reloadNow).toHaveBeenCalledTimes(1);
+  });
+
+  it('حالة reloading تُعطّل الأزرار وتعرض جارٍ التحديث', () => {
+    const version = base({ reloading: true });
+    render(<UpdateBanner version={version} />);
+    act(() => { vi.advanceTimersByTime(400); });
+    const btn = screen.getByRole('button', { name: /تحديث الآن/ }) as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+    expect(btn.textContent).toContain('جارٍ التحديث...');
   });
 
   it('الإغلاق يستدعي dismiss', () => {

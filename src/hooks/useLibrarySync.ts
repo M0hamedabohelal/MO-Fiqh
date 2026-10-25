@@ -72,9 +72,11 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
     notes: src.notes,
     readLessons: src.readLessons.map(String),
     updatedAt: stamps,
-    theme: src.theme,
+    theme: src.theme ?? 'dark',
     stopMarks: src.stopMarks,
   });
+
+  const previousDataRef = useRef<SyncableLibrary>(toSyncable(data, {}));
 
   const mergeAndApply = useCallback((cloudRaw: Partial<SyncableLibrary> | null): void => {
     const local = toSyncable(dataRef.current, {});
@@ -165,12 +167,14 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   useEffect(() => {
     if (!ready || !cloudEnabled(uid) || !isFirebaseConfigured) return undefined;
 
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      // أثناء تطبيق دمج لا ندفع (وإلا صرعنا الدمج بكتابة جزئية)
-      if (applyingRef.current) return;
+    const schedulePush = () => {
+      // أثناء تطبيق دمج لا نُسقط الدفعة بل نُعيد جدولتها حتى ينتهي الدمج
+      if (applyingRef.current) {
+        timerRef.current = setTimeout(schedulePush, 400);
+        return;
+      }
 
-      const payload = toSyncable(data, {});
+      const payload = toSyncable(dataRef.current, {});
       const signature = librarySignature(payload);
       if (signature === lastPushedRef.current) return;
       lastPushedRef.current = signature;
@@ -184,11 +188,47 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
             import('firebase/firestore'),
           ]);
           const { db } = await getFirestore();
-          // updatedAt: طابع زمني لكل مفتاح قابل للاستبدال — أساس حلّ التعارض
+          // updatedAt: طابع زمني لكل مفتاح قابل للاستبدال أو الحذف — أساس حلّ التعارض
           const now = Date.now();
+          const prev = previousDataRef.current;
+          previousDataRef.current = payload;
+
           const stamps: Record<string, number> = {};
+          // أختام الملاحظات الحالية والمحذوفة حديثًا
           Object.keys(payload.notes).forEach((id) => { stamps[`note:${id}`] = now; });
-          payload.highlights.forEach((h: HighlightItem) => { stamps[`hl:${String(h?.id ?? h?.text ?? '')}`] = now; });
+          Object.keys(prev.notes ?? {}).forEach((id) => {
+            if (!(id in payload.notes)) stamps[`note:${id}`] = now;
+          });
+
+          // أختام الفوائد الحالية والمحذوفة حديثًا
+          payload.highlights.forEach((h: HighlightItem) => {
+            stamps[`hl:${String(h?.id ?? h?.text ?? '')}`] = now;
+          });
+          (prev.highlights ?? []).forEach((h: HighlightItem) => {
+            const hid = String(h?.id ?? h?.text ?? '');
+            if (!payload.highlights.some((curr) => String(curr?.id ?? curr?.text ?? '') === hid)) {
+              stamps[`hl:${hid}`] = now;
+            }
+          });
+
+          // أختام المفضلة الحالية والمحذوفة حديثًا (حذف المفضلة يصبح قابلاً للنشر)
+          payload.bookmarks.forEach((id: string) => { stamps[`bm:${id}`] = now; });
+          (prev.bookmarks ?? []).forEach((id: string | number) => {
+            const bid = String(id);
+            if (!payload.bookmarks.includes(bid)) {
+              stamps[`bm:${bid}`] = now;
+            }
+          });
+
+          // أختام المسائل المقروءة الحالية والمحذوفة حديثًا
+          payload.readLessons.forEach((id: string) => { stamps[`read:${id}`] = now; });
+          (prev.readLessons ?? []).forEach((id: string | number) => {
+            const rid = String(id);
+            if (!payload.readLessons.includes(rid)) {
+              stamps[`read:${rid}`] = now;
+            }
+          });
+
           stamps.theme = now;
 
           await fs.setDoc(
@@ -202,16 +242,17 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
               theme: payload.theme,
               updatedAt: stamps,
             },
-            { merge: true },
           );
         } catch (error) {
           logError('library.sync.push', error);
         }
       })();
-    }, SYNC_DEBOUNCE_MS);
+    };
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(schedulePush, SYNC_DEBOUNCE_MS);
 
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, uid, data.bookmarks, data.highlights, data.notes, data.readLessons, data.stopMarks, data.theme]);
 
   // 3) سحب فوري عند عودة التبويب للمقدمة — يُغطّي حالة «سِبت اللابتوب وشغّلت الفون»

@@ -69,6 +69,32 @@ export function useAnnouncements() {
         // نهاية (كتابة → لقطة → كتابة). نكتب فقط عند اختلاف حقيقي، ومرة واحدة لكل تغيير.
         let lastSyncedSignature = '';
         let pushed = false;
+        let pendingPush: string[] | null = null;
+
+        const pushToServer = (items: string[]) => {
+          if (pushed) {
+            pendingPush = items;
+            return;
+          }
+          pushed = true;
+          const signature = items.join('|');
+          fs.setDoc(readsRef, { items, updatedAt: Date.now() }, { merge: true })
+            .then(() => {
+              lastSyncedSignature = signature;
+            })
+            .catch((error) => logError('announcements.sync', error))
+            .finally(() => {
+              pushed = false;
+              if (pendingPush) {
+                const next = pendingPush;
+                pendingPush = null;
+                if (next.join('|') !== lastSyncedSignature) {
+                  pushToServer(next);
+                }
+              }
+            });
+        };
+
         unsubscribe = fs.onSnapshot(readsRef, (snapshot) => {
           if (cancelled) return;
           const cloudIds = snapshot.exists() && Array.isArray(snapshot.data().items)
@@ -83,13 +109,7 @@ export function useAnnouncements() {
           if (signature === lastSyncedSignature) return; // لا تغيير: لا كتابة
           const needsPush = merged.length !== cloudIds.length || !snapshot.exists();
           if (!needsPush) { lastSyncedSignature = signature; return; }
-          if (pushed) { lastSyncedSignature = signature; return; } // كتابة واحدة كافية
-          lastSyncedSignature = signature;
-          pushed = true;
-          // المعرّف في الطلب هو نفسه uid المستخدم، والقاعدة تسمح بهذا المستند فقط.
-          fs.setDoc(readsRef, { items: merged, updatedAt: Date.now() }, { merge: true })
-            .catch((error) => logError('announcements.sync', error))
-            .finally(() => { pushed = false; });
+          pushToServer(merged);
         }, (error) => {
           // صلاحيات مرفوضة ليست عطلًا: التطبيق يعمل محليًا بالكامل (localStorage).
           // سجّلها مرة واحدة لكل جلسة بدل إغراق الكونسول عند كل إعادة اشتراك.

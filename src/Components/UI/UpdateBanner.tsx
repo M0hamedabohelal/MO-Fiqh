@@ -45,7 +45,7 @@ const UpdateBanner = ({ version }: { version: AppVersionState }) => {
 
   return (
     <div
-      className="update-pop"
+      className="update-pop update-banner"
       data-placement="bottom"
       data-reduced-motion={reduced ? 'true' : 'false'}
       role="status"
@@ -65,14 +65,16 @@ const UpdateBanner = ({ version }: { version: AppVersionState }) => {
           type="button"
           className="update-pop-btn"
           onClick={version.reloadNow}
+          disabled={version.reloading}
           aria-label="تحديث الآن — إعادة تحميل الصفحة بالنسخة الجديدة"
         >
-          تحديث الآن
+          {version.reloading ? 'جارٍ التحديث...' : 'تحديث الآن'}
         </button>
         <button
           type="button"
           className="update-pop-dismiss"
           onClick={version.dismiss}
+          disabled={version.reloading}
           aria-label="إغلاق إشعار التحديث"
           title="لاحقًا"
         >

@@ -27,34 +27,34 @@ describe('حارس الزائر — useUserLibrary', () => {
     vi.clearAllMocks();
   });
 
-  it('الزائر: محاولة إضافة مفضلة تُظهر التحذير ولا تُحفظ', async () => {
+  it('الزائر: محاولة إضافة مفضلة تُظهر التنبيه وتُحفظ محليًا', async () => {
     const { result } = renderHook(() => useUserLibrary());
     await waitFor(() => expect(result.current).toBeTruthy());
 
     act(() => { result.current.toggleBookmark('12'); });
 
     expect(requireLogin).toHaveBeenCalledTimes(1);
-    expect(result.current.bookmarks).toHaveLength(0);
+    expect(result.current.bookmarks).toContain('12');
   });
 
-  it('الزائر: الملاحظة لا تُحفظ ويُنبَّه', async () => {
+  it('الزائر: الملاحظة تُحفظ محليًا ويُنبَّه', async () => {
     const { result } = renderHook(() => useUserLibrary());
     await waitFor(() => expect(result.current).toBeTruthy());
 
     act(() => { result.current.saveNoteForLesson('7', 'ملاحظة'); });
 
     expect(requireLogin).toHaveBeenCalledTimes(1);
-    expect(result.current.notes).toEqual({});
+    expect(result.current.notes).toEqual({ '7': 'ملاحظة' });
   });
 
-  it('الزائر: الفائدة لا تُحفظ ويُنبَّه', async () => {
+  it('الزائر: الفائدة تُحفظ محليًا ويُنبَّه', async () => {
     const { result } = renderHook(() => useUserLibrary());
     await waitFor(() => expect(result.current).toBeTruthy());
 
     act(() => { result.current.addHighlight({ id: 'h1', lessonId: '1', text: 'x' } as never); });
 
     expect(requireLogin).toHaveBeenCalledTimes(1);
-    expect(result.current.highlights).toHaveLength(0);
+    expect(result.current.highlights).toHaveLength(1);
   });
 
   it('المسجّل: الحفظ يعمل عاديًا بلا تحذير', async () => {

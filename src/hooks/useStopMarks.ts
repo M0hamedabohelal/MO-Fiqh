@@ -76,11 +76,10 @@ export function useStopMarks() {
     if (!deviceIdRef.current) deviceIdRef.current = getDeviceId();
     const change = createStopMarkChange(marksRef.current, lesson, deviceIdRef.current);
     if (!change) return;
-    // حارس الزائر: إضافة/تعديل علامة يتطلب حسابًا. الإزالة (lessonId=null) مسموحة دائمًا.
+    // حارس الزائر: حفظ محلي دائمًا، مع تنبيه إرشادي عند وضع علامة جديدة للمزامنة
     const isRemoval = change.record.lessonId === null;
     if (!uid && !isRemoval) {
       requireLogin({ action: 'علامة الوقف' });
-      return;
     }
     persist({ ...marksRef.current, [change.bookKey]: change.record }, uid);
   }, [authLoading, uid, persist]);

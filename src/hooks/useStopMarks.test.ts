@@ -25,15 +25,14 @@ beforeEach(() => {
 });
 
 describe('useStopMarks — ضيف', () => {
-  // سياسة 2026: إضافة علامة وقف تتطلب حسابًا (تُزامَن بين الأجهزة). الزائر يحصل على
-  // تحذير بدل حفظ صامت. الإزالة تبقى مسموحة (اختبار منفصل أدناه).
-  it('الزائر لا يستطيع إضافة علامة وقف — يُنبَّه ولا تُحفظ', async () => {
+  // سياسة 2026: إضافة علامة الوقف للضيف تُحفظ محليًا وتُرحَّل عند أول تسجيل دخول
+  it('الزائر يستطيع إضافة علامة وقف محليًا — تُحفظ في مفتاح الضيف', async () => {
     const { result } = renderHook(() => useStopMarks());
     await waitFor(() => expect(result.current.stopMarksReady).toBe(true));
 
     act(() => result.current.toggleStopMark(lesson(4)));
-    await waitFor(() => expect(Object.keys(result.current.stopMarks).length).toBe(0));
-    expect(readMarks(GUEST_KEY)[TRI]?.lessonId ?? null).toBeNull();
+    await waitFor(() => expect(result.current.stopMarks[TRI]?.lessonId).toBe('4'));
+    expect(readMarks(GUEST_KEY)[TRI]?.lessonId).toBe('4');
   });
 
   it('الزائر يستطيع إزالة علامة قديمة محفوظة', async () => {

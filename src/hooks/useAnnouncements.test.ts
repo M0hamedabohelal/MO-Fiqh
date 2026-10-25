@@ -108,4 +108,29 @@ describe('useAnnouncements — مزامنة مقروء الإشعارات', () =
     await act(async () => { errorCb?.(new Error('unavailable')); });
     expect(logError).toHaveBeenCalledTimes(1);
   });
+
+  it('الكتابة الجارية لا تُسقط التحديث الجديد وتدفعه في طابور', async () => {
+    let resolveFirstWrite: (() => void) | null = null;
+    setDoc.mockImplementationOnce(() => new Promise((resolve) => { resolveFirstWrite = resolve; }));
+
+    renderHook(() => useAnnouncements());
+    await waitFor(() => expect(snapshotCb).toBeTruthy());
+
+    // الطلب الأول ينطلق ويعلق
+    localStorage.setItem('readAnnouncements_u1', JSON.stringify(['x']));
+    await act(async () => { snapshotCb?.(snap([])); });
+    expect(setDoc).toHaveBeenCalledTimes(1);
+
+    // وصول لقطة جديدة وتحديث محلي أثناء الكتابة الجارية
+    localStorage.setItem('readAnnouncements_u1', JSON.stringify(['x', 'y']));
+    await act(async () => { snapshotCb?.(snap([])); });
+    expect(setDoc).toHaveBeenCalledTimes(1);
+
+    // انتهاء الكتابة الأولى يُطلق الدفعة المتراكمة تلقائيًا
+    await act(async () => {
+      resolveFirstWrite?.();
+    });
+
+    expect(setDoc).toHaveBeenCalledTimes(2);
+  });
 });

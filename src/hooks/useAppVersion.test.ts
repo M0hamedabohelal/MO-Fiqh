@@ -88,6 +88,23 @@ describe('useAppVersion', () => {
     await act(async () => { await result.current.checkNow(); });
     expect(result.current.updateReady).toBe(false);
     expect(result.current.checking).toBe(false);
+    expect(result.current.checkStatus).toBe('network-error');
+  });
+
+  it('التحقق في بيئة تطوير دون حزمة مجمعة يعيّن checkStatus إلى dev', async () => {
+    document.head.innerHTML = '';
+    __resetBootBuildForTests();
+    const { result } = renderHook(() => useAppVersion());
+    await act(async () => { await result.current.checkNow(); });
+    expect(result.current.checkStatus).toBe('dev');
+    expect(result.current.updateReady).toBe(false);
+  });
+
+  it('reloadNow يفعّل حالة reloading', async () => {
+    const { result } = renderHook(() => useAppVersion());
+    expect(result.current.reloading).toBe(false);
+    act(() => { result.current.reloadNow(); });
+    expect(result.current.reloading).toBe(true);
   });
 
   it('يجرّب تلقائيًا بعد الإقلاع (8 ثوانٍ)', async () => {

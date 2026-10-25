@@ -64,7 +64,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
 
   it('يستقبل تعديل جهاز آخر ويطبّقه محليًا', async () => {
 
-    renderHook(() => useLibrarySync({ ready: true, data: baseData(), onMerged: vi.fn() }));
+    const { unmount } = renderHook(() => useLibrarySync({ ready: true, data: baseData(), onMerged: vi.fn() }));
 
     // ننتظر حتى يُسجَّل المستمع
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
@@ -76,6 +76,8 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     await waitFor(() => {
       expect(snapshotCb).toBeTruthy();
     }, { timeout: 2000 });
+
+    unmount();
   }, 10000);
 
   // الاختبار الأهم: لقطة تحمل بالضبط ما كتبناه لا تُنتج كتابة أخرى.
@@ -85,7 +87,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
   // يعيدها — وهذا ما يغطّيه الاختبار التالي.
   it('صدى كتابتنا لا يُنتج كتابة جديدة (لا حلقة)', async () => {
     const onMerged = vi.fn();
-    const { rerender } = renderHook(
+    const { rerender, unmount } = renderHook(
       ({ bm }) => useLibrarySync({ ready: true, data: baseData({ bookmarks: bm }), onMerged }),
       { initialProps: { bm: [] as string[] } },
     );
@@ -102,6 +104,8 @@ describe('useLibrarySync — مزامنة حيّة', () => {
 
     // لا كتابة إضافية: الصدى ابتُلع
     expect(setDoc).toHaveBeenCalledTimes(1);
+
+    unmount();
   }, 20000);
 
   // الحلقة الحقيقية تحدث في التطبيق لأن onMerged **يغيّر الحالة المحلية**،

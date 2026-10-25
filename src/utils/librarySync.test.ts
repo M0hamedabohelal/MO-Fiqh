@@ -99,6 +99,46 @@ describe('mergeLibraries — دمج بلا فقدان', () => {
     expect(a.bookmarks).toEqual(['1']);
     expect(b.bookmarks).toEqual(['2']);
   });
+
+  it('حذف المفضلة ينتشر عندما يكون طابع الحذف أحدث', () => {
+    // الجهاز A حذف المسألة 5 في الزمن 200
+    const a: SyncableLibrary = { ...empty(), bookmarks: [], updatedAt: { 'bm:5': 200 } };
+    // الجهاز B كان أضافها في الزمن 100
+    const b: SyncableLibrary = { ...empty(), bookmarks: ['5'], updatedAt: { 'bm:5': 100 } };
+    const m = mergeLibraries(a, b);
+    expect(m.bookmarks).not.toContain('5');
+    expect(m.updatedAt['bm:5']).toBe(200);
+  });
+
+  it('إعادة إضافة المفضلة بطابع أحدث تعيدها بنجاح', () => {
+    // الجهاز A أعاد إضافة المسألة 5 في الزمن 300
+    const a: SyncableLibrary = { ...empty(), bookmarks: ['5'], updatedAt: { 'bm:5': 300 } };
+    // الجهاز B كان حذفها في الزمن 200
+    const b: SyncableLibrary = { ...empty(), bookmarks: [], updatedAt: { 'bm:5': 200 } };
+    const m = mergeLibraries(a, b);
+    expect(m.bookmarks).toContain('5');
+    expect(m.updatedAt['bm:5']).toBe(300);
+  });
+
+  it('إلغاء تعليم المسألة كمقروءة ينتشر عندما يكون طابع الحذف أحدث', () => {
+    // الجهاز A ألغى قراءة المسألة 7 في الزمن 250
+    const a: SyncableLibrary = { ...empty(), readLessons: [], updatedAt: { 'read:7': 250 } };
+    // الجهاز B كان علّمها في الزمن 150
+    const b: SyncableLibrary = { ...empty(), readLessons: ['7'], updatedAt: { 'read:7': 150 } };
+    const m = mergeLibraries(a, b);
+    expect(m.readLessons).not.toContain('7');
+    expect(m.updatedAt['read:7']).toBe(250);
+  });
+
+  it('حذف الملاحظة ينتشر عندما يكون طابع الحذف أحدث', () => {
+    // الجهاز A حذف الملاحظة 3 في الزمن 400
+    const a: SyncableLibrary = { ...empty(), notes: {}, updatedAt: { 'note:3': 400 } };
+    // الجهاز B كان يملكها في الزمن 200
+    const b: SyncableLibrary = { ...empty(), notes: { '3': 'نص قديم' }, updatedAt: { 'note:3': 200 } };
+    const m = mergeLibraries(a, b);
+    expect(m.notes['3']).toBeUndefined();
+    expect(m.updatedAt['note:3']).toBe(400);
+  });
 });
 
 describe('librarySignature — كشف التغيير الحقيقي', () => {

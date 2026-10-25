@@ -1,4 +1,6 @@
 import type { HighlightItem } from '../types';
+import { mergeStopMarkMaps } from '../features/stopMarks/model';
+import type { StopMarkMap } from '../features/stopMarks/model';
 
 // ─── مزامنة مكتبة المستخدم بين الأجهزة ───
 //
@@ -22,7 +24,7 @@ export interface SyncableLibrary {
   notes: Record<string, string>;
   readLessons: string[];
   /** علامات الوقف — خريطة كتاب → سجل (شكل StopMarkMap) */
-  stopMarks?: Record<string, unknown>;
+  stopMarks?: StopMarkMap;
   /** الثيم المختار — قيمة واحدة يفوز فيها الأحدث */
   theme?: string;
   /** خريطة «مفتاح العنصر → طابعه الزمني» — أساس حلّ التعارض */
@@ -34,6 +36,7 @@ export const emptyLibrary = (): SyncableLibrary => ({
   highlights: [],
   notes: {},
   readLessons: [],
+  stopMarks: {},
   updatedAt: {},
 });
 
@@ -47,12 +50,10 @@ export const cloudEnabled = (uid: string | null | undefined): uid is string =>
 const KEYS = {
   note: (id: string) => `note:${id}`,
   highlight: (id: string) => `hl:${id}`,
+  bookmark: (id: string) => `bm:${id}`,
+  read: (id: string) => `read:${id}`,
   theme: 'theme',
 } as const;
-
-export const noteKey = KEYS.note;
-export const highlightKey = KEYS.highlight;
-export const themeKey = KEYS.theme;
 
 const ts = (lib: SyncableLibrary, key: string): number => {
   const v = lib.updatedAt?.[key];
@@ -70,11 +71,86 @@ const byId = (h: HighlightItem): string => String(h?.id ?? h?.text ?? '');
 export function mergeLibraries(a: SyncableLibrary, b: SyncableLibrary): SyncableLibrary {
   const out = emptyLibrary();
 
-  out.bookmarks = Array.from(new Set([...(a.bookmarks ?? []), ...(b.bookmarks ?? [])]));
-  out.readLessons = Array.from(new Set([...(a.readLessons ?? []), ...(b.readLessons ?? [])]));
+  // ── المفضلة (طابع الأحدث يفوز للإضافة والحذف، مع اتحاد احتياطي للبيانات دون طابع) ──
+  const bmIds = new Set([
+    ...(a.bookmarks ?? []).map(String),
+    ...(b.bookmarks ?? []).map(String),
+    ...Object.keys(a.updatedAt ?? {})
+      .filter((k) => k.startsWith('bm:'))
+      .map((k) => k.slice(3)),
+    ...Object.keys(b.updatedAt ?? {})
+      .filter((k) => k.startsWith('bm:'))
+      .map((k) => k.slice(3)),
+  ]);
 
-  // ── الملاحظات ──
-  const noteIds = new Set([...Object.keys(a.notes ?? {}), ...Object.keys(b.notes ?? {})]);
+  const mergedBookmarks: string[] = [];
+  for (const id of bmIds) {
+    const key = KEYS.bookmark(id);
+    const ta = ts(a, key);
+    const tb = ts(b, key);
+    const inA = (a.bookmarks ?? []).map(String).includes(id);
+    const inB = (b.bookmarks ?? []).map(String).includes(id);
+
+    // إن لم يكن لأي منهما طابع زمني (بيانات قديمة): الاتحاد الافتراضي
+    if (ta === 0 && tb === 0) {
+      if (inA || inB) mergedBookmarks.push(id);
+      continue;
+    }
+
+    const winner = ta === tb ? (inA ? 'a' : inB ? 'b' : 'none') : ta > tb ? 'a' : 'b';
+    if (winner === 'a' && inA) mergedBookmarks.push(id);
+    else if (winner === 'b' && inB) mergedBookmarks.push(id);
+
+    const stamp = Math.max(ta, tb);
+    if (stamp > 0) out.updatedAt[key] = stamp;
+  }
+  out.bookmarks = mergedBookmarks;
+
+  // ── المسائل المقروءة (طابع الأحدث يفوز للتعليم والإلغاء) ──
+  const readIds = new Set([
+    ...(a.readLessons ?? []).map(String),
+    ...(b.readLessons ?? []).map(String),
+    ...Object.keys(a.updatedAt ?? {})
+      .filter((k) => k.startsWith('read:'))
+      .map((k) => k.slice(5)),
+    ...Object.keys(b.updatedAt ?? {})
+      .filter((k) => k.startsWith('read:'))
+      .map((k) => k.slice(5)),
+  ]);
+
+  const mergedRead: string[] = [];
+  for (const id of readIds) {
+    const key = KEYS.read(id);
+    const ta = ts(a, key);
+    const tb = ts(b, key);
+    const inA = (a.readLessons ?? []).map(String).includes(id);
+    const inB = (b.readLessons ?? []).map(String).includes(id);
+
+    if (ta === 0 && tb === 0) {
+      if (inA || inB) mergedRead.push(id);
+      continue;
+    }
+
+    const winner = ta === tb ? (inA ? 'a' : inB ? 'b' : 'none') : ta > tb ? 'a' : 'b';
+    if (winner === 'a' && inA) mergedRead.push(id);
+    else if (winner === 'b' && inB) mergedRead.push(id);
+
+    const stamp = Math.max(ta, tb);
+    if (stamp > 0) out.updatedAt[key] = stamp;
+  }
+  out.readLessons = mergedRead;
+
+  // ── الملاحظات (الأحدث يفوز، وحذف الملاحظة ينتشر كشاهد قبر) ──
+  const noteIds = new Set([
+    ...Object.keys(a.notes ?? {}),
+    ...Object.keys(b.notes ?? {}),
+    ...Object.keys(a.updatedAt ?? {})
+      .filter((k) => k.startsWith('note:'))
+      .map((k) => k.slice(5)),
+    ...Object.keys(b.updatedAt ?? {})
+      .filter((k) => k.startsWith('note:'))
+      .map((k) => k.slice(5)),
+  ]);
   for (const id of noteIds) {
     const key = KEYS.note(id);
     const ta = ts(a, key);
@@ -92,12 +168,21 @@ export function mergeLibraries(a: SyncableLibrary, b: SyncableLibrary): Syncable
     if (stamp > 0) out.updatedAt[key] = stamp;
   }
 
-  // ── الفوائد ──
+  // ── الفوائد (الأحدث يفوز، وحذف الفائدة ينتشر كشاهد قبر) ──
   const hlA = new Map<string, HighlightItem>();
   (a.highlights ?? []).forEach((h) => { if (h) hlA.set(byId(h), h); });
   const hlB = new Map<string, HighlightItem>();
   (b.highlights ?? []).forEach((h) => { if (h) hlB.set(byId(h), h); });
-  const hlKeys = new Set([...hlA.keys(), ...hlB.keys()]);
+  const hlKeys = new Set([
+    ...hlA.keys(),
+    ...hlB.keys(),
+    ...Object.keys(a.updatedAt ?? {})
+      .filter((k) => k.startsWith('hl:'))
+      .map((k) => k.slice(3)),
+    ...Object.keys(b.updatedAt ?? {})
+      .filter((k) => k.startsWith('hl:'))
+      .map((k) => k.slice(3)),
+  ]);
   for (const id of hlKeys) {
     if (!id) continue;
     const key = KEYS.highlight(id);
@@ -119,6 +204,9 @@ export function mergeLibraries(a: SyncableLibrary, b: SyncableLibrary): Syncable
     out.updatedAt[KEYS.theme] = Math.max(ta, tb);
   }
 
+  // ── علامات الوقف (خريطة كتاب → سجل، الأحدث طابعًا لكل كتاب يفوز) ──
+  out.stopMarks = mergeStopMarkMaps(a.stopMarks, b.stopMarks);
+
   return out;
 }
 
@@ -127,12 +215,18 @@ export function mergeLibraries(a: SyncableLibrary, b: SyncableLibrary): Syncable
  * الترتيب مُطبَّع لأن المصفوفة نفسها قد تصل بترتيب مختلف بين الأجهزة.
  */
 export function librarySignature(lib: SyncableLibrary): string {
+  const stopMarksParts = Object.entries((lib.stopMarks ?? {}) as Record<string, { lessonId?: string | null; updatedAt?: number }>)
+    .sort(([k1], [k2]) => k1.localeCompare(k2))
+    .map(([k, v]) => `${k}:${v?.lessonId ?? ''}:${v?.updatedAt ?? 0}`)
+    .join(';');
+
   const parts = [
     `b:${[...(lib.bookmarks ?? [])].map(String).sort().join(',')}`,
     `r:${[...(lib.readLessons ?? [])].map(String).sort().join(',')}`,
     `n:${Object.entries(lib.notes ?? {}).sort(([x], [y]) => x.localeCompare(y)).map(([k, v]) => `${k}=${v}`).join('|')}`,
     `h:${(lib.highlights ?? []).map(byId).sort().join(',')}`,
     `t:${(lib as SyncableLibrary & { theme?: string }).theme ?? ''}`,
+    `s:${stopMarksParts}`,
   ];
   return parts.join('§');
 }

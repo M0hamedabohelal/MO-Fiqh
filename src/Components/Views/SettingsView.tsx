@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiAward, FiChevronLeft, FiRefreshCw } from 'react-icons/fi';
 import { useApp } from '../Layout/AppContext';
+import { isFirebaseConfigured } from '../../firebase/config';
 import GuestAccountCard from '../UI/GuestAccountCard';
 
 // شاشة الإعدادات وحول التطبيق
@@ -17,10 +18,14 @@ const SettingsView = () => {
     setRefreshing(true);
     setRefreshMessage('');
     try {
+      if (!isFirebaseConfigured) {
+        setRefreshMessage('بيانات السحابة غير مفعلة — التطبيق يعمل بالنسخة المحلية بنجاح.');
+        return;
+      }
       const ok = await reloadFromCloud(true);
-      setRefreshMessage(ok ? 'تم تحديث المسائل من السحابة.' : 'تعذر التحديث الآن؛ النسخة المحفوظة متاحة.');
+      setRefreshMessage(ok ? 'تم تحديث المسائل والقاموس من السحابة بنجاح.' : 'تعذر الاتصال بالسحابة الآن؛ النسخة المحفوظة على جهازك متاحة.');
     } catch {
-      setRefreshMessage('تعذر التحديث الآن؛ النسخة المحفوظة متاحة.');
+      setRefreshMessage('تعذر الاتصال بالسحابة الآن؛ النسخة المحفوظة على جهازك متاحة.');
     } finally {
       setRefreshing(false);
     }
@@ -33,7 +38,6 @@ const SettingsView = () => {
       حول التطبيق والإعدادات
     </h3>
 
-    {/* تحديث المحتوى — جلب أحدث المسائل والقاموس من السحابة */}
     {/* تحديث التطبيق — التحقق من وجود نسخة جديدة تم نشرها */}
     <div className="custom-card p-3 p-md-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>
       <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
@@ -48,9 +52,11 @@ const SettingsView = () => {
             type="button"
             className="btn btn-sm btn-primary d-flex align-items-center gap-2"
             onClick={appVersion.reloadNow}
+            disabled={appVersion.reloading}
             style={{ backgroundColor: 'var(--accent-color)', color: '#1d1d1d', fontWeight: 'bold', border: 'none' }}
           >
-            <FiRefreshCw /> تحديث التطبيق الآن
+            {appVersion.reloading ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
+            {appVersion.reloading ? 'جارٍ التحديث...' : 'تحديث التطبيق الآن'}
           </button>
         ) : (
           <button
@@ -59,10 +65,16 @@ const SettingsView = () => {
             onClick={async () => {
               setVersionMessage('');
               const reloaded = await appVersion.checkAndReload();
-              // إن أُعيد التحميل فلا معنى لرسالة (الصفحة ستُستبدل الآن)
-              if (!reloaded) setVersionMessage('تطبيقك محدّث بالكامل إلى آخر إصدار.');
+              if (reloaded) return;
+              if (appVersion.checkStatus === 'network-error') {
+                setVersionMessage('تعذر التحقق من التحديثات؛ تأكد من اتصال الإنترنت.');
+              } else if (appVersion.checkStatus === 'dev') {
+                setVersionMessage('بيئة تطوير محلية — التحديثات المنشورة غير مفعلة هنا.');
+              } else {
+                setVersionMessage('تطبيقك محدّث بالكامل إلى آخر إصدار.');
+              }
             }}
-            disabled={appVersion.checking}
+            disabled={appVersion.checking || appVersion.reloading}
           >
             {appVersion.checking ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" /> : <FiRefreshCw />}
             {appVersion.checking ? 'جارٍ الفحص...' : 'التحقق من التحديثات'}
@@ -70,12 +82,22 @@ const SettingsView = () => {
         )}
       </div>
       {versionMessage && <small className="d-block mt-2 text-muted" role="status">{versionMessage}</small>}
-      {/* شفافية: النسخة العاملة فعلًا — يمنع التباس «محدّث» مع تبويب قديم مفتوح */}
-      {appVersion.runningBuild && (
-        <small className="d-block mt-1 text-muted" dir="ltr" style={{ opacity: 0.7 }}>
-          build: {appVersion.runningBuild.replace('assets/index-', '').replace('.js', '')}
-        </small>
-      )}
+      <div className="mt-2 pt-2 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn btn-link text-decoration-none p-0 small"
+          style={{ fontSize: '0.82rem', color: 'var(--accent-color)' }}
+          onClick={appVersion.reloadNow}
+          disabled={appVersion.reloading}
+        >
+          {appVersion.reloading ? 'جارٍ إعادة التحميل...' : 'إعادة تحميل قسرية وتفريغ الكاش'}
+        </button>
+        {appVersion.runningBuild && (
+          <small className="text-muted" dir="ltr" style={{ opacity: 0.7, fontSize: '0.75rem' }}>
+            build: {appVersion.runningBuild.replace('assets/index-', '').replace('.js', '')}
+          </small>
+        )}
+      </div>
     </div>
 
     <div className="custom-card p-3 p-md-4 mx-auto mb-4" style={{ maxWidth: '600px' }}>

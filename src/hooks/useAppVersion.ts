@@ -76,6 +76,10 @@ export interface AppVersionState {
   lastCheckedAt: number | null;
   /** فحص جارٍ الآن */
   checking: boolean;
+  /** إعادة التحميل جارية الآن */
+  reloading: boolean;
+  /** حالة آخر فحص للنسخة */
+  checkStatus: 'idle' | 'up-to-date' | 'update-ready' | 'network-error' | 'dev';
   /** فحص فوري — يُستخدم لزر «تحقّق الآن» */
   checkNow: () => Promise<boolean>;
   /** فحص ثم إعادة تحميل بالقوة إن وُجد نشر أحدث — يعيد هل أُعيد التحميل */
@@ -106,6 +110,8 @@ export function useAppVersion(): AppVersionState {
   const [updateReady, setUpdateReady] = useState(false);
   const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
   const [checking, setChecking] = useState(false);
+  const [reloading, setReloading] = useState(false);
+  const [checkStatus, setCheckStatus] = useState<'idle' | 'up-to-date' | 'update-ready' | 'network-error' | 'dev'>('idle');
   const [dismissed, setDismissed] = useState(false);
   const inFlightRef = useRef(false);
 
@@ -113,28 +119,41 @@ export function useAppVersion(): AppVersionState {
     // نقارن بحزمة الإقلاع لا بالحزمة الحالية: بعد إعادة التحميل تكون الحالية هي الجديدة
     // فتصبح المقارنة بين الملف ونفسه وتُنتج «محدّث» كاذبة.
     const running = bootRef.current;
-    // في التطوير لا حزم مُجزّأة ولا نشر — الفحص بلا معنى
-    if (!running || inFlightRef.current) return false;
+    if (inFlightRef.current) return false;
+    // في التطوير لا حزم مُجزّأة ولا نشر — نُبلّغ عن ذلك بوضوح
+    if (!running) {
+      setCheckStatus('dev');
+      return false;
+    }
     inFlightRef.current = true;
     setChecking(true);
     try {
       const res = await fetch(`/index.html?ts=${Date.now()}`, { cache: 'no-store' });
-      if (!res.ok) return false;
+      if (!res.ok) {
+        setCheckStatus('network-error');
+        return false;
+      }
       const served = extractEntryAsset(await res.text());
-      if (!served) return false;
+      if (!served) {
+        setCheckStatus('network-error');
+        return false;
+      }
       lastServedRef.current = served;
       const newer = isNewerBuild(running, served);
       // الحزمة المخدومة تُصبح الأساس فور رؤيتها: بعد إعادة التحميل تصير هي العاملة،
       // فلا يصحّ أن تظل المقارنة معلّقة على حزمة الإقلاع القديمة إلى الأبد.
       if (newer) {
         setUpdateReady(true);
+        setCheckStatus('update-ready');
       } else {
         // المخدوم = الأساس الحالي: لا نشر معلّق
         setUpdateReady(false);
+        setCheckStatus('up-to-date');
       }
       return newer;
     } catch {
-      // انقطاع شبكة عابر ليس خبرًا — لا نُعلن تحديثًا ولا نُخفي ما سبق
+      // انقطاع شبكة أو تعذر جلب
+      setCheckStatus('network-error');
       return false;
     } finally {
       inFlightRef.current = false;
@@ -144,19 +163,54 @@ export function useAppVersion(): AppVersionState {
   }, []);
 
   const reloadNow = useCallback((): void => {
-    // ⚠️ لا نكتب حزمة الأساس هنا. كتابتها قبل نجاح التحميل تجعل التبويب "مقتنعًا"
-    // أنه محدّث بينما لسه شغّالًا على القديم — ولو فشل التحميل (شبكة/كاش/404) يبقى
-    // الزر بلا أثر ولا يظهر التنبيه مرة أخرى أبدًا. الأساس يُحدَّث بعد نجاح التحميل
-    // فقط، أي عند الإقلاع التالي عبر readBootBuild حين يتطابق مع الحزمة العاملة.
-    try {
-      if ('caches' in window) {
-        caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+    setReloading(true);
+
+    const doHardReload = () => {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('v', String(Date.now()));
+        // replace لا assign: يمنع زر الرجوع من العودة إلى الحالة القديمة
+        window.location.replace(url.toString());
+      } catch {
+        window.location.reload();
       }
-    } catch { /* ignore */ }
-    const url = new URL(window.location.href);
-    url.searchParams.set('v', String(Date.now()));
-    // replace لا assign: يمنع زر الرجوع من العودة إلى الحالة القديمة
-    window.location.replace(url.toString());
+      // شبكة أمان للفون والمتصفحات التي لا تُعيد تحميل المستند عند تغيّر searchParams في hash-router
+      setTimeout(() => {
+        try {
+          window.location.reload();
+        } catch { /* ignore */ }
+      }, 120);
+    };
+
+    const hasCaches = typeof window !== 'undefined' && 'caches' in window;
+    const hasSw = typeof navigator !== 'undefined' && 'serviceWorker' in navigator;
+
+    // في البيئات الخالية من الـ caches والـ worker (مثل الاختبارات): ننفّذ فوراً للتوافق
+    if (!hasCaches && !hasSw) {
+      doHardReload();
+      return;
+    }
+
+    // في المتصفح الحقيقي: نضمن إفراغ الـ cache وإلغاء تسجيل service workers قبل إعادة التحميل
+    const cleanupAndReload = async () => {
+      try {
+        if (hasCaches) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+      } catch { /* ignore */ }
+
+      try {
+        if (hasSw) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.unregister()));
+        }
+      } catch { /* ignore */ }
+
+      doHardReload();
+    };
+
+    void cleanupAndReload();
   }, []);
 
   // «تحقّق الآن» في الإعدادات: يفحص، وإن وُجد نشر أحدث يُحدّث فورًا بدل الاكتفاء
@@ -191,6 +245,8 @@ export function useAppVersion(): AppVersionState {
     updateReady,
     lastCheckedAt,
     checking,
+    reloading,
+    checkStatus,
     checkNow,
     checkAndReload,
     reloadNow,

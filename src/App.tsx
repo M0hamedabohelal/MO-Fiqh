@@ -63,10 +63,10 @@ function App() {
     return (saved === 'sepia' || saved === 'dark') ? saved : 'dark';
   });
   // الثيم يُحفظ للجميع محليًا (لا يحتاج حسابًا للعرض)، لكن مزامنته بين الأجهزة
-  // تتطلب حسابًا — وهذا ما يظهر له التحذير عند التبديل كزائر.
+  // تتطلب حسابًا — لذلك نُطبّقه فورًا ونُظهر تنبيهًا إرشاديًا خفيفًا للزائر.
   const changeTheme = useCallback((next: 'dark' | 'sepia') => {
-    if (!user?.uid) { requireLogin({ action: 'الثيم' }); return; }
     setTheme(next);
+    if (!user?.uid) { requireLogin({ action: 'الثيم' }); }
   }, [user?.uid]);
   const [isSearchOpen, setIsSearchOpen]   = useState(false);
   const [isLoginOpen, setIsLoginOpen]     = useState(false);
@@ -78,12 +78,36 @@ function App() {
     data: { bookmarks, highlights, notes, readLessons, stopMarks, theme },
     onMerged: (merged) => {
       // تطبيق نتيجة الدمج محليًا: لا نفقد شيئًا، ونرى بيانات بقية الأجهزة
+      // ── المفضلة: الأحدث يفوز للإضافة والحذف ──
+      const mergedBmSet = new Set(merged.bookmarks.map(String));
       merged.bookmarks.forEach((id) => { if (!bookmarks.includes(id)) toggleBookmark(id); });
+      bookmarks.forEach((id) => { if (!mergedBmSet.has(String(id))) toggleBookmark(id); });
+      // ── المسائل المقروءة: الأحدث يفوز للإضافة والحذف ──
+      const mergedReadSet = new Set(merged.readLessons.map(String));
       merged.readLessons.forEach((id) => { if (!readLessons.includes(id)) toggleReadLesson(id); });
+      readLessons.forEach((id) => { if (!mergedReadSet.has(String(id))) toggleReadLesson(id); });
+      // ── الملاحظات: الأحدث يفوز + حذف ما حُذف في السحابة ──
       Object.entries(merged.notes).forEach(([id, text]) => {
         if (notes[id] !== text) saveNoteForLesson(id, text);
       });
+      Object.keys(notes).forEach((id) => {
+        if (!(id in merged.notes)) saveNoteForLesson(id, '');
+      });
+      // ── الفوائد: دمج + حذف ما حُذف في السحابة ──
+      const mergedHlIds = new Set(merged.highlights.map((h) => String(h.id ?? h.text)));
       merged.highlights.forEach((h) => addHighlight(h));
+      highlights.forEach((h) => {
+        const hid = String(h.id ?? h.text);
+        if (!mergedHlIds.has(hid)) deleteHighlight(hid);
+      });
+      // ── علامات الوقف: تطبيق النتيجة المدمجة ──
+      if (merged.stopMarks && Object.keys(merged.stopMarks).length > 0) {
+        restoreStopMarks(merged.stopMarks);
+      }
+      // ── الثيم: تطبيق الأحدث ──
+      if (merged.theme && (merged.theme === 'dark' || merged.theme === 'sepia') && merged.theme !== theme) {
+        setTheme(merged.theme);
+      }
     },
   });
   const [currentSearchQuery, setCurrentSearchQuery] = useState('');

@@ -8,12 +8,5 @@
     "scripts/**/*.mjs",
     "e2e/**/*.ts"
   ],
-  "ignore": [
-    "public/lessons/**",
-    "public/books/**"
-  ],
-  "ignoreDependencies": [
-    "bootstrap"
-  ],
   "ignoreExportsUsedInFile": true
 }

@@ -204,6 +204,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       cloudRetryRef.current = 0;
       setCloudStatus('syncing');
       setCloudAttemptDone(false);
+      void enableFirestoreNetwork();
     }
     const succeeded = await new Promise<boolean>((resolve) => {
       const timer = setTimeout(() => settlePendingReload(false), CLOUD_LESSONS_TIMEOUT_MS);
@@ -211,6 +212,16 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       // إعادة فتح المستمع = طلب لقطة خادمية جديدة
       setListenerRevision((revision) => revision + 1);
     });
+
+    if (manual) {
+      void fetchGlossary()
+        .then((cloudGlossary) => {
+          if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
+            setGlossary((prev) => ({ ...prev, ...cloudGlossary }));
+          }
+        })
+        .catch(() => null);
+    }
 
     setCloudAttemptDone(true);
     cloudRetryRef.current = succeeded ? 0 : cloudRetryRef.current + 1;
