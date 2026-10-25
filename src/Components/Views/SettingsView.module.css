@@ -1,0 +1,638 @@
+/* ================================================================
+   SETTINGS VIEW STYLES — Serene, Modern Islamic Aesthetic
+   Matches the warm amber, emerald, and glassmorphic palette
+   ================================================================ */
+
+.settingsContainer {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 1rem 1rem 3.5rem 1rem;
+  direction: rtl;
+}
+
+/* Page Header */
+.pageHeader {
+  text-align: center;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.headerIconBadge {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.18), rgba(92, 192, 181, 0.22));
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  color: var(--primary-color);
+  margin-bottom: 0.85rem;
+  transition: transform 0.3s ease;
+}
+
+.headerIconBadge:hover {
+  transform: rotate(20deg) scale(1.05);
+}
+
+.pageTitle {
+  font-family: var(--font-heading);
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.4rem;
+  letter-spacing: -0.3px;
+}
+
+.pageSubtitle {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.headerDivider {
+  width: 80px;
+  height: 3px;
+  margin: 1.2rem auto 0 auto;
+  background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+  border-radius: 3px;
+}
+
+/* Card Structure */
+.settingsCard {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.35rem 1.4rem;
+  margin-bottom: 1.35rem;
+  box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.settingsCard:hover {
+  border-color: rgba(201, 168, 76, 0.3);
+  box-shadow: 0 8px 26px -4px rgba(0, 0, 0, 0.08);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.cardTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cardIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(92, 192, 181, 0.12), rgba(201, 168, 76, 0.1));
+  color: var(--primary-color);
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  border: 1px solid var(--border-color);
+}
+
+.cardTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.cardDesc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 1.1rem;
+}
+
+/* Badges & Chips */
+.statusChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.statusSuccess {
+  background: rgba(39, 174, 96, 0.12);
+  color: #27ae60;
+  border: 1px solid rgba(39, 174, 96, 0.25);
+}
+
+[data-theme="dark"] .statusSuccess {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+  border-color: rgba(46, 204, 113, 0.3);
+}
+
+.statusWarning {
+  background: rgba(230, 126, 34, 0.12);
+  color: #d35400;
+  border: 1px solid rgba(230, 126, 34, 0.25);
+}
+
+[data-theme="dark"] .statusWarning {
+  background: rgba(243, 156, 18, 0.16);
+  color: #f39c12;
+  border-color: rgba(243, 156, 18, 0.3);
+}
+
+.statusInfo {
+  background: rgba(52, 152, 219, 0.12);
+  color: #2980b9;
+  border: 1px solid rgba(52, 152, 219, 0.25);
+}
+
+[data-theme="dark"] .statusInfo {
+  background: rgba(52, 152, 219, 0.18);
+  color: #5dade2;
+  border-color: rgba(52, 152, 219, 0.3);
+}
+
+/* Actions Row */
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.actionBtnGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+/* Custom Buttons */
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: linear-gradient(135deg, var(--accent-color), #c99347);
+  color: var(--text-on-accent, #1d1d1d);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.14);
+  filter: brightness(1.05);
+}
+
+.btnPrimary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.52rem 1.05rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-color);
+  background: var(--badge-bg);
+  color: var(--text-main);
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background: rgba(201, 168, 76, 0.1);
+  border-color: var(--accent-color);
+  color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.btnSecondary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btnSecondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnDangerOutline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.48rem 0.95rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(231, 76, 60, 0.4);
+  background: rgba(231, 76, 60, 0.06);
+  color: #e74c3c;
+}
+
+.btnDangerOutline:hover:not(:disabled) {
+  background: #e74c3c;
+  color: #ffffff;
+  border-color: #e74c3c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.25);
+}
+
+.btnDangerOutline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Alert Boxes & Feedback Toasts */
+.feedbackAlert {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  margin-top: 1rem;
+  line-height: 1.5;
+  animation: fadeInDown 0.25s ease-out;
+}
+
+.feedbackAlertSuccess {
+  background: rgba(39, 174, 96, 0.1);
+  border: 1px solid rgba(39, 174, 96, 0.3);
+  color: #27ae60;
+}
+
+[data-theme="dark"] .feedbackAlertSuccess {
+  color: #2ecc71;
+  border-color: rgba(46, 204, 113, 0.35);
+  background: rgba(46, 204, 113, 0.12);
+}
+
+.feedbackAlertError {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  color: #e74c3c;
+}
+
+.feedbackAlertInfo {
+  background: rgba(52, 152, 219, 0.1);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+  color: #2980b9;
+}
+
+[data-theme="dark"] .feedbackAlertInfo {
+  color: #5dade2;
+  border-color: rgba(52, 152, 219, 0.35);
+}
+
+.feedbackAlertWarning {
+  background: rgba(243, 156, 18, 0.1);
+  border: 1px solid rgba(243, 156, 18, 0.3);
+  color: #d35400;
+}
+
+[data-theme="dark"] .feedbackAlertWarning {
+  color: #f39c12;
+  border-color: rgba(243, 156, 18, 0.35);
+}
+
+/* Meta Footer */
+.cardMetaFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.buildTag {
+  font-family: monospace;
+  font-size: 0.78rem;
+  direction: ltr;
+  opacity: 0.75;
+  background: var(--badge-bg);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+/* Stats Pill Group */
+.statsPillRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.statsPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--badge-bg);
+  border: 1px solid var(--border-color);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+/* Achievements Clickable Card */
+.achievementsBtn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: right;
+  display: block;
+}
+
+.achievementsInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.achievementsInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.achievementsArrow {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--badge-bg);
+  color: var(--accent-color);
+  border: 1px solid var(--border-color);
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.settingsCard:hover .achievementsArrow {
+  background: var(--accent-color);
+  color: var(--text-on-accent, #1d1d1d);
+  transform: translateX(-4px);
+}
+
+/* Confirmation Box */
+.confirmBox {
+  background: rgba(231, 76, 60, 0.06);
+  border: 1px dashed rgba(231, 76, 60, 0.35);
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  margin-top: 1rem;
+  animation: fadeInDown 0.25s ease-out;
+}
+
+.confirmTitle {
+  font-weight: 700;
+  color: #e74c3c;
+  font-size: 0.92rem;
+  margin-bottom: 0.35rem;
+}
+
+.confirmDesc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 0.85rem;
+}
+
+.confirmActions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+/* Dua & Prayer Section */
+.prayerSection {
+  text-align: center;
+  padding: 1.75rem 1.5rem;
+}
+
+.prayerHeart {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(231, 76, 60, 0.12);
+  color: #e74c3c;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  transition: transform 0.3s ease;
+}
+
+.prayerHeart:hover {
+  transform: scale(1.15);
+}
+
+.prayerTitle {
+  font-family: var(--font-heading);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.65rem;
+}
+
+.prayerText {
+  font-family: var(--font-quote);
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: var(--text-muted);
+  max-width: 520px;
+  margin: 0 auto 1.5rem auto;
+}
+
+.contactDivider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+  margin: 1.5rem 0;
+}
+
+.contactTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Modern Contact Cards */
+.contactGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.85rem;
+}
+
+.contactCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.1rem;
+  border-radius: 12px;
+  text-decoration: none;
+  background: var(--badge-bg);
+  border: 1px solid var(--border-color);
+  transition: all 0.25s ease;
+  color: var(--text-main);
+}
+
+.contactLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.contactIconCircle {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.whatsappIcon {
+  background: linear-gradient(135deg, #25d366, #128c7e);
+}
+
+.facebookIcon {
+  background: linear-gradient(135deg, #1877f2, #0d5cbf);
+}
+
+.linkedinIcon {
+  background: linear-gradient(135deg, #0a66c2, #004182);
+}
+
+.contactMeta {
+  text-align: right;
+}
+
+.contactLabel {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-main);
+  margin-bottom: 0.15rem;
+}
+
+.contactSubtext {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  direction: ltr;
+  text-align: right;
+}
+
+.contactActionHint {
+  font-size: 0.8rem;
+  color: var(--accent-color);
+  opacity: 0.75;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.contactCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.contactCard:hover .contactActionHint {
+  opacity: 1;
+  transform: translateX(-3px);
+}
+
+.contactCardWhatsApp:hover {
+  border-color: rgba(37, 211, 102, 0.5);
+  background: rgba(37, 211, 102, 0.06);
+}
+
+.contactCardFacebook:hover {
+  border-color: rgba(24, 119, 242, 0.5);
+  background: rgba(24, 119, 242, 0.06);
+}
+
+.contactCardLinkedIn:hover {
+  border-color: rgba(10, 102, 194, 0.5);
+  background: rgba(10, 102, 194, 0.06);
+}
+
+/* Animations */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Spinners */
+.spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  vertical-align: -0.125em;
+  border: 0.15em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
