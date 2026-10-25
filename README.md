@@ -85,8 +85,8 @@ VITE_CLOUDINARY_UPLOAD_PRESET=...
 | `npm run typecheck` | فحص TypeScript بدون إصدار |
 | `npm run lint` | فحص ESLint |
 | `npm test` | اختبارات vitest |
-| `npm run backup` | تنزيل نسخة احتياطية من Firestore إلى `backups/` |
-| `npm run content:snapshot` | توليد اللقطة المحلية `src/data/lessons.ts` من Firestore |
+| `npm run backup` | تنزيل نسخة احتياطية شاملة من Firestore إلى `backups/` (تدعم بيانات المستخدمين ومكتباتهم بالكامل) |
+| `npm run content:snapshot` | توليد اللقطة المحلية `data/content/lessons.json` من Firestore (مفصولة خارج src/) |
 | `npm run check:content` | فحص تطابق اللقطة مع السحابة (`-- --strict` يفشل عند الانحراف) |
 | `npm run check:seo` | فحص الصفحات الثابتة: canonical + صورة معاينة + زر يقود للتطبيق (يفشل عند الكسر) |
 | `npm run audit:data` | تحليل تغطية المحتوى |

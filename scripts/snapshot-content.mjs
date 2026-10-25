@@ -61,7 +61,7 @@ if (bad.length > 0) {
 }
 lessons.sort((a, b) => Number(a.id) - Number(b.id));
 
-const targetPath = join(root, 'src', 'data', 'lessons.ts');
+const targetPath = join(root, 'data', 'content', 'lessons.json');
 
 // حماية من الكتابة الفارغة: سحابة فارغة/ناقصة تُفسد اللقطة المحلية الاحتياطية.
 // نرفض الكتابة إن لم تُجلب أي مسألة، أو إن كان العدد أقل بوضوح من اللقطة الحالية (تقلّص غير متوقع).
@@ -78,20 +78,14 @@ if (existsSync(targetPath)) {
   }
 }
 
-const header = `// نسخة محلية احتياطية من المحتوى — مولّدة من السحابة عبر \`npm run content:snapshot\`
-// لا تحرر يدويًا: أي تعديل يدوي سيُكتب فوقه عند التوليد التالي.
-// لتعديل المحتوى استخدم لوحة الإدارة ثم أعد التوليد قبل النشر.
-import type { Lesson } from '../types';
+const output = JSON.stringify(lessons, null, 2) + '\n';
 
-export const lessonsData: Lesson[] = `;
-const output = header + JSON.stringify(lessons, null, 2) + '\n';
-
-mkdirSync(join(root, 'src', 'data'), { recursive: true });
+mkdirSync(join(root, 'data', 'content'), { recursive: true });
 
 // نسخة احتياطية مؤرخة من اللقطة الحالية قبل الكتابة فوقها (لا تُفقد عند تقليص غير متوقع)
 if (existsSync(targetPath)) {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const backupPath = join(root, 'backups', `lessons-local-${stamp}.ts`);
+  const backupPath = join(root, 'backups', `lessons-local-${stamp}.json`);
   try {
     mkdirSync(join(root, 'backups'), { recursive: true });
     copyFileSync(targetPath, backupPath);

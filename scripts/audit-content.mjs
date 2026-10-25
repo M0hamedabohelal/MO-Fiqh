@@ -51,17 +51,22 @@ function summarize(lessons, { checkFields = true } = {}) {
 }
 
 function loadLocalIds() {
-  const source = readFileSync(join(root, 'src', 'data', 'lessons.ts'), 'utf8');
+  const jsonPath = join(root, 'data', 'content', 'lessons.json');
+  const source = existsSync(jsonPath)
+    ? readFileSync(jsonPath, 'utf8')
+    : readFileSync(join(root, 'src', 'data', 'lessons.ts'), 'utf8');
   return [...source.matchAll(/"id"\s*:\s*(\d+)/g)].map(([, id]) => ({ id }));
 }
 
 function loadLocalLessons() {
+  const jsonPath = join(root, 'data', 'content', 'lessons.json');
+  if (existsSync(jsonPath)) {
+    return JSON.parse(readFileSync(jsonPath, 'utf8'));
+  }
   const source = readFileSync(join(root, 'src', 'data', 'lessons.ts'), 'utf8');
-  const declaration = source.indexOf('export const lessonsData');
-  const equals = source.indexOf('=', declaration);
-  const start = source.indexOf('[', equals);
+  const start = source.indexOf('[');
   const end = source.lastIndexOf(']');
-  if (declaration < 0 || equals < 0 || start < 0 || end < start) throw new Error('تعذر قراءة مصفوفة المسائل المحلية');
+  if (start < 0 || end < start) throw new Error('تعذر قراءة مصفوفة المسائل المحلية');
   return JSON.parse(source.slice(start, end + 1));
 }
 
