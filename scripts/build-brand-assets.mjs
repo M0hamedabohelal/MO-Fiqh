@@ -1,12 +1,15 @@
-// توليد أصول الهوية البصرية من logo1.jpg: شعار دائري بشفافية + صورة المشاركة
-// يُنفَّذ مرة واحدة: node scripts/build-brand-assets.mjs
+// توليد أصول الهوية البصرية من logo2.jpg (أو logo1.jpg): شعار دائري بشفافية + صورة المشاركة
+// يُنفَّذ: npm run brand
 import sharp from 'sharp';
 import { writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SRC = join(root, 'src', 'assets', 'logo1.jpg');
+const SRC = existsSync(join(root, 'src', 'assets', 'logo2.jpg'))
+  ? join(root, 'src', 'assets', 'logo2.jpg')
+  : join(root, 'src', 'assets', 'logo1.jpg');
 const OUT_LOGO = join(root, 'src', 'assets', 'logo-circle.webp');
 const OUT_OG = join(root, 'public', 'og-image.jpg');
 
@@ -85,9 +88,10 @@ const roundLogo = await sharp(SRC)
 await writeFile(OUT_LOGO, roundLogo);
 console.log(`✓ logo-circle.webp (${(roundLogo.length / 1024).toFixed(0)} KB)`);
 
-// ─── ٣) صورة المشاركة (1024x1024) ───
-const OG = 1024;
-const OG_LOGO = 700;
+// ─── ٣) صورة المشاركة (1200x630 القياسية للمنصات 1.91:1) ───
+const OG_W = 1200;
+const OG_H = 630;
+const OG_LOGO = 520;
 const roundOg = await sharp(SRC)
   .extract(crop)
   .resize(OG_LOGO, OG_LOGO, { fit: 'cover' })
@@ -96,11 +100,11 @@ const roundOg = await sharp(SRC)
   .png({ compressionLevel: 9 })
   .toBuffer();
 
-await sharp({ create: { width: OG, height: OG, channels: 4, background: DARK_BG } })
-  .composite([{ input: roundOg, top: Math.round((OG - OG_LOGO) / 2), left: Math.round((OG - OG_LOGO) / 2) }])
-  .jpeg({ quality: 82 })
+await sharp({ create: { width: OG_W, height: OG_H, channels: 4, background: DARK_BG } })
+  .composite([{ input: roundOg, top: Math.round((OG_H - OG_LOGO) / 2), left: Math.round((OG_W - OG_LOGO) / 2) }])
+  .jpeg({ quality: 86, mozjpeg: true })
   .toFile(OUT_OG);
-console.log('✓ og-image.jpg');
+console.log('✓ og-image.jpg (1200x630)');
 
 // ─── ٤) أيقونة المتصفح SVG (الشعار مدمج base64 — يعمل بلا ملفات إضافية) ───
 const FAV = 64;
