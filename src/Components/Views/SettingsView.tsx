@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { FiHeart, FiFacebook, FiLinkedin, FiPhone, FiAward, FiChevronLeft, FiRefreshCw, FiTrash2 } from 'react-icons/fi';
 import { useApp } from '../Layout/AppContext';
 import { isFirebaseConfigured } from '../../firebase/config';
 import { safeRemove } from '../../utils/safeStorage';
+import { isSyncDisabled, setSyncDisabled, subscribeSyncDisabled } from '../../utils/librarySync';
 import GuestAccountCard from '../UI/GuestAccountCard';
 
 // شاشة الإعدادات وحول التطبيق
@@ -14,13 +15,20 @@ const SettingsView = () => {
   const [refreshMessage, setRefreshMessage] = useState('');
   const [clearingCloud, setClearingCloud] = useState(false);
   const [clearMessage, setClearMessage] = useState('');
+  const isSyncPausedState = useSyncExternalStore(
+    subscribeSyncDisabled,
+    () => isSyncDisabled(user?.uid),
+    () => false,
+  );
 
   const handleClearCloudData = async (): Promise<void> => {
     if (!user) return;
-    if (!window.confirm('هل أنت متأكد من رغبتك في حذف مكتبتك وقراءة الإشعارات من السحابة نهائيًا؟ لن يتم مسح بيانات جهازك الحالي.')) return;
+    if (!window.confirm('هل أنت متأكد من رغبتك في حذف مكتبتك وقراءة الإشعارات من السحابة نهائيًا؟ سيتم إيقاف المزامنة السحابية مع بقاء بياناتك محفوظة محليًا على هذا الجهاز.')) return;
     setClearingCloud(true);
     setClearMessage('');
     try {
+      // تعطيل المزامنة أولاً قبل الحذف لمنع أي دفعة تلقائية سريعة
+      setSyncDisabled(user.uid, true);
       const [{ getFirestore }, fs] = await Promise.all([
         import('../../firebase/config'),
         import('firebase/firestore'),
@@ -31,8 +39,9 @@ const SettingsView = () => {
         fs.deleteDoc(fs.doc(db, `users/${user.uid}/data/announcementReads`)).catch(() => {}),
       ]);
       safeRemove(`library_stamps_v1_${user.uid}`);
-      setClearMessage('تم مسح بياناتك السحابية بنجاح.');
+      setClearMessage('تم مسح بياناتك السحابية بنجاح وإيقاف المزامنة السحابية لهذا الحساب.');
     } catch {
+      setSyncDisabled(user.uid, false);
       setClearMessage('تعذر مسح البيانات من السحابة؛ تأكد من اتصال الإنترنت.');
     } finally {
       setClearingCloud(false);
@@ -167,17 +176,36 @@ const SettingsView = () => {
               حسابك مرتبط بالسحابة: {user.email || user.displayName || 'مستخدم مسجل'}
             </span>
           </div>
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-danger d-flex align-items-center gap-2"
-            disabled={clearingCloud}
-            onClick={handleClearCloudData}
-          >
-            <FiTrash2 /> {clearingCloud ? 'جارٍ المسح...' : 'مسح بياناتي السحابية'}
-          </button>
+          {isSyncPausedState ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-primary d-flex align-items-center gap-2"
+              onClick={() => {
+                setSyncDisabled(user.uid, false);
+                setClearMessage('تمت إعادة تفعيل المزامنة السحابية؛ سيتم رفع بيانات هذا الجهاز للسحابة.');
+              }}
+            >
+              <FiRefreshCw /> استئناف المزامنة
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-danger d-flex align-items-center gap-2"
+              disabled={clearingCloud}
+              onClick={handleClearCloudData}
+            >
+              <FiTrash2 /> {clearingCloud ? 'جارٍ المسح...' : 'مسح بياناتي السحابية'}
+            </button>
+          )}
         </div>
+        {isSyncPausedState && (
+          <div className="alert alert-warning py-2 px-3 small mt-3 mb-0 text-start text-md-end">
+            <div><strong>المزامنة السحابية متوقفة لهذا الحساب.</strong></div>
+            <div className="text-muted">تم حذف بياناتك من خوادم السحابة لحماية خصوصيتك؛ بيانات هذا الجهاز لا تزال محفوظة محليًا.</div>
+          </div>
+        )}
         {clearMessage && (
-          <div className="small mt-2" style={{ color: clearMessage.includes('نجاح') ? '#27ae60' : '#e74c3c' }}>
+          <div className="small mt-2" style={{ color: clearMessage.includes('نجاح') || clearMessage.includes('إعادة') ? '#27ae60' : '#e74c3c' }}>
             {clearMessage}
           </div>
         )}

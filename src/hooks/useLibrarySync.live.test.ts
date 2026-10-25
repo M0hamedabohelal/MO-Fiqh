@@ -32,6 +32,7 @@ vi.mock('../Components/Auth/AuthContext', () => ({
 vi.mock('../utils/logError', () => ({ logError: vi.fn() }));
 
 import { useLibrarySync } from './useLibrarySync';
+import { setSyncDisabled, isSyncDisabled } from '../utils/librarySync';
 
 const snap = (over: Record<string, unknown> = {}) => ({
   exists: () => true,
@@ -208,4 +209,24 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     unmount();
     currentUid = 'u1';
   }, 20000);
+  it('تعطيل المزامنة يمنع الدفع التلقائي تمامًا حتى مع وجود بيانات محلية', async () => {
+    localStorage.clear();
+    setDoc.mockClear();
+    setSyncDisabled('u1', true);
+    expect(isSyncDisabled('u1')).toBe(true);
+
+    const onMerged = vi.fn();
+    const { unmount } = renderHook(() => useLibrarySync({
+      ready: true,
+      data: baseData({ bookmarks: ['1', '2'] }),
+      onMerged,
+    }));
+
+    // مع تعطيل المزامنة لا يُدفع أي شيء للسحابة
+    await new Promise((r) => setTimeout(r, 2500));
+    expect(setDoc).not.toHaveBeenCalled();
+
+    unmount();
+    setSyncDisabled('u1', false);
+  }, 10000);
 });

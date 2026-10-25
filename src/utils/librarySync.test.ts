@@ -30,6 +30,8 @@ import {
   pruneTombstones,
   TOMBSTONE_TTL_MS,
   MAX_TOMBSTONES,
+  isSyncDisabled,
+  setSyncDisabled,
 } from './librarySync';
 import type { SyncableLibrary } from './librarySync';
 
@@ -175,6 +177,19 @@ describe('المسار والتفعيل', () => {
   it('بلا معرف مستخدم لا مزامنة إطلاقًا', () => {
     expect(cloudEnabled(null)).toBe(false);
     expect(cloudEnabled('')).toBe(false);
+    expect(cloudEnabled('u1')).toBe(true);
+  });
+
+  it('تعطيل المزامنة يوقف cloudEnabled ويُحفظ في التخزين', () => {
+    expect(cloudEnabled('u1')).toBe(true);
+    expect(isSyncDisabled('u1')).toBe(false);
+
+    setSyncDisabled('u1', true);
+    expect(isSyncDisabled('u1')).toBe(true);
+    expect(cloudEnabled('u1')).toBe(false);
+
+    setSyncDisabled('u1', false);
+    expect(isSyncDisabled('u1')).toBe(false);
     expect(cloudEnabled('u1')).toBe(true);
   });
 });

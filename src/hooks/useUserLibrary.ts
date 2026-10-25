@@ -190,8 +190,8 @@ export function useUserLibrary() {
 
   const saveNoteForLesson = useCallback((lessonId: string | number, text: string) => {
     const id = String(lessonId);
-    // حد أقصى لطول الملاحظة الواحدة (10,000 حرف) لحماية حجم المستند في السحابة
-    const sanitizedText = text.length > 10_000 ? text.slice(0, 10_000) : text;
+    // حد أقصى لطول الملاحظة الواحدة (3,000 حرف) لحماية حجم المستند في السحابة من تجاوز سقف 1MiB
+    const sanitizedText = text.length > 3_000 ? text.slice(0, 3_000) : text;
     // حفظ نص جديد يُنبّه الزائر للتسجيل؛ أما مسح ملاحظة قائمة فلا ينبّه
     const isClearing = !sanitizedText.trim() && Boolean(snapshotRef.current.notes[id]);
     if (!isClearing) nudgeLogin('الملاحظات');

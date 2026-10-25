@@ -1,6 +1,7 @@
 import type { HighlightItem } from '../types';
 import { mergeStopMarkMaps } from '../features/stopMarks/model';
 import type { StopMarkMap } from '../features/stopMarks/model';
+import { safeGet, safeSet, safeRemove } from './safeStorage';
 
 // ─── مزامنة مكتبة المستخدم بين الأجهزة ───
 //
@@ -43,9 +44,41 @@ export const emptyLibrary = (): SyncableLibrary => ({
 /** مسار مستند المكتبة — محصور بالمستخدم صاحبه */
 export const libraryDocPath = (uid: string): string => `users/${uid}/data/library`;
 
-/** هل المزامنة ممكنة؟ بلا معرف مستخدم لا مساس بالسحابة */
+export const syncDisabledKey = (uid: string): string => 'library_sync_disabled_' + uid;
+
+/** هل المزامنة معطلة لهذا المستخدم؟ (مثلاً بعد مسح البيانات السحابية لحق النسيان) */
+export const isSyncDisabled = (uid: string | null | undefined): boolean => {
+  if (!uid) return false;
+  return safeGet(syncDisabledKey(uid)) === 'true';
+};
+
+/** تفعيل أو تعطيل المزامنة السحابية للمستخدم مع إشعار الأحداث للتبويبات الحالية */
+export const setSyncDisabled = (uid: string, disabled: boolean): void => {
+  if (!uid) return;
+  if (disabled) {
+    safeSet(syncDisabledKey(uid), 'true');
+  } else {
+    safeRemove(syncDisabledKey(uid));
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('library_sync_disabled_change', { detail: { uid, disabled } }));
+    } catch {
+      // بيئات لا تدعم CustomEvent
+    }
+  }
+};
+
+/** اشتراك في تغييرات حالة تعطيل المزامنة (للاستخدام مع useSyncExternalStore) */
+export const subscribeSyncDisabled = (callback: () => void): (() => void) => {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener('library_sync_disabled_change', callback);
+  return () => window.removeEventListener('library_sync_disabled_change', callback);
+};
+
+/** هل المزامنة ممكنة؟ بلا معرف مستخدم أو إن كانت معطلة صراحة لا مساس بالسحابة */
 export const cloudEnabled = (uid: string | null | undefined): uid is string =>
-  typeof uid === 'string' && uid.length > 0;
+  typeof uid === 'string' && uid.length > 0 && !isSyncDisabled(uid);
 
 export const KEYS = {
   note: (id: string) => `note:${id}`,

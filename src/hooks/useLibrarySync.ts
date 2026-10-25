@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
 import { isFirebaseConfigured } from '../firebase/config';
 import { logError } from '../utils/logError';
@@ -11,6 +11,9 @@ import {
   KEYS,
   byId,
   pruneTombstones,
+  isSyncDisabled,
+  setSyncDisabled,
+  subscribeSyncDisabled,
 } from '../utils/librarySync';
 import type { SyncableLibrary } from '../utils/librarySync';
 import type { HighlightItem } from '../types';
@@ -60,6 +63,12 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   const stampsStorageKey = (u: string) => `library_stamps_v1_${u}`;
   const stampsRef = useRef<Record<string, number>>({});
   const currentUidRef = useRef<string | null>(uid);
+
+  const syncDisabled = useSyncExternalStore(
+    subscribeSyncDisabled,
+    () => isSyncDisabled(uid),
+    () => false,
+  );
 
   // تحميل الأختام الزمنية المحلية عند معرفة المستخدم
   useEffect(() => {
@@ -118,7 +127,18 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   const mergeAndApply = useCallback((cloudRaw: Partial<SyncableLibrary> | null): void => {
     const local = toSyncable(dataRef.current, stampsRef.current);
     if (!cloudRaw) {
-      // لا شيء سحابيًا بعد: ارفع المحلي كأساس أول
+      if (isSyncDisabled(uid)) {
+        lastPushedRef.current = '';
+        return;
+      }
+      // إذا حُذف المستند سحابيًا وكان الحساب متزامنًا بالفعل، فهذا حذف صريح لحق النسيان
+      // نعطل المزامنة لحماية قرار الحذف ومنع إحيائه تلقائيًا
+      if (Object.keys(stampsRef.current).length > 0 && lastPushedRef.current !== '') {
+        if (uid) setSyncDisabled(uid, true);
+        lastPushedRef.current = '';
+        return;
+      }
+      // لا شيء سحابيًا بعد (حساب جديد لم يسبق له المزامنة): ارفع المحلي كأساس أول
       lastPushedRef.current = '';
       return;
     }
@@ -170,7 +190,7 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
 
   // 1) مستمع حيّ على مستند المكتبة — يصل تعديل كل الأجهزة فورًا
   useEffect(() => {
-    if (!ready || !cloudEnabled(uid) || !isFirebaseConfigured) return undefined;
+    if (!ready || !cloudEnabled(uid) || syncDisabled || !isFirebaseConfigured) return undefined;
     let cancelled = false;
     let unsubscribe: (() => void) | null = null;
 
@@ -203,11 +223,11 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
       cancelled = true;
       try { unsubscribe?.(); } catch { /* ignore */ }
     };
-  }, [ready, uid, mergeAndApply]);
+  }, [ready, uid, syncDisabled, mergeAndApply]);
 
   // 2) الدفع عند تغيّر المحتوى (debounced) — لا كتابة بلا اختلاف حقيقي
   useEffect(() => {
-    if (!ready || !cloudEnabled(uid) || !isFirebaseConfigured) return undefined;
+    if (!ready || !cloudEnabled(uid) || syncDisabled || !isFirebaseConfigured) return undefined;
 
     const schedulePush = () => {
       // أثناء تطبيق دمج أو دفع جارٍ لا نُسقط الدفعة بل نُعيد جدولتها
@@ -340,11 +360,11 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
     timerRef.current = setTimeout(schedulePush, SYNC_DEBOUNCE_MS);
 
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [ready, uid, data.bookmarks, data.highlights, data.notes, data.readLessons, data.stopMarks, data.theme]);
+  }, [ready, uid, data.bookmarks, data.highlights, data.notes, data.readLessons, data.stopMarks, data.theme, syncDisabled]);
 
   // 3) سحب فوري عند عودة التبويب للمقدمة — يُغطّي حالة «سِبت اللابتوب وشغّلت الفون»
   useEffect(() => {
-    if (!ready || !cloudEnabled(uid) || !isFirebaseConfigured) return undefined;
+    if (!ready || !cloudEnabled(uid) || syncDisabled || !isFirebaseConfigured) return undefined;
     const onVisible = (): void => {
       if (document.visibilityState !== 'visible') return;
       if (applyingRef.current) return;
@@ -366,5 +386,5 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onVisible);
     };
-  }, [ready, uid, mergeAndApply]);
+  }, [ready, uid, syncDisabled, mergeAndApply]);
 }

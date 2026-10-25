@@ -3,6 +3,7 @@ import { fetchAnnouncements } from '../firebase/services';
 import { isFirebaseConfigured } from '../firebase/config';
 import { useAuth } from '../Components/Auth/AuthContext';
 import { logError } from '../utils/logError';
+import { isSyncDisabled } from '../utils/librarySync';
 import type { AnnouncementItem } from '../types';
 
 const readKey = (uid?: string): string => uid ? `readAnnouncements_${uid}` : 'readAnnouncements';
@@ -108,7 +109,7 @@ export function useAnnouncements() {
           const signature = merged.join('|');
           if (signature === lastSyncedSignature) return; // لا تغيير: لا كتابة
           const needsPush = merged.length !== cloudIds.length || !snapshot.exists();
-          if (!needsPush) { lastSyncedSignature = signature; return; }
+          if (!needsPush || isSyncDisabled(user?.uid)) { lastSyncedSignature = signature; return; }
           pushToServer(merged);
         }, (error) => {
           // صلاحيات مرفوضة ليست عطلًا: التطبيق يعمل محليًا بالكامل (localStorage).

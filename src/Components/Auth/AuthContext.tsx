@@ -220,7 +220,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // تسجيل خروج — لا يرمي أبدًا حتى لا يعلق المتصل به (النافذة تُغلق دائمًا)
   const logout = useCallback(async () => {
     try {
-      const currentUid = user?.uid;
+      const currentUid = currentUidRef.current;
       const { auth, authMod } = await getAuthModule();
       await authMod.signOut(auth);
       if (currentUid) {
@@ -229,7 +229,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error('فشل تسجيل الخروج:', err);
     }
-  }, [user]);
+  }, []);
 
   // إعادة فحص صلاحية المشرف
   // 'unknown' = فشل تقييم (شبكة/توكن) وليس رفضًا: لا نمسّ الحالة الحالية،
