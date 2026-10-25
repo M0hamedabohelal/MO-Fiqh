@@ -18,6 +18,13 @@
     </script>
     <meta name="description" content="يَسِّر - منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر" />
     <link rel="canonical" href="https://fqh.me/" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#101614" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="يَسِّر" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
     <title>يَسِّر</title>
     <meta name="google" content="notranslate">
 
@@ -55,37 +62,13 @@
     <meta name="twitter:image" content="https://fqh.me/og-image.jpg" />
   </head>
   <body>
-    <!-- تنظيف آثار الـ PWA القديمة (مرة واحدة لكل متصفح) -->
-    <!-- الموقع صار ويب عاديًا، لكن زوّار ما قبل الإزالة ما زال عندهم Service Worker مسجَّل -->
-    <!-- وذاكرة كاش تحرس مسار الصفحة. النتيجة: يفتحون رابطًا فيرون نسخة قديمة جدًا، ولا -->
-    <!-- تُحدَّث إلا بريفرش قسري. إلغاء التسجيل + مسح الكاش مرة واحدة يحلّها نهائيًا. -->
+    <!-- تسجيل Service Worker لدعم PWA والتثبيت والقراءة دون اتصال (Offline Reading) -->
     <script>
-      (function () {
-        try {
-          if (localStorage.getItem('sw-cleared') === '1') return;
-          var done = function () { try { localStorage.setItem('sw-cleared', '1'); } catch (e) {} };
-          if (!('serviceWorker' in navigator)) { done(); return; }
-          navigator.serviceWorker.getRegistrations().then(function (regs) {
-            if (!regs.length) { done(); return; }
-            Promise.all(regs.map(function (r) { return r.unregister(); }))
-              .then(function () {
-                if (!window.caches) return null;
-                return caches.keys().then(function (keys) {
-                  return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-                });
-              })
-              .then(function () {
-                done();
-                // إعادة التحميل مرة واحدة حتى لا يبقى المستخدم على صفحة قديمة في الذاكرة
-                if (!sessionStorage.getItem('sw-reloaded')) {
-                  sessionStorage.setItem('sw-reloaded', '1');
-                  location.reload();
-                }
-              })
-              .catch(done);
-          }).catch(done);
-        } catch (e) { /* بيئة بلا تخزين — لا شيء يُنظَّف */ }
-      })();
+      if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+      }
     </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
