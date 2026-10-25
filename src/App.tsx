@@ -138,10 +138,11 @@ function App() {
     const map = new Map<string, ChapterGroup>();
     lessons.forEach((lesson: Lesson, index: number) => {
       if (!lesson.bookName || !lesson.chapterName) return;
-      const key = `${lesson.bookName.trim()}__${lesson.chapterName.trim()}`;
+      const cleanChapter = lesson.chapterName.replace(/\s*([،,:]\s*)/g, (_, p) => p.trim() + ' ').trim();
+      const key = `${lesson.bookName.trim()}__${cleanChapter}`;
       let group = map.get(key);
       if (!group) {
-        group = { bookName: lesson.bookName.trim(), chapterName: lesson.chapterName.trim(), issues: [] };
+        group = { bookName: lesson.bookName.trim(), chapterName: cleanChapter, issues: [] };
         map.set(key, group);
       }
       group.issues.push({ ...lesson, lessonIndex: index, isRead: readLessons.includes(String(lesson.id)) });
@@ -358,6 +359,7 @@ function App() {
           onOpenLogin={() => setIsLoginOpen(true)}
           user={user}
           onSelectBook={openBookChapters}
+          booksStats={booksWithStats}
         />
       ) : (
         <AppProvider value={layoutProps}>

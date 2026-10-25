@@ -21,7 +21,11 @@ interface HeroSectionProps {
   onOpenLogin: () => void;
   user: User | null;
   onSelectBook?: (bookName: string) => void;
+  booksStats?: { bookName: string; chaptersCount: number; issuesCount: number }[];
 }
+
+const toArDigits = (n: number): string =>
+  String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[+d]);
 
 const HeroSection = ({
   onStartBrowsing,
@@ -30,8 +34,18 @@ const HeroSection = ({
   onOpenLogin,
   user,
   onSelectBook,
+  booksStats,
 }: HeroSectionProps) => {
   const [isVisible, setIsVisible] = useState(false);
+
+  const taharahStats = booksStats?.find((b) => b.bookName === 'كتاب الطهارة');
+  const salatStats = booksStats?.find((b) => b.bookName === 'كتاب الصلاة');
+
+  const taharahChapters = taharahStats?.chaptersCount ?? 10;
+  const taharahIssues = taharahStats?.issuesCount ?? 53;
+
+  const salatChapters = salatStats?.chaptersCount ?? 5;
+  const salatIssues = salatStats?.issuesCount ?? 32;
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 60);
@@ -52,11 +66,10 @@ const HeroSection = ({
       id="hero-section"
       aria-label="الصفحة الترحيبية لمنصة يَسِّر"
     >
-      {/* خلفيات إضاءة أثيرية وزخرفة عصرية راقية ومريحة للعين */}
+      {/* خلفيات إضاءة أثيرية هادئة ومريحة للعين */}
       <div className={styles['ambient-mesh']} aria-hidden="true" />
       <div className={styles['ambient-glow-gold']} aria-hidden="true" />
       <div className={styles['ambient-glow-emerald']} aria-hidden="true" />
-      <div className={styles['pattern-overlay']} aria-hidden="true" />
 
       {/* الشريط العلوي (Header Bar) */}
       <header className={styles['top-bar']}>
@@ -65,13 +78,13 @@ const HeroSection = ({
             src={logo}
             alt=""
             className={styles['brand-pill-img']}
-            width="32"
-            height="32"
+            width="44"
+            height="44"
             loading="eager"
           />
           <div className={styles['brand-text-col']}>
             <span className={styles['brand-pill-title']}>يَسِّر</span>
-            <span className={styles['brand-pill-tag']}>منصة الفقه الميسر</span>
+            <span className={styles['brand-pill-tag']}>منصة شرح الفقه الميسر</span>
           </div>
         </div>
 
@@ -82,7 +95,7 @@ const HeroSection = ({
           title={user ? `حساب: ${user.displayName || user.email}` : 'تسجيل الدخول'}
         >
           <span className={styles['user-btn-icon']}>
-            <FiUser size={16} />
+            <FiUser size={22} />
           </span>
           <span className={styles['user-btn-label']}>
             {user ? (user.displayName || user.email?.split('@')[0] || 'حسابي') : 'تسجيل الدخول'}
@@ -215,7 +228,9 @@ const HeroSection = ({
                 <FiCompass size={16} className={styles['book-icon']} />
               </div>
               <h3 className={styles['book-card-title']}>كتاب الطهارة</h3>
-              <p className={styles['book-card-meta']}>١١ بابًا • ٤٠ مسألة فقهية</p>
+              <p className={styles['book-card-meta']}>
+                {toArDigits(taharahChapters)} أبواب • {toArDigits(taharahIssues)} مسألة فقهية
+              </p>
             </button>
 
             <button
@@ -228,7 +243,9 @@ const HeroSection = ({
                 <FiCompass size={16} className={styles['book-icon']} />
               </div>
               <h3 className={styles['book-card-title']}>كتاب الصلاة</h3>
-              <p className={styles['book-card-meta']}>١٢ بابًا • ٤٥ مسألة فقهية</p>
+              <p className={styles['book-card-meta']}>
+                {toArDigits(salatChapters)} أبواب • {toArDigits(salatIssues)} مسألة فقهية
+              </p>
             </button>
           </div>
         </div>
