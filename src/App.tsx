@@ -46,7 +46,7 @@ function App() {
   const appVersion = useAppVersion();
 
   // ─── المكتبة الشخصية ───
-  const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary, isDataLoaded } = useUserLibrary();
+  const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary, applyMergedLibrary, isDataLoaded } = useUserLibrary();
   const { stopMarks, stopMarksReady, toggleStopMark, restoreStopMarks } = useStopMarks();
 
   // ─── التوجيه الهاشي ───
@@ -77,28 +77,12 @@ function App() {
     ready: isDataLoaded && stopMarksReady,
     data: { bookmarks, highlights, notes, readLessons, stopMarks, theme },
     onMerged: (merged) => {
-      // تطبيق نتيجة الدمج محليًا: لا نفقد شيئًا، ونرى بيانات بقية الأجهزة
-      // ── المفضلة: الأحدث يفوز للإضافة والحذف ──
-      const mergedBmSet = new Set(merged.bookmarks.map(String));
-      merged.bookmarks.forEach((id) => { if (!bookmarks.includes(id)) toggleBookmark(id); });
-      bookmarks.forEach((id) => { if (!mergedBmSet.has(String(id))) toggleBookmark(id); });
-      // ── المسائل المقروءة: الأحدث يفوز للإضافة والحذف ──
-      const mergedReadSet = new Set(merged.readLessons.map(String));
-      merged.readLessons.forEach((id) => { if (!readLessons.includes(id)) toggleReadLesson(id); });
-      readLessons.forEach((id) => { if (!mergedReadSet.has(String(id))) toggleReadLesson(id); });
-      // ── الملاحظات: الأحدث يفوز + حذف ما حُذف في السحابة ──
-      Object.entries(merged.notes).forEach(([id, text]) => {
-        if (notes[id] !== text) saveNoteForLesson(id, text);
-      });
-      Object.keys(notes).forEach((id) => {
-        if (!(id in merged.notes)) saveNoteForLesson(id, '');
-      });
-      // ── الفوائد: دمج + حذف ما حُذف في السحابة ──
-      const mergedHlIds = new Set(merged.highlights.map((h) => String(h.id ?? h.text)));
-      merged.highlights.forEach((h) => addHighlight(h));
-      highlights.forEach((h) => {
-        const hid = String(h.id ?? h.text);
-        if (!mergedHlIds.has(hid)) deleteHighlight(hid);
+      // تطبيق نتيجة الدمج محليًا بدفعة ذرية واحدة لمنع الرجات وتسريع الانعكاس بين الأجهزة
+      applyMergedLibrary({
+        bookmarks: merged.bookmarks,
+        highlights: merged.highlights,
+        notes: merged.notes,
+        readLessons: merged.readLessons,
       });
       // ── علامات الوقف: تطبيق النتيجة المدمجة ──
       if (merged.stopMarks && Object.keys(merged.stopMarks).length > 0) {

@@ -213,6 +213,21 @@ export function useUserLibrary() {
     update((current) => unionLibrary(current, normalize(data)));
   }, [update]);
 
+  // تطبيق مباشر لمكتبة مدمجة سحابيًا بدفعة ذرية واحدة تمنع الرجات وتضمن التحديث الفوري
+  const applyMergedLibrary = useCallback((merged: {
+    bookmarks: string[];
+    highlights: HighlightItem[];
+    notes: Record<string, string>;
+    readLessons: string[];
+  }) => {
+    commit({
+      bookmarks: merged.bookmarks.map(String),
+      highlights: merged.highlights,
+      notes: merged.notes,
+      readLessons: merged.readLessons.map(String),
+    });
+  }, [commit]);
+
   return {
     bookmarks: snapshot.bookmarks,
     highlights: snapshot.highlights,
@@ -225,5 +240,6 @@ export function useUserLibrary() {
     deleteHighlight,
     saveNoteForLesson,
     restoreLibrary,
+    applyMergedLibrary,
   };
 }

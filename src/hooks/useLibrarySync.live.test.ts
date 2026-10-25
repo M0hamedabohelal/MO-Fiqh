@@ -229,4 +229,81 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     unmount();
     setSyncDisabled('u1', false);
   }, 10000);
+
+  it('المزامنة فائقة السرعة: دفع المفضلة يبدأ خلال نافذة قصيرة (~300ms) وليس ثانيتين', async () => {
+    const onMerged = vi.fn();
+    const { rerender, unmount } = renderHook(
+      ({ bm }) => useLibrarySync({ ready: true, data: baseData({ bookmarks: bm }), onMerged }),
+      { initialProps: { bm: [] as string[] } },
+    );
+
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+
+    // تغيير محلي سريع (إضافة مفضلة)
+    rerender({ bm: ['101'] });
+
+    // يجب أن تبدأ الكتابة للسحابة خلال أقل من 1000ms بكثير (المهلة 300ms)
+    await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 1200 });
+
+    const call = setDoc.mock.calls[0] as unknown[];
+    const writtenData = call?.[1] as { bookmarks: string[] };
+    expect(writtenData.bookmarks).toEqual(['101']);
+
+    unmount();
+  }, 10000);
+
+  it('استقبال تعديل جهاز آخر فورًا بعد كتابتنا دون نافذة حجب للصدى', async () => {
+    const onMerged = vi.fn();
+    const { rerender, unmount } = renderHook(
+      ({ bm }) => useLibrarySync({ ready: true, data: baseData({ bookmarks: bm }), onMerged }),
+      { initialProps: { bm: ['1'] as string[] } },
+    );
+
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 2000 });
+
+    // جهاز آخر أضاف مفضلة 99 فورًا بعد كتابتنا (ضمن أقل من ثانية)
+    await act(async () => {
+      snapshotCb?.(snap({ bookmarks: ['1', '99'], updatedAt: { 'bm:1': 100, 'bm:99': 200 } }));
+    });
+
+    // يجب استلامها وتطبيقها محليًا دون حجب أو تجاهل
+    await waitFor(() => {
+      expect(onMerged).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bookmarks: expect.arrayContaining(['1', '99']),
+        }),
+      );
+    }, { timeout: 2000 });
+
+    unmount();
+  }, 15000);
+
+  it('دفع فوري عند مغادرة التبويب (visibilitychange hidden) دون انتظار المؤقت', async () => {
+    const onMerged = vi.fn();
+    const { rerender, unmount } = renderHook(
+      ({ bm }) => useLibrarySync({ ready: true, data: baseData({ bookmarks: bm }), onMerged }),
+      { initialProps: { bm: [] as string[] } },
+    );
+
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+
+    // تغيير محلي
+    rerender({ bm: ['202'] });
+
+    // محاكاة قفل الهاتف / مغادرة التبويب فورًا
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', writable: true });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // يُدفع فورًا قبل مرور مهلة الـ 300ms
+    await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 1000 });
+    const call = setDoc.mock.calls[0] as unknown[];
+    const writtenData = call?.[1] as { bookmarks: string[] };
+    expect(writtenData.bookmarks).toEqual(['202']);
+
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true });
+    unmount();
+  }, 10000);
 });
