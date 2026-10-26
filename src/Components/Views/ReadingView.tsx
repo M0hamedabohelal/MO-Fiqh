@@ -314,6 +314,8 @@ const ReadingView = () => {
       <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <button
           className="btn btn-sm text-muted d-flex align-items-center"
+          aria-label="العودة لفهرس المسائل"
+          title="العودة لفهرس المسائل"
           onClick={onBackToIndex}
         >
           <FiArrowRight className="ms-2" /> <span className="d-none d-md-inline">العودة لفهرس المسائل</span>
@@ -333,6 +335,7 @@ const ReadingView = () => {
             }}
             onClick={onToggleRead}
             title={isRead ? 'إلغاء تعليم المسألة كمقروءة' : 'تعليم المسألة كمقروءة'}
+            aria-label={isRead ? 'إلغاء تعليم المسألة كمقروءة' : 'تعليم المسألة كمقروءة'}
           >
             <FiCheckCircle size={16} className="ms-1" />
             <span className="d-none d-sm-inline">{isRead ? 'خلصتها' : 'خلصتها؟'}</span>
@@ -351,6 +354,7 @@ const ReadingView = () => {
             }}
             onClick={handlePrintChapter}
             title="طباعة الباب كاملاً"
+            aria-label="طباعة الباب كاملاً"
           >
             <FiPrinter size={18} /> <span className="ms-1 d-none d-sm-inline">الباب كامل</span>
           </button>
@@ -424,9 +428,9 @@ const ReadingView = () => {
         >
           <Breadcrumb book={lesson.bookName} chapter={lesson.chapterName} />
 
-          <h3 className="mb-3 fw-bold mt-4 text-center" style={{ color: 'var(--primary-color)' }}>
+          <h2 className="h3 mb-3 fw-bold mt-4 text-center" style={{ color: 'var(--primary-color)' }}>
             {lesson.title}
-          </h3>
+          </h2>
 
           <div className="reading-meta d-flex justify-content-center flex-wrap gap-3 mb-4">
             {String(lesson.pageNumber ?? '').trim() && (
@@ -467,7 +471,7 @@ const ReadingView = () => {
             <div className="custom-card p-4 mb-4 d-flex gap-3 align-items-start shadow-sm" style={{ borderRight: '4px solid var(--accent-color)' }}>
               <FiInfo className="mt-1 flex-shrink-0" size={24} style={{ color: 'var(--accent-color)' }} />
               <div>
-                <h6 className="fw-bold mb-2" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-heading)' }}>ملحوظة هامة:</h6>
+                <h3 className="h6 fw-bold mb-2" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-heading)' }}>ملحوظة هامة:</h3>
                 <div className="mb-0" style={{ lineHeight: '1.9', color: 'var(--text-main)', whiteSpace: 'pre-wrap' }}>{lesson.adminNote}</div>
               </div>
             </div>

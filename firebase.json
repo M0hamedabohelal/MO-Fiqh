@@ -8,28 +8,11 @@
   "hosting": {
     "site": "fiqh-app-9f98c",
     "public": "dist",
+    "trailingSlash": true,
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/lessons",
-        "destination": "/index.html"
-      },
-      {
-        "source": "/lessons/**",
-        "destination": "/index.html"
-      },
-      {
-        "source": "/books",
-        "destination": "/index.html"
-      },
-      {
-        "source": "/books/**",
-        "destination": "/index.html"
-      }
     ],
     "redirects": [
       {
@@ -40,6 +23,21 @@
       {
         "source": "/manifest.json",
         "destination": "/manifest.webmanifest",
+        "type": 301
+      },
+      {
+        "source": "/icon-192.png",
+        "destination": "/icons/icon-192.png",
+        "type": 301
+      },
+      {
+        "source": "/icon-maskable-512.png",
+        "destination": "/icons/icon-maskable-512.png",
+        "type": 301
+      },
+      {
+        "source": "/icon-512.png",
+        "destination": "/icons/icon-512.png",
         "type": 301
       }
     ],

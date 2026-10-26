@@ -348,7 +348,8 @@
   font-family: monospace;
   font-size: 0.78rem;
   direction: ltr;
-  opacity: 0.75;
+  color: var(--text-main);
+  font-weight: 500;
   background: var(--badge-bg);
   padding: 0.15rem 0.5rem;
   border-radius: 6px;

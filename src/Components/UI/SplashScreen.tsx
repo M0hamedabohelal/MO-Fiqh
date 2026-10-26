@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import logo from '../../assets/logo-circle.webp';
+import logo from '../../assets/logo-circle-128.webp';
 
 interface SplashScreenProps {
   visible: boolean;

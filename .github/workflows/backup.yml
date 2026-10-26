@@ -37,6 +37,11 @@ jobs:
           VITE_FIREBASE_APP_ID=${{ vars.VITE_FIREBASE_APP_ID }}
           EOF
 
+      - name: Verify Service Account Key
+        run: npm run check:backup-key
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
       - name: Run Firestore Backup
         run: npm run backup
         env:

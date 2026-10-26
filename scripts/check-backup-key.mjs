@@ -34,6 +34,10 @@ if (existsSync(keyPath)) {
     process.exit(1);
   }
 } else {
+  if (process.env.CI || process.argv.includes('--strict')) {
+    console.error('❌ مفتاح حساب الخدمة غير موجود (في بيئة CI يلزم وجود سر FIREBASE_SERVICE_ACCOUNT لضمان شمول بيانات المستخدمين).');
+    process.exit(1);
+  }
   console.log('ℹ️  مفتاح حساب الخدمة غير موجود محلياً (وضع العميل النشط حالياً).');
   console.log(`   المسار المستهدف: ${keyPath}`);
   console.log('   خطوات تفعيل النسخ الشامل لبيانات كل المستخدمين:');

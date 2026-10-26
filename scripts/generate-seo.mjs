@@ -292,8 +292,7 @@ ${next ? `<link rel="next" href="${next}">` : ''}
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(desc)}">
 <meta name="twitter:image" content="${ogImage.url}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Amiri+Quran&family=Tajawal:wght@400;700&display=swap">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <script type="application/ld+json">${jsonLdString(jsonld)}</script>
 <style>${PAGE_CSS}</style>
 </head>

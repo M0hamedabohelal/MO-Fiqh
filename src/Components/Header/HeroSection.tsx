@@ -9,6 +9,8 @@ import {
 } from 'react-icons/fi';
 import type { User } from 'firebase/auth';
 import logo from '../../assets/logo-circle.webp';
+import logo128 from '../../assets/logo-circle-128.webp';
+import logo256 from '../../assets/logo-circle-256.webp';
 import styles from './HeroSection.module.css';
 
 interface HeroSectionProps {
@@ -91,7 +93,9 @@ const HeroSection = ({
             <div className={styles['emblem-ring']} />
             <div className={styles['emblem-core']}>
               <img
-                src={logo}
+                src={logo256}
+                srcSet={`${logo128} 128w, ${logo256} 256w, ${logo} 640w`}
+                sizes="(max-width: 600px) 110px, 180px"
                 alt="شعار منصة يَسِّر"
                 className={styles['emblem-img']}
                 width="180"

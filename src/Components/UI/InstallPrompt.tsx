@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FiDownload, FiX, FiShare } from 'react-icons/fi';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
-import logo from '../../assets/logo-circle.webp';
+import logo from '../../assets/logo-circle-64.webp';
 import styles from './InstallPrompt.module.css';
 
 const SHOW_DELAY_MS = 2500;

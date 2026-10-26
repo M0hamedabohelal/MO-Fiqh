@@ -1,6 +1,8 @@
 import { FiBook, FiList, FiFileText, FiSearch, FiSettings, FiBookmark, FiEdit3, FiUser, FiShield, FiAward } from 'react-icons/fi';
 import type { User } from 'firebase/auth';
 import logo from '../../assets/logo-circle.webp';
+import logo64 from '../../assets/logo-circle-64.webp';
+import logo128 from '../../assets/logo-circle-128.webp';
 import './Slider.css';
 
 interface SliderProps {
@@ -26,7 +28,9 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
           style={{ background: 'none', border: 'none', cursor: 'pointer' }}
         >
           <img
-            src={logo}
+            src={logo64}
+            srcSet={`${logo64} 64w, ${logo128} 128w, ${logo} 256w`}
+            sizes="48px"
             alt="شعار يَسِّر"
             className="sidebar-logo-img"
             width="100"

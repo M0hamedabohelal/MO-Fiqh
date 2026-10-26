@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, follow">
+  <title>الصفحة غير موجودة (404) | يَسِّر</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="48x48" href="/icons/icon-48.png">
+  <style>
+    :root {
+      --bg: #0b1219;
+      --card-bg: rgba(26, 37, 48, 0.7);
+      --border: rgba(216, 160, 106, 0.2);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --primary: #d8a06a;
+      --primary-hover: #e6b382;
+      --btn-secondary-bg: rgba(255, 255, 255, 0.05);
+      --btn-secondary-border: rgba(255, 255, 255, 0.15);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Tajawal', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      line-height: 1.7;
+    }
+    .container {
+      max-width: 520px;
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 24px;
+      padding: 44px 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+    .badge-404 {
+      display: inline-block;
+      font-size: 5rem;
+      font-weight: 900;
+      color: var(--primary);
+      line-height: 1;
+      letter-spacing: -2px;
+      margin-bottom: 12px;
+      font-family: system-ui, sans-serif;
+      text-shadow: 0 0 30px rgba(216, 160, 106, 0.3);
+    }
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #fff;
+    }
+    p {
+      color: var(--muted);
+      font-size: 1.05rem;
+      margin-bottom: 32px;
+    }
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    @media (min-width: 480px) {
+      .actions {
+        flex-direction: row;
+        justify-content: center;
+      }
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: #0b1219;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background-color: var(--btn-secondary-bg);
+      color: var(--text);
+      border: 1px solid var(--btn-secondary-border);
+    }
+    .btn-secondary:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge-404">404</div>
+    <h1>الصفحة غير موجودة</h1>
+    <p>عذرًا، المسألة أو الصفحة التي طلبتها غير متوفرة أو ربما تم تغيير مسارها.</p>
+    <div class="actions">
+      <a href="/" class="btn btn-primary">الصفحة الرئيسية</a>
+      <a href="/#/books" class="btn btn-secondary">فهرس الكتب</a>
+    </div>
+  </div>
+</body>
+</html>

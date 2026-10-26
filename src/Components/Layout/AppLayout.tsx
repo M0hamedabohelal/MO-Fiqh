@@ -92,7 +92,7 @@ const AppLayout = () => {
         toggleTheme={() => setTheme(theme === 'dark' ? 'sepia' : 'dark')}
       />
 
-      <div className="container mt-4" style={{ maxWidth: '850px' }}>
+      <main id="main-content" className="container mt-4" style={{ maxWidth: '850px' }}>
         {/* عنوان الصفحة الدلالي: الشاشات تستخدم h3/h4 للتنسيق، فبدون h1 يفقد
             الزحّاف وقارئ الشاشة عنوان الصفحة الرئيسي. مخفي بصريًا بلا أي أثر على التصميم. */}
         <h1 className="visually-hidden">{viewTitle}</h1>
@@ -222,7 +222,7 @@ const AppLayout = () => {
           </motion.div>
         </AnimatePresence>
         )}
-      </div>
+      </main>
     </div>
   </div>
   </MotionConfig>
