@@ -308,7 +308,7 @@
 .main-stage {
   position: relative;
   width: 100%;
-  max-width: min(680px, 92vw);
+  max-width: min(720px, 92vw);
   flex: 1;
   min-height: 0;
   display: flex;
@@ -316,7 +316,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: clamp(0.35rem, 1.2dvh, 0.75rem);
+  gap: clamp(0.4rem, 1.4dvh, 0.85rem);
   z-index: 10;
   padding: clamp(0.2rem, 0.8dvh, 0.6rem) 0;
   margin: 0 auto;
@@ -330,6 +330,7 @@
   align-items: center;
   position: relative;
   width: 100%;
+  padding-bottom: clamp(14px, 2.2dvh, 22px);
 }
 
 .emblem-showcase {
@@ -337,8 +338,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: clamp(140px, 18dvh, 195px);
-  height: clamp(140px, 18dvh, 195px);
+  width: clamp(150px, 19dvh, 195px);
+  height: clamp(150px, 19dvh, 195px);
   animation: heroEmblemIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   margin: 0 auto;
 }
@@ -449,11 +450,11 @@
 
 .hero-description {
   font-family: 'Tajawal', sans-serif;
-  font-size: clamp(0.85rem, 1.4dvh, 0.95rem);
+  font-size: clamp(0.85rem, 1.4dvh, 0.98rem);
   color: var(--hero-text-secondary);
-  line-height: 1.6;
+  line-height: 1.65;
   margin: 0 auto clamp(0.45rem, 1.1dvh, 0.75rem);
-  max-width: 480px;
+  max-width: 520px;
   text-align: center;
   animation: heroFadeUp 0.55s ease backwards;
   animation-delay: 320ms;
@@ -465,7 +466,7 @@
   flex-direction: column;
   gap: clamp(0.75rem, 1.6vh, 1.1rem);
   width: 100%;
-  max-width: 380px;
+  max-width: 440px;
   margin: 0 auto;
   align-items: center;
   animation: heroFadeUp 0.55s ease backwards;
@@ -580,7 +581,7 @@
 /* Resume Card (آخر وقفة) */
 .resume-card {
   width: 100%;
-  max-width: 380px;
+  max-width: 440px;
   min-height: 44px;
   display: flex;
   flex-direction: column;
@@ -704,6 +705,7 @@
     order: -1;
     flex: 0 0 auto;
     width: 100%;
+    padding-bottom: 8px;
   }
 
   .emblem-showcase {
@@ -798,9 +800,9 @@
   }
 }
 
-/* ── 8. Height Ladder Priority (Short Screens & Foldables) ── */
+/* ── 8. Height Ladder Priority (Short Screens & Foldables on Mobile) ── */
 /* الشاشات التي ارتفاعها بين 600px و 740px (مثل iPhone SE: 667px) */
-@media (max-height: 740px) {
+@media (max-height: 740px) and (max-width: 900px) {
   .hero-description {
     display: none; /* إخفاء الوصف المطول وإبقاء سطر الوصف البليغ لمنع السكرول */
   }
@@ -824,7 +826,7 @@
 }
 
 /* الشاشات القصيرة جدًا (< 600px) */
-@media (max-height: 600px) {
+@media (max-height: 600px) and (max-width: 900px) {
   .emblem-showcase {
     width: clamp(56px, 10dvh, 68px);
     height: clamp(56px, 10dvh, 68px);
@@ -859,7 +861,7 @@
 }
 
 /* الشاشات شديدة القصر (< 520px / الوضع الأفقي للجوال) */
-@media (max-height: 520px) {
+@media (max-height: 520px) and (max-width: 900px) {
   .bottom-bar {
     display: none; /* إخفاء الحديث لمنع أي تمرير نهائيًا */
   }
