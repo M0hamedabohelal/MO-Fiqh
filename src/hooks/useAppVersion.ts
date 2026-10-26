@@ -1,4 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { registerSW } from 'virtual:pwa-register';
+
+// كشف «نسخة جديدة منشورة» عبر Service Worker مع استمرار فحص index.html كـ fallback:
+type UpdateListener = (ready: boolean) => void;
+const updateListeners = new Set<UpdateListener>();
+let swUpdater: ((reloadPage?: boolean) => Promise<void>) | null = null;
+let swRegistered = false;
+
+function setupServiceWorker(onUpdate: (ready: boolean) => void): () => void {
+  updateListeners.add(onUpdate);
+
+  if (!swRegistered && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    swRegistered = true;
+    try {
+      swUpdater = registerSW({
+        immediate: true,
+        onNeedRefresh() {
+          updateListeners.forEach((listener) => listener(true));
+        },
+        onOfflineReady() {
+          // التطبيق جاهز للعمل دون اتصال
+        },
+      });
+    } catch {
+      // بيئات لا تدعم SW
+    }
+  }
+
+  return () => {
+    updateListeners.delete(onUpdate);
+  };
+}
 
 // كشف «نسخة جديدة منشورة» بلا Service Worker وبلا PWA:
 // نقارن اسم حزمة الجافاسكربت التي يعمل عليها التبويب الحالي باسم الحزمة في
@@ -182,35 +214,14 @@ export function useAppVersion(): AppVersionState {
       }, 120);
     };
 
-    const hasCaches = typeof window !== 'undefined' && 'caches' in window;
-    const hasSw = typeof navigator !== 'undefined' && 'serviceWorker' in navigator;
-
-    // في البيئات الخالية من الـ caches والـ worker (مثل الاختبارات): ننفّذ فوراً للتوافق
-    if (!hasCaches && !hasSw) {
-      doHardReload();
+    if (swUpdater) {
+      void swUpdater(true).catch(() => {
+        doHardReload();
+      });
       return;
     }
 
-    // في المتصفح الحقيقي: نضمن إفراغ الـ cache وإلغاء تسجيل service workers قبل إعادة التحميل
-    const cleanupAndReload = async () => {
-      try {
-        if (hasCaches) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map((k) => caches.delete(k)));
-        }
-      } catch { /* ignore */ }
-
-      try {
-        if (hasSw) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map((r) => r.unregister()));
-        }
-      } catch { /* ignore */ }
-
-      doHardReload();
-    };
-
-    void cleanupAndReload();
+    doHardReload();
   }, []);
 
   // «تحقّق الآن» في الإعدادات: يفحص، وإن وُجد نشر أحدث يُحدّث فورًا بدل الاكتفاء
@@ -223,6 +234,16 @@ export function useAppVersion(): AppVersionState {
   }, [checkNow, reloadNow]);
 
   const dismiss = useCallback((): void => setDismissed(true), []);
+
+  // الاستماع لتحديثات الـ Service Worker (PWA)
+  useEffect(() => {
+    return setupServiceWorker((ready) => {
+      if (ready) {
+        setUpdateReady(true);
+        setCheckStatus('update-ready');
+      }
+    });
+  }, []);
 
   // الفحص الأول بعد استقرار الإقلاع + دوري + عند عودة التبويب للمقدمة
   useEffect(() => {

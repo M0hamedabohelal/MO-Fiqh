@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+vi.mock('virtual:pwa-register', () => ({
+  registerSW: vi.fn(() => vi.fn()),
+}));
 import { renderHook, act, waitFor } from '@testing-library/react';
 import {
   extractEntryAsset,

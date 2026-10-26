@@ -6,6 +6,7 @@ import ShortcutsHelpModal from './Components/UI/ShortcutsHelpModal';
 import MobileBottomNav from './Components/Navigation/MobileBottomNav';
 import SplashScreen   from './Components/UI/SplashScreen';
 import UpdateBanner   from './Components/UI/UpdateBanner'
+import { InstallPrompt } from './Components/UI/InstallPrompt'
 import GuestLoginPrompt from './Components/UI/GuestLoginPrompt'
 import { requireLogin, executePendingAction } from './utils/guestPrompt';
 import LoginModal     from './Components/Auth/LoginModal';
@@ -339,8 +340,10 @@ function App() {
     <div className="container-fluid p-0 position-relative">
       <SplashScreen visible={showSplash} progress={splashProgress} statusText={splashStatus} />
 
-      {/* إشعار نشر نسخة جديدة — يظهر تلقائيًا بلا Service Worker */}
+      {/* إشعار نشر نسخة جديدة — عبر Service Worker مع استمرار الفحص الاحتياطي */}
       <UpdateBanner version={appVersion} />
+      {/* دعوة تثبيت التطبيق PWA */}
+      <InstallPrompt />
       {/* تحذير الزائر عند محاولة حفظ شيء يحتاج حسابًا */}
       <GuestLoginPrompt onOpenLogin={onOpenLogin} />
 
