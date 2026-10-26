@@ -161,8 +161,27 @@ export function useAppVersion(): AppVersionState {
     }
     inFlightRef.current = true;
     setChecking(true);
+    let abortTimer: ReturnType<typeof setTimeout> | null = null;
     try {
-      const res = await fetch(`/index.html?ts=${Date.now()}`, { cache: 'no-store' });
+      // 1. تحفيز Service Worker على تفقد الخادم لحزمة جديدة
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        try {
+          navigator.serviceWorker.getRegistrations().then((regs) => {
+            regs.forEach((r) => void r.update().catch(() => {}));
+          }).catch(() => {});
+        } catch { /* ignore */ }
+      }
+
+      // 2. فحص index.html مع مهلة 6 ثوانٍ كحد أقصى لمنع التعليق عند بطء الشبكة
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      if (controller) {
+        abortTimer = setTimeout(() => controller.abort(), 6000);
+      }
+      const res = await fetch(`/index.html?ts=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+        ...(controller ? { signal: controller.signal } : {}),
+      });
       if (!res.ok) {
         setCheckStatus('network-error');
         return false;
@@ -190,6 +209,7 @@ export function useAppVersion(): AppVersionState {
       setCheckStatus('network-error');
       return false;
     } finally {
+      if (abortTimer) clearTimeout(abortTimer);
       inFlightRef.current = false;
       setChecking(false);
       setLastCheckedAt(Date.now());
@@ -199,7 +219,33 @@ export function useAppVersion(): AppVersionState {
   const reloadNow = useCallback((): void => {
     setReloading(true);
 
+    // 1. تنظيف الـ Cache Storage فورًا من أي كاش قديم لـ index.html وحزم JS
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      try {
+        window.caches.keys().then((keys) => {
+          keys.forEach((key) => {
+            void window.caches.delete(key);
+          });
+        });
+      } catch { /* ignore */ }
+    }
+
+    // 2. إخطار الـ Service Workers بتفعيل الحزمة الجديدة فورًا وتخطي الانتظار
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      try {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          regs.forEach((reg) => {
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            void reg.update().catch(() => {});
+          });
+        });
+      } catch { /* ignore */ }
+    }
+
     const doHardReload = () => {
+      // إعادة تحميل المستند كاملاً مع وسيط زمني لكسر الكاش
       try {
         const url = new URL(window.location.href);
         url.searchParams.set('v', String(Date.now()));
@@ -208,22 +254,28 @@ export function useAppVersion(): AppVersionState {
       } catch {
         window.location.reload();
       }
+
       // شبكة أمان للفون والمتصفحات التي لا تُعيد تحميل المستند عند تغيّر searchParams في hash-router
       setTimeout(() => {
         try {
           window.location.reload();
         } catch { /* ignore */ }
-      }, 120);
+      }, 100);
+
+      // شبكة أمان: فك حالة التحميل بعد 4 ثوانٍ حتى لا يظل الزر عالقًا في "لود" إن تعذر التحميل
+      setTimeout(() => {
+        setReloading(false);
+      }, 4000);
     };
 
     if (swNeedRefresh && swUpdater) {
       void swUpdater(true).catch(() => {
         doHardReload();
       });
-      // شبكة أمان: لو لم تُعد المتصفح أو العامل التحميل خلال 800ms، نعيد التحميل قسريًا
+      // شبكة أمان: لو لم يُعد العامل التحميل خلال 600ms، نُعيد التحميل قسريًا
       setTimeout(() => {
         doHardReload();
-      }, 800);
+      }, 600);
       return;
     }
 

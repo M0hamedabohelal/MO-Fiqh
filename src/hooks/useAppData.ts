@@ -8,6 +8,8 @@ import { BOOKS_LIST } from '../data/books';
 import type { Lesson, GlossaryMap } from '../types';
 
 const CLOUD_LESSONS_TIMEOUT_MS = 15_000;
+// مهلة التحديث اليدوي: 5 ثوانٍ كحد أقصى لمنع تعليق زر التحديث في حالة "لود" عند بطء الشبكة
+const MANUAL_LESSONS_TIMEOUT_MS = 5_000;
 // مهلة السماح: أقصى انتظار للخادم قبل عرض النسخة المحلية مع متابعة الجلب في الخلفية.
 const CLOUD_GRACE_MS = 6_000;
 // إعادة المحاولة التلقائية عند فشل الجلب السحابي الأولي (شبكة بطيئة أو تهيئة Firestore باردة).
@@ -207,7 +209,8 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       void enableFirestoreNetwork();
     }
     const succeeded = await new Promise<boolean>((resolve) => {
-      const timer = setTimeout(() => settlePendingReload(false), CLOUD_LESSONS_TIMEOUT_MS);
+      const timeoutMs = manual ? MANUAL_LESSONS_TIMEOUT_MS : CLOUD_LESSONS_TIMEOUT_MS;
+      const timer = setTimeout(() => settlePendingReload(false), timeoutMs);
       pendingReloadRef.current = { resolve, timer };
       // إعادة فتح المستمع = طلب لقطة خادمية جديدة
       setListenerRevision((revision) => revision + 1);

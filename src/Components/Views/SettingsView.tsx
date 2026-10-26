@@ -125,6 +125,10 @@ const SettingsView = () => {
     setTimeout(() => {
       appVersion.reloadNow();
     }, 150);
+    // شبكة أمان: فك حالة التحميل بعد 4 ثوانٍ حتى لا يظل معلقًا
+    setTimeout(() => {
+      setPurgingCache(false);
+    }, 4000);
   };
 
   // الزر: تثبيت الموقع كتطبيق (App / PWA)
