@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { usePWAInstall } from './usePWAInstall';
+import { usePWAInstall, _resetPWAStateForTesting } from './usePWAInstall';
 
 describe('usePWAInstall Hook', () => {
   beforeEach(() => {
     localStorage.clear();
+    _resetPWAStateForTesting();
     vi.stubGlobal('matchMedia', vi.fn().mockImplementation((query) => ({
       matches: false,
       media: query,

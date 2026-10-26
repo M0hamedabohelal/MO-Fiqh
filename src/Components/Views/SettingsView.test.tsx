@@ -4,6 +4,7 @@ import { render, screen, fireEvent, act, cleanup } from '@testing-library/react'
 import SettingsView from './SettingsView';
 import type { AppVersionState } from '../../hooks/useAppVersion';
 import * as librarySync from '../../utils/librarySync';
+import * as pwaHook from '../../hooks/usePWAInstall';
 
 // Mock AppContext
 const mockSetCurrentView = vi.fn();
@@ -216,5 +217,135 @@ describe('SettingsView Component', () => {
 
     expect(resumeSpy).toHaveBeenCalledWith('user_paused_123', false);
     expect(screen.getByText(/تمت إعادة تفعيل المزامنة السحابية بنجاح/)).toBeTruthy();
+  });
+
+  describe('بطاقة تثبيت التطبيق (PWA Install)', () => {
+    it('تعرض بطاقة تثبيت التطبيق وزر التثبيت عندما لا يكون مثبتاً', () => {
+      vi.spyOn(pwaHook, 'usePWAInstall').mockReturnValue({
+        isInstallable: true,
+        isInstalled: false,
+        isIOS: false,
+        isDismissed: false,
+        promptInstall: vi.fn(),
+        dismissPrompt: vi.fn(),
+      });
+
+      render(<SettingsView />);
+
+      expect(screen.getByText('تثبيت التطبيق على جهازك')).toBeTruthy();
+      expect(screen.getByRole('button', { name: /تثبيت الموقع كتطبيق/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /إرشادات التثبيت/i })).toBeTruthy();
+    });
+
+    it('النقر على زر التثبيت يستدعي promptInstall ويعرض رسالة النجاح عند القبول', async () => {
+      const mockPromptInstall = vi.fn().mockResolvedValue('accepted');
+      vi.spyOn(pwaHook, 'usePWAInstall').mockReturnValue({
+        isInstallable: true,
+        isInstalled: false,
+        isIOS: false,
+        isDismissed: false,
+        promptInstall: mockPromptInstall,
+        dismissPrompt: vi.fn(),
+      });
+
+      render(<SettingsView />);
+
+      const installBtn = screen.getByRole('button', { name: /تثبيت الموقع كتطبيق/i });
+      await act(async () => {
+        fireEvent.click(installBtn);
+      });
+
+      expect(mockPromptInstall).toHaveBeenCalledTimes(1);
+      expect(await screen.findByText(/تم تثبيت تطبيق «يَسِّر» بنجاح/)).toBeTruthy();
+    });
+
+    it('النقر على زر التثبيت يعرض رسالة إلغاء عند رفض المستخدم للمطالبة', async () => {
+      const mockPromptInstall = vi.fn().mockResolvedValue('dismissed');
+      vi.spyOn(pwaHook, 'usePWAInstall').mockReturnValue({
+        isInstallable: true,
+        isInstalled: false,
+        isIOS: false,
+        isDismissed: false,
+        promptInstall: mockPromptInstall,
+        dismissPrompt: vi.fn(),
+      });
+
+      render(<SettingsView />);
+
+      const installBtn = screen.getByRole('button', { name: /تثبيت الموقع كتطبيق/i });
+      await act(async () => {
+        fireEvent.click(installBtn);
+      });
+
+      expect(mockPromptInstall).toHaveBeenCalledTimes(1);
+      expect(await screen.findByText(/تم إلغاء التثبيت/)).toBeTruthy();
+    });
+
+    it('في أجهزة iOS: النقر على التثبيت يعرض إرشادات متصفح Safari وزر المشاركة', async () => {
+      vi.spyOn(pwaHook, 'usePWAInstall').mockReturnValue({
+        isInstallable: true,
+        isInstalled: false,
+        isIOS: true,
+        isDismissed: false,
+        promptInstall: vi.fn(),
+        dismissPrompt: vi.fn(),
+      });
+
+      render(<SettingsView />);
+
+      const installBtn = screen.getByRole('button', { name: /تثبيت الموقع كتطبيق/i });
+      await act(async () => {
+        fireEvent.click(installBtn);
+      });
+
+      expect(await screen.findByText(/للتثبيت على iPhone أو iPad/)).toBeTruthy();
+      expect(screen.getByText(/خطوات التثبيت حسب جهازك/)).toBeTruthy();
+    });
+
+    it('عندما يكون التطبيق مثبتاً بالفعل (isInstalled=true) يعرض حالة التثبيت والزر المعطل', () => {
+      vi.spyOn(pwaHook, 'usePWAInstall').mockReturnValue({
+        isInstallable: false,
+        isInstalled: true,
+        isIOS: false,
+        isDismissed: false,
+        promptInstall: vi.fn(),
+        dismissPrompt: vi.fn(),
+      });
+
+      render(<SettingsView />);
+
+      expect(screen.getByText('التطبيق مُثبّت')).toBeTruthy();
+      expect(screen.getByText('التطبيق مثبت ويعمل حالياً')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: /تثبيت الموقع كتطبيق/i })).toBeNull();
+    });
+
+    it('الضغط على زر إرشادات التثبيت يُظهر ويخفي صندوق الإرشادات لجميع الأجهزة', () => {
+      vi.spyOn(pwaHook, 'usePWAInstall').mockReturnValue({
+        isInstallable: true,
+        isInstalled: false,
+        isIOS: false,
+        isDismissed: false,
+        promptInstall: vi.fn(),
+        dismissPrompt: vi.fn(),
+      });
+
+      render(<SettingsView />);
+
+      const guideToggleBtn = screen.getByRole('button', { name: /إرشادات التثبيت/i });
+
+      // قبل الضغط لا تظهر الإرشادات
+      expect(screen.queryByText(/خطوات التثبيت حسب جهازك/)).toBeNull();
+
+      // الضغط لفتح الإرشادات
+      fireEvent.click(guideToggleBtn);
+      expect(screen.getByText(/خطوات التثبيت حسب جهازك/)).toBeTruthy();
+      expect(screen.getByText(/هواتف أندرويد/)).toBeTruthy();
+      expect(screen.getByText(/هواتف آيفون وآيباد/)).toBeTruthy();
+      expect(screen.getByText(/الكمبيوتر واللابتوب/)).toBeTruthy();
+
+      // الضغط مرة ثانية للإخفاء
+      fireEvent.click(guideToggleBtn);
+      expect(screen.queryByText(/خطوات التثبيت حسب جهازك/)).toBeNull();
+    });
   });
 });

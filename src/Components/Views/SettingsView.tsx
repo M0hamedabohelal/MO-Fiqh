@@ -18,8 +18,12 @@ import {
   FiSliders,
   FiLayers,
   FiCheck,
+  FiSmartphone,
+  FiDownload,
+  FiShare,
 } from 'react-icons/fi';
 import { useApp } from '../Layout/AppContext';
+import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { isFirebaseConfigured } from '../../firebase/config';
 import { safeRemove } from '../../utils/safeStorage';
 import { isSyncDisabled, setSyncDisabled, subscribeSyncDisabled } from '../../utils/librarySync';
@@ -49,6 +53,12 @@ const SettingsView = () => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearingCloud, setClearingCloud] = useState(false);
   const [cloudFeedback, setCloudFeedback] = useState<FeedbackMessage | null>(null);
+
+  // حالات تثبيت التطبيق PWA
+  const { isInstalled, isIOS, promptInstall } = usePWAInstall();
+  const [installing, setInstalling] = useState(false);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [installFeedback, setInstallFeedback] = useState<FeedbackMessage | null>(null);
 
   // مراقبة حالة إيقاف المزامنة
   const isSyncPausedState = useSyncExternalStore(
@@ -115,6 +125,53 @@ const SettingsView = () => {
     setTimeout(() => {
       appVersion.reloadNow();
     }, 150);
+  };
+
+  // الزر: تثبيت الموقع كتطبيق (App / PWA)
+  const handleInstallApp = async (): Promise<void> => {
+    if (isInstalled || installing) return;
+    setInstalling(true);
+    setInstallFeedback(null);
+
+    try {
+      if (isIOS) {
+        setShowInstallGuide(true);
+        setInstallFeedback({
+          type: 'info',
+          text: 'للتثبيت على iPhone أو iPad: اضغط على زر المشاركة أسفل المتصفح ثم اختر «إضافة إلى الشاشة الرئيسية».',
+        });
+        return;
+      }
+
+      const outcome = await promptInstall();
+      if (outcome === 'accepted') {
+        setInstallFeedback({
+          type: 'success',
+          text: 'تم تثبيت تطبيق «يَسِّر» بنجاح على جهازك! ستجده الآن في شاشتك الرئيسية.',
+        });
+        setShowInstallGuide(false);
+      } else if (outcome === 'dismissed') {
+        setInstallFeedback({
+          type: 'info',
+          text: 'تم إلغاء التثبيت. يمكنك إعادة المحاولة في أي وقت بالنقر على الزر.',
+        });
+      } else {
+        // unsupported or prompt not ready yet
+        setShowInstallGuide(true);
+        setInstallFeedback({
+          type: 'info',
+          text: 'يمكنك تثبيت التطبيق مباشرة عبر قائمة متصفحك كما هو موضح في الإرشادات بالأسفل.',
+        });
+      }
+    } catch {
+      setShowInstallGuide(true);
+      setInstallFeedback({
+        type: 'info',
+        text: 'يمكنك تثبيت التطبيق يدويًا عبر خيارات المتصفح (إضافة إلى الشاشة الرئيسية).',
+      });
+    } finally {
+      setInstalling(false);
+    }
   };
 
   // الزر الثالث: تحديث محتوى المسائل والقاموس من السحابة
@@ -355,7 +412,131 @@ const SettingsView = () => {
         </div>
       </section>
 
-      {/* 2. بطاقة المحتوى الفقهي والمزامنة */}
+      {/* 2. بطاقة تثبيت الموقع كتطبيق (App / PWA) */}
+      <section className={styles.settingsCard} aria-labelledby="pwa-install-heading">
+        <div className={styles.cardHeader}>
+          <div className={styles.cardTitleGroup}>
+            <div className={styles.cardIcon}>
+              <FiSmartphone />
+            </div>
+            <h3 id="pwa-install-heading" className={styles.cardTitle}>
+              تثبيت التطبيق على جهازك
+            </h3>
+          </div>
+          {isInstalled ? (
+            <span className={`${styles.statusChip} ${styles.statusSuccess}`}>
+              <FiCheck size={14} /> التطبيق مُثبّت
+            </span>
+          ) : (
+            <span className={`${styles.statusChip} ${styles.statusInfo}`}>
+              متاح كـ تطبيق PWA
+            </span>
+          )}
+        </div>
+
+        <p className={styles.cardDesc}>
+          {isInstalled
+            ? 'تطبيق «يَسِّر» مثبت حاليًا على جهازك ويعمل كنافذة مستقلة بدون أشرطة المتصفح، مع دعم كامل لتصفح المسائل دون اتصال بالإنترنت.'
+            : 'يمكنك تثبيت الموقع كتطبيق خفيف وسريع على هاتفك أو حاسوبك، للوصول الفوري، وتصفح المسائل دون إنترنت، وتجربة قراءة ملء الشاشة خالية من المشتتات.'}
+        </p>
+
+        <div className={styles.actionRow}>
+          <div className={styles.actionBtnGroup}>
+            {!isInstalled ? (
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={handleInstallApp}
+                disabled={installing}
+                aria-label="تثبيت الموقع كتطبيق"
+              >
+                {installing ? (
+                  <span className={styles.spinner} role="status" aria-hidden="true" />
+                ) : (
+                  <FiDownload />
+                )}
+                <span>{installing ? 'جارٍ التثبيت...' : 'تثبيت الموقع كتطبيق'}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                disabled
+                style={{ opacity: 0.9, cursor: 'default' }}
+              >
+                <FiCheck size={16} />
+                <span>التطبيق مثبت ويعمل حالياً</span>
+              </button>
+            )}
+
+            {!isInstalled && (
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => setShowInstallGuide((prev) => !prev)}
+                aria-expanded={showInstallGuide}
+                aria-label="إرشادات التثبيت"
+              >
+                <FiInfo />
+                <span>{showInstallGuide ? 'إخفاء الإرشادات' : 'إرشادات التثبيت'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* دليل التثبيت الإرشادي */}
+        {showInstallGuide && !isInstalled && (
+          <div className={styles.installGuideBox} role="region" aria-label="دليل التثبيت لجميع الأجهزة">
+            <h4 className={styles.installGuideTitle}>
+              <FiSmartphone size={16} /> خطوات التثبيت حسب جهازك:
+            </h4>
+            <div className={styles.installGuideGrid}>
+              <div className={styles.installGuideCard}>
+                <div className={styles.installGuideDevice}>📱 هواتف أندرويد (Chrome / Samsung)</div>
+                <p className={styles.installGuideStep}>
+                  اضغط على زر القائمة <strong>(⋮)</strong> أعلى يسار المتصفح، ثم اختر <strong>«تثبيت التطبيق»</strong> أو <strong>«إضافة إلى الشاشة الرئيسية»</strong>.
+                </p>
+              </div>
+              <div className={styles.installGuideCard}>
+                <div className={styles.installGuideDevice}>🍏 هواتف آيفون وآيباد (iOS Safari)</div>
+                <p className={styles.installGuideStep}>
+                  اضغط على زر المشاركة <strong>(Share <FiShare size={13} />)</strong> أسفل الشاشة، ثم مرر واختر <strong>«إضافة إلى الشاشة الرئيسية ＋»</strong>.
+                </p>
+              </div>
+              <div className={styles.installGuideCard}>
+                <div className={styles.installGuideDevice}>💻 الكمبيوتر واللابتوب (Chrome / Edge)</div>
+                <p className={styles.installGuideStep}>
+                  اضغط على أيقونة التثبيت <strong>(⊕)</strong> في شريط العنوان بالأعلى، أو من قائمة المتصفح <strong>(⋮)</strong> اختر <strong>«تثبيت تطبيق يَسِّر»</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* رسائل التغذية الراجعة لتثبيت التطبيق */}
+        {installFeedback && (
+          <div
+            role="status"
+            className={`${styles.feedbackAlert} ${
+              installFeedback.type === 'success'
+                ? styles.feedbackAlertSuccess
+                : installFeedback.type === 'warning'
+                ? styles.feedbackAlertWarning
+                : installFeedback.type === 'error'
+                ? styles.feedbackAlertError
+                : styles.feedbackAlertInfo
+            }`}
+          >
+            {installFeedback.type === 'success' && <FiCheckCircle size={18} />}
+            {installFeedback.type === 'warning' && <FiAlertTriangle size={18} />}
+            {installFeedback.type === 'error' && <FiAlertTriangle size={18} />}
+            {installFeedback.type === 'info' && <FiInfo size={18} />}
+            <span>{installFeedback.text}</span>
+          </div>
+        )}
+      </section>
+
+      {/* 3. بطاقة المحتوى الفقهي والمزامنة */}
       <section className={styles.settingsCard} aria-labelledby="content-sync-heading">
         <div className={styles.cardHeader}>
           <div className={styles.cardTitleGroup}>
@@ -429,7 +610,7 @@ const SettingsView = () => {
         )}
       </section>
 
-      {/* 3. بطاقة مسيرتي الفقهية وإنجازاتي */}
+      {/* 4. بطاقة مسيرتي الفقهية وإنجازاتي */}
       <section className={styles.settingsCard} aria-labelledby="achievements-heading">
         <button
           type="button"
@@ -464,7 +645,7 @@ const SettingsView = () => {
         </button>
       </section>
 
-      {/* 4. بطاقة الخصوصية والمزامنة السحابية للمستخدم المسجل */}
+      {/* 5. بطاقة الخصوصية والمزامنة السحابية للمستخدم المسجل */}
       {user && (
         <section className={styles.settingsCard} aria-labelledby="privacy-heading">
           <div className={styles.cardHeader}>
@@ -578,7 +759,7 @@ const SettingsView = () => {
         </section>
       )}
 
-      {/* 5. قسم الدعاء والتواصل مع المطور */}
+      {/* 6. قسم الدعاء والتواصل مع المطور */}
       <section className={`${styles.settingsCard} ${styles.prayerSection}`}>
         <div className={styles.prayerHeart} aria-hidden="true">
           <FiHeart />

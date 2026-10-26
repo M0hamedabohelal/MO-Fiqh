@@ -14,6 +14,37 @@ interface BeforeInstallPromptEvent extends Event {
 
 const DISMISSED_KEY = 'yasser_pwa_install_dismissed';
 
+let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
+const promptListeners = new Set<() => void>();
+
+export const _resetPWAStateForTesting = (): void => {
+  globalDeferredPrompt = null;
+  promptListeners.clear();
+};
+
+const notifyPromptListeners = (): void => {
+  promptListeners.forEach((fn) => {
+    try {
+      fn();
+    } catch {
+      // ignore
+    }
+  });
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e: Event) => {
+    e.preventDefault();
+    globalDeferredPrompt = e as BeforeInstallPromptEvent;
+    notifyPromptListeners();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    globalDeferredPrompt = null;
+    notifyPromptListeners();
+  });
+}
+
 export interface PWAInstallState {
   /** هل يمكن تثبيت التطبيق الآن (أندرويد/كروم جاهز للـ prompt أو iOS في المتصفح) */
   isInstallable: boolean;
@@ -35,14 +66,16 @@ const checkIsIOS = (): boolean => {
   return /iphone|ipad|ipod/.test(ua) || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
 };
 
+const checkIsInstalled = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const isStandalone = typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches;
+  const isIOSStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+  return Boolean(isStandalone || isIOSStandalone);
+};
+
 export function usePWAInstall(): PWAInstallState {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    const isIOSStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-    return isStandalone || isIOSStandalone;
-  });
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(() => globalDeferredPrompt);
+  const [isInstalled, setIsInstalled] = useState<boolean>(() => checkIsInstalled());
 
   const [isIOS] = useState<boolean>(() => checkIsIOS());
   const [isDismissed, setIsDismissed] = useState<boolean>(() => {
@@ -57,27 +90,39 @@ export function usePWAInstall(): PWAInstallState {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // مراقبة الانتقال إلى وضع Standalone
-    const mediaQuery = window.matchMedia('(display-mode: standalone)');
-    const handleDisplayModeChange = (e: MediaQueryListEvent) => {
-      setIsInstalled(e.matches);
+    const onPromptChange = () => {
+      setDeferredPrompt(globalDeferredPrompt);
     };
+    promptListeners.add(onPromptChange);
 
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', handleDisplayModeChange);
-    } else {
-      mediaQuery.addListener(handleDisplayModeChange);
+    // مراقبة الانتقال إلى وضع Standalone إن كان matchMedia مدعوماً
+    let mediaQuery: MediaQueryList | null = null;
+    let handleDisplayModeChange: ((e: MediaQueryListEvent) => void) | null = null;
+
+    if (typeof window.matchMedia === 'function') {
+      mediaQuery = window.matchMedia('(display-mode: standalone)');
+      handleDisplayModeChange = (e: MediaQueryListEvent) => {
+        setIsInstalled(e.matches);
+      };
+
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener('change', handleDisplayModeChange);
+      } else {
+        mediaQuery.addListener(handleDisplayModeChange);
+      }
     }
 
     // التقاط حدث قبل التثبيت في كروم وأندرويد
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      globalDeferredPrompt = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(globalDeferredPrompt);
     };
 
     // الاستماع لحدث اكتمال التثبيت
     const handleAppInstalled = () => {
       setIsInstalled(true);
+      globalDeferredPrompt = null;
       setDeferredPrompt(null);
     };
 
@@ -85,10 +130,13 @@ export function usePWAInstall(): PWAInstallState {
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener('change', handleDisplayModeChange);
-      } else {
-        mediaQuery.removeListener(handleDisplayModeChange);
+      promptListeners.delete(onPromptChange);
+      if (mediaQuery && handleDisplayModeChange) {
+        if (mediaQuery.removeEventListener) {
+          mediaQuery.removeEventListener('change', handleDisplayModeChange);
+        } else {
+          mediaQuery.removeListener(handleDisplayModeChange);
+        }
       }
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
@@ -96,15 +144,17 @@ export function usePWAInstall(): PWAInstallState {
   }, []);
 
   const promptInstall = useCallback(async (): Promise<'accepted' | 'dismissed' | 'unsupported'> => {
-    if (!deferredPrompt) {
+    const promptToUse = deferredPrompt || globalDeferredPrompt;
+    if (!promptToUse) {
       return 'unsupported';
     }
 
     try {
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
+      await promptToUse.prompt();
+      const choice = await promptToUse.userChoice;
       if (choice.outcome === 'accepted') {
         setIsInstalled(true);
+        globalDeferredPrompt = null;
         setDeferredPrompt(null);
       }
       return choice.outcome;
