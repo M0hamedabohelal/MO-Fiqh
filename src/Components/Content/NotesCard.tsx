@@ -125,9 +125,9 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
       className="custom-card p-4 p-md-5 mb-4 shadow-sm"
     >
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h5 className="mb-0 d-flex align-items-center fw-bold" style={{ color: 'var(--primary-color)' }}>
+        <h3 className="h5 mb-0 d-flex align-items-center fw-bold" style={{ color: 'var(--primary-color)' }}>
           ملاحظاتي وفوائدي الخاصة <FiEdit3 className="ms-2" />
-        </h5>
+        </h3>
         <button 
           onClick={handleExportPDF}
           className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"

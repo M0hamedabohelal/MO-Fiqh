@@ -41,11 +41,28 @@ function App() {
   // ─── Auth ───
   const { user, isAdminUser, authLoading } = useAuth();
 
-  // ─── حالة الشبكة ───
+  // ─── حالة الشبكة وتأجيل اتصال السحابة على صفحة الهيرو ───
   const isOffline = useOnlineStatus();
+  const [deferCloud, setDeferCloud] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const h = window.location.hash;
+    return !h || h === '#/' || h === '#/hero';
+  });
+
+  // تفعيل اتصال Firestore السحابي عند مغادرة الهيرو عبر حدث hashchange (اشتراك خارجي نظيف)
+  useEffect(() => {
+    const onHashChange = () => {
+      const h = window.location.hash;
+      if (h && h !== '#/' && h !== '#/hero') {
+        setDeferCloud(false);
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   // ─── بيانات المحتوى ───
-  const { lessons, glossary, cloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, contentSource } = useAppData({ isOffline });
+  const { lessons, glossary, cloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, contentSource } = useAppData({ isOffline, deferCloud });
   const appVersion = useAppVersion();
 
   // ─── المكتبة الشخصية ───

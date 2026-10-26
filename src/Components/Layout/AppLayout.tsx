@@ -87,10 +87,12 @@ const AppLayout = () => {
       className="col-lg-10 col-md-9 px-4 pb-5 pb-md-3"
       style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))' }}
     >
-      <Topbar
-        theme={theme}
-        toggleTheme={() => setTheme(theme === 'dark' ? 'sepia' : 'dark')}
-      />
+      <header role="banner">
+        <Topbar
+          theme={theme}
+          toggleTheme={() => setTheme(theme === 'dark' ? 'sepia' : 'dark')}
+        />
+      </header>
 
       <main id="main-content" className="container mt-4" style={{ maxWidth: '850px' }}>
         {/* عنوان الصفحة الدلالي: الشاشات تستخدم h3/h4 للتنسيق، فبدون h1 يفقد

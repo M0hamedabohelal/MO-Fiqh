@@ -350,9 +350,9 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
           </button>
         </div>
         
-        <h5 className="mb-4 d-flex align-items-center justify-content-center fw-bold" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-heading)' }}>
+        <h3 className="h5 mb-4 d-flex align-items-center justify-content-center fw-bold" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-heading)' }}>
            متن الكتاب <FiBookOpen className="ms-2" />
-        </h5>
+        </h3>
 
         <div 
           className={`mt-3 ${styles.textContent} ${isLongIssue ? 'is-long-issue' : ''}`}

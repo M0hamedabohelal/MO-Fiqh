@@ -21,7 +21,7 @@ const CLOUD_RETRY_MAX_MS = 30_000;
  * hook مسؤول عن تحميل بيانات المحتوى (المسائل والمسرد)
  * من الداتا المحلية أولاً، ثم دمج بيانات السحابة عند توفرها
  */
-export function useAppData({ isOffline }: { isOffline: boolean }) {
+export function useAppData({ isOffline, deferCloud = false }: { isOffline: boolean; deferCloud?: boolean }) {
   // آخر نسخة نزلت من السحابة (تُقرأ مرة واحدة عند الإقلاع قبل أي رسم) —
   // هي الأحدث من اللقطة المضمّنة في البناء، خصوصًا بعد إضافة مسائل جديدة.
   const [cachedAtBoot] = useState<Lesson[]>(() => readCachedLessons() ?? []);
@@ -145,7 +145,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   // الاستعلام (getDocsFromServer) كان يرمي «Target ID already exists» ويُفشل التحديث
   // اليدوي — لذلك «إعادة التحميل» تُعيد فتح هذا المستمع بدل قراءة منفصلة.
   useEffect(() => {
-    if (!isFirebaseConfigured) return undefined;
+    if (!isFirebaseConfigured || deferCloud) return undefined;
     let cancelled = false;
     let unsubscribe: (() => void) | null = null;
     void subscribeToLessons(
@@ -190,7 +190,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
       unsubscribe?.();
     };
     // settlePendingReload ثابت الهوية (useRef داخلي) فلا يُعاد الاشتراك بسببه
-  }, [applyCachedLessons, loadGlossaryOnce, listenerRevision]);
+  }, [applyCachedLessons, loadGlossaryOnce, listenerRevision, deferCloud]);
 
   // جلب/تحديث البيانات من السحابة.
   // لا نقرأ من الخادم قراءةً لقطية منفصلة (getDocsFromServer) لأن المستمع الدائم يملك
@@ -246,6 +246,7 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
   // تحميل البيانات من السحابة مؤجّلاً بحيث لا ينافس أول رسم للشاشة
   // (يُجدول بعد ~0.6 ثانية — بعد اكتمال أول رسم عادةً — ويُعاد عند تغيّر حالة الاتصال)
   useEffect(() => {
+    if (deferCloud) return undefined;
     const comingOnline = wasOfflineRef.current && !isOffline;
     wasOfflineRef.current = isOffline;
     // عاد الاتصال: صفّر التراجع وحاول فورًا حتى لا يبقى المستخدم على رسالة "تعذر".
@@ -293,15 +294,15 @@ export function useAppData({ isOffline }: { isOffline: boolean }) {
         : Math.min(CLOUD_RETRY_BASE_MS * 2 ** (cloudRetryNonce - 1), CLOUD_RETRY_MAX_MS);
     const t = setTimeout(() => { void reloadFromCloud(); }, delay);
     return () => clearTimeout(t);
-  }, [isOffline, reloadFromCloud, cloudLessonsLoaded, cloudRetryNonce, applyCachedLessons]);
+  }, [isOffline, reloadFromCloud, cloudLessonsLoaded, cloudRetryNonce, applyCachedLessons, deferCloud]);
 
   // مهلة السماح: بعدها نفتح التطبيق بالنسخة المحلية حتى لو تأخر الخادم (فيتابع في الخلفية).
   // هذا يمنع بقاء المستخدم على شاشة البداية 15 ثانية ثم رؤية رسالة "تعذر" لمجرد بطء البداية.
   useEffect(() => {
-    if (isOffline || cloudLessonsLoaded) return undefined;
+    if (isOffline || cloudLessonsLoaded || deferCloud) return undefined;
     const t = setTimeout(() => setCloudGraceElapsed(true), CLOUD_GRACE_MS);
     return () => clearTimeout(t);
-  }, [isOffline, cloudLessonsLoaded]);
+  }, [isOffline, cloudLessonsLoaded, deferCloud]);
 
   // تحميل المسرد المحلي (نسخة احتياطية) ديناميكيًا.
   // ملاحظة مهمة: لقطة المسائل المضمّنة (src/data/lessons.ts) **لا تُحمَّل وقت التشغيل**:

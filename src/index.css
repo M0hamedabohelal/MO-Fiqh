@@ -21,7 +21,8 @@
   --text-main: #2c2c2c;
   --text-on-accent: #0f3d3e;
   --text-on-primary: #fbdc99;
-  --text-muted: #6c757d;
+  --text-muted: #595959;
+  --nav-active-color: #0c3834;
   --card-bg: #ffffff;
   --card-border: rgba(0, 0, 0, 0.05);
   --border-color: #eeeeee;
@@ -82,6 +83,7 @@
   --text-on-accent: #121212;
   --text-on-primary: #121212;
   --text-muted: #a9b1ad;
+  --nav-active-color: #e2c06a;
   --card-bg: #1a2020;             /* مائل للتينال ليمتزج مع هوية الموقع */
   --card-border: rgba(255, 255, 255, 0.08);
   --border-color: rgba(255, 255, 255, 0.09);
@@ -190,8 +192,8 @@ body {
 }
 
 /* Custom UI Elements */
-.sidebar-container {
-  background-color: var(--sidebar-bg) !important;
+.sidebar-container.sidebar-container {
+  background-color: var(--sidebar-bg);
   transition: all 0.3s ease;
 }
 
@@ -291,24 +293,25 @@ button:active:not(:disabled),
   opacity: 0.85;
 }
 
-/* بطاقات القوائم (الكتب، الأبواب، المسائل، نتائج البحث) */
-.list-btn {
-  background-color: var(--card-bg) !important;
-  border: 1px solid var(--border-color) !important;
+/* بطاقات القوائم (الكتب، الأبواب، المسائل، نتائج البحث)
+   تكرار الصنف يرفع الأولوية فوق Bootstrap .btn دون الحاجة إلى !important */
+.list-btn.list-btn {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   font-size: 1.15rem;
-  color: var(--text-main) !important;
+  color: var(--text-main);
   position: relative;
   overflow: hidden;
   cursor: pointer;
 }
 
-.list-btn:hover {
+.list-btn.list-btn:hover {
   transform: translateY(-3px);
-  border-color: var(--accent-color) !important;
+  border-color: var(--accent-color);
   box-shadow:
     0 8px 24px rgba(201, 168, 76, 0.2),
-    inset 0 0 0 1px rgba(201, 168, 76, 0.25) !important;
+    inset 0 0 0 1px rgba(201, 168, 76, 0.25);
 }
 
 /* حركة انسيابية للأيقونات والسهم داخل بطاقات القوائم عند الـ Hover */
@@ -321,26 +324,26 @@ button:active:not(:disabled),
 }
 
 .list-btn.active-result {
-  border-color: var(--accent-color) !important;
+  border-color: var(--accent-color);
   box-shadow: 0 0 0 2px rgba(251, 220, 153, 0.45);
 }
 
-.badge-custom {
-  background-color: var(--badge-bg) !important;
-  color: var(--text-main) !important;
-  border: 1px solid var(--badge-border) !important;
+.badge-custom.badge-custom {
+  background-color: var(--badge-bg);
+  color: var(--text-main);
+  border: 1px solid var(--badge-border);
   font-size: 0.9rem;
   border-radius: 8px;
 }
 
-.badge-custom:hover {
+.badge-custom.badge-custom:hover {
   transform: translateY(-1px);
-  border-color: var(--accent-color) !important;
+  border-color: var(--accent-color);
 }
 
-.explanation-card {
-  background-color: var(--bg-color) !important;
-  border-right: 6px solid var(--accent-color) !important;
+.explanation-card.explanation-card {
+  background-color: var(--bg-color);
+  border-right: 6px solid var(--accent-color);
 }
 
 /* متن شرح الشيخ بخط النسخ التراثي */
@@ -353,17 +356,17 @@ button:active:not(:disabled),
   text-rendering: optimizeLegibility;
 }
 
-.explanation-title {
-  color: var(--accent-color) !important;
+.explanation-title.explanation-title {
+  color: var(--accent-color);
 }
 
-.search-input {
-  background-color: var(--badge-bg) !important;
-  color: var(--text-main) !important;
+.search-input.search-input {
+  background-color: var(--badge-bg);
+  color: var(--text-main);
   border-radius: 10px;
 }
-.search-input::placeholder {
-  color: var(--text-muted) !important;
+.search-input.search-input::placeholder {
+  color: var(--text-muted);
 }
 
 /* فلاتر البحث (كبسولات الكتاب والباب) */
@@ -380,10 +383,10 @@ button:active:not(:disabled),
 .search-filters .chip-btn:hover {
   border-color: var(--accent-color);
 }
-.search-filters .chip-active {
-  background: var(--primary-color) !important;
-  color: #fff !important;
-  border-color: var(--primary-color) !important;
+.search-filters .chip-btn.chip-active {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
 }
 .search-result-count {
   font-size: .78rem;
@@ -433,7 +436,8 @@ button:active:not(:disabled),
   --text-main: #3e2a1a;
   --text-on-accent: #3e2a1a;
   --text-on-primary: #f4ecd8;
-  --text-muted: #7a6a5a;
+  --text-muted: #544335;
+  --nav-active-color: #6d441f;
   --card-bg: #faf3e3;
   --card-border: rgba(90, 60, 30, 0.1);
   --border-color: rgba(90, 60, 30, 0.15);
@@ -629,12 +633,12 @@ button:active:not(:disabled),
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.mobile-bottom-nav .nav-item:active {
-  transform: scale(0.88) !important;
+.mobile-bottom-nav .nav-item.nav-item:active {
+  transform: scale(0.88);
 }
 
 .mobile-bottom-nav .nav-item.active {
-  color: var(--accent-color);
+  color: var(--nav-active-color, var(--accent-color));
   font-weight: bold;
 }
 
@@ -670,8 +674,8 @@ button:active:not(:disabled),
   transform: scale(1.18) rotate(-6deg);
 }
 
-.bookmark-btn:active {
-  transform: scale(0.9) !important;
+.bookmark-btn.bookmark-btn:active {
+  transform: scale(0.9);
 }
 
 .bookmark-btn.active {
@@ -679,9 +683,9 @@ button:active:not(:disabled),
 }
 
 /* ==================== أزرار التنقل بين المسائل (السابقة / التالية) ==================== */
-.nav-lesson-btn {
+.btn.nav-lesson-btn {
   background-color: var(--badge-bg);
-  color: var(--primary-color) !important;
+  color: var(--primary-color);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   font-weight: 600;
@@ -695,9 +699,9 @@ button:active:not(:disabled),
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.nav-lesson-btn:hover:not(:disabled) {
+.btn.nav-lesson-btn:hover:not(:disabled) {
   background-color: var(--primary-color);
-  color: var(--text-on-primary) !important;
+  color: var(--text-on-primary);
   border-color: var(--primary-color);
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(15, 61, 62, 0.25);
@@ -714,7 +718,7 @@ button:active:not(:disabled),
 .nav-lesson-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
-  transform: none !important;
+  transform: none;
 }
 
 /* ================================================================
@@ -759,9 +763,9 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   }
 
   /* ─── بطاقات القوائم (الكتب / الفصول / المسائل) ─── */
-  .list-btn {
-    font-size: 1rem !important;
-    padding: 0.85rem 1rem !important;
+  .list-btn.list-btn {
+    font-size: 1rem;
+    padding: 0.85rem 1rem;
   }
 
   /* ─── بطاقات المحتوى (QuoteCard, ExplanationCard, NotesCard) ─── */
@@ -772,9 +776,9 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   /* ─── شاشة القراءة ─── */
 
   /* أزرار السابق / التالي */
-  .nav-lesson-btn {
-    font-size: 0.85rem !important;
-    padding: 5px 10px !important;
+  .btn.nav-lesson-btn {
+    font-size: 0.85rem;
+    padding: 5px 10px;
   }
 
   /* عنوان المسألة */
@@ -783,9 +787,9 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   }
 
   /* الشارات (رقم الصفحة، الدرس، الوقت) */
-  .badge-custom {
-    font-size: 0.78rem !important;
-    padding: 0.4rem 0.65rem !important;
+  .badge-custom.badge-custom {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.65rem;
   }
 
   /* ─── شاشة المفضلة والفوائد ─── */
@@ -832,10 +836,10 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   }
 
   /* ─── بطاقات القوائم ─── */
-  .list-btn {
-    font-size: 0.95rem !important;
-    padding: 0.75rem !important;
-    border-radius: 10px !important;
+  .list-btn.list-btn {
+    font-size: 0.95rem;
+    padding: 0.75rem;
+    border-radius: 10px;
   }
 
   /* ─── صفحة الكتب: العمودين أصبحا اثنان دائمًا في BooksView ─── */
@@ -850,9 +854,9 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   }
 
   /* أزرار السابق / التالي */
-  .nav-lesson-btn {
-    font-size: 0.8rem !important;
-    padding: 5px 10px !important;
+  .btn.nav-lesson-btn {
+    font-size: 0.8rem;
+    padding: 5px 10px;
   }
 
   /* عنوان المسألة */
@@ -867,14 +871,14 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
     margin-bottom: 0.75rem !important;
   }
 
-  .badge-custom {
-    font-size: 0.72rem !important;
-    padding: 0.35rem 0.6rem !important;
+  .badge-custom.badge-custom {
+    font-size: 0.72rem;
+    padding: 0.35rem 0.6rem;
   }
 
   /* ─── بطاقات المحتوى ─── */
-  .custom-card {
-    border-radius: 10px !important;
+  .custom-card.custom-card {
+    border-radius: 10px;
   }
 
   /* QuoteCard & ExplanationCard */
@@ -885,8 +889,8 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   /* حجم خط متن المسألة على الموبايل */
   .custom-card p,
   .custom-card span {
-    font-size: 1.05rem !important;
-    line-height: 1.95 !important;
+    font-size: 1.05rem;
+    line-height: 1.95;
   }
 
   /* ─── الفوائد المقتبسة (Highlights) ─── */
@@ -896,8 +900,8 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   }
 
   .custom-card.p-4 .d-flex.justify-content-between.align-items-start p {
-    margin-left: 0 !important;
-    font-size: 1rem !important;
+    margin-left: 0;
+    font-size: 1rem;
   }
 
   /* زر الحذف في الفوائد يبقى في الزاوية */
@@ -938,8 +942,8 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
 
   /* ─── كارد شرح الشيخ (ExplanationCard) ─── */
   .explanation-card p {
-    font-size: 1rem !important;
-    line-height: 1.85 !important;
+    font-size: 1rem;
+    line-height: 1.85;
   }
 
   /* ─── مساحة الملاحظات (NotesCard) ─── */
@@ -970,12 +974,12 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
     font-size: 1.1rem !important;
   }
 
-  .list-btn {
-    font-size: 0.88rem !important;
+  .list-btn.list-btn {
+    font-size: 0.88rem;
   }
 
-  .badge-custom {
-    font-size: 0.68rem !important;
+  .badge-custom.badge-custom {
+    font-size: 0.68rem;
   }
 
   .mobile-bottom-nav {
@@ -999,12 +1003,12 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   }
 
   .reading-actions {
-    gap: 0.4rem !important;
+    gap: 0.4rem;
   }
 
   .reading-meta {
-    gap: 0.45rem !important;
-    margin-bottom: 1rem !important;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
   }
 
   .reading-meta .badge {
@@ -1063,12 +1067,12 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
 
 @media (max-width: 480px) {
   .reading-bottom-nav-buttons .nav-lesson-btn {
-    padding: 0.6rem 0.4rem !important;
-    font-size: 0.9rem !important;
+    padding: 0.6rem 0.4rem;
+    font-size: 0.9rem;
   }
 
   .reading-meta .badge {
-    padding-inline: 0.65rem !important;
+    padding-inline: 0.65rem;
   }
 }
 

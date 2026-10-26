@@ -204,9 +204,9 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
             {copied ? <FiCheck color="green" size={20} /> : <FiCopy size={20} />}
           </button>
         </div>
-        <h5 className="mb-4 d-flex align-items-center justify-content-center fw-bold explanation-title">
+        <h3 className="h5 mb-4 d-flex align-items-center justify-content-center fw-bold explanation-title">
            تعليق الشيخ <FiBookOpen className="ms-2" />
-        </h5>
+        </h3>
 
         {/* عرض الشرح منسقاً ومن اليمين لليسار */}
         <div

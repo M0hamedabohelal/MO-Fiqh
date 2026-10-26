@@ -17,7 +17,7 @@ interface SliderProps {
 const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, isAdminUser }: SliderProps) => {
 
   return (
-    <div className="sidebar-wrapper">
+    <aside aria-label="الشريط الجانبي للتنقل" className="sidebar-wrapper">
 
       <div className="sidebar-logo-section">
         <button
@@ -134,7 +134,7 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
           </li>
         </ul>
       </div>
-    </div>
+    </aside>
   );
 };
 

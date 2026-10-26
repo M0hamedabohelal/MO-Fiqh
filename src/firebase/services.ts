@@ -258,27 +258,39 @@ export async function deleteTerm(term: string): Promise<void> {
 // يُرسل كتابة لكل انتقال (تكلفة + سطح عبث أوسع). الجلسة = tab واحد (sessionStorage).
 const VIEWED_KEY = 'lessons_viewed_session_v1';
 
-function alreadyCountedThisSession(lessonId: string): boolean {
+function hasCountedThisSession(lessonId: string): boolean {
   try {
     const raw = sessionStorage.getItem(VIEWED_KEY);
     const seen: string[] = raw ? JSON.parse(raw) : [];
-    if (seen.includes(lessonId)) return true;
-    // سقف 500 معرّف: لا نمو غير محدود في التخزين
-    const next = [...seen.slice(-499), lessonId];
-    sessionStorage.setItem(VIEWED_KEY, JSON.stringify(next));
-    return false;
+    return seen.includes(lessonId);
   } catch {
-    return false; // بلا sessionStorage: نعدّ كل مشاهدة (السلوك القديم)
+    return false;
+  }
+}
+
+function markCountedThisSession(lessonId: string): void {
+  try {
+    const raw = sessionStorage.getItem(VIEWED_KEY);
+    const seen: string[] = raw ? JSON.parse(raw) : [];
+    if (!seen.includes(lessonId)) {
+      const next = [...seen.slice(-499), lessonId];
+      sessionStorage.setItem(VIEWED_KEY, JSON.stringify(next));
+    }
+  } catch {
+    /* تجاهل */
   }
 }
 
 // تسجيل مشاهدة مسألة — عداد مركزي في مستند واحد stats/views (للمستخدمين المسجلين فقط لمنع استنزاف الحصص)
 export async function trackLessonView(lessonId: string | number): Promise<void> {
-  if (alreadyCountedThisSession(String(lessonId))) return;
+  const idStr = String(lessonId);
+  if (hasCountedThisSession(idStr)) return;
   try {
     const { getAuthModule } = await import('./config');
     const { auth } = await getAuthModule();
     if (!auth.currentUser) return;
+
+    markCountedThisSession(idStr);
 
     const { db, fs } = await getDb();
     await fs.setDoc(

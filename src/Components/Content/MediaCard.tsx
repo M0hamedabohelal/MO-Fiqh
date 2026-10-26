@@ -13,13 +13,13 @@ const MediaCard = ({ mediaUrl, mediaType, title }: MediaCardProps) => {
 
   return (
     <div className="custom-card p-4 mt-4 text-center">
-      <h5 className="mb-3 fw-bold" style={{ color: 'var(--primary-color)' }}>
+      <h3 className="h5 mb-3 fw-bold" style={{ color: 'var(--primary-color)' }}>
         {mediaType === 'pdf' ? (
           <><FiFileText className="ms-2" /> مرفق PDF</>
         ) : (
           <><FiImage className="ms-2" /> صورة مرفقة</>
         )}
-      </h5>
+      </h3>
       
       {mediaType === 'image' ? (
         !showMedia ? (

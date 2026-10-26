@@ -78,17 +78,17 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
       <FiUser size={20} />
       <span>{user ? (user.displayName || 'حسابي') : 'دخول'}</span>
     </button>
-  </nav>
 
-  {/* زر البحث العائم — للفون فقط (مخفي على الشاشات الكبيرة) */}
-  <button
-    className="mobile-search-fab"
-    onClick={onOpenSearch}
-    title="بحث"
-    aria-label="بحث"
-  >
-    <FiSearch size={22} />
-  </button>
+    {/* زر البحث العائم — للفون فقط (مخفي على الشاشات الكبيرة) داخل التنقل لسلامة البنية الدلالية */}
+    <button
+      className="mobile-search-fab"
+      onClick={onOpenSearch}
+      title="بحث"
+      aria-label="بحث"
+    >
+      <FiSearch size={22} />
+    </button>
+  </nav>
   </>
 );
 
