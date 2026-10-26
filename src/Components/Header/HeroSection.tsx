@@ -94,8 +94,8 @@ const HeroSection = ({
                 src={logo}
                 alt="شعار منصة يَسِّر"
                 className={styles['emblem-img']}
-                width="140"
-                height="140"
+                width="180"
+                height="180"
                 fetchPriority="high"
                 decoding="async"
               />
