@@ -1,0 +1,262 @@
+% !TEX program = xelatex
+% ============================================================
+%  خطة تحسين تصميم الفون — تجربة الجوال عبر كل الصفحات
+%  الاستخدام على Overleaf:
+%    1) New Project ← Blank Project
+%    2) الصق المحتوى في main.tex
+%    3) Menu ← Compiler ← اختر: XeLaTeX   (مهم للعربية)
+%    4) Recompile ← نزّل PDF
+% ============================================================
+\documentclass[11pt]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{arabic}
+\setotherlanguage{english}
+\newfontfamily\arabicfont[Script=Arabic,Scale=1.0]{Amiri}
+\newfontfamily\arabicfontsf[Script=Arabic,Scale=1.0]{Amiri}
+\setmonofont{DejaVu Sans Mono}[Scale=0.8]
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.2cm}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{fontawesome5}
+
+% ── الألوان (هوية يَسِّر) ──
+\definecolor{gold}{HTML}{B8933B}
+\definecolor{teal}{HTML}{0F3D3E}
+\definecolor{darkbg}{HTML}{101414}
+\definecolor{okgreen}{HTML}{27AE60}
+\definecolor{warnred}{HTML}{C0392B}
+\definecolor{softgray}{HTML}{F4F4F4}
+\definecolor{midgray}{HTML}{7A7A7A}
+\definecolor{codebg}{HTML}{1A2020}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[R]{\small\color{gold}خطة تحسين تصميم الفون — منصة يَسِّر}
+\fancyhead[L]{\small\color{midgray}Mobile UX Enhancement}
+\fancyfoot[C]{\small\thepage}
+
+\titleformat{\section}{\Large\bfseries\color{gold}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkbg}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{midgray}}{\thesubsubsection}{0.4em}{}
+
+\setlist[itemize]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+
+\hypersetup{
+  colorlinks=true, linkcolor=gold, urlcolor=gold,
+  pdftitle={خطة تحسين تصميم الفون}, pdfauthor={منصة يَسِّر}
+}
+
+% ── صناديق مخصّصة ──
+\newtcolorbox{goalbox}[1][]{
+  colback=gold!8, colframe=gold, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{notebox}[1][]{
+  colback=softgray, colframe=midgray, boxrule=0.6pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{warnbox}[1][]{
+  colback=warnred!6, colframe=warnred, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{codebox}[1][]{
+  colback=codebg, colframe=codebg, coltext=white,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+
+\begin{document}
+
+% ============================================================
+\begin{center}
+  {\Huge\bfseries\color{gold} خطة تحسين تصميم الفون}\\[4pt]
+  {\large\color{darkbg} تجربة جوال موحّدة عبر كل صفحات المنصة}\\[6pt]
+  {\small\color{midgray} منصة يَسِّر الفقهية — \today}
+\end{center}
+
+\vspace{4pt}
+\hrule
+\vspace{10pt}
+
+% ============================================================
+\section{الهدف}
+
+\begin{goalbox}
+توحيد تجربة الاستخدام على الجوال عبر كل الصفحات على أساس \textbf{النهج الحديث} المُتَّبع جزئيًا في
+صفحة الـ Hero (\texttt{clamp()}, \texttt{dvh}, \texttt{safe-area-inset}، مناطق لمس مريحة)،
+ونقل هذه المعايير إلى الصفحات والمكوّنات المتبقية لتصبح المنصة متّسقة وسريعة ومريحة على الهاتف.
+\end{goalbox}
+
+\subsection*{نطاق العمل}
+\begin{itemize}
+  \item اعتماد \textbf{Mobile-First} فعليًا بدل استثناءات لاحقة في نهاية الملفات.
+  \item توحيد \textbf{مناطق اللمس}، \textbf{المسافات الآمنة}، \textbf{أحجام النص}، \textbf{شريط التنقل}.
+  \item تحسين الأداء والإحساس الأصلي عند التثبيت كتطبيق (PWA).
+\end{itemize}
+
+% ============================================================
+\section{الوضع الحالي}
+
+\begin{notebox}
+\textbf{نقاط القوة الموجودة:}
+\begin{itemize}
+  \item صفحة الـ Hero متفوّقة: \texttt{dvh}، \texttt{safe-area}، \texttt{clamp}، \texttt{prefers-reduced-motion}.
+  \item \texttt{viewport-fit=cover} مضبوط في \texttt{index.html}، وشريط التنقل السفلي يدعم الـ Safe Area.
+  \item خطوط محلية (\texttt{Tajawal}, \texttt{Amiri}) بلا اعتماد على شبكات خارجية.
+\end{itemize}
+
+\vspace{4pt}
+\textbf{نقاط الضعف:}
+\begin{itemize}
+  \item أنماط كبيرة مسطّحة: \texttt{index.css} ($\sim$1442 سطرًا)، \texttt{exterior.css} ($\sim$866 سطرًا)
+        مع \texttt{!important} متكرّر يُصعّب الضبط.
+  \item نصوص بأحجام ثابتة (\texttt{fontSize}) عبر \texttt{inline styles} في مكوّنات عدّة، لا تستجيب لحجم الشاشة.
+  \item مناطق لمس قد تكون أصغر من الحد الموصى به (44$\times$44px) في بعض الأزرار.
+  \item أنماط استجابة غير متّسقة: بعض المكوّنات لها \texttt{@media} وبعضها لا.
+  \item ألوان الظلّ ثابتة (\texttt{rgba(0,0,0,...)}) تظلّ ثقيلة/باهتة في وضع الجوال الداكن.
+\end{itemize}
+\end{notebox}
+
+% ============================================================
+\section{المرحلة الأولى: نظام رموز التصميم المتجاوب}
+
+إنشاء متغيّرات موحّدة في \texttt{:root} داخل \texttt{index.css} تُستخدم في كل المكوّنات:
+
+\begin{codebox}
+{\ttfamily\small\raggedleft
+:root \{\\
+\quad /* مناطق اللمس */\\
+\quad -{}-tap-min: 44px;\\
+\quad -{}-tap-comfort: 48px;\\
+\quad /* المسافات على شبكة 4px */\\
+\quad -{}-space-1: 0.25rem; -{}-space-2: 0.5rem; -{}-space-3: 0.75rem;\\
+\quad -{}-space-4: 1rem; -{}-space-6: 1.5rem;\\
+\quad /* نص متجاوب */\\
+\quad -{}-fs-body: clamp(0.95rem, 0.9rem + 0.25vw, 1.05rem);\\
+\quad -{}-fs-h1: clamp(1.6rem, 1.3rem + 1.5vw, 2.4rem);\\
+\quad -{}-fs-h2: clamp(1.25rem, 1.1rem + 0.8vw, 1.6rem);\\
+\quad /* حشو الصفحة المتجاوب */\\
+\quad -{}-page-pad-x: clamp(1rem, 4vw, 2rem);\\
+\quad -{}-nav-h: 64px;\\
+\}
+}
+\end{codebox}
+
+\begin{goalbox}
+بتوحيد هذه الرموز يصبح تعديل مقياس الجوال كله من مكان واحد، وتختفي الأرقام السحرية المتفرّقة.
+\end{goalbox}
+
+% ============================================================
+\section{المرحلة الثانية: توحيد مناطق اللمس}
+
+\begin{itemize}
+  \item كل عنصر تفاعلي (\texttt{button}, \texttt{a}, \texttt{input}) يحصل على حد أدنى \texttt{min-height: var(--tap-min)}.
+  \item الأيقونات الصغيرة (المفضلة، المشاركة، التبويبات) تُغلّف بمنطقة لمس \texttt{44px} حتى لو كانت الأيقونة أصغر.
+  \item المسافة بين عنصرين تفاعليين متجاورين لا تقل عن \texttt{--space-2}.
+  \item الانتقالات تُلغى عند \texttt{prefers-reduced-motion}.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة الثالثة: النصوص والتخطيط المتجاوب}
+
+\begin{itemize}
+  \item استبدال \texttt{fontSize} الثابتة في الأنماط السطرية برموز النص المتجاوب.
+  \item استخدام \texttt{clamp()} لعناوين الصفحات والأقسام بدل الأحجام الثابتة.
+  \item \texttt{max-width} للمحتوى على الجوال، و\texttt{min()} لتحديد عرض البطاقات.
+  \item ضبط \texttt{line-height} للنصوص العربية الطويلة (القرآن/الحديث) إلى $\ge 1.8$.
+  \item استخدام \texttt{grid/flex} مع \texttt{gap} بدل الهوامش اليدوية.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة الرابعة: شريط التنقل والمنطقة السفلية}
+
+\begin{itemize}
+  \item إخفاء الشريط عند فتح لوحة المفاتيح (موجود جزئيًا) — يُعمّم على كل الحقول النصية.
+  \item ارتفاع موحّد \texttt{var(--nav-h)} مع \texttt{safe-area-inset-bottom} دائمًا.
+  \item المحتوى الرئيسي يحصل على \texttt{padding-bottom} كافٍ حتى لا يحجب الشريط آخر عنصر.
+  \item مؤشّر الصفحة النشطة واضح وبلون الهوية.
+  \item دعم الإيماءة/السحب للتبويبات (اختياري، إن ناسب).
+\end{itemize}
+
+% ============================================================
+\section{المرحلة الخامسة: الأداء وإحساس التطبيق الأصلي}
+
+\begin{itemize}
+  \item \texttt{-webkit-tap-highlight-color: transparent} (موجود) و\texttt{touch-action: manipulation} للأزرار.
+  \item تفادي \texttt{100vh} لصالح \texttt{100dvh} في كل الشاشات الممتدة.
+  \item \texttt{content-visibility: auto} للأقسام الطويلة لتحسين التمرير.
+  \item صور المسائل بتنسيق حديث (\texttt{loading="lazy"}, \texttt{decoding="async"}).
+  \item ضبط لون شريط حالة iOS والثيم اللوني على هوية المنصة.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة السادسة: الإتاحة}
+
+\begin{itemize}
+  \item أهداف لمس \texttt{44px} كحد أدنى.
+  \item دعم تكبير الخط (\texttt{--base-font-size}) الموجود + عدم كسر التخطيط عنده.
+  \item \texttt{aria-label} لكل زر أيقوني بلا نص.
+  \item احترام \texttt{prefers-reduced-motion} و\texttt{prefers-color-scheme}.
+  \item تباين لوني كافٍ (WCAG AA) في وضع الجوال خاصة.
+\end{itemize}
+
+% ============================================================
+\section{الملفات والتحقق}
+
+\textbf{ملفات رئيسية مقترح تعديلها:}
+\begin{itemize}
+  \item \texttt{src/index.css} — إضافة رموز التصميم وتوحيد الاستجابة.
+  \item \texttt{src/styles/exterior.css} — تقليل \texttt{!important} والتوحيد.
+  \item \texttt{src/Components/Sidebar/Slider.css} — ضبط الجوال.
+  \item \texttt{src/Components/UI/InstallPrompt.module.css} — مراجعة الاستجابة.
+  \item المكوّنات ذات الأنماط السطرية — استبدال الأحجام الثابتة بالمتغيّرات.
+\end{itemize}
+
+\vspace{6pt}
+\textbf{أوامر التحقق:}
+\begin{codebox}
+{\ttfamily\small\raggedleft
+npm run lint\\
+npx tsc -{}-noEmit\\
+npm run test\\
+npx playwright test   (اختبارات E2E للجوال)
+}
+\end{codebox}
+
+\begin{warnbox}
+\textbf{المخاطر:} تستخدم المنصة Bootstrap Class-based، وتغيير الأنماط قد يؤثّر على تخطيطات عدّة.
+يُنصح بالعمل تدريجيًا صفحة-صفحة مع فحص بصري على أحجام: 360px، 390px، 430px، 768px.
+\end{warnbox}
+
+% ============================================================
+\section{معايير القبول}
+
+\begin{itemize}
+  \item[${\color{okgreen}\faCheckCircle}$] كل عنصر تفاعلي لا يقلّ عن \texttt{44px} لمسًا.
+  \item[${\color{okgreen}\faCheckCircle}$] لا توجد أحجام نص ثابتة تكسر التخطيط عند تكبير الخط.
+  \item[${\color{okgreen}\faCheckCircle}$] التخطيط سليم على العروض: 360 / 390 / 430 / 768px.
+  \item[${\color{okgreen}\faCheckCircle}$] شريط التنقل لا يحجب المحتوى ولا يتعارض مع لوحة المفاتيح.
+  \item[${\color{okgreen}\faCheckCircle}$] تجربة الجوال متّسقة بين جميع الصفحات والمكوّنات.
+  \item[${\color{okgreen}\faCheckCircle}$] \texttt{lint} و \texttt{tsc} واختبارات E2E تمرّ بنجاح.
+\end{itemize}
+
+\end{document}

@@ -348,4 +348,33 @@ describe('SettingsView Component', () => {
       expect(screen.queryByText(/خطوات التثبيت حسب جهازك/)).toBeNull();
     });
   });
+
+  describe('مجموعات الأكورديون الأربعة (Accordion System)', () => {
+    it('يعرض المجموعات الأربع مع الحالات الافتراضية (1 و2 و3 مفتوحة و4 مغلقة)', () => {
+      render(<SettingsView />);
+
+      const appGroupBtn = screen.getByRole('button', { name: /التطبيق والتحديثات/i });
+      const contentGroupBtn = screen.getByRole('button', { name: /المحتوى الفقهي وقاعدة المسائل/i });
+      const accountGroupBtn = screen.getByRole('button', { name: /حسابي والخصوصية/i });
+      const contactGroupBtn = screen.getByRole('button', { name: /الدعاء والتواصل مع المطوّر/i });
+
+      expect(appGroupBtn.getAttribute('aria-expanded')).toBe('true');
+      expect(contentGroupBtn.getAttribute('aria-expanded')).toBe('true');
+      expect(accountGroupBtn.getAttribute('aria-expanded')).toBe('true');
+      expect(contactGroupBtn.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('الضغط على رأس المجموعة يغير حالة الفتح والطي aria-expanded', () => {
+      render(<SettingsView />);
+
+      const contactGroupBtn = screen.getByRole('button', { name: /الدعاء والتواصل مع المطوّر/i });
+      expect(contactGroupBtn.getAttribute('aria-expanded')).toBe('false');
+
+      fireEvent.click(contactGroupBtn);
+      expect(contactGroupBtn.getAttribute('aria-expanded')).toBe('true');
+
+      fireEvent.click(contactGroupBtn);
+      expect(contactGroupBtn.getAttribute('aria-expanded')).toBe('false');
+    });
+  });
 });

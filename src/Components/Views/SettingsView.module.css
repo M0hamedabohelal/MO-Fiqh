@@ -703,3 +703,173 @@
     transform: rotate(360deg);
   }
 }
+
+/* ================================================================
+   ACCORDION SYSTEM — Settings-Design-Plan
+   4 Unified Collapsible Groups
+   ================================================================ */
+
+.accordionList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.accordionSection {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px var(--shadow-soft);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  overflow: hidden;
+}
+
+.accordionSection:hover {
+  border-color: color-mix(in srgb, var(--brand-gold) 30%, transparent);
+  box-shadow: 0 6px 22px var(--shadow-soft-lg);
+}
+
+.accordionHeaderBtn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 1.15rem 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  text-align: right;
+  direction: rtl;
+  transition: background-color 0.2s ease;
+}
+
+.accordionHeaderBtn:hover {
+  background-color: color-mix(in srgb, var(--brand-gold) 4%, transparent);
+}
+
+.accordionHeaderOpen {
+  border-bottom: 1px solid var(--border-color);
+  background-color: color-mix(in srgb, var(--brand-gold) 3%, transparent);
+}
+
+.accordionHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.accordionHeaderIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--badge-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  font-size: 1.25rem;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.accordionHeaderIconActive {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand-teal) 14%, transparent), color-mix(in srgb, var(--brand-gold) 12%, transparent));
+  color: var(--primary-color);
+  border-color: color-mix(in srgb, var(--brand-gold) 35%, transparent);
+}
+
+.accordionTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: right;
+}
+
+.accordionTitle {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.accordionSubtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.accordionHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.accordionBadgeWrapper {
+  display: flex;
+  align-items: center;
+}
+
+.accordionChevron {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+}
+
+.accordionChevronOpen {
+  transform: rotate(180deg);
+  color: var(--primary-color);
+}
+
+.accordionPanel {
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+}
+
+.accordionPanelOpen {
+  max-height: 2500px;
+  opacity: 1;
+}
+
+.accordionPanelClosed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.accordionContentWrapper {
+  padding: 1.25rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+/* Sub-card within accordion groups */
+.subCard {
+  background: color-mix(in srgb, var(--badge-bg) 60%, var(--card-bg));
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.15rem 1.25rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.subCard:hover {
+  border-color: color-mix(in srgb, var(--brand-gold) 25%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accordionPanel,
+  .accordionChevron,
+  .accordionSection,
+  .headerIconBadge,
+  .feedbackAlert,
+  .confirmBox,
+  .installGuideBox {
+    transition: none !important;
+    animation: none !important;
+  }
+}
