@@ -650,9 +650,9 @@ async function writeDefaultOgImage(sharp) {
   console.log('🖼️  SEO: og-image.jpg العامة بهوية «يَسِّر» والشعار الجديد (1200×630)');
 }
 
-// ── التنظيف والكتابة ──
-rmSync(join(PUBLIC, 'books'), { recursive: true, force: true });
-rmSync(join(PUBLIC, 'lessons'), { recursive: true, force: true });
+// ── تجهيز المجلدات والكتابة في مكانها دون إفراغ جذري مسبق (لتجنب سباق القراءة مع Vitest) ──
+mkdirSync(join(PUBLIC, 'books'), { recursive: true });
+mkdirSync(join(PUBLIC, 'lessons'), { recursive: true });
 
 // ترتيب المسائل داخل كل كتاب كما يظهر في التصفح (باب ← معرّف) لتسلسل prev/next
 const bookLessonsSorted = {};
@@ -709,6 +709,31 @@ try {
 // ── صفحة فهرس المسائل (/lessons/) ──
 writeFileSync(join(PUBLIC, 'lessons', 'index.html'), lessonsIndexPage(), 'utf8');
 console.log(`🔗 SEO: صفحة فهرس كل المسائل (/lessons/) تربط ${lessonsData.length} مسألة`);
+
+// ── تنظيف المجلدات اليتيمة (إن حُذفت مسألة أو كتاب) دون إفراغ الشجرة مسبقًا ──
+try {
+  const lessonsDir = join(PUBLIC, 'lessons');
+  if (existsSync(lessonsDir)) {
+    const validIds = new Set(lessonsData.map((l) => String(l.id)));
+    for (const entry of readdirSync(lessonsDir)) {
+      if (entry === 'index.html') continue;
+      if (!validIds.has(entry)) {
+        rmSync(join(lessonsDir, entry), { recursive: true, force: true });
+      }
+    }
+  }
+  const booksDir = join(PUBLIC, 'books');
+  if (existsSync(booksDir)) {
+    const validBooks = new Set(bookNames);
+    for (const entry of readdirSync(booksDir)) {
+      if (!validBooks.has(entry)) {
+        rmSync(join(booksDir, entry), { recursive: true, force: true });
+      }
+    }
+  }
+} catch (e) {
+  console.warn('⚠️ SEO: تنظيف المجلدات اليتيمة واجه مشكلة:', e?.message);
+}
 
 // ── sitemap شامل ──
 const urlEntry = (loc, lastmod, extra = '') =>

@@ -1,3 +1,4 @@
+import process from 'node:process'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -6,6 +7,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 // النشر على Firebase Hosting من الجذر /. (وضع GitHub Pages للمسار الفرعي /MO-Fiqh/
 // أُزيل مع فرع gh-pages — كان ميتًا من غير أي مستخدم.)
 export default defineConfig({
+  publicDir: process.env.VITEST ? false : 'public',
+  server: {
+    watch: {
+      ignored: ['**/public/**'],
+    },
+  },
   plugins: [
     react(),
     VitePWA({
