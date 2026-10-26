@@ -1,0 +1,282 @@
+% !TEX program = xelatex
+% ============================================================
+%  خطة تنسيق الألوان حسب الثيمات — صفحة الإعدادات
+%  (الوضع الفاتح / الداكن / التراثي-سيپيا)
+%  الاستخدام على Overleaf:
+%    1) New Project ← Blank Project
+%    2) الصق المحتوى في main.tex
+%    3) Menu ← Compiler ← اختر: XeLaTeX   (مهم للعربية)
+%    4) Recompile ← نزّل PDF
+% ============================================================
+\documentclass[11pt]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{arabic}
+\setotherlanguage{english}
+\newfontfamily\arabicfont[Script=Arabic,Scale=1.0]{Amiri}
+\newfontfamily\arabicfontsf[Script=Arabic,Scale=1.0]{Amiri}
+\setmonofont{DejaVu Sans Mono}[Scale=0.8]
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.2cm}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{fontawesome5}
+
+% ── الألوان (هوية يَسِّر) ──
+\definecolor{gold}{HTML}{B8933B}
+\definecolor{teal}{HTML}{0F3D3E}
+\definecolor{darkbg}{HTML}{101414}
+\definecolor{okgreen}{HTML}{27AE60}
+\definecolor{warnred}{HTML}{C0392B}
+\definecolor{softgray}{HTML}{F4F4F4}
+\definecolor{midgray}{HTML}{7A7A7A}
+\definecolor{codebg}{HTML}{1A2020}
+\definecolor{sepiapaper}{HTML}{F4ECD8}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[R]{\small\color{gold}خطة تنسيق الألوان حسب الثيمات — منصة يَسِّر}
+\fancyhead[L]{\small\color{midgray}Theme Color System}
+\fancyfoot[C]{\small\thepage}
+
+\titleformat{\section}{\Large\bfseries\color{gold}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkbg}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{midgray}}{\thesubsubsection}{0.4em}{}
+
+\setlist[itemize]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+
+\hypersetup{
+  colorlinks=true, linkcolor=gold, urlcolor=gold,
+  pdftitle={خطة تنسيق الألوان حسب الثيمات}, pdfauthor={منصة يَسِّر}
+}
+
+% ── صناديق مخصّصة ──
+\newtcolorbox{goalbox}[1][]{
+  colback=gold!8, colframe=gold, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{notebox}[1][]{
+  colback=softgray, colframe=midgray, boxrule=0.6pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{warnbox}[1][]{
+  colback=warnred!6, colframe=warnred, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{codebox}[1][]{
+  colback=codebg, colframe=codebg, coltext=white,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+
+\begin{document}
+
+% ============================================================
+\begin{center}
+  {\Huge\bfseries\color{gold} خطة تنسيق الألوان حسب الثيمات}\\[4pt]
+  {\large\color{darkbg} توحيد صفحة الإعدادات على نظام الثيمات الثلاثة}\\[6pt]
+  {\small\color{midgray} منصة يَسِّر الفقهية — \today}
+\end{center}
+
+\vspace{4pt}
+\hrule
+\vspace{10pt}
+
+% ============================================================
+\section{الهدف}
+
+\begin{goalbox}
+إخضاع صفحة الإعدادات بالكامل لنظام الثيمات الموجود في المنصة
+(\textbf{فاتح} / \textbf{داكن} / \textbf{تراثي-سيپيا}) عبر متغيّرات CSS، وإزالة الألوان الثابتة
+(hardcoded) التي لا تتغيّر مع تبديل الثيم، مع ضمان تباين لوني كافٍ (WCAG AA) في كل وضع.
+\end{goalbox}
+
+% ============================================================
+\section{نظام الثيمات الحالي}
+
+الثيمات تُطبَّق عبر \texttt{data-theme} على عنصر \texttt{<html>}، وتعريف المتغيّرات في
+\texttt{src/index.css}:
+
+\vspace{6pt}
+\renewcommand{\arraystretch}{1.35}
+\begin{longtable}{@{}p{0.30\textwidth} p{0.22\textwidth} p{0.22\textwidth} p{0.20\textwidth}@{}}
+\toprule
+\textbf{المتغيّر} & \textbf{فاتح} & \textbf{داكن} & \textbf{سيپيا} \\
+\midrule
+\endhead
+\texttt{--bg-color}        & \texttt{\#FAFAF7} & \texttt{\#101414} & \texttt{\#F4ECD8} \\
+\texttt{--primary-color}   & \texttt{\#0F3D3E} & \texttt{\#5CC0B5} & \texttt{\#5B3A29} \\
+\texttt{--accent-color}    & \texttt{\#FBDC99} & \texttt{\#D8A06A} & \texttt{\#C09553} \\
+\texttt{--text-main}       & \texttt{\#2C2C2C} & \texttt{\#E6E8E6} & \texttt{\#3E2A1A} \\
+\texttt{--text-muted}      & \texttt{\#6C757D} & \texttt{\#A9B1AD} & \texttt{\#7A6A5A} \\
+\texttt{--card-bg}         & \texttt{\#FFFFFF} & \texttt{\#1A2020} & \texttt{\#FAF3E3} \\
+\texttt{--border-color}    & \texttt{\#EEEEEE} & \texttt{rgba(...0.09)} & \texttt{rgba(...0.15)} \\
+\texttt{--badge-bg}        & \texttt{\#F8F9FA} & \texttt{\#232B2B} & \texttt{\#F0E6D0} \\
+\texttt{--text-on-accent}  & \texttt{\#0F3D3E} & \texttt{\#121212} & \texttt{\#3E2A1A} \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1.0}
+
+% ============================================================
+\section{المشكلة في الوضع الحالي}
+
+\begin{warnbox}
+ملف \texttt{SettingsView.module.css} يحتوي قرابة \textbf{75 لونًا ثابتًا} لا تتبع الثيم، منها:
+\begin{itemize}
+  \item \textbf{الذهبي/التيل الثابت:} \texttt{rgba(201,168,76,...)} و \texttt{rgba(92,192,181,...)} في
+        ترويسة الصفحة وأيقونات البطاقات — لا تتبدّل مع ثيم سيپيا أو الداكن.
+  \item \textbf{ألوان الحالات الثابتة:} الأخضر \texttt{\#27AE60}، الأحمر \texttt{\#E74C3C}، الأزرق
+        \texttt{\#2980B9}، البرتقالي \texttt{\#D35400} — مضبوطة يدويًا في موضعين لكل حالة (فاتح/داكن)
+        دون شمل ثيم سيپيا.
+  \item \textbf{الألوان الاجتماعية:} واتساب/فيسبوك/لينكد إن بعلامتها التجارية — مقبولة لكن تحتاج ضبطًا
+        للخلفية في الوضع الداكن.
+  \item \textbf{الظلال:} \texttt{rgba(0,0,0,...)} ثابتة تكون باهتة/ثقيلة في الوضع الداكن.
+\end{itemize}
+\end{warnbox}
+
+\begin{notebox}
+ثيم \textbf{سيپيا} معرَّف في \texttt{index.css} لكنه \textbf{لا يحصل على أي ضبط خاص} في صفحة الإعدادات،
+فتظهر الألوان نفسها المخصّصة للوضع الفاتح، ما يخلّ باتّساق المظهر التراثي.
+\end{notebox}
+
+% ============================================================
+\section{المرحلة الأولى: إضافة رموز دلالية (Design Tokens)}
+
+إضافة مجموعة متغيّرات جديدة في \texttt{:root} داخل \texttt{index.css} للدلالات اللونية
+(نجاح/تحذير/خطأ/معلومة/ذهبي-هوية)، ثم تعريفها في كل ثيم:
+
+\vspace{6pt}
+\renewcommand{\arraystretch}{1.35}
+\begin{longtable}{@{}p{0.24\textwidth} p{0.24\textwidth} p{0.24\textwidth} p{0.22\textwidth}@{}}
+\toprule
+\textbf{الرمز الدلالي} & \textbf{فاتح} & \textbf{داكن} & \textbf{سيپيا} \\
+\midrule
+\endhead
+\texttt{--tone-success}  & \texttt{\#27AE60} & \texttt{\#2ECC71} & \texttt{\#3F7A46} \\
+\texttt{--tone-warning}  & \texttt{\#D35400} & \texttt{\#F39C12} & \texttt{\#B0762A} \\
+\texttt{--tone-danger}   & \texttt{\#E74C3C} & \texttt{\#FF6B5B} & \texttt{\#B23A2E} \\
+\texttt{--tone-info}     & \texttt{\#2980B9} & \texttt{\#5DADE2} & \texttt{\#4A6FA5} \\
+\texttt{--brand-gold}    & \texttt{\#C9A84C} & \texttt{\#D8A06A} & \texttt{\#C09553} \\
+\texttt{--brand-teal}    & \texttt{\#5CC0B5} & \texttt{\#5CC0B5} & \texttt{\#7A9E8E} \\
+\texttt{--shadow-soft}   & \texttt{rgba(0,0,0,.06)} & \texttt{rgba(0,0,0,.35)} & \texttt{rgba(90,60,30,.10)} \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1.0}
+
+\begin{goalbox}
+وبهذا تحتاج ملفات المكوّنات إلى استدعاء رمز واحد \texttt{var(--tone-success)} بدل كتابة قيمتين
+(فاتح/داكن) لكل حالة، وحلّ ثيم سيپيا تلقائيًا.
+\end{goalbox}
+
+% ============================================================
+\section{المرحلة الثانية: تحويل الألوان الثابتة}
+
+خريطة الاستبدال في \texttt{SettingsView.module.css}:
+
+\vspace{6pt}
+\renewcommand{\arraystretch}{1.35}
+\begin{longtable}{@{}p{0.42\textwidth} p{0.46\textwidth}@{}}
+\toprule
+\textbf{القيمة الحالية الثابتة} & \textbf{البديل الموصى به} \\
+\midrule
+\endhead
+\texttt{rgba(201,168,76,.18)} (ذهبي الهوية) & \texttt{color-mix(in srgb, var(--brand-gold) 18\%, transparent)} \\
+\texttt{rgba(92,192,181,.22)} (تيل الهوية) & \texttt{color-mix(in srgb, var(--brand-teal) 22\%, transparent)} \\
+\texttt{\#27AE60} / \texttt{\#2ECC71} & \texttt{var(--tone-success)} \\
+\texttt{\#D35400} / \texttt{\#F39C12} & \texttt{var(--tone-warning)} \\
+\texttt{\#E74C3C} & \texttt{var(--tone-danger)} \\
+\texttt{\#2980B9} / \texttt{\#5DADE2} & \texttt{var(--tone-info)} \\
+\texttt{rgba(0,0,0,.05..0.08)} (الظلال) & \texttt{var(--shadow-soft)} \\
+\texttt{\#C99347} (تدرّج الزر) & \texttt{color-mix(in srgb, var(--accent-color) 85\%, #000)} \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1.0}
+
+\begin{notebox}
+\texttt{color-mix()} مدعوم في كل المتصفحات الحديثة (Chrome/Edge/Safari/Firefox).
+كبَديل آمن للتوافق، تُعرّف شفافيات صريحة في كل ثيم:
+\texttt{--brand-gold-18: rgba(...)}. اختر أحدهما ووحّده في الملف.
+\end{notebox}
+
+% ============================================================
+\section{المرحلة الثالثة: ضبط خاص لكل ثيم}
+
+\subsection*{الوضع الداكن}
+\begin{itemize}
+  \item الظلال تزداد قوة (\texttt{rgba(0,0,0,.35)}) لتعويض الخلفية الداكنة.
+  \item الخلفيات الشفافة تُرفع نسبتها (من $0.10$ إلى $0.16$) لتبقى مرئية على التيل الداكن.
+  \item ألوان العلامات التجارية (واتساب...) يُخفّف تشبّعها نحو $0.9$ لتفادي الإبهار.
+\end{itemize}
+
+\subsection*{ثيم سيپيا (تراثي)}
+\begin{itemize}
+  \item المشبّع يُقلّل والأشكال تُدفأ: الأخضر يميل للزيتي، والأزرق يميل للكحلي الورقي.
+  \item الذهبي يصبح \texttt{\#C09553} (مساويًا \texttt{--accent-color} في سيپيا).
+  \item الحدود تُبنى على \texttt{rgba(90,60,30,.15)} بدل الأسود/الأبيض.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة الرابعة: إتاحة ومعايير}
+
+\begin{itemize}
+  \item الالتزام بتباين \textbf{WCAG AA} (نسبة $4.5{:}1$ للنص العادي) في كل ثيم.
+  \item عدم استخدام اللون وحده لنقل المعنى: كل حالة تحمل أيقونة ونصًا أيضًا.
+  \item اختبار فعلي بأداة تباين على الأزواج: (نص/خلفية)، (شارة/خلفية البطاقة).
+  \item احترام \texttt{prefers-color-scheme} عند الثيم الافتراضي إن رُغب مستقبلًا.
+\end{itemize}
+
+% ============================================================
+\section{الملفات والتحقق}
+
+\textbf{ملفات تُعدَّل:}
+\begin{itemize}
+  \item \texttt{src/index.css} — إضافة الرموز الدلالية في الثيمات الثلاثة.
+  \item \texttt{src/Components/Views/SettingsView.module.css} — استبدال الألوان الثابتة بالمتغيّرات.
+\end{itemize}
+
+\textbf{لا يُعدَّل:} بنية JSX ولا منطق المكوّن.
+
+\vspace{6pt}
+\textbf{أوامر التحقق:}
+\begin{codebox}
+{\ttfamily\small\raggedleft
+npm run lint\\
+npm run test -{}- SettingsView\\
+npx tsc -{}-noEmit
+}
+\end{codebox}
+
+\begin{warnbox}
+\textbf{ملاحظة توافق:} عند استخدام \texttt{color-mix()} سيبقى جاهزًا؛ أما إن اخترت النهج البديل
+فأضِف الشفافيات الصريحة إلى الثيمات الثلاثة قبل حذف القيم القديمة لتجنّب أي كسر بصري مؤقت.
+\end{warnbox}
+
+% ============================================================
+\section{معايير القبول}
+
+\begin{itemize}
+  \item[${\color{okgreen}\faCheckCircle}$] لا يوجد أي لون ثابت (غير متغيّر) في \texttt{SettingsView.module.css}.
+  \item[${\color{okgreen}\faCheckCircle}$] الثيمات الثلاثة تعرض حالة متّسقة ومقروءة لصفحة الإعدادات.
+  \item[${\color{okgreen}\faCheckCircle}$] شارات الحالة ورسائل التغذية الراجعة مقروءة في كل ثيم.
+  \item[${\color{okgreen}\faCheckCircle}$] ثيم سيپيا يحصل على ضبطه الخاص (لا يرث مظهر الفاتح).
+  \item[${\color{okgreen}\faCheckCircle}$] نسبة التباين تستوفي WCAG AA للحالات الأساسية.
+\end{itemize}
+
+\end{document}

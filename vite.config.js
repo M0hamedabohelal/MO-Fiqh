@@ -23,6 +23,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,webp,woff,woff2}'],
         globIgnores: [
           '**/fiqh-book.pdf',
+          'fonts/**',
+          '**/fonts/**',
           'lessons/**',
           'books/**',
           'scripts/**',
@@ -34,6 +36,20 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/lessons/, /^\/books/, /^\/og\//, /\.pdf$/],
         runtimeCaching: [
+          {
+            urlPattern: /\.(?:woff|woff2)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'local-fonts-cache',
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'StaleWhileRevalidate',

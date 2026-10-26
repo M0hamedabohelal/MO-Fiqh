@@ -1,0 +1,241 @@
+% !TEX program = xelatex
+% ============================================================
+%  خطة إعادة تصميم صفحة الإعدادات — تنظيم بصري + Accordion
+%  الاستخدام على Overleaf:
+%    1) New Project ← Blank Project
+%    2) الصق المحتوى في main.tex
+%    3) Menu ← Compiler ← اختر: XeLaTeX   (مهم للعربية)
+%    4) Recompile ← نزّل PDF
+% ============================================================
+\documentclass[11pt]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{arabic}
+\setotherlanguage{english}
+\newfontfamily\arabicfont[Script=Arabic,Scale=1.0]{Amiri}
+\newfontfamily\arabicfontsf[Script=Arabic,Scale=1.0]{Amiri}
+\setmonofont{DejaVu Sans Mono}[Scale=0.8]
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.2cm}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{fontawesome5}
+
+% ── الألوان (هوية يَسِّر) ──
+\definecolor{gold}{HTML}{B8933B}
+\definecolor{darkbg}{HTML}{101414}
+\definecolor{okgreen}{HTML}{27AE60}
+\definecolor{warnred}{HTML}{C0392B}
+\definecolor{softgray}{HTML}{F4F4F4}
+\definecolor{midgray}{HTML}{7A7A7A}
+\definecolor{codebg}{HTML}{1A2020}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[R]{\small\color{gold}خطة تصميم صفحة الإعدادات — منصة يَسِّر}
+\fancyhead[L]{\small\color{midgray}Settings UX Redesign}
+\fancyfoot[C]{\small\thepage}
+
+\titleformat{\section}{\Large\bfseries\color{gold}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkbg}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{midgray}}{\thesubsubsection}{0.4em}{}
+
+\setlist[itemize]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+
+\hypersetup{
+  colorlinks=true, linkcolor=gold, urlcolor=gold,
+  pdftitle={خطة تصميم صفحة الإعدادات}, pdfauthor={منصة يَسِّر}
+}
+
+% ── صناديق مخصّصة ──
+\newtcolorbox{goalbox}[1][]{
+  colback=gold!8, colframe=gold, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{notebox}[1][]{
+  colback=softgray, colframe=midgray, boxrule=0.6pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{warnbox}[1][]{
+  colback=warnred!6, colframe=warnred, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+
+\begin{document}
+
+% ============================================================
+\begin{center}
+  {\Huge\bfseries\color{gold} خطة تحسين صفحة الإعدادات}\\[4pt]
+  {\large\color{darkbg} تنظيم بصري + إعادة هيكلة بأقسام قابلة للطي}\\[6pt]
+  {\small\color{midgray} منصة يَسِّر الفقهية — \today}
+\end{center}
+
+\vspace{4pt}
+\hrule
+\vspace{10pt}
+
+% ============================================================
+\section{الهدف}
+
+\begin{goalbox}
+تحويل صفحة الإعدادات من ست بطاقات متساوية متراصّة عموديًا (تمرير طويل وإجهاد بصري) إلى
+\textbf{أربع مجموعات منطقية قابلة للطي (Accordion)} مع توحيد بصري شامل، وتقليل طول الصفحة،
+وتسريع الوصول لكل إجراء.
+\end{goalbox}
+
+\subsection*{نطاق العمل}
+\begin{itemize}
+  \item \textbf{تحسين بصري:} ألوان، مسافات، ظلال، حركات، اتّساق الوضع الداكن.
+  \item \textbf{إعادة هيكلة:} دمج وتجميع البطاقات في مجموعات Accordion منطقية.
+  \item \textbf{بلا تغيير وظيفي:} منطق الأزرار والـ handlers يبقى كما هو بالكامل.
+\end{itemize}
+
+% ============================================================
+\section{الوضع الحالي}
+
+\begin{notebox}
+\textbf{الملفان المتأثّران:}\\[3pt]
+\texttt{src/Components/Views/SettingsView.tsx}\quad(854 سطرًا)\\
+\texttt{src/Components/Views/SettingsView.module.css}\quad(700 سطر)\\
+\texttt{src/Components/Views/SettingsView.test.tsx}\quad(قد يتأثر بالمُحدِّدات)
+\end{notebox}
+
+\vspace{6pt}
+\textbf{البطاقات الست الحالية:}
+\begin{enumerate}
+  \item إصدار التطبيق والتحديثات
+  \item تثبيت الموقع كتطبيق (PWA)
+  \item المحتوى الفقهي وقاعدة المسائل
+  \item إنجازاتي ومواظبتي
+  \item الخصوصية والمزامنة السحابية
+  \item الدعاء والتواصل مع المطوّر
+\end{enumerate}
+
+\textbf{المشاكل المرصودة:}
+\begin{itemize}
+  \item طول الصفحة يفرض تمريرًا طويلًا للوصول للأقسام السفلية.
+  \item تكرار منطق شارات الحالة (\texttt{statusChip}) في 4 مواضع.
+  \item تكرار كتل رسائل التغذية الراجعة (\texttt{feedbackAlert}) في 5 مواضع.
+  \item استخدام إيموجي داخل دليل التثبيت يخالف اتّساق أيقونات الموقع.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة الأولى: إعادة الهيكلة}
+
+تتحوّل البطاقات الست إلى \textbf{أربع مجموعات}، كل مجموعة Accordion مستقل:
+
+\vspace{6pt}
+\renewcommand{\arraystretch}{1.4}
+\begin{longtable}{@{}p{0.05\textwidth} p{0.30\textwidth} p{0.48\textwidth} p{0.12\textwidth}@{}}
+\toprule
+\textbf{\#} & \textbf{المجموعة} & \textbf{تحتوي على} & \textbf{الافتراضي} \\
+\midrule
+\endhead
+1 & التطبيق والتحديثات & إصدار التطبيق، تفريغ الكاش، تثبيت PWA & مفتوحة \\
+2 & المحتوى الفقهي & المسائل والقاموس، مزامنة المحتوى & مفتوحة \\
+3 & حسابي والخصوصية & إنجازاتي، المزامنة السحابية، مسح البيانات & مفتوحة \\
+4 & الدعاء والتواصل & الدعاء + وسائل التواصل & مغلقة \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1.0}
+
+\begin{itemize}
+  \item بطاقة \textbf{حساب الزائر} \texttt{GuestAccountCard} تبقى أعلى الصفحة خارج الـ Accordion.
+  \item المجموعة 3 تعرض بطاقة تسجيل الدخول للزائر بدل خيارات المزامنة عند عدم وجود \texttt{user}.
+  \item رأس الصفحة (الأيقونة + العنوان + الخط الفاصل) يبقى كما هو.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة الثانية: بنية الـ Accordion}
+
+\textbf{مكوّن جديد \texttt{SettingsSection} داخل نفس الملف:}
+\begin{itemize}
+  \item \texttt{button} برأس قابل للنقر: أيقونة + عنوان + شارة حالة + سهم يدور $180^\circ$ عند الفتح.
+  \item المحتوى بأسفله بـ انتقال ارتفاع سلس (\texttt{max-height} + \texttt{opacity}).
+  \item دعم الإتاحة: \texttt{aria-expanded}, \texttt{aria-controls}, \texttt{role="region"}.
+  \item حالة الفتح لكل مجموعة في \texttt{useState} منفصل، مع السماح بفتح أكثر من مجموعة.
+  \item شارة صغيرة على رأس مجموعة «التطبيق» تظهر عند وجود تحديث متاح حتى وهي مطويّة.
+\end{itemize}
+
+\begin{goalbox}
+\textbf{الفائدة:} تقليل طول الصفحة نحو $60\%$، وصول أسرع للأقسام، وتجربة أنظف على الجوال.
+\end{goalbox}
+
+% ============================================================
+\section{المرحلة الثالثة: التحسين البصري}
+
+\begin{enumerate}
+  \item \textbf{بطاقات فرعية موحّدة:} خلفية أفتح وحدّ أنحف لإظهار التسلسل الهرمي داخل المجموعة.
+  \item \textbf{رأس مجمّع:} خلفية متدرجة خفيفة وأيقونة بألوان الهوية عند الفتح (رمادي محايد عند الإغلاق).
+  \item \textbf{توحيد \texttt{statusChip}:} مكوّن واحد بدل تكرار منطق الألوان في 4 مواضع.
+  \item \textbf{توحيد \texttt{Feedback}:} مكوّن \texttt{<Feedback type text/>} واحد بدل 5 كتل متطابقة.
+  \item \textbf{المسافات:} شبكة 8px منتظمة، وحدّ أقصى للعرض 720px للأقسام الطويلة.
+  \item \textbf{الأيقونات:} استبدال إيموجي دليل التثبيت ($\Mobile$ $\Apple$ $\Desktop$) بأيقونات \texttt{react-icons}.
+  \item \textbf{الوضع الداكن:} مراجعة الألوان الثابتة (\texttt{\#e74c3c}، \texttt{\#27ae60}) لتباعد كافٍ.
+  \item \textbf{الحركة:} احترام \texttt{prefers-reduced-motion}، وتوحيد مدة الانتقالات على 250ms.
+\end{enumerate}
+
+% ============================================================
+\section{المرحلة الرابعة: تحسينات تجربة المستخدم}
+
+\begin{itemize}
+  \item سهم المجموعة يتحرّك عند المرور ويشير إلى قابلية الفتح.
+  \item الفتح الحر (لا طيّ تلقائي لما فوق المجموعة المفتوحة).
+  \item زر «مسح البيانات» الأحمر يبقى داخل صندوق تأكيد لا يظهر إلا عند الطلب.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة الخامسة: الملفات والتحقق}
+
+\textbf{ملفات تُعدَّل:}
+\begin{itemize}
+  \item \texttt{SettingsView.tsx} — إعادة هيكلة JSX + مكوّنا \texttt{SettingsSection} و \texttt{Feedback}.
+  \item \texttt{SettingsView.module.css} — أنماط Accordion + التوحيد البصري.
+\end{itemize}
+
+\textbf{لا يُعدَّل:} منطق الأزرار والـ handlers (بلا تغيير وظيفي).
+
+\vspace{6pt}
+\textbf{أوامر التحقق:}
+\begin{tcolorbox}[colback=codebg, colframe=codebg, coltext=white, arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt]
+{\ttfamily\small\raggedleft
+npm run lint\\
+npm run test -{}- SettingsView\\
+npx tsc -{}-noEmit
+}
+\end{tcolorbox}
+
+\begin{warnbox}
+\textbf{المخاطر:} اختبار \texttt{SettingsView.test.tsx} يتوقّع عناصر بالنص؛ قد يحتاج تحديث المُحدِّدات
+لتعكس البنية الجديدة دون كسر المنطق.
+\end{warnbox}
+
+% ============================================================
+\section{معايير القبول}
+
+\begin{itemize}
+  \item[${\color{okgreen}\faCheckCircle}$] الصفحة تعرض أربع مجموعات Accordion قابلة للفتح والطي.
+  \item[${\color{okgreen}\faCheckCircle}$] لا تغيير في سلوك أي زر أو إجراء بعد إعادة الهيكلة.
+  \item[${\color{okgreen}\faCheckCircle}$] طول الصفحة المطويّة أقل بوضوح من الحالية.
+  \item[${\color{okgreen}\faCheckCircle}$] الوضع الداكن سليم على كل العناصر الجديدة.
+  \item[${\color{okgreen}\faCheckCircle}$] \texttt{lint} و \texttt{tsc} واختبارات \texttt{SettingsView} تمرّ بنجاح.
+\end{itemize}
+
+\end{document}

@@ -19,6 +19,7 @@ const show = (label, file) => {
 
 show('lesson', 'public/lessons/1/index.html');
 show('book', 'public/books/كتاب الطهارة/index.html');
+show('books-hub', 'public/books/index.html');
 show('hub', 'public/lessons/index.html');
 
 // فحص شامل: كل صفحة ثابتة لها صورة معاينة بأبعاد معلنة و canonical وزرّ يقود للتطبيق

@@ -301,7 +301,7 @@ ${next ? `<link rel="next" href="${next}">` : ''}
 
 const foot = (appLink) => `
 <a class="cta" href="${appLink}" rel="noopener">📖 افتح في الموقع التفاعلي</a>
-<div class="footer">يَسِّر — منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر — <a href="/">fqh.me</a> · <a href="/lessons/">كل المسائل</a></div>
+<div class="footer">يَسِّر — منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر — <a href="/">fqh.me</a> · <a href="/books/">فهرس الكتب</a> · <a href="/lessons/">كل المسائل</a></div>
 </div></body></html>`;
 
 // ← توليد صفحات الكتب
@@ -434,6 +434,69 @@ ${l.audioUrl ? (() => { const s = toSeconds(l.startTime); const e = toSeconds(l.
 ${l.sheikhExplanation ? `<div class="exp"><h3>📖 تعليق الشيخ</h3><pre>${escapeHtml(l.sheikhExplanation)}</pre></div>` : ''}
 ${pager}` +
     foot(`/#/lesson/${encId(l.id)}`)
+  );
+}
+
+// ← صفحة فهرس كل الكتب (/books/) — محور ربط داخلي للكتب
+function booksIndexPage() {
+  const url = `${BASE}/books/`;
+  const desc = `فهرس الكتب الفقهية في منصة يَسِّر — ${bookNames.length} كتب تجمع ${lessonsData.length} مسألة موثّقة، قراءة كاملة بدون تسجيل.`;
+  const collectionLd = {
+    '@type': 'CollectionPage',
+    name: 'فهرس الكتب',
+    description: desc,
+    inLanguage: 'ar',
+    url,
+    isPartOf: { '@type': 'WebSite', name: 'يَسِّر', url: `${BASE}/` },
+    publisher: { '@type': 'Organization', name: 'يَسِّر', url: BASE },
+  };
+  const breadcrumbLd = {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: `${BASE}/` },
+      { '@type': 'ListItem', position: 2, name: 'فهرس الكتب', item: url },
+    ],
+  };
+  const jsonld = {
+    '@context': 'https://schema.org',
+    '@graph': [collectionLd, breadcrumbLd],
+  };
+
+  const groupsHtml = bookNames
+    .map((name) => {
+      const bookLessons = bookLessonsSorted[name] ?? [];
+      const chapters = lessonChapters(bookLessons);
+      return `<h2><a href="/books/${enc(name)}/">${escapeHtml(name)}</a></h2>
+<p class="meta">${chapters.length} أبواب • ${bookLessons.length} مسألة</p>
+<ul class="book-preview">
+${chapters
+  .slice(0, 6)
+  .map(
+    ([chName, chLessons]) =>
+      `<li><span class="chapter-title">${escapeHtml(chName)}</span> <span style="opacity:0.65">(${chLessons.length} مسألة)</span></li>`,
+  )
+  .join('')}
+${chapters.length > 6 ? `<li><a href="/books/${enc(name)}/">… والمزيد (${chapters.length - 6} أبواب إضافية)</a></li>` : ''}
+</ul>`;
+    })
+    .join('\n');
+
+  return (
+    head({
+      title: 'فهرس الكتب — يَسِّر',
+      desc,
+      url,
+      jsonld,
+      ogType: 'website',
+      ogImage: ogImageFor(null),
+    }) +
+    `<div class="breadcrumb"><a href="/">الرئيسية</a> › فهرس الكتب</div>
+<h1>فهرس الكتب الفقهية</h1>
+<p class="meta">${bookNames.length} كتب • ${lessonsData.length} مسألة</p>
+<div class="hub">
+${groupsHtml}
+</div>` +
+    foot(`/#/books`)
   );
 }
 
@@ -705,6 +768,10 @@ try {
   console.warn('⚠️ SEO: تعذّر توليد صور المشاركة —', e?.message);
 }
 
+// ── صفحة فهرس الكتب (/books/) ──
+writeFileSync(join(PUBLIC, 'books', 'index.html'), booksIndexPage(), 'utf8');
+console.log(`📚 SEO: صفحة فهرس الكتب (/books/) تربط ${bookNames.length} كتب`);
+
 // ── صفحة فهرس المسائل (/lessons/) ──
 writeFileSync(join(PUBLIC, 'lessons', 'index.html'), lessonsIndexPage(), 'utf8');
 console.log(`🔗 SEO: صفحة فهرس كل المسائل (/lessons/) تربط ${lessonsData.length} مسألة`);
@@ -725,6 +792,7 @@ try {
   if (existsSync(booksDir)) {
     const validBooks = new Set(bookNames);
     for (const entry of readdirSync(booksDir)) {
+      if (entry === 'index.html') continue;
       if (!validBooks.has(entry)) {
         rmSync(join(booksDir, entry), { recursive: true, force: true });
       }
@@ -739,6 +807,7 @@ const urlEntry = (loc, lastmod, extra = '') =>
   `  <url><loc>${loc}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>weekly</changefreq>${extra}</url>`;
 const urls = [
   urlEntry(`${BASE}/`, lastmodOf(lessonsData)),
+  urlEntry(`${BASE}/books/`, lastmodOf(lessonsData)),
   urlEntry(`${BASE}/lessons/`, lastmodOf(lessonsData)),
 ];
 bookNames.forEach((n) => urls.push(urlEntry(`${BASE}/books/${enc(n)}/`, bookLastmod[n])));
