@@ -24,9 +24,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(201, 168, 76, 0.18), rgba(92, 192, 181, 0.22));
-  border: 1px solid rgba(201, 168, 76, 0.35);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, var(--brand-gold-18), var(--brand-teal-22));
+  border: 1px solid color-mix(in srgb, var(--brand-gold) 35%, transparent);
+  box-shadow: 0 4px 16px var(--shadow-soft);
   color: var(--primary-color);
   margin-bottom: 0.85rem;
   transition: transform 0.3s ease;
@@ -68,15 +68,15 @@
   border-radius: 16px;
   padding: 1.35rem 1.4rem;
   margin-bottom: 1.35rem;
-  box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 6px 20px -4px var(--shadow-soft);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
   position: relative;
   overflow: hidden;
 }
 
 .settingsCard:hover {
-  border-color: rgba(201, 168, 76, 0.3);
-  box-shadow: 0 8px 26px -4px rgba(0, 0, 0, 0.08);
+  border-color: color-mix(in srgb, var(--brand-gold) 30%, transparent);
+  box-shadow: 0 8px 26px -4px var(--shadow-soft-lg);
 }
 
 .cardHeader {
@@ -101,7 +101,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(92, 192, 181, 0.12), rgba(201, 168, 76, 0.1));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand-teal) 12%, transparent), color-mix(in srgb, var(--brand-gold) 10%, transparent));
   color: var(--primary-color);
   flex-shrink: 0;
   font-size: 1.2rem;
@@ -135,39 +135,21 @@
 }
 
 .statusSuccess {
-  background: rgba(39, 174, 96, 0.12);
-  color: #27ae60;
-  border: 1px solid rgba(39, 174, 96, 0.25);
-}
-
-[data-theme="dark"] .statusSuccess {
-  background: rgba(46, 204, 113, 0.15);
-  color: #2ecc71;
-  border-color: rgba(46, 204, 113, 0.3);
+  background: var(--tone-success-bg);
+  color: var(--tone-success);
+  border: 1px solid color-mix(in srgb, var(--tone-success) 25%, transparent);
 }
 
 .statusWarning {
-  background: rgba(230, 126, 34, 0.12);
-  color: #d35400;
-  border: 1px solid rgba(230, 126, 34, 0.25);
-}
-
-[data-theme="dark"] .statusWarning {
-  background: rgba(243, 156, 18, 0.16);
-  color: #f39c12;
-  border-color: rgba(243, 156, 18, 0.3);
+  background: var(--tone-warning-bg);
+  color: var(--tone-warning);
+  border: 1px solid color-mix(in srgb, var(--tone-warning) 25%, transparent);
 }
 
 .statusInfo {
-  background: rgba(52, 152, 219, 0.12);
-  color: #2980b9;
-  border: 1px solid rgba(52, 152, 219, 0.25);
-}
-
-[data-theme="dark"] .statusInfo {
-  background: rgba(52, 152, 219, 0.18);
-  color: #5dade2;
-  border-color: rgba(52, 152, 219, 0.3);
+  background: var(--tone-info-bg);
+  color: var(--tone-info);
+  border: 1px solid color-mix(in srgb, var(--tone-info) 25%, transparent);
 }
 
 /* Actions Row */
@@ -198,14 +180,14 @@
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
-  background: linear-gradient(135deg, var(--accent-color), #c99347);
+  background: linear-gradient(135deg, var(--accent-color), color-mix(in srgb, var(--accent-color) 85%, #000));
   color: var(--text-on-accent, #1d1d1d);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3px 10px var(--shadow-soft);
 }
 
 .btnPrimary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 5px 14px var(--shadow-soft-lg);
   filter: brightness(1.05);
 }
 
@@ -234,7 +216,7 @@
 }
 
 .btnSecondary:hover:not(:disabled) {
-  background: rgba(201, 168, 76, 0.1);
+  background: color-mix(in srgb, var(--brand-gold) 10%, transparent);
   border-color: var(--accent-color);
   color: var(--primary-color);
   transform: translateY(-1px);
@@ -259,20 +241,46 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid rgba(231, 76, 60, 0.4);
-  background: rgba(231, 76, 60, 0.06);
-  color: #e74c3c;
+  border: 1px solid color-mix(in srgb, var(--tone-danger) 40%, transparent);
+  background: color-mix(in srgb, var(--tone-danger) 6%, transparent);
+  color: var(--tone-danger);
 }
 
 .btnDangerOutline:hover:not(:disabled) {
-  background: #e74c3c;
+  background: var(--tone-danger);
   color: #ffffff;
-  border-color: #e74c3c;
+  border-color: var(--tone-danger);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.25);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--tone-danger) 25%, transparent);
 }
 
 .btnDangerOutline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnDangerSolid {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.48rem 0.95rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  background: var(--tone-danger);
+  color: #ffffff;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--tone-danger) 25%, transparent);
+}
+
+.btnDangerSolid:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.btnDangerSolid:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -291,43 +299,27 @@
 }
 
 .feedbackAlertSuccess {
-  background: rgba(39, 174, 96, 0.1);
-  border: 1px solid rgba(39, 174, 96, 0.3);
-  color: #27ae60;
-}
-
-[data-theme="dark"] .feedbackAlertSuccess {
-  color: #2ecc71;
-  border-color: rgba(46, 204, 113, 0.35);
-  background: rgba(46, 204, 113, 0.12);
+  background: var(--tone-success-bg);
+  border: 1px solid color-mix(in srgb, var(--tone-success) 30%, transparent);
+  color: var(--tone-success);
 }
 
 .feedbackAlertError {
-  background: rgba(231, 76, 60, 0.1);
-  border: 1px solid rgba(231, 76, 60, 0.3);
-  color: #e74c3c;
+  background: var(--tone-danger-bg);
+  border: 1px solid color-mix(in srgb, var(--tone-danger) 30%, transparent);
+  color: var(--tone-danger);
 }
 
 .feedbackAlertInfo {
-  background: rgba(52, 152, 219, 0.1);
-  border: 1px solid rgba(52, 152, 219, 0.3);
-  color: #2980b9;
-}
-
-[data-theme="dark"] .feedbackAlertInfo {
-  color: #5dade2;
-  border-color: rgba(52, 152, 219, 0.35);
+  background: var(--tone-info-bg);
+  border: 1px solid color-mix(in srgb, var(--tone-info) 30%, transparent);
+  color: var(--tone-info);
 }
 
 .feedbackAlertWarning {
-  background: rgba(243, 156, 18, 0.1);
-  border: 1px solid rgba(243, 156, 18, 0.3);
-  color: #d35400;
-}
-
-[data-theme="dark"] .feedbackAlertWarning {
-  color: #f39c12;
-  border-color: rgba(243, 156, 18, 0.35);
+  background: var(--tone-warning-bg);
+  border: 1px solid color-mix(in srgb, var(--tone-warning) 30%, transparent);
+  color: var(--tone-warning);
 }
 
 /* Meta Footer */
@@ -424,8 +416,8 @@
 
 /* Confirmation Box */
 .confirmBox {
-  background: rgba(231, 76, 60, 0.06);
-  border: 1px dashed rgba(231, 76, 60, 0.35);
+  background: color-mix(in srgb, var(--tone-danger) 6%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--tone-danger) 35%, transparent);
   border-radius: 12px;
   padding: 1rem 1.15rem;
   margin-top: 1rem;
@@ -434,7 +426,7 @@
 
 .confirmTitle {
   font-weight: 700;
-  color: #e74c3c;
+  color: var(--tone-danger);
   font-size: 0.92rem;
   margin-bottom: 0.35rem;
 }
@@ -466,8 +458,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(231, 76, 60, 0.12);
-  color: #e74c3c;
+  background: color-mix(in srgb, var(--tone-danger) 12%, transparent);
+  color: var(--tone-danger);
   margin-bottom: 1rem;
   font-size: 1.5rem;
   transition: transform 0.3s ease;
@@ -585,7 +577,7 @@
 
 .contactCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 18px var(--shadow-soft);
 }
 
 .contactCard:hover .contactActionHint {
@@ -594,19 +586,32 @@
 }
 
 .contactCardWhatsApp:hover {
-  border-color: rgba(37, 211, 102, 0.5);
-  background: rgba(37, 211, 102, 0.06);
+  border-color: color-mix(in srgb, #25d366 50%, transparent);
+  background: color-mix(in srgb, #25d366 8%, transparent);
 }
 
 .contactCardFacebook:hover {
-  border-color: rgba(24, 119, 242, 0.5);
-  background: rgba(24, 119, 242, 0.06);
+  border-color: color-mix(in srgb, #1877f2 50%, transparent);
+  background: color-mix(in srgb, #1877f2 8%, transparent);
 }
 
 .contactCardLinkedIn:hover {
-  border-color: rgba(10, 102, 194, 0.5);
-  background: rgba(10, 102, 194, 0.06);
+  border-color: color-mix(in srgb, #0a66c2 50%, transparent);
+  background: color-mix(in srgb, #0a66c2 8%, transparent);
 }
+
+[data-theme="dark"] .whatsappIcon,
+[data-theme="dark"] .facebookIcon,
+[data-theme="dark"] .linkedinIcon {
+  filter: saturate(0.9);
+}
+
+[data-theme="sepia"] .whatsappIcon,
+[data-theme="sepia"] .facebookIcon,
+[data-theme="sepia"] .linkedinIcon {
+  filter: saturate(0.85);
+}
+
 
 /* Animations */
 @keyframes fadeInDown {
@@ -623,7 +628,7 @@
 /* Install Guide Box in Settings */
 .installGuideBox {
   background: var(--badge-bg);
-  border: 1px dashed rgba(201, 168, 76, 0.4);
+  border: 1px dashed color-mix(in srgb, var(--brand-gold) 40%, transparent);
   border-radius: 12px;
   padding: 1.1rem 1.2rem;
   margin-top: 1.1rem;
@@ -656,7 +661,7 @@
 }
 
 .installGuideCard:hover {
-  border-color: rgba(201, 168, 76, 0.35);
+  border-color: color-mix(in srgb, var(--brand-gold) 35%, transparent);
 }
 
 .installGuideDevice {

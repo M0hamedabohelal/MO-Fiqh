@@ -718,10 +718,9 @@ const SettingsView = () => {
               <div className={styles.confirmActions}>
                 <button
                   type="button"
-                  className={styles.btnDangerOutline}
+                  className={styles.btnDangerSolid}
                   onClick={handleClearCloudData}
                   disabled={clearingCloud}
-                  style={{ background: '#e74c3c', color: '#fff', border: 'none' }}
                 >
                   {clearingCloud ? (
                     <span className={styles.spinner} role="status" aria-hidden="true" />

@@ -33,6 +33,24 @@
   --font-heading: "Amiri", serif;
   --base-font-size: 16px;
   --card-bg-alpha: rgba(255, 255, 255, 0.85);
+
+  /* ── الرموز الدلالية ونظام الألوان (Design Tokens) ── */
+  --tone-success: #27ae60;
+  --tone-warning: #d35400;
+  --tone-danger: #e74c3c;
+  --tone-info: #2980b9;
+  --brand-gold: #c9a84c;
+  --brand-teal: #5cc0b5;
+  --shadow-soft: rgba(0, 0, 0, 0.06);
+  --shadow-soft-lg: rgba(0, 0, 0, 0.08);
+
+  --brand-gold-18: color-mix(in srgb, var(--brand-gold) 18%, transparent);
+  --brand-teal-22: color-mix(in srgb, var(--brand-teal) 22%, transparent);
+  --tone-success-bg: color-mix(in srgb, var(--tone-success) 12%, transparent);
+  --tone-warning-bg: color-mix(in srgb, var(--tone-warning) 12%, transparent);
+  --tone-danger-bg: color-mix(in srgb, var(--tone-danger) 12%, transparent);
+  --tone-info-bg: color-mix(in srgb, var(--tone-info) 12%, transparent);
+
 }
 
 [data-theme="dark"] {
@@ -50,6 +68,24 @@
   --badge-border: rgba(255, 255, 255, 0.1);
   --sidebar-bg: #161b1b;
   --card-bg-alpha: rgba(26, 32, 32, 0.82);
+
+  /* ── الرموز الدلالية — الوضع الداكن ── */
+  --tone-success: #2ecc71;
+  --tone-warning: #f39c12;
+  --tone-danger: #ff6b5b;
+  --tone-info: #5dade2;
+  --brand-gold: #d8a06a;
+  --brand-teal: #5cc0b5;
+  --shadow-soft: rgba(0, 0, 0, 0.35);
+  --shadow-soft-lg: rgba(0, 0, 0, 0.45);
+
+  --brand-gold-18: color-mix(in srgb, var(--brand-gold) 18%, transparent);
+  --brand-teal-22: color-mix(in srgb, var(--brand-teal) 22%, transparent);
+  --tone-success-bg: color-mix(in srgb, var(--tone-success) 16%, transparent);
+  --tone-warning-bg: color-mix(in srgb, var(--tone-warning) 16%, transparent);
+  --tone-danger-bg: color-mix(in srgb, var(--tone-danger) 16%, transparent);
+  --tone-info-bg: color-mix(in srgb, var(--tone-info) 18%, transparent);
+
 }
 html {
   /* هذا السطر يخبر المتصفح أن يربط حجم الخط الأساسي بالزر الذي برمجناه */
@@ -383,6 +419,24 @@ button:active:not(:disabled),
   --badge-border: rgba(90, 60, 30, 0.15);
   --sidebar-bg: #efe5d0;
   --card-bg-alpha: rgba(250, 243, 227, 0.9);
+
+  /* ── الرموز الدلالية — وضع السيبيا (تراثي) ── */
+  --tone-success: #3f7a46;
+  --tone-warning: #b0762a;
+  --tone-danger: #b23a2e;
+  --tone-info: #4a6fa5;
+  --brand-gold: #c09553;
+  --brand-teal: #7a9e8e;
+  --shadow-soft: rgba(90, 60, 30, 0.10);
+  --shadow-soft-lg: rgba(90, 60, 30, 0.16);
+
+  --brand-gold-18: color-mix(in srgb, var(--brand-gold) 18%, transparent);
+  --brand-teal-22: color-mix(in srgb, var(--brand-teal) 22%, transparent);
+  --tone-success-bg: color-mix(in srgb, var(--tone-success) 14%, transparent);
+  --tone-warning-bg: color-mix(in srgb, var(--tone-warning) 14%, transparent);
+  --tone-danger-bg: color-mix(in srgb, var(--tone-danger) 14%, transparent);
+  --tone-info-bg: color-mix(in srgb, var(--tone-info) 14%, transparent);
+
 }
 
 [data-theme="sepia"] .custom-card {
