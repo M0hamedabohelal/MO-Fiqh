@@ -36,8 +36,10 @@ const walk = (dir) => {
       if (!/rel="canonical"/.test(h)) problems.push(`${p}: بلا canonical`);
       const cta = get(h, /class="cta" href="([^"]+)/);
       if (!cta.startsWith('/#')) problems.push(`${p}: الزر لا يقود إلى التطبيق (${cta})`);
-      // صفحات قديمة تُخدَم من Service Worker سابق: لا بد من سكربت التنظيف في كل صفحة
-      if (!h.includes('sw-cleared')) problems.push(`${p}: بلا سكربت إزالة Service Worker القديم`);
+      // التحقق من وجود JSON-LD و BreadcrumbList
+      if (!h.includes('application/ld+json')) problems.push(`${p}: بلا JSON-LD`);
+      if (!h.includes('BreadcrumbList')) problems.push(`${p}: بلا BreadcrumbList في بيانات Schema`);
+      if (!h.includes('content="يَسِّر"')) problems.push(`${p}: بلا اسم الموقع الرسمي (يَسِّر)`);
       // canonical/og:url لا يجوز أن يشير إلى نطاق يحوِّل (www → apex بـ 301)
       if (/https:\/\/www\.fqh\.me/.test(h)) problems.push(`${p}: رابط مطلق على www المحوِّل`);
     }
@@ -45,6 +47,13 @@ const walk = (dir) => {
 };
 walk('public/lessons');
 walk('public/books');
+
+// فحص index.html الرئيسي للتأكد من وجود Schema WebSite و Organization والاسم الرسمي
+const rootHtml = fs.readFileSync('index.html', 'utf8');
+if (!rootHtml.includes('"WebSite"')) problems.push('index.html: غياب Schema WebSite');
+if (!rootHtml.includes('"Organization"')) problems.push('index.html: غياب Schema Organization');
+if (!rootHtml.includes('name="robots"')) problems.push('index.html: غياب meta robots');
+if (!rootHtml.includes('favicon.ico')) problems.push('index.html: غياب رابط favicon.ico');
 
 console.log(`\nصفحات ثابتة: ${pages} | مشاكل: ${problems.length}`);
 problems.slice(0, 10).forEach((p) => console.log('  ✗', p));

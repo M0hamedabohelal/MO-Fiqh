@@ -2,7 +2,11 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48 32x32 16x16" />
+    <link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/icons/icon-48.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- ضبط الثيم فوراً قبل أول رسم للصفحة لمنع وميض الثيم الفاتح (الداكن هو الافتراضي) -->
     <script>
@@ -16,7 +20,8 @@
         }
       })();
     </script>
-    <meta name="description" content="يَسِّر - منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر" />
+    <meta name="description" content="منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر في ضوء الكتاب والسنة مع الشرح الصوتي والمزامنة الذكية" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <link rel="canonical" href="https://fqh.me/" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#101414" />
@@ -24,8 +29,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="يَسِّر" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <title>يَسِّر</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <title>يَسِّر — منصة تعليم الفقه الإسلامي الميسّر</title>
     <meta name="google" content="notranslate">
 
     <!-- الخطوط: روابط مباشرة + preconnect بدل @import (أسرع بكثير على شبكات الفون) -->
@@ -48,18 +53,71 @@
       />
     </noscript>
 
-    <!-- معاينة المشاركة الجميلة (WhatsApp / Telegram / Facebook) -->
+    <!-- معاينة المشاركة الجميلة (WhatsApp / Telegram / Facebook / Twitter) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="يَسِّر" />
     <meta property="og:locale" content="ar_AR" />
-    <meta property="og:title" content="يَسِّر — منصة تعليم الفقه الإسلامي" />
-    <meta property="og:description" content="منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر" />
+    <meta property="og:title" content="يَسِّر — منصة تعليم الفقه الإسلامي الميسّر" />
+    <meta property="og:description" content="منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر في ضوء الكتاب والسنة مع الشرح الصوتي والمزامنة الذكية" />
     <meta property="og:image" content="https://fqh.me/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="شعار منصة يَسِّر لتعليم الفقه الإسلامي" />
     <meta property="og:url" content="https://fqh.me/" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="يَسِّر — منصة تعليم الفقه الإسلامي" />
-    <meta name="twitter:description" content="منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر" />
+    <meta name="twitter:title" content="يَسِّر — منصة تعليم الفقه الإسلامي الميسّر" />
+    <meta name="twitter:description" content="منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر في ضوء الكتاب والسنة مع الشرح الصوتي والمزامنة الذكية" />
     <meta name="twitter:image" content="https://fqh.me/og-image.jpg" />
+
+    <!-- بيانات Schema.org المنظمة (JSON-LD) لإثبات اسم الموقع وهوية المؤسسة في محركات البحث جوجل -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://fqh.me/#website",
+            "name": "يَسِّر",
+            "alternateName": [
+              "يسر",
+              "منصة يَسِّر",
+              "منصة يَسِّر للفقه",
+              "منصة يَسِّر لتعليم الفقه الإسلامي",
+              "الفقه الميسر"
+            ],
+            "url": "https://fqh.me/",
+            "inLanguage": "ar",
+            "description": "منصة تعليمية متكاملة لدراسة الفقه الإسلامي بأسلوب عصري ميسّر في ضوء الكتاب والسنة",
+            "publisher": {
+              "@id": "https://fqh.me/#organization"
+            },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://fqh.me/#/lessons?q={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://fqh.me/#organization",
+            "name": "يَسِّر",
+            "alternateName": "منصة يَسِّر",
+            "url": "https://fqh.me/",
+            "logo": {
+              "@type": "ImageObject",
+              "@id": "https://fqh.me/#logo",
+              "url": "https://fqh.me/icons/icon-512.png",
+              "caption": "شعار منصة يَسِّر",
+              "width": 512,
+              "height": 512
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

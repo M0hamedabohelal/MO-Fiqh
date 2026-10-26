@@ -260,27 +260,6 @@ const ogImageFor = (bookName) =>
     ? { url: `${BASE}/og/${enc(bookName)}.jpg`, ...OG_BOOK_SIZE }
     : { url: OG_DEFAULT, ...OG_DEFAULT_SIZE };
 
-// تنظيف آثار الـ PWA القديمة — يُحقن في كل صفحة (تطبيق + صفحات ثابتة).
-// زوّار ما قبل إزالة الـ PWA ما زال عندهم Service Worker مسجَّل يخدّم حزمة قديمة من الكاش،
-// فتظهر نسخة قديمة عند فتح أي رابط ولا تُحدَّث إلا بريفرش قسري. الصفحات الثابتة تعرضت
-// لنفس المشكلة لأن نطاق الـ SW يغطي الموقع كله، فلا يكفي حقن هذا في index.html وحده.
-const SW_CLEANUP = `<script>
-(function(){try{
-  if(!('serviceWorker' in navigator))return;
-  navigator.serviceWorker.getRegistrations().then(function(regs){
-    if(!regs.length)return;
-    Promise.all(regs.map(function(r){return r.unregister()}))
-      .then(function(){ if(!window.caches)return null;
-        return caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k)}))}); })
-      .then(function(){
-        try{localStorage.setItem('sw-cleared','1')}catch(e){}
-        if(!sessionStorage.getItem('sw-reloaded')){sessionStorage.setItem('sw-reloaded','1');location.reload();}
-      })
-      .catch(function(){});
-  }).catch(function(){});
-}catch(e){}})();
-</script>`;
-
 // زر "افتح في الموقع التفاعلي" — يفتح هاش التطبيق (/ #/lesson/id) لا الملف الثابت نفسه،
 // فالنقر على القناة الصحيحة ينقل الزائر إلى شاشة القراءة التفاعلية.
 function head({ title, desc, url, jsonld, ogType = 'article', ogImage = ogImageFor(null), prev = null, next = null }) {
@@ -291,7 +270,11 @@ function head({ title, desc, url, jsonld, ogType = 'article', ogImage = ogImageF
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(desc)}">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
 <link rel="canonical" href="${url}">
+<link rel="icon" href="/favicon.ico" sizes="48x48 32x32 16x16">
+<link rel="icon" href="/favicon.svg" sizes="any" type="image/svg+xml">
+<link rel="icon" type="image/png" sizes="48x48" href="/icons/icon-48.png">
 ${prev ? `<link rel="prev" href="${prev}">` : ''}
 ${next ? `<link rel="next" href="${next}">` : ''}
 <meta property="og:type" content="${ogType}">
@@ -313,7 +296,6 @@ ${next ? `<link rel="next" href="${next}">` : ''}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Amiri+Quran&family=Tajawal:wght@400;700&display=swap">
 <script type="application/ld+json">${jsonLdString(jsonld)}</script>
 <style>${PAGE_CSS}</style>
-${SW_CLEANUP}
 </head>
 <body><div class="wrap">`;
 }
@@ -327,14 +309,25 @@ const foot = (appLink) => `
 function bookPage(name, lessons) {
   const url = `${BASE}/books/${enc(name)}/`;
   const desc = `${name} — ${lessonChapters(lessons).length} أبواب من المسائل الفقهية مع شرح الشيخ.`;
-  const jsonld = {
-    '@context': 'https://schema.org',
+  const bookLd = {
     '@type': 'Book',
     name,
     numberOfPages: lessons.length,
     inLanguage: 'ar',
     url,
     publisher: { '@type': 'Organization', name: 'يَسِّر', url: BASE },
+  };
+  const breadcrumbLd = {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: `${BASE}/` },
+      { '@type': 'ListItem', position: 2, name: 'فهرس المسائل', item: `${BASE}/lessons/` },
+      { '@type': 'ListItem', position: 3, name, item: url },
+    ],
+  };
+  const jsonld = {
+    '@context': 'https://schema.org',
+    '@graph': [bookLd, breadcrumbLd],
   };
 
   const chapters = lessonChapters(lessons);
@@ -389,8 +382,7 @@ function lessonPage(l, bookLessons, bookName) {
   const prevUrl = prevLesson ? `${BASE}/lessons/${encId(prevLesson.id)}/` : null;
   const nextUrl = nextLesson ? `${BASE}/lessons/${encId(nextLesson.id)}/` : null;
   const desc = snippet(l.mainText, 155);
-  const jsonld = {
-    '@context': 'https://schema.org',
+  const articleLd = {
     '@type': 'Article',
     headline: l.title,
     description: desc,
@@ -399,6 +391,19 @@ function lessonPage(l, bookLessons, bookName) {
     url,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     publisher: { '@type': 'Organization', name: 'يَسِّر', url: BASE },
+  };
+  const breadcrumbLd = {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: `${BASE}/` },
+      { '@type': 'ListItem', position: 2, name: 'فهرس المسائل', item: `${BASE}/lessons/` },
+      { '@type': 'ListItem', position: 3, name: bookName, item: `${BASE}/books/${enc(bookName)}/` },
+      { '@type': 'ListItem', position: 4, name: l.title, item: url },
+    ],
+  };
+  const jsonld = {
+    '@context': 'https://schema.org',
+    '@graph': [articleLd, breadcrumbLd],
   };
 
   // تنسيق نص المتن: استبدال أقواس الآيات بعلامات ملونة
@@ -441,8 +446,7 @@ ${pager}` +
 function lessonsIndexPage() {
   const url = `${BASE}/lessons/`;
   const desc = `كل مسائل الكتب الفقهية في صفحة واحدة — ${lessonsData.length} مسألة موثّقة بنصها وتعليق الشيخ، قراءة كاملة بدون تسجيل.`;
-  const jsonld = {
-    '@context': 'https://schema.org',
+  const collectionLd = {
     '@type': 'CollectionPage',
     name: 'كل المسائل',
     description: desc,
@@ -450,6 +454,17 @@ function lessonsIndexPage() {
     url,
     isPartOf: { '@type': 'WebSite', name: 'يَسِّر', url: `${BASE}/` },
     publisher: { '@type': 'Organization', name: 'يَسِّر', url: BASE },
+  };
+  const breadcrumbLd = {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: `${BASE}/` },
+      { '@type': 'ListItem', position: 2, name: 'كل المسائل', item: url },
+    ],
+  };
+  const jsonld = {
+    '@context': 'https://schema.org',
+    '@graph': [collectionLd, breadcrumbLd],
   };
 
   const groupsHtml = bookNames

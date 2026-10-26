@@ -119,9 +119,25 @@ const favSvg =
 await writeFile(join(root, 'public', 'favicon.svg'), favSvg);
 console.log(`✓ favicon.svg (${(favSvg.length / 1024).toFixed(0)} KB)`);
 
-// ─── ٥) أيقونات الـ PWA والتطبيقات (192, 512, maskable 512, apple-touch 180) ───
+// ─── ٥) أيقونات الـ PWA والتطبيقات والـ Favicon لجوجل والمتصفحات (48, 96, 192, 512, ICO) ───
 const iconsDir = join(root, 'public', 'icons');
 await mkdir(iconsDir, { recursive: true });
+
+// 48x48 (مطلوبة لمحركات البحث ومظهر جوجل في نتائج البحث)
+const icon48 = await sharp(SOURCE_CIRCLE)
+  .resize(48, 48, { fit: 'cover' })
+  .png({ compressionLevel: 9 })
+  .toBuffer();
+await writeFile(join(iconsDir, 'icon-48.png'), icon48);
+await writeFile(join(root, 'public', 'icon-48.png'), icon48);
+
+// 96x96
+const icon96 = await sharp(SOURCE_CIRCLE)
+  .resize(96, 96, { fit: 'cover' })
+  .png({ compressionLevel: 9 })
+  .toBuffer();
+await writeFile(join(iconsDir, 'icon-96.png'), icon96);
+await writeFile(join(root, 'public', 'icon-96.png'), icon96);
 
 // 192x192
 const icon192 = await sharp(SOURCE_CIRCLE)
@@ -138,6 +154,43 @@ const icon512 = await sharp(SOURCE_CIRCLE)
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-512.png'), icon512);
 await writeFile(join(root, 'public', 'icon-512.png'), icon512);
+
+// توليد favicon.ico متعدد الأحجام (16 + 32 + 48) في جذر الموقع لجوجل
+const p16 = await sharp(SOURCE_CIRCLE).resize(16, 16, { fit: 'cover' }).png().toBuffer();
+const p32 = await sharp(SOURCE_CIRCLE).resize(32, 32, { fit: 'cover' }).png().toBuffer();
+const icoImages = [
+  { width: 16, height: 16, buffer: p16 },
+  { width: 32, height: 32, buffer: p32 },
+  { width: 48, height: 48, buffer: icon48 },
+];
+
+const icoCount = icoImages.length;
+const icoHeaderSize = 6 + icoCount * 16;
+let icoOffset = icoHeaderSize;
+const icoDirEntries = [];
+
+for (const img of icoImages) {
+  const entry = Buffer.alloc(16);
+  entry.writeUInt8(img.width, 0);
+  entry.writeUInt8(img.height, 1);
+  entry.writeUInt8(0, 2);
+  entry.writeUInt8(0, 3);
+  entry.writeUInt16LE(1, 4);
+  entry.writeUInt16LE(32, 6);
+  entry.writeUInt32LE(img.buffer.length, 8);
+  entry.writeUInt32LE(icoOffset, 12);
+  icoDirEntries.push(entry);
+  icoOffset += img.buffer.length;
+}
+
+const icoHeader = Buffer.alloc(6);
+icoHeader.writeUInt16LE(0, 0);
+icoHeader.writeUInt16LE(1, 2);
+icoHeader.writeUInt16LE(icoCount, 4);
+
+const icoBuffer = Buffer.concat([icoHeader, ...icoDirEntries, ...icoImages.map((i) => i.buffer)]);
+await writeFile(join(root, 'public', 'favicon.ico'), icoBuffer);
+console.log(`✓ favicon.ico (${(icoBuffer.length / 1024).toFixed(1)} KB) [16x16, 32x32, 48x48]`);
 
 // maskable 512x512 (منطقة آمنة: الشعار بقطر ~400px في المنتصف مع خلفية داكنة #101414)
 const MASKABLE_LOGO_SIZE = 400;
