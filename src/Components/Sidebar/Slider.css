@@ -102,11 +102,11 @@
   transform: scale(1.15);
 }
 
-.sidebar-btn-active {
-  background: var(--accent-color) !important;
-  color: var(--text-on-accent) !important;
-  font-weight: 700 !important;
-  border-color: rgba(201, 168, 76, 0.2) !important;
+.sidebar-btn.sidebar-btn-active {
+  background: var(--accent-color);
+  color: var(--text-on-accent);
+  font-weight: 700;
+  border-color: rgba(201, 168, 76, 0.2);
   box-shadow: 0 4px 15px rgba(201, 168, 76, 0.2);
 }
 
@@ -198,7 +198,7 @@
   background: rgba(255,255,255,0.03);
 }
 
-.sidebar-settings-active {
-  color: var(--text-on-accent) !important;
+.sidebar-settings-btn.sidebar-settings-active {
+  color: var(--text-on-accent);
   font-weight: 700;
 }
