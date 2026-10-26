@@ -101,7 +101,7 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
               position: 'fixed', 
               left: '20px', 
               width: '280px', 
-              height: 'calc(100vh - 120px)',
+              height: 'calc(100dvh - 120px)',
               maxHeight: '600px',
               zIndex: 'var(--z-modal)' 
             }}

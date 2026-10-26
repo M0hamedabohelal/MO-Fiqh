@@ -34,6 +34,27 @@
   --base-font-size: 16px;
   --card-bg-alpha: rgba(255, 255, 255, 0.85);
 
+  /* ── مقاييس ورموز تصميم الجوال (Mobile-First Design Tokens) ── */
+  --tap-min: 44px;
+  --tap-comfort: 48px;
+
+  /* المسافات على شبكة 4px */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+
+  /* نصوص متجاوبة */
+  --fs-body: clamp(0.95rem, 0.9rem + 0.25vw, 1.05rem);
+  --fs-h1: clamp(1.6rem, 1.3rem + 1.5vw, 2.4rem);
+  --fs-h2: clamp(1.25rem, 1.1rem + 0.8vw, 1.6rem);
+
+  /* حشو الصفحة المتجاوب */
+  --page-pad-x: clamp(1rem, 4vw, 2rem);
+  --nav-h: 64px;
+
+
   /* ── الرموز الدلالية ونظام الألوان (Design Tokens) ── */
   --tone-success: #27ae60;
   --tone-warning: #d35400;
@@ -394,6 +415,7 @@ button:active:not(:disabled),
 /* Sidebar / Slider */
 .sidebar-wrapper {
   height: 100vh;
+  height: 100dvh;
   position: sticky;
   top: 0;
   display: flex;
@@ -445,6 +467,9 @@ button:active:not(:disabled),
 
 [data-theme="sepia"] .quran-text {
   color: #2d6b3f;
+}
+.quran-text, .hadith-text {
+  line-height: 1.85 !important;
 }
 
 [data-theme="sepia"] .hadith-text {
@@ -566,16 +591,18 @@ button:active:not(:disabled),
   bottom: 0;
   left: 0;
   right: 0;
+  height: var(--nav-h);
   background-color: var(--card-bg);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -4px 20px var(--shadow-soft);
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+  padding: 0 4px calc(env(safe-area-inset-bottom, 0px));
   z-index: var(--z-nav);
   border-top: 1px solid var(--border-color);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  box-sizing: border-box;
 }
 
 .mobile-bottom-nav .nav-item {
@@ -588,11 +615,14 @@ button:active:not(:disabled),
   background: none;
   border: none;
   gap: 3px;
-  padding: 6px 10px;
+  padding: 4px 6px;
   border-radius: 12px;
   position: relative;
   transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  min-width: 52px;
+  min-width: 48px;
+  min-height: var(--tap-min);
+  touch-action: manipulation;
+  box-sizing: border-box;
 }
 
 .mobile-bottom-nav .nav-item svg {
@@ -630,6 +660,9 @@ button:active:not(:disabled),
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  touch-action: manipulation;
 }
 
 .bookmark-btn:hover {
@@ -693,17 +726,17 @@ button:active:not(:disabled),
 
   /* منطقة المحتوى الرئيسية */
   .col-lg-10.col-md-9 {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-    padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; /* مسافة لشريط التنقل السفلي + safe area */
-    /* تجنّب تداخل المحتوى مع النوتش/شريط الحالة في التطبيق المثبت (خاصة آيفون) */
-    padding-top: calc(1.25rem + env(safe-area-inset-top, 0px)) !important;
+    padding-left: var(--page-pad-x) !important;
+    padding-right: var(--page-pad-x) !important;
+    padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 24px) !important;
+    padding-top: calc(1rem + env(safe-area-inset-top, 0px)) !important;
   }
 
   /* إخفاء شريط التنقل عند فتح لوحة المفاتيح لحقل نصي فقط؛ تركيز checkbox لا يخفيه */
-  body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus) .mobile-bottom-nav {
-    display: none !important;
-  }
+  body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus) .mobile-bottom-nav,
+body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus) .mobile-search-fab {
+  display: none !important;
+}
 
   /* تقليل الهوامش العلوية للـ container */
   .container.mt-4 {

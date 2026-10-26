@@ -44,6 +44,7 @@
   top: 90px !important; /* مساحة آمنة من الأعلى */
   height: auto !important;
   max-height: calc(100vh - 240px) !important;
+  max-height: calc(100dvh - 240px) !important;
   background-color: var(--card-bg) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -273,10 +274,12 @@
 .mobile-search-fab {
   position: fixed;
   right: 16px;
-  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--nav-h, 64px) + 14px + env(safe-area-inset-bottom, 0px));
   z-index: var(--z-fab);
-  width: 52px;
-  height: 52px;
+  width: 50px;
+  height: 50px;
+  min-width: var(--tap-comfort, 48px);
+  min-height: var(--tap-comfort, 48px);
   border-radius: 50%;
   border: none;
   display: flex;
@@ -284,8 +287,9 @@
   justify-content: center;
   cursor: pointer;
   color: #1a1a1a;
-  background: linear-gradient(135deg, #c9a84c 0%, #e6c875 50%, #c9a84c 100%);
-  box-shadow: 0 6px 20px rgba(201, 168, 76, 0.5), 0 2px 8px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--brand-gold) 100%);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--brand-gold) 45%, transparent), 0 2px 8px var(--shadow-soft);
+  touch-action: manipulation;
 }
 
 .mobile-search-fab:active {
