@@ -74,10 +74,26 @@ function unionLibrary(a: LibrarySnapshot, b: LibrarySnapshot): LibrarySnapshot {
   [...a.highlights, ...b.highlights].forEach((h) => {
     if (h) highlightMap.set(String(h.id ?? h.text), h);
   });
+
+  // دمج الملاحظات بأمان دون فقدان أي نص في حال وجود ملاحظة في كليهما لنفس المسألة
+  const notes: Record<string, string> = { ...a.notes };
+  for (const [id, bText] of Object.entries(b.notes || {})) {
+    if (!bText || !bText.trim()) continue;
+    const aText = notes[id];
+    if (!aText || !aText.trim()) {
+      notes[id] = bText.trim();
+    } else if (aText.trim() !== bText.trim()) {
+      if (!aText.includes(bText.trim())) {
+        const mergedText = `${aText.trim()}\n\n[ملاحظة سابقة]: ${bText.trim()}`;
+        notes[id] = mergedText.length > 3_000 ? mergedText.slice(0, 3_000) : mergedText;
+      }
+    }
+  }
+
   return {
     bookmarks: Array.from(new Set([...a.bookmarks, ...b.bookmarks])),
     highlights: Array.from(highlightMap.values()),
-    notes: { ...a.notes, ...b.notes },
+    notes,
     readLessons: Array.from(new Set([...a.readLessons, ...b.readLessons])),
   };
 }
@@ -87,13 +103,24 @@ export function useUserLibrary() {
 
   const [snapshot, setSnapshot] = useState<LibrarySnapshot>(emptySnapshot);
   const [loadedUid, setLoadedUid] = useState<string | null | undefined>(undefined);
+  const loadedUidRef = useRef<string | null | undefined>(undefined);
   const snapshotRef = useRef<LibrarySnapshot>(emptySnapshot());
   const loaded = useRef(false);
 
-  const commit = useCallback((next: LibrarySnapshot) => {
+  // الحفظ الفوري المباشر: يمنع أي سباق زمني بين حالة React والتخزين المحلي
+  const persistStorage = useCallback((next: LibrarySnapshot, targetUid: string | null) => {
+    if (targetUid === null) saveGuest(next);
+    else safeSet(accountKey(targetUid), JSON.stringify(next));
+  }, []);
+
+  const commit = useCallback((next: LibrarySnapshot, targetUid?: string | null) => {
     snapshotRef.current = next;
     setSnapshot(next);
-  }, []);
+    const activeUid = targetUid !== undefined ? targetUid : loadedUidRef.current;
+    if (loaded.current && activeUid !== undefined) {
+      persistStorage(next, activeUid);
+    }
+  }, [persistStorage]);
 
   // تحميل المخزن المحلي عند استقرار المصادقة وعند تغيّر الحساب
   // قراءة من مخزن خارجي (localStorage) عند تغيّر المصادقة — setState هنا هو المزامنة المقصودة
@@ -103,9 +130,11 @@ export function useUserLibrary() {
     const uid = user?.uid ?? null;
 
     if (!uid) {
-      commit(readGuest());
+      const guestData = readGuest();
+      loadedUidRef.current = null;
       setLoadedUid(null);
       loaded.current = true;
+      commit(guestData, null);
       return;
     }
 
@@ -123,18 +152,38 @@ export function useUserLibrary() {
       safeSet(accountKey(uid), JSON.stringify(next));
       Object.values(GUEST_KEYS).forEach(safeRemove);
     }
-    commit(next);
+    loadedUidRef.current = uid;
     setLoadedUid(uid);
     loaded.current = true;
+    commit(next, uid);
   }, [user?.uid, authLoading, commit]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // حفظ فوري محلي لكل تعديل (لا شبكة، لا مؤشرات)
+  // ─── مزامنة التبويبات المتعددة (Cross-Tab Sync) عبر حدث التخزين storage ───
   useEffect(() => {
-    if (!loaded.current || loadedUid === undefined) return;
-    if (loadedUid === null) saveGuest(snapshot);
-    else safeSet(accountKey(loadedUid), JSON.stringify(snapshot));
-  }, [snapshot, loadedUid]);
+    if (typeof window === 'undefined') return undefined;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (!e.key) return;
+      const currentUid = loadedUidRef.current;
+      if (currentUid === undefined) return;
+
+      if (currentUid === null) {
+        if ((Object.values(GUEST_KEYS) as string[]).includes(e.key)) {
+          const fresh = readGuest();
+          snapshotRef.current = fresh;
+          setSnapshot(fresh);
+        }
+      } else if (e.key === accountKey(currentUid)) {
+        const fresh = readAccount(currentUid);
+        snapshotRef.current = fresh;
+        setSnapshot(fresh);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const update = useCallback((patch: (current: LibrarySnapshot) => LibrarySnapshot) => {
     commit(patch(snapshotRef.current));

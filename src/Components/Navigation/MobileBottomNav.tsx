@@ -17,6 +17,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
     <button
       className={`nav-item ${currentView === 'hero' ? 'active' : ''}`}
       aria-current={currentView === 'hero' ? 'page' : undefined}
+      aria-label="البداية"
       onClick={() => onNavigate('hero')}
     >
       <FiHome size={20} />
@@ -25,6 +26,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
     <button
       className={`nav-item ${['books', 'chapters', 'lessons', 'reading'].includes(currentView) ? 'active' : ''}`}
       aria-current={['books', 'chapters', 'lessons', 'reading'].includes(currentView) ? 'page' : undefined}
+      aria-label="فهرس الكتب"
       onClick={() => onNavigate('books')}
     >
       <FiBook size={20} />
@@ -33,6 +35,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
     <button
       className={`nav-item ${currentView === 'bookmarks' ? 'active' : ''}`}
       aria-current={currentView === 'bookmarks' ? 'page' : undefined}
+      aria-label="المفضلة"
       onClick={() => onNavigate('bookmarks')}
     >
       <FiBookmark size={20} />
@@ -41,6 +44,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
     <button
       className={`nav-item ${currentView === 'highlights' ? 'active' : ''}`}
       aria-current={currentView === 'highlights' ? 'page' : undefined}
+      aria-label="الفوائد"
       onClick={() => onNavigate('highlights')}
     >
       <FiEdit3 size={20} />
@@ -50,6 +54,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
       <button
         className={`nav-item ${currentView === 'admin' ? 'active' : ''}`}
         aria-current={currentView === 'admin' ? 'page' : undefined}
+        aria-label="لوحة الإدارة"
         onClick={() => onNavigate('admin')}
       >
         <FiShield size={20} />
@@ -59,6 +64,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
     <button
       className={`nav-item ${currentView === 'settings' ? 'active' : ''}`}
       aria-current={currentView === 'settings' ? 'page' : undefined}
+      aria-label="المزيد والإعدادات"
       onClick={() => onNavigate('settings')}
     >
       <FiList size={20} />
@@ -66,6 +72,7 @@ const MobileBottomNav = ({ currentView, user, isAdminUser, onNavigate, onOpenLog
     </button>
     <button
       className={`nav-item ${user ? 'active' : ''}`}
+      aria-label={user ? (user.displayName || 'حسابي') : 'تسجيل الدخول'}
       onClick={onOpenLogin}
     >
       <FiUser size={20} />

@@ -105,4 +105,51 @@ describe('useUserLibrary — حساب', () => {
     expect(localStorage.getItem('guest_bookmarks')).toBeNull();
     expect(JSON.parse(localStorage.getItem('library_local_v1_user-C') || '{}').bookmarks).toEqual(['11']);
   });
+
+  it('يدمج الملاحظات بأمان عند تعارض نصوص الملاحظات بين الحساب والضيف لنفس المسألة', async () => {
+    authState.user = { uid: 'user-D' };
+    localStorage.setItem('guest_notes', JSON.stringify({ '5': 'ملاحظة الضيف الجديدة' }));
+    localStorage.setItem(
+      'library_local_v1_user-D',
+      JSON.stringify({ bookmarks: [], highlights: [], notes: { '5': 'ملاحظة الحساب الأصلية' }, readLessons: [] }),
+    );
+
+    const { result } = renderHook(() => useUserLibrary());
+    await waitFor(() => expect(result.current.isDataLoaded).toBe(true));
+
+    expect(result.current.notes['5']).toContain('ملاحظة الحساب الأصلية');
+    expect(result.current.notes['5']).toContain('ملاحظة الضيف الجديدة');
+
+    const saved = JSON.parse(localStorage.getItem('library_local_v1_user-D') || '{}');
+    expect(saved.notes['5']).toContain('ملاحظة الحساب الأصلية');
+    expect(saved.notes['5']).toContain('ملاحظة الضيف الجديدة');
+  });
+
+  it('يستجيب لتحديث التخزين من تبويب آخر عبر حدث storage', async () => {
+    authState.user = { uid: 'user-E' };
+    localStorage.setItem(
+      'library_local_v1_user-E',
+      JSON.stringify({ bookmarks: ['1'], highlights: [], notes: {}, readLessons: [] }),
+    );
+
+    const { result } = renderHook(() => useUserLibrary());
+    await waitFor(() => expect(result.current.bookmarks).toEqual(['1']));
+
+    localStorage.setItem(
+      'library_local_v1_user-E',
+      JSON.stringify({ bookmarks: ['1', '2'], highlights: [], notes: { '2': 'ملاحظة من تبويب 2' }, readLessons: [] }),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'library_local_v1_user-E',
+          newValue: localStorage.getItem('library_local_v1_user-E'),
+        }),
+      );
+    });
+
+    await waitFor(() => expect(result.current.bookmarks).toEqual(['1', '2']));
+    expect(result.current.notes['2']).toBe('ملاحظة من تبويب 2');
+  });
 });
