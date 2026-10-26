@@ -161,11 +161,11 @@ const SettingsView = () => {
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [installFeedback, setInstallFeedback] = useState<FeedbackMessage | null>(null);
 
-  // حالات فتح/طي مجموعات الأكورديون الأربعة (المجموعات 1 و 2 و 3 مفتوحة افتراضيًا، و 4 مغلقة)
+  // حالات فتح/طي مجموعات الأكورديون الأربعة (جميع المجموعات مغلقة افتراضيًا لتصفح هادئ وسريع)
   const [openSections, setOpenSections] = useState({
-    app: true,
-    content: true,
-    account: true,
+    app: false,
+    content: false,
+    account: false,
     contact: false,
   });
 

@@ -214,4 +214,39 @@ test.describe('المسارات الحرجة', () => {
       await page.context().setOffline(false);
     }
   });
+
+  // 11. الهيرو لزائر جديد (بلا كاش): تأجيل اتصال السحابة على الهيرو كان يُبقي شاشة
+  // البداية معلّقة فوق الصفحة (طبقة z-index عالية) فتُحجب كل النقرات — الزر الأساسي
+  // لا يعمل والموقع يبدو معطّلًا. هذا الاختبار يبدأ من الجذر لا من مسار داخلي
+  // تحديدًا لأن كل الاختبارات الأخرى تتجاوز الهيرو فلا ترى العطل.
+  test('11) الهيرو لزائر جديد: شاشة البداية تختفي والزر الأساسي ينقل إلى الفهرس', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/');
+
+    const startBtn = page.getByRole('button', { name: /تصفّح أبواب الفقه/ });
+    await expect(startBtn).toBeVisible({ timeout: 20_000 });
+
+    // لا طبقة تحجب الزر: العنصر الأعلى عند مركزه هو الزر نفسه.
+    // نُعيد المحاولة لأن شاشة البداية تُغلق بحركة خروج (~1.3s) وقد تكون أثناءها مرئية
+    // فوق الهيرو — المطلوب ألا تبقى معلّقة، لا أن تكون غائبة من الإطار الأول.
+    const hitTest = () => page.evaluate(() => {
+      const btn = Array.from(document.querySelectorAll('button'))
+        .find((b) => /تصفّح أبواب الفقه/.test(b.innerText || ''));
+      if (!btn) return 'no-button';
+      const r = btn.getBoundingClientRect();
+      if (!r.width || !r.height) return 'no-box';
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (!top) return 'no-element';
+      if (top === btn || btn.contains(top)) return 'clear';
+      const splash = top.closest('[style*="--z-splash"]');
+      return `blocked:${top.tagName}${splash ? '(splash)' : '.' + (top.className || '').toString().slice(0, 30)}`;
+    });
+    await expect.poll(hitTest, { timeout: 20_000, intervals: [200, 400, 800] }).toBe('clear');
+
+    await startBtn.click();
+    await expect(page).toHaveURL(/#\/books/);
+    await expect(page.getByRole('heading', { level: 3, name: 'فهرس الكتب' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/\d+ مسألة/).first()).toBeVisible({ timeout: 30_000 });
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
 });

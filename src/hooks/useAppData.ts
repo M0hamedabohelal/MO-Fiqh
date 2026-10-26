@@ -57,9 +57,12 @@ export function useAppData({ isOffline, deferCloud = false }: { isOffline: boole
   // تنظيف الوعد المعلّق عند إزالة المكوّن حتى لا يبقى مؤقت يعمل بلا مستهلك
   useEffect(() => () => { if (pendingReloadRef.current) settlePendingReload(false); }, []);
   // البوابة تُفتح عند: وصول محتوى (سحابة/كاش)، أو انتهاء محاولة السحابة، أو انقضاء مهلة
-  // السماح، أو انقطاع الاتصال. لا يوجد ما يُنتظَر من حزمة مضمّنة، فلا داعي لتعليق الشاشة.
+  // السماح، أو انقطاع الاتصال. لا يوجد ما يُنتظر من حزمة مضمّنة، فلا داعي لتعليق الشاشة.
   const hasLocalContent = rawLessons.length > 0;
-  const contentReady = cloudLessonsLoaded || hasLocalContent || cloudAttemptDone || cloudGraceElapsed || isOffline;
+  // ⚠️ deferCloud (صفحة الهيرو): لا محتوى مطلوبًا قبل مغادرتها، فلا يجوز أن يبقى المحتوى
+  // «غير جاهز» وإلا بقيت شاشة البداية ظاهرة إلى الأبد فوق الهيرو — طبقة z-index عالية
+  // تحجب كل النقرات (حتى زر «تصفّح أبواب الفقه»). تأجيل الاشتراك لا يعني تعليق الواجهة.
+  const contentReady = deferCloud || cloudLessonsLoaded || hasLocalContent || cloudAttemptDone || cloudGraceElapsed || isOffline;
 
   // ترتيب المسائل حسب الكتاب → الباب → الترتيب الأبجدي
   const lessons = useMemo(() => {

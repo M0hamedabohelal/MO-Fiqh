@@ -350,7 +350,7 @@ describe('SettingsView Component', () => {
   });
 
   describe('مجموعات الأكورديون الأربعة (Accordion System)', () => {
-    it('يعرض المجموعات الأربع مع الحالات الافتراضية (1 و2 و3 مفتوحة و4 مغلقة)', () => {
+    it('يعرض المجموعات الأربع مغلقة تلقائياً (الحالة الافتراضية)', () => {
       render(<SettingsView />);
 
       const appGroupBtn = screen.getByRole('button', { name: /التطبيق والتحديثات/i });
@@ -358,9 +358,9 @@ describe('SettingsView Component', () => {
       const accountGroupBtn = screen.getByRole('button', { name: /حسابي والخصوصية/i });
       const contactGroupBtn = screen.getByRole('button', { name: /الدعاء والتواصل مع المطوّر/i });
 
-      expect(appGroupBtn.getAttribute('aria-expanded')).toBe('true');
-      expect(contentGroupBtn.getAttribute('aria-expanded')).toBe('true');
-      expect(accountGroupBtn.getAttribute('aria-expanded')).toBe('true');
+      expect(appGroupBtn.getAttribute('aria-expanded')).toBe('false');
+      expect(contentGroupBtn.getAttribute('aria-expanded')).toBe('false');
+      expect(accountGroupBtn.getAttribute('aria-expanded')).toBe('false');
       expect(contactGroupBtn.getAttribute('aria-expanded')).toBe('false');
     });
 

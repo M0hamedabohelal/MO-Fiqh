@@ -49,17 +49,30 @@ function App() {
     return !h || h === '#/' || h === '#/hero';
   });
 
-  // تفعيل اتصال Firestore السحابي عند مغادرة الهيرو عبر حدث hashchange (اشتراك خارجي نظيف)
+  // رفع تأجيل السحابة بأول إشارة تفاعل أو تنقّل.
+  // ⚠️ الموجّه (useHashRoute) يستخدم history.pushState وهو **لا يُطلق** hashchange، فمستمع
+  // الحدث وحده لا يرى التنقل داخل التطبيق: كان المستخدم يضغط «تصفّح أبواب الفقه» فينتقل إلى
+  // #/books ويبقى المحتوى غير محمّل (فهرس فارغ) — رُصد بالقياس على بناء المعاينة.
+  // الحل: أي تفاعل (نقرة/لمسة/مفتاح) أو تغيّر مسار يرفع التأجيل فورًا قبل اكتمال التنقل،
+  // فالحفظ يبدأ مبكرًا بخيط واحد ولا يعطّل أول رسم للهيرو. setState داخل مستمع حدث
+  // (لا في جسم الأثر) فلا يخالف قاعدة react-hooks/set-state-in-effect.
   useEffect(() => {
-    const onHashChange = () => {
-      const h = window.location.hash;
-      if (h && h !== '#/' && h !== '#/hero') {
-        setDeferCloud(false);
-      }
+    if (!deferCloud) return undefined;
+    const wake = () => setDeferCloud(false);
+    const opts: AddEventListenerOptions = { once: true, passive: true };
+    window.addEventListener('hashchange', wake, opts);
+    window.addEventListener('popstate', wake, opts);
+    window.addEventListener('pointerdown', wake, opts);
+    window.addEventListener('keydown', wake, opts);
+    window.addEventListener('wheel', wake, opts);
+    return () => {
+      window.removeEventListener('hashchange', wake);
+      window.removeEventListener('popstate', wake);
+      window.removeEventListener('pointerdown', wake);
+      window.removeEventListener('keydown', wake);
+      window.removeEventListener('wheel', wake);
     };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
+  }, [deferCloud]);
 
   // ─── بيانات المحتوى ───
   const { lessons, glossary, cloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, contentSource } = useAppData({ isOffline, deferCloud });

@@ -34,7 +34,6 @@ export default defineConfig({
         ],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: '/index.html',
-        navigateFallbackAllowlist: [/^\/?$/, /^\/index\.html$/],
         navigateFallbackDenylist: [/^\/lessons/, /^\/books/, /^\/og\//, /\.pdf$/],
         runtimeCaching: [
           {
