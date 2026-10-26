@@ -36,6 +36,11 @@
         "source": "/service-worker.js",
         "destination": "/sw.js",
         "type": 301
+      },
+      {
+        "source": "/manifest.json",
+        "destination": "/manifest.webmanifest",
+        "type": 301
       }
     ],
     "headers": [

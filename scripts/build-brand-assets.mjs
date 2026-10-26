@@ -129,7 +129,6 @@ const icon48 = await sharp(SOURCE_CIRCLE)
   .png({ compressionLevel: 9 })
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-48.png'), icon48);
-await writeFile(join(root, 'public', 'icon-48.png'), icon48);
 
 // 96x96
 const icon96 = await sharp(SOURCE_CIRCLE)
@@ -137,7 +136,6 @@ const icon96 = await sharp(SOURCE_CIRCLE)
   .png({ compressionLevel: 9 })
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-96.png'), icon96);
-await writeFile(join(root, 'public', 'icon-96.png'), icon96);
 
 // 192x192
 const icon192 = await sharp(SOURCE_CIRCLE)
@@ -145,7 +143,6 @@ const icon192 = await sharp(SOURCE_CIRCLE)
   .png({ compressionLevel: 9 })
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-192.png'), icon192);
-await writeFile(join(root, 'public', 'icon-192.png'), icon192);
 
 // 512x512
 const icon512 = await sharp(SOURCE_CIRCLE)
@@ -153,7 +150,6 @@ const icon512 = await sharp(SOURCE_CIRCLE)
   .png({ compressionLevel: 9 })
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-512.png'), icon512);
-await writeFile(join(root, 'public', 'icon-512.png'), icon512);
 
 // توليد favicon.ico متعدد الأحجام (16 + 32 + 48) في جذر الموقع لجوجل
 const p16 = await sharp(SOURCE_CIRCLE).resize(16, 16, { fit: 'cover' }).png().toBuffer();
@@ -216,7 +212,6 @@ const iconMaskable = await sharp({
   .png({ compressionLevel: 9 })
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-maskable-512.png'), iconMaskable);
-await writeFile(join(root, 'public', 'icon-maskable-512.png'), iconMaskable);
 
 // apple-touch-icon (180x180 مع خلفية داكنة مناسبة لـ iOS)
 const APPLE_SIZE = 180;
@@ -243,7 +238,6 @@ const appleTouchIcon = await sharp({
   .png({ compressionLevel: 9 })
   .toBuffer();
 await writeFile(join(iconsDir, 'apple-touch-icon.png'), appleTouchIcon);
-await writeFile(join(root, 'public', 'apple-touch-icon.png'), appleTouchIcon);
 
 console.log('✓ PWA Icons: 192, 512, maskable-512, apple-touch-icon (180)');
 
