@@ -124,8 +124,9 @@ service cloud.firestore {
     //  لذلك يقلّل العميل عدد الكتابات: كتابة واحدة لكل مسألة في الجلسة، انظر trackLessonView)
     match /stats/views {
       allow read: if true;
-      allow create: if request.resource.data.keys().size() == 1;
-      allow update: if request.resource.data.diff(resource.data).removedKeys().size() == 0
+      allow create: if isSignedIn() && request.resource.data.keys().size() == 1;
+      allow update: if isSignedIn()
+        && request.resource.data.diff(resource.data).removedKeys().size() == 0
         && request.resource.data.diff(resource.data).affectedKeys().size() == 1
         && request.resource.data.keys().size() <= resource.data.keys().size() + 1;
       allow delete: if isAdmin();

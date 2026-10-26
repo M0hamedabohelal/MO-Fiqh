@@ -1,0 +1,333 @@
+% !TEX program = xelatex
+% ============================================================
+%  خطة إعادة تصميم صفحة Hero — تجربة جوال جذابة
+%  الاستخدام على Overleaf:
+%    1) New Project ← Blank Project
+%    2) الصق المحتوى في main.tex
+%    3) Menu ← Compiler ← اختر: XeLaTeX   (مهم للعربية)
+%    4) Recompile ← نزّل PDF
+% ============================================================
+\documentclass[11pt]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{arabic}
+\setotherlanguage{english}
+\newfontfamily\arabicfont[Script=Arabic,Scale=1.0]{Amiri}
+\newfontfamily\arabicfontsf[Script=Arabic,Scale=1.0]{Amiri}
+\setmonofont{DejaVu Sans Mono}[Scale=0.8]
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.2cm}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{fontawesome5}
+
+% ── الألوان (هوية يَسِّر) ──
+\definecolor{gold}{HTML}{B8933B}
+\definecolor{darkbg}{HTML}{101414}
+\definecolor{okgreen}{HTML}{27AE60}
+\definecolor{warnred}{HTML}{C0392B}
+\definecolor{softgray}{HTML}{F4F4F4}
+\definecolor{midgray}{HTML}{7A7A7A}
+\definecolor{codebg}{HTML}{1A2020}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[R]{\small\color{gold}خطة تصميم صفحة Hero — منصة يَسِّر}
+\fancyhead[L]{\small\color{midgray}Mobile-First Redesign}
+\fancyfoot[C]{\small\thepage}
+
+\titleformat{\section}{\Large\bfseries\color{gold}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkbg}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{midgray}}{\thesubsubsection}{0.4em}{}
+
+\setlist[itemize]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+
+\hypersetup{
+  colorlinks=true, linkcolor=gold, urlcolor=gold,
+  pdftitle={خطة تصميم صفحة Hero - منصة يَسِّر}, pdfauthor={فريق يَسِّر}
+}
+
+\newtcolorbox{infobox}[1][]{colback=softgray,colframe=gold,boxrule=0.6pt,arc=3pt,left=8pt,right=8pt,top=6pt,bottom=6pt,breakable,#1}
+\newtcolorbox{riskbox}[1][]{colback=red!4,colframe=warnred,boxrule=0.6pt,arc=3pt,left=8pt,right=8pt,top=6pt,bottom=6pt,breakable,#1}
+\newtcolorbox{okbox}[1][]{colback=green!4,colframe=okgreen,boxrule=0.6pt,arc=3pt,left=8pt,right=8pt,top=6pt,bottom=6pt,breakable,#1}
+
+\newcommand{\code}[1]{\textcolor{darkbg}{\texttt{\small #1}}}
+
+\begin{document}
+
+% ===================== الغلاف =====================
+\begin{titlepage}
+\centering
+\vspace*{2.5cm}
+{\Huge\bfseries\color{gold} يَسِّر}\\[0.4cm]
+{\large\color{midgray} منصة تعليم الفقه الإسلامي}\\[2.5cm]
+
+{\Huge\bfseries خطة إعادة تصميم}\\[0.5cm]
+{\Huge\bfseries صفحة البداية (Hero)}\\[1cm]
+{\LARGE\bfseries تجربة جوال جذّابة — Mobile-First}\\[1.2cm]
+
+\rule{0.7\textwidth}{0.5pt}\\[0.8cm]
+{\large Hero Page Redesign Roadmap}\\[0.8cm]
+\rule{0.7\textwidth}{0.5pt}\\[2.5cm]
+
+\begin{tabular}{r l}
+\textbf{الهدف:}       & صفحة بداية جميلة وجذّابة خاصة للفون \\
+\textbf{المبدأ:}      & هوية ← قيمة ← فعل (Mobile-First) \\
+\textbf{الإطار:}      & عربي RTL · صفر سكرول · عند احترام تقليل الحركة \\
+\textbf{المدة:}       & ≈ ٣.٥ أيام عمل \\
+\textbf{النسخة:}      & 1.0 \\
+\end{tabular}
+
+\vfill
+{\small\color{midgray} وثيقة تخطيط تصميمي — \today}
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ===================== الملخص =====================
+\section{الملخص التنفيذي}
+
+\begin{infobox}
+إعادة تصميم صفحة البداية (Hero) بمنهج \textbf{Mobile-First}، مع الحفاظ على روح المنصة الإسلامية المعاصرة.
+المبدأ: \textbf{«هوية أولًا، ثم قيمة، ثم فعل»}. الخطوة الأولى \textbf{تبسيط الصفحة} بحذف بطاقات الكتب ووسوم المزايا
+(كتل ثقيلة تشتّت على الجوال)، ثم أهم تغيير جذري هو \textbf{إظهار المحراب/الشعار على الجوال}
+(كان مخفيًا بالكامل) ليمنح الصفحة بؤرة بصرية فورية، مع نظام أبعاد متجاوب بالارتفاع يمنع القص، وتسلسل حركة دخول احترافي.
+\end{infobox}
+
+\subsection*{تشخيص الجوال الحالي — نقاط الضعف}
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}p{6cm} p{8cm}@{}}
+\toprule
+\textbf{الملاحظة} & \textbf{الأثر} \\
+\midrule
+الشعار مخفي تمامًا على الجوال & لا هوية بصرية مركزية — أكبر فرصة مهدورة \\
+محتوى ثابت + \code{overflow:hidden} + \code{100dvh} & خطر قص/تراكم على الشاشات القصيرة \\
+ترتيب عمودي مسطّح (نص ثم بطاقات) & لا تدرّج بصري ولا «مفاجأة» \\
+دخول ثابت بلا حركة & لا إحساس «احترافي» \\
+بطاقات الكتب ووسوم المزايا & ثقيلة نصًّا وتشوّش على شاشة صغيرة \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===================== المراحل =====================
+\section{المراحل}
+
+\subsection{المرحلة ٠ — حذف بطاقات الكتب ووسوم المزايا (قرار تصميمي)}
+قرار صريح: تبسيط الصفحة بإزالة الكتل الثقيلة التي تسبّب تشتّتًا على الجوال، وإخلاء المساحة لهوية الصفحة وأدواتها الأساسية.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{6cm} p{8cm}@{}}
+\toprule
+\textbf{ما يُحذَف} & \textbf{السبب} \\
+\midrule
+بطاقتا «كتاب الطهارة» و«كتاب الصلاة» & ثقيلتان نصًّا، وتكرار لمنطقة «تصفّح الكتب» \\
+وسم «٨٥ مسألة مُحققة» & رقم ثابت يتقادم مع تغيّر المحتوى \\
+وسم «شرح صوتي متقن» & تفصيل يُدرك داخل المسألة لا في المقدمة \\
+وسم «مزامنة سحابية فورية» & تفصيل تقني لا يعنيه في أول نظرة \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{riskbox}
+\textbf{الأثر على الملفات:} يجب إزالة كل الأنماط المرتبطة (\code{books-portal-grid}، \code{book-portal-card}، \code{book-card-*}، \code{features-strip}، \code{feature-chip}، \code{chip-icon}) ومن كل \code{media queries}، وخصائص المكوّن (\code{onSelectBook}، \code{booksStats})، والاستيرادات غير المستخدمة، ثم \code{typecheck}/\code{lint}/\code{knip} للتأكد.
+\end{riskbox}
+
+\begin{okbox}
+\textbf{الباقي في الصفحة بعد الحذف:} الشريط العلوي · الوسام التعريفي · عنوان «يَسِّر» · الوصف · زر CTA الرئيسي · زران ثانويان (PDF والسلسلة المرئية) · محراب الشعار · بطاقة «آخر وقفة» · الحديث الشريف.
+\end{okbox}
+
+\subsection{المرحلة ١ — إعادة هيكل المحتوى (الأهم)}
+الترتيب الجديد يتدرّج بصريًا: هوية ← قيمة ← فعل.
+
+\begin{tcolorbox}[colback=softgray, colframe=gold, boxrule=0.6pt, arc=3pt, left=10pt, right=10pt]
+\small\raggedleft
+\begin{itemize}[label={\textcolor{gold}{\textbullet}}, leftmargin=1.4em, itemsep=1pt]
+\item شريط علوي رفيع: شعار مصغّر + زر الدخول.
+\item \textbf{محراب الشعار} (الشعار ≈٩٦px) بتوهّج ذهبي نبضي.
+\item عنوان «يَسِّر» بخط Aref Ruqaa وتدرّج ذهبي.
+\item سطر الوصف: «الفقه الميسر في رداءٍ عصري».
+\item \textbf{زر CTA رئيسي} عريض: «تصفّح أبواب الفقه الآن».
+\item زران ثانويان: «تحميل PDF» و«السلسلة المرئية».
+\item بطاقة «متابعة آخر وقفة» (إن وُجدت).
+\item شريط الحديث الشريف في الأسفل.
+\end{itemize}
+\end{tcolorbox}
+
+\begin{okbox}
+\textbf{التغيير الجوهري:} إظهار الشعار على الجوال داخل «محراب مصغّر» بدل إخفائه.
+\end{okbox}
+
+\subsection{المرحلة ٢ — نظام الأبعاد المتجاوب بالارتفاع}
+المشكلة: \code{overflow:hidden} مع محتوى ثابت يسبب القص على الشاشات القصيرة.
+الحل: نظام \code{clamp()} محسوب بالـ\code{dvh} بدل البكسل الثابت.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{5cm} p{8cm}@{}}
+\toprule
+\textbf{العنصر} & \textbf{القيمة المقترحة} \\
+\midrule
+ارتفاع الشعار & \code{clamp(72px, 13dvh, 108px)} \\
+عنوان «يَسِّر» & \code{clamp(2.8rem, 9dvh, 4.2rem)} \\
+كل الفجوات & \code{clamp(., .dvh, .)} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection*{سلّم أولويات الإخفاء عند ضيق الارتفاع}
+\begin{enumerate}
+\item أكبر من ٧٤٠: كل شيء ظاهر.
+\item ٦٠٠–٧٤٠: أخفِ الوصف النصي الطويل.
+\item أقل من ٦٠٠: أخفِ وسوم المزايا + صغّر الشعار.
+\item أقل من ٥٢٠: أخفِ الحديث الشريف (يبقى في شاشة أخرى).
+\end{enumerate}
+
+\subsection{المرحلة ٣ — اللمسات البصرية}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{4cm} p{10cm}@{}}
+\toprule
+\textbf{العنصر} & \textbf{التحسين} \\
+\midrule
+محراب الشعار & قوس إسلامي بتدرّج ذهبي + توهّج نبضي خفيف \\
+عنوان «يَسِّر» & خط Aref Ruqaa + تدرّج ذهبي على النص + ظل توهّج \\
+بطاقات الكتب & حواف أعلى مرفوعة (شكل كتاب) + شريط لوني جانبي \\
+زر CTA & نبض/لمعان خفيف (كنمط زر التحديث المعتمد) \\
+الخلفية & mesh متدرّج + توهّجان (ذهبي/زمردي) + نقش زخرفي \\
+الحديث الشريف & إطار زخرفي + ✦ على الطرفين + خط Amiri \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{المرحلة ٤ — حركة الدخول (Choreography)}
+تسلسل متدرّج (stagger) عند التحميل — كل عنصر يدخل متأخرًا قليلًا:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}c p{8cm}@{}}
+\toprule
+\textbf{التوقيت} & \textbf{العنصر} \\
+\midrule
+٠ms & محراب الشعار (scale 0.8 ← 1 + fade) \\
+١٥٠ms & عنوان «يَسِّر» (fade + translateY) \\
+٣٠٠ms & الوصف + الوسوم \\
+٤٥٠ms & الزر الرئيسي (slide من الأسفل) \\
+٦٠٠ms & الأزرار الثانوية \\
+٧٥٠ms & بطاقات الكتب (فارق ١٠٠ms بينهما) \\
+٩٠٠ms & الحديث الشريف \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{riskbox}
+استخدام \code{framer-motion} (موجود) أو CSS keyframes، مع \textbf{احترام \code{prefers-reduced-motion}} كما في بقية المشروع.
+\end{riskbox}
+
+\subsection{المرحلة ٥ — تفاعل الجوال}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{4cm} p{10cm}@{}}
+\toprule
+\textbf{العنصر} & \textbf{التحسين} \\
+\midrule
+اللمس & \code{:active} scale 0.97 على كل بطاقة (feedback فوري) \\
+Safe Area & \code{env(safe-area-inset-*)} لمنع القص تحت notch \\
+الشريط العلوي & تصغير عند التمرير + \code{backdrop-filter} \\
+الخطوط & لا خطوط أصغر من 14px على الجوال \\
+أهداف اللمس & كل زر ≥ 44px (معيار Apple) \\
+التمرير & \code{overscroll-behavior: none} لمنع الارتداد \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{المرحلة ٦ — التحقق}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{6cm} p{6cm}@{}}
+\toprule
+\textbf{الفحص} & \textbf{المعيار} \\
+\midrule
+Pixel 7 (412×915) & بلا سكرول، بلا قص \\
+iPhone SE (375×667) & الأهم — الشاشة القصيرة \\
+Galaxy S8 (360×740) & متوازن \\
+سطح مكتب 1440×900 & التصميم الحالي محفوظ \\
+Lighthouse & \code{CLS < 0.1}، لا layout shift \\
+فحص RTL & النصوص والأيقونات متسقة \\
+e2e & اختبار Playwright على Pixel 7 يمر \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===================== الجدول =====================
+\section{الجدول الزمني}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{8cm} c@{}}
+\toprule
+\textbf{المرحلة} & \textbf{المدة} \\
+\midrule
+٠ — حذف الكتب والمزايا & ٠.٢٥ يوم \\
+١ — هيكل المحتوى & ٠.٥ يوم \\
+٢ — نظام الأبعاد & ٠.٥ يوم \\
+٣ — اللمسات البصرية & ١ يوم \\
+٤ — الحركة & ٠.٥ يوم \\
+٥ — تفاعل الجوال & ٠.٥ يوم \\
+٦ — التحقق & ٠.٥ يوم \\
+\midrule
+\textbf{الإجمالي} & \textbf{≈ ٣.٧٥ أيام} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===================== Done =====================
+\section{معايير الإنجاز (Definition of Done)}
+\begin{okbox}
+\begin{itemize}
+\item[\faCheck] حُذفت بطاقتا الكتب ووسوم المزايا الثلاثة، وأنماطها من كل \code{media queries}.
+\item[\faCheck] حُذفت خصائص \code{onSelectBook} و\code{booksStats} من المكوّن ومن تمريرها في \code{App.tsx}.
+\item[\faCheck] \code{typecheck} و\code{lint} و\code{knip} خضراء بلا استيرادات/أنماط ميتة.
+\item[\faCheck] الشعار ظاهر على الجوال (محراب مصغّر).
+\item[\faCheck] صفر سكرول على Pixel 7 و iPhone SE.
+\item[\faCheck] تسلسل حركة دخول سلس (مع احترام \code{reduced-motion}).
+\item[\faCheck] كل زر ≥ ٤٤px، و\code{:active} feedback واضح.
+\item[\faCheck] Safe-area مُطبّقة (لا قص تحت notch).
+\item[\faCheck] Lighthouse \code{CLS} أقل من ٠.١.
+\item[\faCheck] اختبار e2e يمر.
+\end{itemize}
+\end{okbox}
+
+% ===================== ملحق =====================
+\section{ملحق — الملفات المتأثرة}
+\begin{tcolorbox}[colback=codebg, colframe=codebg, coltext=white, arc=3pt, left=8pt, right=8pt]
+\ttfamily\small\raggedleft
+src/Components/Header/\\
+\hspace*{1em}HeroSection.tsx\hspace{1em}\textcolor{okgreen}{مُعدّل — حذف الكتب/المزايا + هيكل الجوال}\\
+\hspace*{1em}HeroSection.module.css\hspace*{1em}\textcolor{okgreen}{مُعدّل — حذف الأنماط + الأبعاد}\\
+src/App.tsx\hspace*{1em}\textcolor{okgreen}{مُعدّل — إزالة تمرير onSelectBook/booksStats}\\
+\end{tcolorbox}
+
+\vfill
+\begin{center}
+\rule{0.5\textwidth}{0.4pt}\\[0.4cm]
+{\small\color{midgray} نهاية الوثيقة — منصة يَسِّر}
+\end{center}
+
+\end{document}

@@ -20,6 +20,8 @@ export default defineConfig({
           'books/**',
           'scripts/**',
           'og/**',
+          '**/AdminPanel-*.js',
+          '**/lessons-*.js',
         ],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: '/index.html',

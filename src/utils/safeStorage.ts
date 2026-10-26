@@ -34,3 +34,11 @@ export function safeParse<T>(raw: string | null, fallback: T): T {
     return fallback;
   }
 }
+
+const ONBOARDING_KEY = 'fqh_onboarding_done';
+export function shouldShowOnboarding(): boolean {
+  return !safeGet(ONBOARDING_KEY);
+}
+export function markOnboardingDone(): void {
+  safeSet(ONBOARDING_KEY, 'true');
+}

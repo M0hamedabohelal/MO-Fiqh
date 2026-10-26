@@ -31,7 +31,7 @@ function collectErrors(page: Page): string[] {
 /** يفتح فهرس الكتب وينتظر وصول المحتوى من السحابة */
 async function openBooks(page: Page): Promise<void> {
   await page.goto('/#/books');
-  await expect(page.getByRole('heading', { name: 'فهرس الكتب' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 3, name: 'فهرس الكتب' })).toBeVisible();
   await expect(page.getByText(TRI).first()).toBeVisible({ timeout: 30_000 });
   // عدّاد المسائل يثبت أن المحتوى الحقيقي وصل (لا حالة فارغة ولا نسخة ناقصة)
   await expect(page.getByText(/\d+ مسألة/).first()).toBeVisible();
@@ -191,5 +191,27 @@ test.describe('المسارات الحرجة', () => {
     await openLesson(page, 5);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/lessons\/5\/$/);
     await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', /\/lessons\/5\/$/);
+  });
+
+  // 10. اختبار وضع الأوفلاين (PWA Offline Capability):
+  // التحقق من أن التطبيق يعمل من الكاش المحلي بلا اتصال بالشبكة
+  test('10) وضع عدم الاتصال (Offline Mode): التطبيق يعمل ويتصفح المحتوى بلا اتصال بالإنترنت', async ({ page }) => {
+    await openBooks(page);
+
+    // قطع الشبكة بالكامل
+    await page.context().setOffline(true);
+
+    try {
+      // إعادة تحميل الصفحة دون اتصال — الخدمة من الكاش
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('heading', { level: 3, name: 'فهرس الكتب' })).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByText(TRI).first()).toBeVisible();
+
+      // تصفح كتاب أثناء عدم الاتصال
+      await page.getByText(TRI).first().click();
+      await expect(page.getByRole('heading', { name: new RegExp(TRI) }).first()).toBeVisible();
+    } finally {
+      await page.context().setOffline(false);
+    }
   });
 });

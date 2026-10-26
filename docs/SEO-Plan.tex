@@ -1,0 +1,305 @@
+% !TEX program = xelatex
+% ============================================================
+%  خطة تحسين SEO + إصلاح اسم الموقع والأيقونة في نتائج جوجل
+%  الاستخدام على Overleaf:
+%    1) أنشئ مشروعًا جديدًا فارغًا (Blank Project)
+%    2) الصق محتوى هذا الملف في main.tex
+%    3) Menu ← Compiler ← اختر: XeLaTeX   (مهم للعربية)
+%    4) اضغط Recompile ← ستحصل على PDF
+% ============================================================
+\documentclass[11pt]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{arabic}
+\setotherlanguage{english}
+\newfontfamily\arabicfont[Script=Arabic,Scale=1.0]{Amiri}
+\newfontfamily\arabicfontsf[Script=Arabic,Scale=1.0]{Amiri}
+\setmonofont{DejaVu Sans Mono}[Scale=0.8]
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.2cm}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{fontawesome5}
+
+% ── الألوان (هوية يَسِّر) ──
+\definecolor{gold}{HTML}{B8933B}
+\definecolor{darkbg}{HTML}{101414}
+\definecolor{okgreen}{HTML}{27AE60}
+\definecolor{warnred}{HTML}{C0392B}
+\definecolor{softgray}{HTML}{F4F4F4}
+\definecolor{midgray}{HTML}{7A7A7A}
+\definecolor{codebg}{HTML}{1A2020}
+
+% ── الترويسة والتذييل ──
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[R]{\small\color{gold}خطة تحسين SEO — منصة يَسِّر}
+\fancyhead[L]{\small\color{midgray}Search Optimization Roadmap}
+\fancyfoot[C]{\small\thepage}
+
+% ── عناوين ──
+\titleformat{\section}{\Large\bfseries\color{gold}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkbg}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{midgray}}{\thesubsubsection}{0.4em}{}
+
+\setlist[itemize]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+
+\hypersetup{
+  colorlinks=true, linkcolor=gold, urlcolor=gold,
+  pdftitle={خطة تحسين SEO - منصة يَسِّر}, pdfauthor={فريق يَسِّر}
+}
+
+% ── صناديق ──
+\newtcolorbox{infobox}[1][]{colback=softgray,colframe=gold,boxrule=0.6pt,arc=3pt,left=8pt,right=8pt,top=6pt,bottom=6pt,breakable,#1}
+\newtcolorbox{riskbox}[1][]{colback=red!4,colframe=warnred,boxrule=0.6pt,arc=3pt,left=8pt,right=8pt,top=6pt,bottom=6pt,breakable,#1}
+\newtcolorbox{okbox}[1][]{colback=green!4,colframe=okgreen,boxrule=0.6pt,arc=3pt,left=8pt,right=8pt,top=6pt,bottom=6pt,breakable,#1}
+
+\newcommand{\code}[1]{\textcolor{darkbg}{\texttt{\small #1}}}
+
+\begin{document}
+
+% ===================== الغلاف =====================
+\begin{titlepage}
+\centering
+\vspace*{2.5cm}
+{\Huge\bfseries\color{gold} يَسِّر}\\[0.4cm]
+{\large\color{midgray} منصة تعليم الفقه الإسلامي}\\[2.5cm]
+
+{\Huge\bfseries خطة تحسين محركات البحث}\\[0.8cm]
+{\LARGE\bfseries SEO — اسم الموقع، الأيقونة، والظهور}\\[1.2cm]
+
+\rule{0.7\textwidth}{0.5pt}\\[0.8cm]
+{\large Search Engine Optimization Roadmap}\\[0.8cm]
+\rule{0.7\textwidth}{0.5pt}\\[2.5cm]
+
+\begin{tabular}{r l}
+\textbf{الهدف الأول:}   & اسم «يَسِّر» في جوجل بدل «الباحث الفقهي» \\
+\textbf{الهدف الثاني:}  & أيقونة الموقع في نتائج البحث \\
+\textbf{الهدف الثالث:}  & تحسين عام للفهرسة والثِقة \\
+\textbf{المدة التقنية:} & ≈ ٣ أيام عمل \\
+\textbf{زمن الظهور:}    & ٢–٦ أسابيع (فهرسة جوجل) \\
+\textbf{النسخة:}        & 1.0 \\
+\end{tabular}
+
+\vfill
+{\small\color{midgray} وثيقة تخطيط تقني — \today}
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ===================== الملخص =====================
+\section{الملخص التنفيذي}
+
+\begin{infobox}
+يهدف هذا المستند إلى حل ثلاث مشكلات ظهور:
+\begin{enumerate}
+\item ظهور اسم قديم «الباحث الفقهي» في نتائج جوجل بدل الاسم الرسمي «يَسِّر».
+\item عدم ظهور أيقونة الموقع بجانب النتيجة.
+\item ضعف الإشارات البنيوية (\code{JSON-LD}) التي تعتمد عليها جوجل لتسمية الموقع.
+\end{enumerate}
+الحل يقوم على إشارات قاطعة (\code{WebSite} + \code{Organization} JSON-LD)، وأيقونات قياسية (\code{favicon.ico} + PNG مربّعة)، ثم إعادة فهرسة موجّهة عبر Google Search Console.
+\end{infobox}
+
+\subsection*{التشخيص — سبب كل مشكلة}
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}p{4.5cm} p{9.5cm}@{}}
+\toprule
+\textbf{المطلوب} & \textbf{السبب الجذري الحالي} \\
+\midrule
+اسم «يَسِّر» في جوجل & لا يوجد \code{WebSite} JSON-LD؛ الاعتماد على \code{og:site\_name} وحده ضعيف. الاسم القديم بقايا فهرسة لم تُحدَّث \\
+أيقونة الموقع في النتائج & فقط \code{favicon.svg}؛ جوجل يطلب \code{favicon.ico} في الجذر + أيقونة مربّعة ≥ 48px \\
+تحسين SEO & \code{<title>} قصير جدًا؛ لا \code{SearchAction}؛ لا \code{BreadcrumbList} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===================== المراحل =====================
+\section{المراحل}
+
+\subsection{المرحلة ١ — إشارة اسم الموقع (الأهم) — نصف يوم}
+الهدف: إخبار جوجل قطعيًا أن اسم الموقع «يَسِّر».
+
+\begin{tabular}{@{}c p{6.5cm} p{5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{المهمة} & \textbf{التفصيل} \\
+\midrule
+١.١ & \code{WebSite} JSON-LD في \code{index.html} & \code{name}, \code{alternateName}, \code{url}, \code{inLanguage} \\
+١.٢ & \code{Organization} JSON-LD & \code{name}, \code{logo}, \code{sameAs}, \code{url} \\
+١.٣ & \code{SearchAction} (روابط البحث) & \code{potentialAction} ← مسار البحث \code{/\#/lessons} \\
+١.٤ & تحديث \code{og:site\_name} و\code{og:title} & «يَسِّر — منصة تعليم الفقه الإسلامي» \\
+١.٥ & تصحيح \code{<title>} الرئيسي & «يَسِّر — منصة تعليم الفقه الإسلامي الميسّر» \\
+\bottomrule
+\end{tabular}
+
+\begin{infobox}
+\textbf{نموذج الـJSON-LD المطلوب:}
+\begin{center}
+\begin{tcolorbox}[colback=codebg, colframe=codebg, coltext=white, arc=3pt, left=10pt, right=10pt, width=\linewidth]
+\ttfamily\footnotesize\raggedleft
+\{\\
+\hspace*{1em}"@context": "https://schema.org",\\
+\hspace*{1em}"@graph": [\\
+\hspace*{2em}\{ "@type": "WebSite", "name": "يَسِّر",\\
+\hspace*{3em}"alternateName": ["يسر", "منصة يَسِّر للفقه"],\\
+\hspace*{3em}"url": "https://fqh.me/", "inLanguage": "ar",\\
+\hspace*{3em}"potentialAction": \{\\
+\hspace*{4em}"@type": "SearchAction",\\
+\hspace*{4em}"target": "https://fqh.me/\#/lessons?q=\{search\_term\_string\}" \} \},\\
+\hspace*{2em}\{ "@type": "Organization", "name": "يَسِّر",\\
+\hspace*{3em}"url": "https://fqh.me/",\\
+\hspace*{3em}"logo": "https://fqh.me/icons/icon-512.png" \}\\
+\hspace*{1em}]\\
+\}
+\end{tcolorbox}
+\end{center}
+\end{infobox}
+
+\subsection{المرحلة ٢ — الأيقونة في نتائج جوجل — نصف يوم}
+الهدف: ظهور أيقونة «يَسِّر» بجانب نتيجة البحث.
+
+\begin{tabular}{@{}c p{6.5cm} p{5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{المهمة} & \textbf{التفصيل} \\
+\midrule
+٢.١ & توليد أيقونات PNG من الشعار & 48، 96، 192، 512 \\
+٢.٢ & إنشاء \code{favicon.ico} متعدد الأحجام & 16 + 32 + 48 داخل ملف واحد \\
+٢.٣ & روابط الأيقونات في \code{index.html} & \code{rel=icon sizes=48x48} + apple-touch \\
+٢.٤ & أيقونة البار في جوجل & أيقونة مربّعة ≥ 48px + \code{favicon.ico} في الجذر \\
+٢.٥ & إصلاح \code{favicon.svg} & حاليًا يضمّن PNG base64 (12KB) — يُستحسن SVG حقيقي \\
+\bottomrule
+\end{tabular}
+
+\begin{riskbox}
+أيقونة نتيجة البحث تأخذ أسابيع لتحديثها، ويجب أن يكون \code{favicon.ico} في \textbf{جذر الموقع} لا في مسار فرعي.
+\end{riskbox}
+
+\subsection{المرحلة ٣ — إعادة الفهرسة وتحديث الاسم — يوم + انتظار}
+الهدف: محو «الباحث الفقهي» القديم من نتائج جوجل.
+
+\begin{tabular}{@{}c p{6.5cm} p{5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{المهمة} & \textbf{التفصيل} \\
+\midrule
+٣.١ & Google Search Console & تأكيد الملكية ← طلب إعادة فهرسة للرئيسية \\
+٣.٢ & URL Inspection في GSC & فحص تسمية الموقع بعد النشر \\
+٣.٣ & تسمية الموقع (Site name) & تُشتق من JSON-LD أو \code{og:site\_name} \\
+٣.٤ & تأكيد \code{robots.txt} + sitemap & إعادة إرسال \code{sitemap.xml} في GSC \\
+٣.٥ & تحديث \code{lastmod} في sitemap & التأكد من التحديث بعد النشر \\
+٣.٦ & Bing Webmaster & اختياري: إبلاغ Bing أيضًا \\
+\bottomrule
+\end{tabular}
+
+\subsection{المرحلة ٤ — تحسينات SEO أعمق — يوم}
+\begin{tabular}{@{}c p{9.5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{المهمة (والأثر)} \\
+\midrule
+٤.١ & \code{BreadcrumbList} JSON-LD في صفحات المسائل ← مسار التنقل في النتائج \\
+٤.٢ & إثراء النتائج بـFAQ/Topic schema (اختياري) \\
+٤.٣ & تحسين الوصف الميتا (١٢٠–١٦٠ حرفًا) \\
+٤.٤ & \code{<meta name=robots content=index,follow>} صريح \\
+٤.٥ & تحسين Core Web Vitals (LCP/CLS/INP) — مؤثر في الترتيب \\
+٤.٦ & فقرة نصّية تعريفية في الرئيسية \\
+٤.٧ & تحديث \code{check:seo.mjs} لفحص JSON-LD والاسم \\
+\bottomrule
+\end{tabular}
+
+\subsection{المرحلة ٥ — التحقق والقياس — نصف يوم}
+\begin{tabular}{@{}c p{6cm} p{6cm}@{}}
+\toprule
+\textbf{\#} & \textbf{الفحص} & \textbf{الأداة} \\
+\midrule
+٥.١ & فحص JSON-LD & validator.schema.org \\
+٥.٢ & فحص النتائج المثراة & Rich Results Test \\
+٥.٣ & فحص اسم الموقع & GSC ← تسمية الموقع \\
+٥.٤ & فحص الأيقونة & RealFaviconGenerator \\
+٥.٥ & Lighthouse SEO & ≥ ٩٥ \\
+٥.٦ & فحص البناء & \code{npm run check:seo} \\
+\bottomrule
+\end{tabular}
+
+% ===================== الحرجة =====================
+\section{ملاحظات حرجة}
+\begin{riskbox}
+\begin{itemize}
+\item \code{notranslate} موجود في \code{index.html} — جيد؛ يمنع الترجمة الآلية التي تشوّه الاسم.
+\item اسم «الباحث الفقهي» فُهرس قبل تغيير الاسم؛ جوجل يحتاج \textbf{٢–٦ أسابيع} للتحديث بعد إعادة الفهرسة. \textbf{لا يمكن تسريعه قسرًا}.
+\item الاسم في \code{<title>} هو الأقوى — حاليًا «يَسِّر» فقط، فيجب أن يكون صريحًا.
+\item تأكد أن \code{fqh.me} نهائي (لا \code{www} يُحوّل) — الحالي صحيح.
+\end{itemize}
+\end{riskbox}
+
+% ===================== الجدول =====================
+\section{الجدول الزمني}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{7cm} c c@{}}
+\toprule
+\textbf{المرحلة} & \textbf{المدة} & \textbf{خارجي} \\
+\midrule
+١ — JSON-LD الاسم & ٠.٥ يوم & — \\
+٢ — الأيقونات & ٠.٥ يوم & — \\
+٣ — إعادة الفهرسة & ٠.٥ يوم & \textcolor{warnred}{٢–٦ أسابيع} \\
+٤ — SEO أعمق & ١ يوم & — \\
+٥ — التحقق & ٠.٥ يوم & — \\
+\midrule
+\textbf{الإجمالي} & \textbf{≈ ٣ أيام} & — \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===================== Done =====================
+\section{معايير الإنجاز (Definition of Done)}
+\begin{okbox}
+\begin{itemize}
+\item[\faCheck] \code{index.html} يضم JSON-LD: \code{WebSite} + \code{Organization} + \code{SearchAction}.
+\item[\faCheck] أيقونات: \code{favicon.ico} + أيقونات PNG بمقاسات ٤٨ و٩٦ و١٩٢ و٥١٢.
+\item[\faCheck] \code{og:site\_name} و\code{<title>} محدّثتان رسميًا.
+\item[\faCheck] \code{generate-seo.mjs} يولّد \code{BreadcrumbList} والأيقونات.
+\item[\faCheck] GSC: إعادة فهرسة + تأكيد اسم الموقع.
+\item[\faCheck] \code{check:seo.mjs} يفحص الاسم وJSON-LD (يفشل عند الكسر).
+\end{itemize}
+\end{okbox}
+
+% ===================== ملحق =====================
+\section{ملحق — هيكل الملفات بعد التنفيذ}
+\begin{tcolorbox}[colback=darkbg, colframe=darkbg, coltext=white, arc=3pt, left=8pt, right=8pt]
+\ttfamily\small\raggedleft
+index.html\hspace{1em}\textcolor{okgreen}{مُعدّل — JSON-LD + أيقونات}\\
+public/\\
+\hspace*{1em}favicon.ico\hspace{1em}\textcolor{gold}{جديد}\\
+\hspace*{1em}favicon.svg\hspace{1em}\textcolor{okgreen}{مُحسَّن}\\
+\hspace*{1em}icons/\\
+\hspace*{2em}icon-48.png\hspace{1em}\textcolor{gold}{جديد}\\
+\hspace*{2em}icon-96.png\hspace{1em}\textcolor{gold}{جديد}\\
+\hspace*{2em}icon-192.png\hspace{1em}\textcolor{gold}{جديد}\\
+\hspace*{2em}icon-512.png\hspace{1em}\textcolor{gold}{جديد}\\
+scripts/\\
+\hspace*{1em}generate-seo.mjs\hspace{1em}\textcolor{okgreen}{مُعدّل — BreadcrumbList}\\
+\hspace*{1em}check-seo.mjs\hspace{1em}\textcolor{okgreen}{مُعدّل — فحص الاسم}
+\end{tcolorbox}
+
+\vfill
+\begin{center}
+\rule{0.5\textwidth}{0.4pt}\\[0.4cm]
+{\small\color{midgray} نهاية الوثيقة — منصة يَسِّر}
+\end{center}
+
+\end{document}

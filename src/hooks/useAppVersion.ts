@@ -4,6 +4,7 @@ import { registerSW } from 'virtual:pwa-register';
 // كشف «نسخة جديدة منشورة» عبر Service Worker مع استمرار فحص index.html كـ fallback:
 type UpdateListener = (ready: boolean) => void;
 const updateListeners = new Set<UpdateListener>();
+let swNeedRefresh = false;
 let swUpdater: ((reloadPage?: boolean) => Promise<void>) | null = null;
 let swRegistered = false;
 
@@ -16,6 +17,7 @@ function setupServiceWorker(onUpdate: (ready: boolean) => void): () => void {
       swUpdater = registerSW({
         immediate: true,
         onNeedRefresh() {
+          swNeedRefresh = true;
           updateListeners.forEach((listener) => listener(true));
         },
         onOfflineReady() {
@@ -214,10 +216,14 @@ export function useAppVersion(): AppVersionState {
       }, 120);
     };
 
-    if (swUpdater) {
+    if (swNeedRefresh && swUpdater) {
       void swUpdater(true).catch(() => {
         doHardReload();
       });
+      // شبكة أمان: لو لم تُعد المتصفح أو العامل التحميل خلال 800ms، نعيد التحميل قسريًا
+      setTimeout(() => {
+        doHardReload();
+      }, 800);
       return;
     }
 

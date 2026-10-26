@@ -35,6 +35,17 @@ function loadEnv() {
 }
 
 function getServiceAccountKey() {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    try {
+      const raw = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+      if (raw.startsWith('{')) {
+        return JSON.parse(raw);
+      }
+      return JSON.parse(Buffer.from(raw, 'base64').toString('utf8'));
+    } catch (e) {
+      console.warn('⚠️ تعذر تحليل FIREBASE_SERVICE_ACCOUNT من متغيرات البيئة:', e.message);
+    }
+  }
   const envPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
   const defaultPath = join(__dirname, 'service-account.json');
   const keyPath = envPath && existsSync(envPath) ? envPath : defaultPath;

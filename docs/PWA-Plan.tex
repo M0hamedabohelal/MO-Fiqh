@@ -1,0 +1,395 @@
+% !TEX program = xelatex
+% ============================================================
+%  خطة تحويل «يَسِّر» إلى تطبيق PWA (Microservices-style)
+%  الاستخدام على Overleaf:
+%    1) أنشئ مشروعًا جديدًا فارغًا (Blank Project)
+%    2) الصق محتوى هذا الملف في main.tex  (أو ارفع الملف)
+%    3) Menu ← Compiler ← اختر: XeLaTeX   (مهم للعربية)
+%    4) اضغط Recompile  ← ستحصل على PDF
+% ============================================================
+\documentclass[11pt]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{arabic}
+\setotherlanguage{english}
+\newfontfamily\arabicfont[Script=Arabic,Scale=1.0]{Amiri}
+\newfontfamily\arabicfontsf[Script=Arabic,Scale=1.0]{Amiri}
+\setmonofont{DejaVu Sans Mono}[Scale=0.85]
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.2cm}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{fontawesome5}
+
+% ── الألوان (هوية يَسِّر: ذهبي + داكن) ──
+\definecolor{gold}{HTML}{B8933B}
+\definecolor{darkbg}{HTML}{101414}
+\definecolor{okgreen}{HTML}{27AE60}
+\definecolor{warnred}{HTML}{C0392B}
+\definecolor{softgray}{HTML}{F4F4F4}
+\definecolor{midgray}{HTML}{7A7A7A}
+
+% ── الترويسة والتذييل ──
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[R]{\small\color{gold}خطة تطبيق PWA — منصة يَسِّر}
+\fancyhead[L]{\small\color{midgray}Microservices Roadmap}
+\fancyfoot[C]{\small\thepage}
+
+% ── عناوين الأقسام ──
+\titleformat{\section}{\Large\bfseries\color{gold}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkbg}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{midgray}}{\thesubsubsection}{0.4em}{}
+
+\setlist[itemize]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=gold,
+  urlcolor=gold,
+  pdftitle={خطة تطبيق PWA - منصة يَسِّر},
+  pdfauthor={فريق يَسِّر}
+}
+
+% ── صندوق ملوّن ──
+\newtcolorbox{infobox}[1][]{
+  colback=softgray, colframe=gold, boxrule=0.6pt, arc=3pt,
+  left=8pt, right=8pt, top=6pt, bottom=6pt, breakable, #1
+}
+\newtcolorbox{riskbox}[1][]{
+  colback=red!4, colframe=warnred, boxrule=0.6pt, arc=3pt,
+  left=8pt, right=8pt, top=6pt, bottom=6pt, breakable, #1
+}
+\newtcolorbox{okbox}[1][]{
+  colback=green!4, colframe=okgreen, boxrule=0.6pt, arc=3pt,
+  left=8pt, right=8pt, top=6pt, bottom=6pt, breakable, #1
+}
+
+% ── أوامر مساعدة ──
+\newcommand{\code}[1]{\textcolor{darkbg}{\texttt{\small #1}}}
+\newcommand{\ar}[1]{\textarabic{#1}}
+
+\begin{document}
+
+% ===================== الغلاف =====================
+\begin{titlepage}
+\centering
+\vspace*{2.5cm}
+{\Huge\bfseries\color{gold} يَسِّر}\\[0.4cm]
+{\large\color{midgray} منصة تعليم الفقه الإسلامي}\\[2.5cm]
+
+{\Huge\bfseries خطة تحويل الموقع إلى تطبيق}\\[0.6cm]
+{\LARGE\bfseries PWA — بنية الخدمات المصغّرة}\\[1.2cm]
+
+\rule{0.7\textwidth}{0.5pt}\\[0.8cm]
+{\large Microservices-style Progressive Web App Roadmap}\\[0.8cm]
+\rule{0.7\textwidth}{0.5pt}\\[2.5cm]
+
+\begin{tabular}{r l}
+\textbf{المنصة:}        & PWA (قابل للتثبيت — Android / iOS / Desktop) \\
+\textbf{استراتيجية الكاش:} & شامل (App Shell + محتوى + أصول + خطوط) \\
+\textbf{زر التحديث:}     & مُدمَج مع Service Worker \\
+\textbf{المدة التقديرية:} & ٤.٥ أيام عمل \\
+\textbf{النسخة:}         & 1.0 \\
+\end{tabular}
+
+\vfill
+{\small\color{midgray} وثيقة تخطيط تقني — \today}
+\end{titlepage}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ===================== الملخص التنفيذي =====================
+\section{الملخص التنفيذي}
+
+\begin{infobox}
+تحويل منصة «يَسِّر» من موقع ويب إلى \textbf{تطبيق قابل للتثبيت (PWA)} يعمل بلا إنترنت، مع الحفاظ الكامل على
+\textbf{طبقة المزامنة السحابية الحالية} دون أي تغيير في منطقها. تُبنى الخطة على مبدأ \textbf{الخدمات المصغّرة}:
+كل قدرة (تعريف، عمل دون اتصال، تحديث، تثبيت) في وحدة معزولة بواجهة واضحة، فلا يكسر تغييرٌ وحدةً أخرى.
+\end{infobox}
+
+\subsection*{الوضع الحالي}
+\begin{tabular}{@{}p{5cm} p{9cm}@{}}
+\toprule
+\textbf{العنصر} & \textbf{الحالة} \\
+\midrule
+PWA & محذوف بالكامل (لا manifest ولا Service Worker فعّال) \\
+المزامنة & \textcolor{okgreen}{تعمل فعلًا} — \code{onSnapshot} + حلّ تعارض بالطوابع الزمنية \\
+العمل دون اتصال & كاش Firestore (IndexedDB 50MB) + كاش محتوى محلي \\
+زر التحديث & فحص \code{index.html} يدويًا (بلا SW) \\
+النشر & Firebase Hosting + تراويس CSP مُنفَّذة \\
+\bottomrule
+\end{tabular}
+
+\subsection*{المبدأ المعماري}
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}p{4cm} p{10cm}@{}}
+\toprule
+\textbf{الخدمة} & \textbf{المسؤولية} \\
+\midrule
+App Shell & هيكل React (موجود) \\
+Content Service & تحميل المحتوى وكاشه (موجود) \\
+\textbf{Sync Service} & \textbf{المزامنة السحابية (موجود — لا يُلمَس)} \\
+Auth Service & المصادقة (موجود) \\
+\addlinespace
+Install Service & \textcolor{gold}جديد — واجهة التثبيت \\
+Update Service & \textcolor{gold}جديد — دمج التحديث مع SW \\
+Offline Service & \textcolor{gold}جديد — Workbox \\
+Manifest Service & \textcolor{gold}جديد — التعريف والأيقونات \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===================== المراحل =====================
+\section{مراحل التنفيذ}
+
+\subsection{المرحلة ٠ — التحضير (نصف يوم)}
+\begin{tabular}{@{}c p{6.5cm} p{5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{المهمة} & \textbf{الملفات} \\
+\midrule
+٠.١ & إنشاء فرع \code{feat/pwa} & — \\
+٠.٢ & إضافة \code{vite-plugin-pwa} كاعتماد تطوير & \code{package.json} \\
+٠.٣ & توليد الأيقونات من الشعار الحالي & \code{build-brand-assets.mjs} \\
+٠.٤ & نسخة احتياطية استباقية & \code{npm run backup} \\
+٠.٥ & بوابة: الاختبارات خضراء قبل أي تغيير & — \\
+\bottomrule
+\end{tabular}
+\begin{okbox}
+\textbf{المخرج:} أيقونات جاهزة في \code{public/icons/}.
+\end{okbox}
+
+\subsection{المرحلة ١ — خدمة التعريف (Manifest) — نصف يوم}
+الهدف: جعل الموقع قابلًا للتثبيت (يظهر خيار «تثبيت» في المتصفح).
+\begin{tabular}{@{}c p{6.5cm} p{5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{المهمة} & \textbf{التفصيل} \\
+\midrule
+١.١ & \code{public/manifest.webmanifest} & الاسم، \code{start\_url=/}, \code{display=standalone}, \code{dir=rtl}, \code{theme\_color}, \code{scope=/} \\
+١.٢ & مصفوفة الأيقونات & 192، 512، maskable 512، apple-touch 180 \\
+١.٣ & الربط في \code{index.html} & \code{link rel=manifest}, apple-touch-icon, theme-color \\
+١.٤ & توسيع CSP & إضافة \code{manifest-src 'self'} \\
+\bottomrule
+\end{tabular}
+\begin{okbox}
+\textbf{بوابة القبول:} Lighthouse يعلن «Installable»، والـmanifest يُقرأ بلا أخطاء في DevTools.
+\end{okbox}
+
+\subsection{المرحلة ٢ — خدمة العمل دون اتصال (Workbox) — يوم}
+هذه الخدمة معزولة تمامًا ولا تلمس التطبيق.
+\begin{tabular}{@{}c p{6.5cm} p{5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{المهمة} & \textbf{التفصيل} \\
+\midrule
+٢.١ & ضبط \code{vite.config.js} & \code{registerType=prompt}, \code{injectRegister=auto}, workbox \\
+٢.٢ & تخزين App Shell مسبقًا & استثناء صريح لـ\code{lessons/**} و\code{books/**} \\
+٢.٣ & كاش وقت التشغيل & stale-while-revalidate للأصول، NetworkFirst للخطوط، CacheFirst للصور \\
+٢.٤ & استثناء Firestore & تجاهل \code{firestore.googleapis.com} (لا يمسّ IndexedDB) \\
+٢.٥ & تعطيل التدمير الذاتي & إزالة \code{sw.js} و\code{service-worker.js} القديمين \\
+٢.٦ & سلامة SEO & التأكد أن الصفحات الثابتة لا تتأثر بالـprecache \\
+\bottomrule
+\end{tabular}
+\begin{riskbox}
+\textbf{نقاط حرجة:}
+\begin{itemize}
+\item لا تمسّ كاش Firestore (يعمل في IndexedDB مستقل).
+\item أخرج \code{lessons/**} من precache — وإلا انتفخ الـinstall.
+\item خطوط Google: NetworkFirst (بلا نت ← آخر نسخة كاش).
+\end{itemize}
+\end{riskbox}
+\begin{okbox}
+\textbf{بوابة القبول:} اقطع النت ← التطبيق يفتح ويُقرأ المحتوى السابق؛ Console بلا أخطاء؛ المزامنة سليمة.
+\end{okbox}
+
+\subsection{المرحلة ٣ — خدمة التحديث (دمج SW) — نصف يوم}
+مصدر حقيقة واحد للتحديث بدل فحص \code{index.html}.
+\begin{tabular}{@{}c p{6.5cm} p{5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{المهمة} & \textbf{التفصيل} \\
+\midrule
+٣.١ & استخدام \code{registerSW} & \code{onNeedRefresh}, \code{onOfflineReady} \\
+٣.٢ & تعديل \code{useAppVersion} & \code{updateReady} من SW، \code{reloadNow} ← \code{updateSW(true)} \\
+٣.٣ & إبقاء فحص \code{index.html} كـfallback & للمتصفحات القديمة \\
+٣.٤ & البانر والإعدادات & ربط المصدر بلا تغيير الواجهة \\
+٣.٥ & تحديث الاختبارات & \code{useAppVersion.test} + \code{UpdateBanner.test} \\
+\bottomrule
+\end{tabular}
+\begin{riskbox}
+أبقِ حارس \code{isFatalFirestoreError} و\code{reloadToLatest} في \code{firestoreRecovery.ts} — لا تلمسه.
+\end{riskbox}
+\begin{okbox}
+\textbf{بوابة القبول:} انشر تعديلًا ← يظهر «نسخة جديدة» خلال دقائق، والزر يحدّث فعلًا.
+\end{okbox}
+
+\subsection{المرحلة ٤ — خدمة التثبيت (واجهة) — نصف يوم}
+\begin{tabular}{@{}c p{6.5cm} p{5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{المهمة} & \textbf{التفصيل} \\
+\midrule
+٤.١ & \code{usePWAInstall.ts} & التقاط \code{beforeinstallprompt}، كشف standalone، دعم iOS \\
+٤.٢ & \code{InstallPrompt.tsx} & بانر أنيق بنمط التطبيق، زر تثبيت، تعليمات iOS \\
+٤.٣ & الربط في \code{App.tsx} & يظهر مرة واحدة (خزّنه في localStorage) \\
+٤.٤ & التكامل مع التعريف & دعوة التثبيت بعد شرائح التعريف \\
+٤.٥ & احترام تقليل الحركة & كما في بقية المكونات \\
+\bottomrule
+\end{tabular}
+\begin{okbox}
+\textbf{بوابة القبول:} Android يعرض البانر ويثبّت؛ iOS يعرض النص التعليمي؛ لا يظهر إن كان مثبَّتًا.
+\end{okbox}
+
+\subsection{المرحلة ٥ — المزامنة: تحقق فقط (بلا تغيير كود) — ساعتان}
+سياسة «ربط المزامنة عادي جدًا» — وهي فعليًا كذلك. هذه المرحلة تحقق لا بناء:
+\begin{tabular}{@{}c p{10cm}@{}}
+\toprule
+\textbf{\#} & \textbf{الفحص} \\
+\midrule
+٥.١ & جهازان بنفس الحساب: تعديل في أحدهما يظهر في الآخر ≤ ٣٠٠ms \\
+٥.٢ & وضع الطيران ثم تعديل ثم عودة: الدفع يُؤجَّل ثم يُرسل \\
+٥.٣ & إغلاق التطبيق المثبَّت وفتحه: البيانات تستقر \\
+٥.٤ & قفل الشاشة: الدفع الفوري يعمل \\
+٥.٥ & مسح البيانات السحابية ثم «استئناف المزامنة» \\
+٥.٦ & تأكيد أن SW لا يعترض \code{firestore.googleapis.com} \\
+\bottomrule
+\end{tabular}
+\begin{infobox}
+أي خلل يُعالَج في \code{useLibrarySync} بمعزلٍ تام، دون المساس بباقي الخدمات.
+\end{infobox}
+
+\subsection{المرحلة ٦ — الأمان والحوكمة — نصف يوم}
+\begin{tabular}{@{}c p{6.5cm} p{5cm}@{}}
+\toprule
+\textbf{\#} & \textbf{المهمة} & \textbf{التفصيل} \\
+\midrule
+٦.١ & توسيع CSP & إضافة \code{manifest-src 'self'} و\code{worker-src 'self'} \\
+٦.٢ & ترويسات SW & \textbf{إزالة} \code{Clear-Site-Data: "cache"} (يُفرّغ كاش PWA!) \\
+٦.٣ & فحص SEO & التأكد من سلامة الصفحات الثابتة \\
+٦.٤ & CI & فحص وجود manifest والأيقونات في البناء \\
+٦.٥ & README & قسم «تطبيق مثبّت (PWA)» جديد \\
+٦.٦ & تصحيح التوثيق & إزالة أي ذكر لـPWA «المحذوف» \\
+\bottomrule
+\end{tabular}
+\begin{riskbox}
+\textbf{مؤكد:} الترويسة الحالية على \code{/@(sw|service-worker).js} فيها \code{Clear-Site-Data: "cache"} — يجب إزالتها وإلا لا يعمل كاش الـPWA.
+\end{riskbox}
+
+\subsection{المرحلة ٧ — التحقق النهائي والنشر — يوم}
+\begin{tabular}{@{}c p{5cm} p{7cm}@{}}
+\toprule
+\textbf{\#} & \textbf{البوابة} & \textbf{الأمر} \\
+\midrule
+٧.١ & فحص الأنواع & \code{npm run typecheck} \\
+٧.٢ & ESLint & \code{npm run lint} \\
+٧.٣ & الكود الميت & \code{npm run deadcode} \\
+٧.٤ & الاختبارات & \code{npm test} \\
+٧.٥ & البناء وSEO & \code{npm run build \&\& npm run check:seo} \\
+٧.٦ & التكامل & \code{npm run test:e2e} \\
+٧.٧ & Lighthouse & ≥ ٩٠، installable، offline يعمل \\
+٧.٨ & نشر تجريبي & \code{npm run deploy:hosting} \\
+٧.٩ & فحص حي على فون & تثبيت + تحديث + مزامنة + offline \\
+\bottomrule
+\end{tabular}
+
+% ===================== المخاطر =====================
+\section{المخاطر وسبل الوقاية}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{@{}p{6cm} p{2cm} p{6.5cm}@{}}
+\toprule
+\textbf{الخطر} & \textbf{الاحتمال} & \textbf{الوقاية} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{الخطر} & \textbf{الاحتمال} & \textbf{الوقاية} \\
+\midrule
+\endhead
+SW يخزّن Firestore فيكسر المزامنة & متوسط & قائمة منع + تجاهل النطاق صريحًا \\
+\code{Clear-Site-Data: cache} يُلغي كاش PWA & \textcolor{warnred}{مؤكد} & إزالته من الترويسة (٦.٢) \\
+تضخم precache (محتوى + PDF الكتاب) & متوسط & استثناء من patterns \\
+CSP يحجب manifest/worker & مؤكد & توسيع \code{manifest-src}/\code{worker-src} \\
+تنازع SW القديم (المُدمّر ذاتي) & منخفض & نسخ جديد يستبدله؛ منطق تنظيف انتقالي \\
+زر التحديث يقول «محدّث» كاذبة & متوسط & مصدر SW واحد + اختبار \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+% ===================== الجدول الزمني =====================
+\section{الجدول الزمني التقديري}
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{7cm} c@{}}
+\toprule
+\textbf{المرحلة} & \textbf{المدة} \\
+\midrule
+٠ — التحضير & ٠.٥ يوم \\
+١ — التعريف (Manifest) & ٠.٥ يوم \\
+٢ — العمل دون اتصال (Workbox) & ١ يوم \\
+٣ — خدمة التحديث & ٠.٥ يوم \\
+٤ — خدمة التثبيت & ٠.٥ يوم \\
+٥ — تحقق المزامنة & ٠.٢٥ يوم \\
+٦ — الأمان والحوكمة & ٠.٥ يوم \\
+٧ — التحقق والنشر & ١ يوم \\
+\midrule
+\textbf{الإجمالي} & \textbf{≈ ٤.٥ أيام عمل} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ===================== معايير النجاح =====================
+\section{معايير النجاح (Definition of Done)}
+\begin{okbox}
+\begin{itemize}
+\item[\faCheck] الموقع قابل للتثبيت على Android / iOS / سطح المكتب.
+\item[\faCheck] يفتح ويعمل بلا إنترنت بعد أول زيارة.
+\item[\faCheck] زر «نسخة جديدة» يعمل عبر SW ويحدّث فعلًا.
+\item[\faCheck] المزامنة بين الأجهزة تعمل كما هي (≤ ٣٠٠ms).
+\item[\faCheck] كل البوابات خضراء (typecheck / lint / deadcode / test / build / seo / e2e).
+\item[\faCheck] Lighthouse PWA ≥ ٩٠، وصفر أخطاء في Console.
+\item[\faCheck] CSP محدّثة، والترويسات لا تُفرّغ كاش PWA.
+\end{itemize}
+\end{okbox}
+
+% ===================== ملحق: هيكل الملفات =====================
+\section{ملحق — هيكل الملفات بعد التنفيذ}
+\begin{tcolorbox}[colback=darkbg, colframe=darkbg, coltext=white, arc=3pt, left=8pt, right=8pt]
+\ttfamily\small\raggedleft
+public/\\
+\hspace*{1em}manifest.webmanifest\hspace{1em}\textcolor{gold}{جديد}\\
+\hspace*{1em}icons/\hspace{1em}\textcolor{gold}{جديد}\\
+\hspace*{2em}icon-192.png\\
+\hspace*{2em}icon-512.png\\
+\hspace*{2em}icon-maskable-512.png\\
+\hspace*{2em}apple-touch-icon.png\\
+src/\\
+\hspace*{1em}hooks/\\
+\hspace*{2em}usePWAInstall.ts\hspace{1em}\textcolor{gold}{جديد}\\
+\hspace*{2em}useAppVersion.ts\hspace{1em}\textcolor{okgreen}{مُعدّل}\\
+\hspace*{1em}Components/UI/\\
+\hspace*{2em}InstallPrompt.tsx\hspace{1em}\textcolor{gold}{جديد}\\
+vite.config.js\hspace{1em}\textcolor{okgreen}{مُعدّل — VitePWA}\\
+firebase.json\hspace{1em}\textcolor{okgreen}{مُعدّل — CSP + headers}
+\end{tcolorbox}
+
+\vfill
+\begin{center}
+\rule{0.5\textwidth}{0.4pt}\\[0.4cm]
+{\small\color{midgray} نهاية الوثيقة — منصة يَسِّر}
+\end{center}
+
+\end{document}

@@ -5,6 +5,20 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const envAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+if (envAccount) {
+  try {
+    const raw = envAccount.trim();
+    const key = raw.startsWith('{') ? JSON.parse(raw) : JSON.parse(Buffer.from(raw, 'base64').toString('utf8'));
+    console.log(`✅ مفتاح المشرف جاهز من متغير البيئة FIREBASE_SERVICE_ACCOUNT لمشروع: ${key.project_id}`);
+    console.log(`   حساب الخدمة: ${key.client_email}`);
+    process.exit(0);
+  } catch (err) {
+    console.error('❌ متغير البيئة FIREBASE_SERVICE_ACCOUNT غير صالح:', err.message);
+    process.exit(1);
+  }
+}
+
 const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || join(__dirname, 'service-account.json');
 
 if (existsSync(keyPath)) {

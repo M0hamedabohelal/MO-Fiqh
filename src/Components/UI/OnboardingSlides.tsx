@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiArrowLeft, FiArrowRight } from 'react-icons/fi';
-import { safeGet, safeSet } from '../../utils/safeStorage';
+import { markOnboardingDone } from '../../utils/safeStorage';
 
 const SLIDES = [
   {
@@ -26,8 +26,6 @@ const SLIDES = [
   },
 ];
 
-const STORAGE_KEY = 'fqh_onboarding_done';
-
 interface OnboardingSlidesProps {
   onDone: () => void;
 }
@@ -49,7 +47,7 @@ const OnboardingSlides = ({ onDone }: OnboardingSlidesProps) => {
   };
 
   const finish = () => {
-    safeSet(STORAGE_KEY, '1');
+    markOnboardingDone();
     onDone();
   };
 
@@ -213,12 +211,5 @@ const OnboardingSlides = ({ onDone }: OnboardingSlidesProps) => {
     </div>
   );
 };
-
-// يُصدَّر hook لتحديد ما إذا يجب عرض الـ onboarding
-// eslint-disable-next-line react-refresh/only-export-components -- دالة مساعدة مشتركة صغيرة
-export function shouldShowOnboarding() {
-  // التخزين المحظور يُعامل كـ "تم العرض" — أفضل من كسر الريندر
-  return !safeGet(STORAGE_KEY);
-}
 
 export default OnboardingSlides;

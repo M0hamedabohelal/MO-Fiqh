@@ -272,10 +272,14 @@ function alreadyCountedThisSession(lessonId: string): boolean {
   }
 }
 
-// تسجيل مشاهدة مسألة — عداد مركزي في مستند واحد stats/views
+// تسجيل مشاهدة مسألة — عداد مركزي في مستند واحد stats/views (للمستخدمين المسجلين فقط لمنع استنزاف الحصص)
 export async function trackLessonView(lessonId: string | number): Promise<void> {
   if (alreadyCountedThisSession(String(lessonId))) return;
   try {
+    const { getAuthModule } = await import('./config');
+    const { auth } = await getAuthModule();
+    if (!auth.currentUser) return;
+
     const { db, fs } = await getDb();
     await fs.setDoc(
       fs.doc(db, 'stats', 'views'),

@@ -1,19 +1,21 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 
 import HeroSection    from './Components/Header/HeroSection';
-import SearchModal    from './Components/UI/SearchModal';
-import ShortcutsHelpModal from './Components/UI/ShortcutsHelpModal';
+// Lazy loaded modals
+const SearchModal = lazy(() => import('./Components/UI/SearchModal'));
+const ShortcutsHelpModal = lazy(() => import('./Components/UI/ShortcutsHelpModal'));
 import MobileBottomNav from './Components/Navigation/MobileBottomNav';
 import SplashScreen   from './Components/UI/SplashScreen';
 import UpdateBanner   from './Components/UI/UpdateBanner'
 import { InstallPrompt } from './Components/UI/InstallPrompt'
 import GuestLoginPrompt from './Components/UI/GuestLoginPrompt'
 import { requireLogin, executePendingAction } from './utils/guestPrompt';
-import LoginModal     from './Components/Auth/LoginModal';
+const LoginModal = lazy(() => import('./Components/Auth/LoginModal'));
 import AppLayout      from './Components/Layout/AppLayout';
 import { AppProvider } from './Components/Layout/AppContext';
 import type { AppContextValue } from './Components/Layout/AppContext';
-import OnboardingSlides, { shouldShowOnboarding } from './Components/UI/OnboardingSlides';
+import { shouldShowOnboarding } from './utils/safeStorage';
+const OnboardingSlides = lazy(() => import('./Components/UI/OnboardingSlides'));
 
 import { useAuth }             from './Components/Auth/AuthContext';
 import { useHashRoute }        from './hooks/useHashRoute';
@@ -348,11 +350,27 @@ function App() {
       <GuestLoginPrompt onOpenLogin={onOpenLogin} />
 
       {/* ✅ Onboarding — مرة واحدة للمستخدم الجديد */}
-      {showOnboarding && <OnboardingSlides onDone={() => setShowOnboarding(false)} />}
+      {showOnboarding && (
+        <Suspense fallback={null}>
+          <OnboardingSlides onDone={() => setShowOnboarding(false)} />
+        </Suspense>
+      )}
 
-      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} data={lessons} onSelect={handleSearchResultSelect} />
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { executePendingAction(); if (currentView === 'hero') setCurrentView('books'); }} />
-      <ShortcutsHelpModal open={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
+      {isSearchOpen && (
+        <Suspense fallback={null}>
+          <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} data={lessons} onSelect={handleSearchResultSelect} />
+        </Suspense>
+      )}
+      {isLoginOpen && (
+        <Suspense fallback={null}>
+          <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { executePendingAction(); if (currentView === 'hero') setCurrentView('books'); }} />
+        </Suspense>
+      )}
+      {showShortcutsHelp && (
+        <Suspense fallback={null}>
+          <ShortcutsHelpModal open={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
+        </Suspense>
+      )}
 
       {currentView === 'hero' ? (
         <HeroSection

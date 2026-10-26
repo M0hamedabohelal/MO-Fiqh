@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { FiUser, FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 
 import Topbar from '../Header/Topbar';
 import Slider from '../Sidebar/Slider';
@@ -64,7 +64,8 @@ const AppLayout = () => {
       } as Record<string, string>)[currentView] ?? 'يَسِّر';
 
   return (
-  <div className="row g-0">
+    <MotionConfig reducedMotion="user">
+      <div className="row g-0">
 
     {/* الشريط الجانبي */}
     <div
@@ -224,6 +225,7 @@ const AppLayout = () => {
       </div>
     </div>
   </div>
+  </MotionConfig>
   );
 };
 

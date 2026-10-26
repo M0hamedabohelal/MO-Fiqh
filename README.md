@@ -64,16 +64,19 @@ VITE_CLOUDINARY_UPLOAD_PRESET=...
 > سياسة الاحتفاظ بسجل الأخطاء: فعّل TTL من الكونسول على مجموعة `client_errors` للحقل
 > `expireAt` (يحذف تلقائيًا بعد 30 يومًا) — من Firestore ←‏ TTL policies.
 
-## مفتاح حساب الخدمة (لسكربتات الإدارة فقط)
+## مفتاح حساب الخدمة والنسخ الاحتياطي السحابي
 
-سكربتا `create-admin` و `upload:pdf` يكتبان إلى Firestore/Storage من الخادم، لأن قواعد
-الأمان ترفض الكتابة من العميل. يحتاجان مفتاح حساب خدمة (خطوة محلية لا تُرفع أبدًا):
+سكربتات الإدارة (`create-admin`, `upload:pdf`, والنسخ الاحتياطي الشامل `backup`) تكتب إلى Firestore/Storage بصلاحيات المشرف، لأن قواعد الأمان ترفض تعديل المحتوى أو قراءة كافة مكتبات المستخدمين من العميل.
 
-1. Firebase Console ←‏ Project Settings ←‏ Service accounts ←‏ Generate new private key
-2. احفظ الملف باسم `scripts/service-account.json` (مستثنى من git)، أو ضع مساره في
-   متغير البيئة `GOOGLE_APPLICATION_CREDENTIALS`.
-
-بدون هذا المفتاح يعمل الموقع عاديًا؛ السكربتان فقط هما من يحتاجانه.
+1. **محليًا:**
+   - من Firebase Console ←‏ Project Settings ←‏ Service accounts ←‏ Generate new private key
+   - احفظ الملف باسم `scripts/service-account.json` (مستثنى من git)، أو ضع مساره في متغير `GOOGLE_APPLICATION_CREDENTIALS`.
+2. **سحابيًا (النسخ الاحتياطي اليومي المجدول عبر GitHub Actions):**
+   - أضف محتوى مفتاح الخدمة كـ Secret في المستودع:
+     `Settings → Secrets and variables → Actions → Secrets → New repository secret`
+     الاسم: `FIREBASE_SERVICE_ACCOUNT`
+     القيمة: نص ملف الـ JSON كاملاً (أو بتشفير base64).
+   - يتم تشغيل النسخ الاحتياطي التلقائي يومياً عبر سير العمل `.github/workflows/backup.yml` وحفظه في Artifacts لمدة 30 يوماً.
 
 ## الأوامر
 
@@ -93,7 +96,8 @@ VITE_CLOUDINARY_UPLOAD_PRESET=...
 | `npm run audit:data` | تحليل تغطية المحتوى |
 | `npm run create-admin -- "email" "pass"` | إنشاء/تحديث حساب مشرف عبر Admin SDK (يحتاج مفتاح حساب خدمة) |
 | `npm run upload:pdf` | رفع `public/fiqh-book.pdf` إلى Firebase Storage عبر Admin SDK |
-| `npm run test:e2e` | اختبارات التكامل الشاملة بمقاس الجوال عبر Playwright |
+| `npm run test:e2e` | اختبارات التكامل الشاملة بمقاس الجوال والـ Offline Mode عبر Playwright (10 اختبارات) |
+| `npm run deploy` | نشر الاستضافة على Firebase Hosting مع البناء وفحص الأنواع |
 | `npm run deploy:hosting` | فحص الأنواع (`typecheck`) ثم بناء ونشر على Firebase Hosting |
 | `npm run deploy:rules` | نشر قواعد أمان Firestore Rules |
 | `npm run deploy:all` | فحص الأنواع ثم البناء ونشر الاستضافة والقواعد معًا |
@@ -150,15 +154,16 @@ npm run deploy:all       # الاثنان معًا
   `/books/{اسم الكتاب}/` — تُكتب بأسماء مجلدات حقيقية غير مُرمَّزة، لأن الخادم يفكّ ترميز
   المسار قبل مطابقة الملف
 - **النشر:** `.github/workflows/deploy.yml` ينشر تلقائيًا على Firebase Hosting عند كل دفع
-  إلى `main` — بعد نجاح typecheck/lint/test/check:seo. يتطلب سرًّا واحدًا
+  إلى `main` — بعد نجاح كافة بوابات الجودة (typecheck / lint / deadcode / test / check:content / audit:data / check:seo).
+  كما ينشر قواعد `firestore:rules` تلقائيًا عند تغيّرها في الالتزام. يتطلب سرًّا واحدًا
   (`FIREBASE_TOKEN` = ناتج `npx firebase-tools login:ci`). بدون السرّ يُفشَل تشغيل النشر
-  صراحةً بدل أن يمرّ صامتًا، ويبقى `npm run deploy:hosting` للنشر اليدوي.
+  صراحةً بدل أن يمرّ صامتًا، ويبقى `npm run deploy` أو `npm run deploy:hosting` للنشر اليدوي.
 ## إعادة بناء ما أُزيل
 
 | الطبقة | الحالة |
 |---|---|
 | المزامنة السحابية | مفعّلة بالكامل على `users/{uid}/data/library` مع قواعد أمان للمالك وحلّ تعارض فائق السرعة |
-| التطبيق المثبّت (PWA) | مفعّل بالكامل عبر Workbox + vite-plugin-pwa؛ كاش App Shell، ودعم القراءة دون اتصال، وتثبيت أصلي (Android/iOS/Desktop)، وإشعار ذكي بالتحديثات |
+| التطبيق المثبّت (PWA) | مفعّل بالكامل عبر Workbox + vite-plugin-pwa؛ كاش App Shell، ودعم القراءة دون اتصال (Offline Mode مثبت باختبار e2e)، وتثبيت أصلي (Android/iOS/Desktop)، ومانيفست موحد `manifest.webmanifest`، وإشعار ذكي بالتحديثات |
 | App Check | اختياري (متاح تفعيله بعد تسجيل التطبيق في Console عبر `VITE_ENABLE_APPCHECK=true`) |
 
 ## قواعد الكود
@@ -181,7 +186,7 @@ npm run deploy:all       # الاثنان معًا
 
 ## الاختبارات
 
-`npm test` يشغّل Vitest (**29 ملف اختبار** تحوي **217 اختبار وحدة** بنسبة نجاح 100%). الخطافات والمكونات مُغطّاة ببيئة `jsdom` + `@testing-library/react`:
+`npm test` يشغّل Vitest (**39 ملف اختبار** تحوي **267 اختبار وحدة** بنسبة نجاح 100%). الخطافات والمكونات مُغطّاة ببيئة `jsdom` + `@testing-library/react`:
 
 | الملف | مجال الحماية والتحقق |
 |---|---|

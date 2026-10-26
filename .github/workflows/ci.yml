@@ -22,6 +22,8 @@ jobs:
       - run: npm run lint
       - run: npm run deadcode
       - run: npm test
+      - run: npm run check:content
+      - run: npm run audit:data
       - run: npm run build
       # حارس الصفحات الثابتة (SEO): يُنفَّذ بعد البناء لأن الملفات تُولَّد فيه.
       # يفشل إن اختفى canonical أو صورة معاينة أو صار زرّ «افتح في الموقع التفاعلي»
