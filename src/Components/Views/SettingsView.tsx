@@ -82,19 +82,20 @@ const SettingsSection = ({
             {icon}
           </div>
           <div className={styles.accordionTitleGroup}>
-            <h3 className={styles.accordionTitle}>{title}</h3>
+            <div className={styles.accordionTitleRow}>
+              <h3 className={styles.accordionTitle}>{title}</h3>
+              {badge && <div className={styles.accordionBadgeDesktop}>{badge}</div>}
+            </div>
             {subtitle && <span className={styles.accordionSubtitle}>{subtitle}</span>}
+            {badge && <div className={styles.accordionBadgeMobile}>{badge}</div>}
           </div>
         </div>
 
-        <div className={styles.accordionHeaderRight}>
-          {badge && <div className={styles.accordionBadgeWrapper}>{badge}</div>}
-          <div
-            className={`${styles.accordionChevron} ${isOpen ? styles.accordionChevronOpen : ''}`}
-            aria-hidden="true"
-          >
-            <FiChevronDown size={20} />
-          </div>
+        <div
+          className={`${styles.accordionChevron} ${isOpen ? styles.accordionChevronOpen : ''}`}
+          aria-hidden="true"
+        >
+          <FiChevronDown size={20} />
         </div>
       </button>
 
