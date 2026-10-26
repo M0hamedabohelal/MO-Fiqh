@@ -6,9 +6,6 @@ import {
   FiYoutube,
   FiUser,
   FiBookmark,
-  FiHeadphones,
-  FiLayers,
-  FiCompass,
 } from 'react-icons/fi';
 import type { User } from 'firebase/auth';
 import logo from '../../assets/logo-circle.webp';
@@ -20,12 +17,7 @@ interface HeroSectionProps {
   onContinueStopMark: () => void;
   onOpenLogin: () => void;
   user: User | null;
-  onSelectBook?: (bookName: string) => void;
-  booksStats?: { bookName: string; chaptersCount: number; issuesCount: number }[];
 }
-
-const toArDigits = (n: number): string =>
-  String(n).replace(/[0-9]/g, (d) => '٠١٢٣٤٥٦٧٨٩'[+d]);
 
 const HeroSection = ({
   onStartBrowsing,
@@ -33,32 +25,13 @@ const HeroSection = ({
   onContinueStopMark,
   onOpenLogin,
   user,
-  onSelectBook,
-  booksStats,
 }: HeroSectionProps) => {
   const [isVisible, setIsVisible] = useState(false);
 
-  const taharahStats = booksStats?.find((b) => b.bookName === 'كتاب الطهارة');
-  const salatStats = booksStats?.find((b) => b.bookName === 'كتاب الصلاة');
-
-  const taharahChapters = taharahStats?.chaptersCount ?? 10;
-  const taharahIssues = taharahStats?.issuesCount ?? 53;
-
-  const salatChapters = salatStats?.chaptersCount ?? 5;
-  const salatIssues = salatStats?.issuesCount ?? 32;
-
   useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 60);
+    const timer = setTimeout(() => setIsVisible(true), 40);
     return () => clearTimeout(timer);
   }, []);
-
-  const handleBookClick = (bookName: string) => {
-    if (onSelectBook) {
-      onSelectBook(bookName);
-    } else {
-      onStartBrowsing();
-    }
-  };
 
   return (
     <section
@@ -78,14 +51,14 @@ const HeroSection = ({
             src={logo}
             alt="شعار منصة يَسِّر"
             className={styles['brand-pill-img']}
-            width="60"
-            height="60"
+            width="48"
+            height="48"
             loading="eager"
           />
           <span className={styles['brand-pill-title']}>يَسِّر</span>
         </div>
 
-        {/* وسام المنتصف لشاشات العرض الكبيرة لموازنة الفراغ العلوي */}
+        {/* وسام المنتصف لشاشات العرض الكبيرة */}
         <div className={styles['top-center-badge']}>
           <span className={styles['badge-sparkle']}>✦</span>
           <span>منصة تعليمية تفاعلية للفقه الإسلامي الميسر</span>
@@ -97,9 +70,10 @@ const HeroSection = ({
           onClick={onOpenLogin}
           type="button"
           title={user ? `حساب: ${user.displayName || user.email}` : 'تسجيل الدخول'}
+          aria-label={user ? 'حسابي' : 'تسجيل الدخول'}
         >
           <span className={styles['user-btn-icon']}>
-            <FiUser size={26} />
+            <FiUser size={22} />
           </span>
           <span className={styles['user-btn-label']}>
             {user ? (user.displayName || user.email?.split('@')[0] || 'حسابي') : 'تسجيل الدخول'}
@@ -108,9 +82,28 @@ const HeroSection = ({
         </button>
       </header>
 
-      {/* المسرح الرئيسي المتوازن — يستغل المساحات أفقياً وعمودياً */}
+      {/* المسرح الرئيسي المتوازن — Mobile-First */}
       <main className={styles['main-stage']}>
-        {/* الجانب الأيمن: الهوية والنصوص والأزرار الأساسية */}
+        {/* محراب الشعار الفاخر — يظهر على الجوال والديسكتوب */}
+        <div className={styles['portal-column']}>
+          <div className={styles['emblem-showcase']}>
+            <div className={styles['emblem-arch']} />
+            <div className={styles['emblem-ring']} />
+            <div className={styles['emblem-core']}>
+              <img
+                src={logo}
+                alt="شعار منصة يَسِّر"
+                className={styles['emblem-img']}
+                width="140"
+                height="140"
+                fetchPriority="high"
+                decoding="async"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* جانب الهوية والنصوص والأزرار الأساسية */}
         <div className={styles['info-column']}>
           <div className={styles['badge-capsule']}>
             <span className={styles['badge-sparkle']}>✦</span>
@@ -164,108 +157,31 @@ const HeroSection = ({
             </div>
           </div>
 
-          {/* وسوم المزايا العصرية */}
-          <div className={styles['features-strip']}>
-            <div className={styles['feature-chip']}>
-              <span className={styles['chip-icon']}><FiLayers size={15} /></span>
-              <span>٨٥ مسألة مُحققة</span>
-            </div>
-            <div className={styles['feature-chip']}>
-              <span className={styles['chip-icon']}><FiHeadphones size={15} /></span>
-              <span>شرح صوتي متقن</span>
-            </div>
-            <div className={styles['feature-chip']}>
-              <span className={styles['chip-icon']}><FiBookmark size={15} /></span>
-              <span>مزامنة سحابية فورية</span>
-            </div>
-          </div>
-        </div>
-
-        {/* الجانب الأيسر: محراب العرض الفاخر وبطاقات البوابات السريعة */}
-        <div className={styles['portal-column']}>
-          <div className={styles['portal-showcase-frame']}>
-            {/* الشعار المركزي الفاخر */}
-            <div className={styles['emblem-showcase']}>
-              <div className={styles['emblem-ring']} />
-              <div className={styles['emblem-core']}>
-                <img
-                  src={logo}
-                  alt="شعار منصة يَسِّر"
-                  className={styles['emblem-img']}
-                  width="140"
-                  height="140"
-                  fetchPriority="high"
-                  decoding="async"
-                />
+          {/* بطاقة مواصلة القراءة من آخر وقفة (إذا وُجدت) */}
+          {stopLessonTitle && (
+            <button
+              className={styles['resume-card']}
+              onClick={onContinueStopMark}
+              type="button"
+              aria-label={`متابعة من آخر وقفة: ${stopLessonTitle}`}
+            >
+              <div className={styles['resume-header']}>
+                <span className={styles['resume-badge']}>
+                  <FiBookmark size={14} />
+                  <span>آخر وقفة</span>
+                </span>
+                <span className={styles['resume-action']}>
+                  <span>متابعة</span>
+                  <FiArrowLeft size={14} />
+                </span>
               </div>
-            </div>
-
-            {/* بطاقة مواصلة القراءة من آخر وقفة (إذا وُجدت) */}
-            {stopLessonTitle && (
-              <button
-                className={styles['resume-card']}
-                onClick={onContinueStopMark}
-                type="button"
-              >
-                <div className={styles['resume-header']}>
-                  <span className={styles['resume-badge']}>
-                    <FiBookmark size={14} />
-                    <span>آخر وقفة</span>
-                  </span>
-                  <span className={styles['resume-action']}>
-                    <span>متابعة</span>
-                    <FiArrowLeft size={14} />
-                  </span>
-                </div>
-                <p className={styles['resume-text']}>{stopLessonTitle}</p>
-              </button>
-            )}
-
-            {/* بوابات الكتب الفقهية السريعة */}
-            <div className={styles['books-portal-grid']}>
-              <button
-                type="button"
-                className={`${styles['book-portal-card']} ${styles['taharah-card']}`}
-                onClick={() => handleBookClick('كتاب الطهارة')}
-              >
-                <div className={styles['book-card-header']}>
-                  <span className={styles['book-badge']}>الكتاب الأول</span>
-                  <FiCompass size={16} className={styles['book-icon']} />
-                </div>
-                <h3 className={styles['book-card-title']}>كتاب الطهارة</h3>
-                <p className={styles['book-card-meta']}>
-                  {toArDigits(taharahChapters)} أبواب • {toArDigits(taharahIssues)} مسألة فقهية
-                </p>
-                <span className={styles['book-card-cta']}>
-                  <span>تصفّح الكتاب</span>
-                  <FiArrowLeft size={13} />
-                </span>
-              </button>
-
-              <button
-                type="button"
-                className={`${styles['book-portal-card']} ${styles['salat-card']}`}
-                onClick={() => handleBookClick('كتاب الصلاة')}
-              >
-                <div className={styles['book-card-header']}>
-                  <span className={styles['book-badge']}>الكتاب الثاني</span>
-                  <FiCompass size={16} className={styles['book-icon']} />
-                </div>
-                <h3 className={styles['book-card-title']}>كتاب الصلاة</h3>
-                <p className={styles['book-card-meta']}>
-                  {toArDigits(salatChapters)} أبواب • {toArDigits(salatIssues)} مسألة فقهية
-                </p>
-                <span className={styles['book-card-cta']}>
-                  <span>تصفّح الكتاب</span>
-                  <FiArrowLeft size={13} />
-                </span>
-              </button>
-            </div>
-          </div>
+              <p className={styles['resume-text']}>{stopLessonTitle}</p>
+            </button>
+          )}
         </div>
       </main>
 
-      {/* التذييل: الحديث الشريف النبوي كما طلب المستخدم بدلاً من وقف لله */}
+      {/* التذييل: الحديث الشريف النبوي */}
       <footer className={styles['bottom-bar']}>
         <div className={styles['hadith-container']}>
           <span className={styles['hadith-ornament']}>✦</span>
