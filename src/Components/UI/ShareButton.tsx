@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiDownload, FiCheck, FiLink } from 'react-icons/fi';
+import { FiDownload, FiCheck, FiLink, FiShare2 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { canonicalPathFor } from '../../hooks/useHashRoute';
 import { copyText } from '../../utils/clipboard';
@@ -16,8 +16,11 @@ interface ShareButtonProps {
 const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareButtonProps) => {
   const [downloaded, setDownloaded] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shared, setShared] = useState(false);
   const [failed, setFailed] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const canShareFiles = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
   // دالة لف النص مع دعم RTL
   const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
@@ -285,17 +288,42 @@ const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareBut
     setTimeout(() => setLinkCopied(false), 2200);
   };
 
+  // تنزيل مباشر للصورة إلى جهاز المستخدم دون فتح نافذة المشاركة
   const handleDownload = () => {
-    if (generating) return;
+    if (generating || sharing) return;
     setGenerating(true);
     setFailed(false);
     // التأجيل يتيح للزر إظهار حالة التحميل قبل العملية الثقيلة (حتى لا تتجمد الواجهة)
+    setTimeout(() => {
+      try {
+        const canvas = generateImage();
+        const link = document.createElement('a');
+        link.download = `${title}.png`;
+        link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setDownloaded(true);
+        setTimeout(() => setDownloaded(false), 2500);
+      } catch (err) {
+        console.error('فشل تنزيل الصورة:', err);
+        setFailed(true);
+        setTimeout(() => setFailed(false), 2500);
+      } finally {
+        setGenerating(false);
+      }
+    }, 60);
+  };
+
+  // مشاركة الصورة عبر واجهة المشاركة الأصلية (واتساب، تليجرام، إلخ) عند طلب المستخدم صراحة
+  const handleShare = () => {
+    if (sharing || generating) return;
+    setSharing(true);
     setTimeout(async () => {
       try {
         const canvas = generateImage();
-        // محاولة مشاركة الصورة مباشرة عبر Web Share API عند الدعم
         const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
-        if (blob && typeof navigator !== 'undefined' && navigator.canShare) {
+        if (blob && navigator.canShare) {
           const file = new File([blob], `${title}.png`, { type: 'image/png' });
           if (navigator.canShare({ files: [file] })) {
             await navigator.share({
@@ -303,25 +331,19 @@ const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareBut
               text: title,
               files: [file],
             });
-            setDownloaded(true);
-            setTimeout(() => setDownloaded(false), 2500);
+            setShared(true);
+            setTimeout(() => setShared(false), 2500);
             return;
           }
         }
-
-        const link = document.createElement('a');
-        link.download = `${title}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        setDownloaded(true);
-        setTimeout(() => setDownloaded(false), 2500);
+        // في حال تعذر مشاركة الملف، نقوم بالتنزيل كبديل
+        handleDownload();
       } catch (err) {
         if ((err as Error)?.name !== 'AbortError') {
-          setFailed(true);
-          setTimeout(() => setFailed(false), 2500);
+          console.error('فشل مشاركة الصورة:', err);
         }
       } finally {
-        setGenerating(false);
+        setSharing(false);
       }
     }, 60);
   };
@@ -331,11 +353,13 @@ const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareBut
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }} 
       transition={{ delay: 0.3 }}
-      className="d-flex gap-2 justify-content-center mb-4"
+      className="d-flex gap-2 justify-content-center mb-4 flex-wrap"
     >
+      {/* زر التنزيل المباشر كملف */}
       <button 
+        type="button"
         onClick={handleDownload}
-        disabled={generating}
+        disabled={generating || sharing}
         className={`btn d-flex align-items-center gap-2 shadow-sm ${isSmall ? 'btn-sm px-2 py-1' : 'px-3 py-2'}`}
         style={{ 
           backgroundColor: downloaded ? '#27ae60' : failed ? '#e74c3c' : 'var(--primary-color)', 
@@ -345,12 +369,38 @@ const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareBut
           fontSize: isSmall ? '0.8rem' : '0.9rem',
           transition: 'all 0.3s ease'
         }}
+        title="تنزيل الصورة مباشرة إلى جهازك"
       >
-        {downloaded ? <><FiCheck size={isSmall ? 14 : 16} /> {isSmall ? 'تم' : 'تم التحميل'}</>
+        {downloaded ? <><FiCheck size={isSmall ? 14 : 16} /> {isSmall ? 'تم التنزيل' : 'تم التحميل'}</>
           : generating ? (isSmall ? 'جارٍ...' : 'جارٍ التوليد...')
           : failed ? (isSmall ? 'فشل' : 'فشل التوليد')
           : <><FiDownload size={isSmall ? 14 : 16} /> {isSmall ? 'تنزيل' : 'حفظ كصورة'}</>}
       </button>
+
+      {/* زر المشاركة الصريح عبر تطبيقات التواصل (يظهر عند دعم المتصفح) */}
+      {canShareFiles && (
+        <button
+          type="button"
+          onClick={handleShare}
+          disabled={sharing || generating}
+          className={`btn d-flex align-items-center gap-2 shadow-sm ${isSmall ? 'btn-sm px-2 py-1' : 'px-3 py-2'}`}
+          style={{
+            backgroundColor: shared ? '#27ae60' : 'rgba(201, 168, 76, 0.15)',
+            color: shared ? '#fff' : 'var(--accent-color, #c9a84c)',
+            borderRadius: '20px',
+            border: '1px solid var(--accent-color, #c9a84c)',
+            fontSize: isSmall ? '0.8rem' : '0.9rem',
+            transition: 'all 0.3s ease',
+          }}
+          title="مشاركة الصورة عبر تطبيقات التواصل"
+        >
+          {shared
+            ? <><FiCheck size={isSmall ? 14 : 16} /> تمت المشاركة</>
+            : sharing
+            ? (isSmall ? 'جارٍ...' : 'جارٍ المشاركة...')
+            : <><FiShare2 size={isSmall ? 14 : 16} /> {isSmall ? 'مشاركة' : 'مشاركة الصورة'}</>}
+        </button>
+      )}
 
       {/* نسخ الرابط النظيف (/lessons/{id}/) — يُفهرس ويُشارك مع معاينة صحيحة */}
       <button
