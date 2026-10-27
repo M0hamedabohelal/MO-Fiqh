@@ -223,6 +223,9 @@
 }
 
 .top-center-badge {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -237,6 +240,8 @@
   font-weight: 600;
   color: var(--hero-gold-primary);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .badge-sparkle {
