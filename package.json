@@ -15,7 +15,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:rules": "vitest run src/firebase/rules.test.ts",
-    "test:rules:emulator": "firebase emulators:exec --only firestore \"npm run test:rules\"",
+    "test:rules:emulator": "npx --yes firebase-tools@15 emulators:exec --only firestore \"npm run test:rules\"",
     "backup": "node scripts/backup-firestore.mjs",
     "check:backup-key": "node scripts/check-backup-key.mjs",
     "restore": "node scripts/restore-firestore.mjs",

@@ -13,7 +13,7 @@ export interface ShareModalProps {
   onDownloadImage: () => void;
 }
 
-export const ShareModal = ({
+const ShareModal = ({
   isOpen,
   onClose,
   title,

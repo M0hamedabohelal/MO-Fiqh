@@ -308,4 +308,37 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
     await expect(page.getByRole('button', { name: /وضع المراجعة/ })).toBeVisible();
     expect(errors, errors.join('\n')).toEqual([]);
   });
+
+  test('16) تدفق المشاركة: أزرار الحفظ كصورة ونسخ الرابط ونافذة المشاركة في شاشة القراءة', async ({ page, context }) => {
+    const errors = collectErrors(page);
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
+    await openLesson(page, 1);
+
+    // التحقق من ظهور أزرار المشاركة الثلاثة
+    const downloadBtn = page.getByRole('button', { name: /حفظ كصورة/ });
+    const shareBtn = page.getByRole('button', { name: /مشاركة المسألة/ });
+    const copyLinkBtn = page.getByRole('button', { name: /نسخ الرابط/ });
+
+    await expect(downloadBtn).toBeVisible();
+    await expect(shareBtn).toBeVisible();
+    await expect(copyLinkBtn).toBeVisible();
+
+    // فتح نافذة المشاركة (على سطح المكتب)
+    await shareBtn.click();
+    await expect(page.getByText(/اختر الوسيلة المفضلة لمشاركة المسألة/i)).toBeVisible();
+    await expect(page.getByText(/مشاركة عبر واتساب/i)).toBeVisible();
+    await expect(page.getByText(/مشاركة عبر تليجرام/i)).toBeVisible();
+    await expect(page.getByText(/نشر على منصة إكس/i)).toBeVisible();
+
+    // إغلاق النافذة
+    const closeBtn = page.getByRole('button', { name: 'إغلاق' });
+    await closeBtn.click();
+    await expect(page.getByText(/اختر الوسيلة المفضلة لمشاركة المسألة/i)).not.toBeVisible();
+
+    // نسخ الرابط
+    await copyLinkBtn.click();
+    await expect(page.getByRole('button', { name: /^نسخ$/ })).toBeVisible();
+
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
 });
