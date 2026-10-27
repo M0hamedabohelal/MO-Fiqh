@@ -7,6 +7,7 @@ import {
   FiFlag,
   FiBook,
   FiInfo,
+  FiCheck,
 } from 'react-icons/fi';
 
 import Breadcrumb from '../Header/Breadcrumb';
@@ -41,9 +42,11 @@ const BODY_TEXT_SELECTOR = '[data-selectable="body-text"]';
 function isInsideBodyText(range: Range): boolean {
   const toElement = (node: Node): Element | null =>
     node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+  const ancestor = toElement(range.commonAncestorContainer);
+  if (ancestor?.closest(BODY_TEXT_SELECTOR)) return true;
   const start = toElement(range.startContainer);
   const end = toElement(range.endContainer);
-  return Boolean(start?.closest(BODY_TEXT_SELECTOR) && end?.closest(BODY_TEXT_SELECTOR));
+  return Boolean(start?.closest(BODY_TEXT_SELECTOR) || end?.closest(BODY_TEXT_SELECTOR));
 }
 
 // شاشة القراءة: نص المسألة + شرح الشيخ + الفيديو + الملاحظات والأدوات التفاعلية
@@ -108,6 +111,7 @@ const ReadingView = () => {
   });
 
   const [quoteImage, setQuoteImage] = useState<QuoteImageState>({ show: false, text: '' });
+  const [highlightNotice, setHighlightNotice] = useState<string | null>(null);
   const [isTOCOpen, setIsTOCOpen] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -137,29 +141,40 @@ const ReadingView = () => {
     }
 
     try {
+      if (sel.rangeCount === 0) return;
       const range = sel.getRangeAt(0);
       if (!isInsideBodyText(range)) {
         setSelectionPopup((prev) => (prev.show ? { ...prev, show: false } : prev));
         return;
       }
-      const rect = range.getBoundingClientRect();
-      const popupWidth = 140;
-      const margin = 8;
+
+      let rect = range.getBoundingClientRect();
+      if ((!rect || (rect.width === 0 && rect.height === 0)) && range.getClientRects().length > 0) {
+        rect = range.getClientRects()[0];
+      }
+      if (!rect || (rect.width === 0 && rect.height === 0)) return;
+
+      const popupWidth = 220;
+      const margin = 10;
       const rawX = rect.left + rect.width / 2;
       const clampedX = Math.max(
         popupWidth / 2 + margin,
         Math.min(window.innerWidth - popupWidth / 2 - margin, rawX),
       );
-      const topY = rect.top - 46;
-      const below = topY < 50;
-      const clampedY = below ? rect.bottom + 8 : topY;
+
+      // في الهواتف: تفضيل العرض أسفل التحديد لتجنب حجب شريط النسخ الافتراضي للنظام
+      // في الشاشات الكبيرة: العرض فوق النص إلا إذا كان قريباً من الترويسة
+      const isMobile = window.innerWidth <= 768;
+      const topY = rect.top - 52;
+      const placeBelow = isMobile ? (rect.bottom + 65 < window.innerHeight) : (topY < 65);
+      const clampedY = placeBelow ? Math.min(window.innerHeight - 60, rect.bottom + 10) : Math.max(65, topY);
 
       setSelectionPopup({
         show: true,
         text,
         x: clampedX,
         y: clampedY,
-        below,
+        below: placeBelow,
       });
     } catch {
       setSelectionPopup((prev) => (prev.show ? { ...prev, show: false } : prev));
@@ -167,34 +182,61 @@ const ReadingView = () => {
   }, []);
 
   useEffect(() => {
-    const onMouseUp = (): void => {
-      setTimeout(handleSelection, 10);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const run = (): void => {
+      handleSelection();
     };
+
+    const onMouseUp = (): void => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(run, 20);
+    };
+
+    const onTouchEnd = (): void => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(run, 60);
+    };
+
     const onSelectionChange = (): void => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed) {
+        if (timer) clearTimeout(timer);
         setSelectionPopup((prev) => (prev.show ? { ...prev, show: false } : prev));
+      } else {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(run, 140);
       }
     };
+
     document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('touchend', onTouchEnd, { passive: true });
     document.addEventListener('selectionchange', onSelectionChange);
     return () => {
+      if (timer) clearTimeout(timer);
       document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('touchend', onTouchEnd);
       document.removeEventListener('selectionchange', onSelectionChange);
     };
   }, [handleSelection]);
 
   const saveSelectionAsHighlight = (): void => {
     if (!selectionPopup.text || !lesson) return;
-    onCreateHighlight(selectionPopup.text);
+    const textToSave = selectionPopup.text;
+    onCreateHighlight(textToSave);
     setSelectionPopup((prev) => ({ ...prev, show: false }));
     const sel = window.getSelection();
     if (sel) sel.removeAllRanges();
+
+    // إشعار تأكيدي فوري ومرئي للمستخدم بنجاح الحفظ
+    setHighlightNotice('تم حفظ الفائدة في قائمة فوائدك بنجاح ✨');
+    setTimeout(() => setHighlightNotice(null), 3000);
   };
 
   const openQuoteImage = (): void => {
     if (!selectionPopup.text || !lesson) return;
-    setQuoteImage({ show: true, text: selectionPopup.text });
+    const textForImage = selectionPopup.text;
+    setQuoteImage({ show: true, text: textForImage });
     setSelectionPopup((prev) => ({ ...prev, show: false }));
     const sel = window.getSelection();
     if (sel) sel.removeAllRanges();
@@ -211,6 +253,13 @@ const ReadingView = () => {
     const dx = t.clientX - touchStartRef.current.x;
     const dy = t.clientY - touchStartRef.current.y;
     touchStartRef.current = null;
+
+    // إذا كان هناك نص محدد (أو جاري تحديده)، نمنع التنقل بالإيماءة فوراً لحماية التحديد
+    const sel = typeof window !== 'undefined' ? window.getSelection() : null;
+    if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
+      return;
+    }
+
     if (Math.abs(dx) > 75 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       if (dx > 0 && canGoPrev) onPrev();
       else if (dx < 0 && canGoNext) onNext();
@@ -396,6 +445,36 @@ const ReadingView = () => {
         source={`${lesson.bookName || ''} • ${lesson.title || ''}`}
         onClose={() => setQuoteImage({ show: false, text: '' })}
       />
+
+      {/* إشعار تأكيدي عند حفظ فائدة بنجاح */}
+      <AnimatePresence>
+        {highlightNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className="position-fixed start-50 translate-middle-x shadow-lg"
+            style={{
+              bottom: '80px',
+              zIndex: 9999,
+              backgroundColor: 'var(--primary-color)',
+              color: 'var(--text-on-primary)',
+              padding: '10px 22px',
+              borderRadius: '30px',
+              fontWeight: 700,
+              fontSize: '0.92rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              pointerEvents: 'none',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+            }}
+          >
+            <FiCheck size={18} />
+            <span>{highlightNotice}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
