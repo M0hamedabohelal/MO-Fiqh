@@ -1,4 +1,4 @@
-import { FiBook, FiList, FiFileText, FiSearch, FiSettings, FiBookmark, FiEdit3, FiUser, FiShield, FiAward } from 'react-icons/fi';
+import { FiBook, FiList, FiFileText, FiSearch, FiSettings, FiBookmark, FiUser, FiShield, FiAward } from 'react-icons/fi';
 import type { User } from 'firebase/auth';
 import logo from '../../assets/logo-circle.webp';
 import logo128 from '../../assets/logo-circle-128.webp';
@@ -72,18 +72,10 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
         </li>
         <li className="sidebar-nav-item">
           <button
-            className={`sidebar-btn ${activeView === 'bookmarks' ? 'sidebar-btn-active' : ''}`}
-            onClick={() => setActiveView('bookmarks')}
+            className={`sidebar-btn ${['highlights', 'bookmarks'].includes(activeView) ? 'sidebar-btn-active' : ''}`}
+            onClick={() => setActiveView(activeView === 'bookmarks' ? 'bookmarks' : 'highlights')}
           >
-            <FiBookmark className="sidebar-btn-icon" size={22} /> المفضلة
-          </button>
-        </li>
-        <li className="sidebar-nav-item">
-          <button
-            className={`sidebar-btn ${activeView === 'highlights' ? 'sidebar-btn-active' : ''}`}
-            onClick={() => setActiveView('highlights')}
-          >
-            <FiEdit3 className="sidebar-btn-icon" size={22} /> الفوائد المقتبسة
+            <FiBookmark className="sidebar-btn-icon" size={22} /> الفوائد والمفضلة
           </button>
         </li>
         <li className="sidebar-nav-item">

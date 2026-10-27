@@ -43,6 +43,7 @@ let mockBookmarks: string[] = [];
 vi.mock('../Layout/AppContext', () => ({
   useApp: () => ({
     bookmarks: mockBookmarks,
+    highlights: [],
     lessons: sampleLessons,
     openLessonById: mockOpenLessonById,
     setCurrentView: mockSetCurrentView,

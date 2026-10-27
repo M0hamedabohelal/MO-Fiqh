@@ -20,11 +20,14 @@ export default defineConfig({
       injectRegister: null,
       manifest: false,
       workbox: {
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,svg,png,webp,woff,woff2}'],
         globIgnores: [
           '**/fiqh-book.pdf',
-          'fonts/**',
-          '**/fonts/**',
+          'fonts/**/*.woff',
+          'fonts/**/*.woff2',
+          '**/fonts/**/*.woff',
+          '**/fonts/**/*.woff2',
           'lessons/**',
           'books/**',
           'scripts/**',

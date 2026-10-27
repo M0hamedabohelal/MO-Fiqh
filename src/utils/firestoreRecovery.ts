@@ -172,7 +172,13 @@ export function reloadToLatest(): Promise<void> {
   } catch { /* بلا sessionStorage: يكفي التحميل */ }
   try {
     if ('caches' in window) {
-      void caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+      void caches.keys().then((keys) =>
+        Promise.all(
+          keys
+            .filter((k) => !k.startsWith('workbox-precache'))
+            .map((k) => caches.delete(k))
+        )
+      );
     }
   } catch { /* ignore */ }
   const url = new URL(window.location.href);

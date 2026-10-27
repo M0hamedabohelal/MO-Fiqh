@@ -7,6 +7,7 @@ import { useApp } from '../Layout/AppContext';
 const BookmarksView = () => {
   const {
     bookmarks,
+    highlights,
     lessons,
     openLessonById: onOpenLessonById,
     setCurrentView,
@@ -30,7 +31,7 @@ const BookmarksView = () => {
           className="btn btn-sm px-3 py-1 rounded-2 text-muted fw-bold border-0"
           onClick={() => setCurrentView('highlights')}
         >
-          <FiEdit3 className="ms-1" /> الفوائد والزوائد
+          <FiEdit3 className="ms-1" /> الفوائد والزوائد ({(highlights || []).length})
         </button>
         <button
           type="button"

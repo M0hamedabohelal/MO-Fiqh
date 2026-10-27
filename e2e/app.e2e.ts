@@ -194,15 +194,21 @@ test.describe('المسارات الحرجة', () => {
   });
 
   // 10. اختبار وضع الأوفلاين (PWA Offline Capability):
-  // التحقق من أن التطبيق يعمل من الكاش المحلي بلا اتصال بالشبكة
-  test('10) وضع عدم الاتصال (Offline Mode): التطبيق يعمل ويتصفح المحتوى بلا اتصال بالإنترنت', async ({ page }) => {
+  // التحقق من أن التطبيق يعمل من الكاش المحلي بلا اتصال بالشبكة حتى بعد إغلاقه وفتحه من جديد
+  test('10) وضع عدم الاتصال (Offline Mode): التطبيق يعمل ويتصفح المحتوى بلا اتصال بالإنترنت', async ({ context, page }) => {
     await openBooks(page);
 
+    // انتظار تفعيل Service Worker بالكامل
+    await page.waitForFunction(async () => {
+      const reg = await navigator.serviceWorker.getRegistration();
+      return reg && reg.active && reg.active.state === 'activated';
+    }, { timeout: 15_000 });
+
     // قطع الشبكة بالكامل
-    await page.context().setOffline(true);
+    await context.setOffline(true);
 
     try {
-      // إعادة تحميل الصفحة دون اتصال — الخدمة من الكاش
+      // 1. إعادة تحميل الصفحة دون اتصال — الخدمة من الكاش
       await page.reload({ waitUntil: 'domcontentloaded' });
       await expect(page.getByRole('heading', { level: 3, name: 'فهرس الكتب' })).toBeVisible({ timeout: 20_000 });
       await expect(page.getByText(TRI).first()).toBeVisible();
@@ -210,8 +216,14 @@ test.describe('المسارات الحرجة', () => {
       // تصفح كتاب أثناء عدم الاتصال
       await page.getByText(TRI).first().click();
       await expect(page.getByRole('heading', { name: new RegExp(TRI) }).first()).toBeVisible();
+
+      // 2. إغلاق الصفحة وفتح صفحة جديدة أوفلاين بالكامل (محاكاة الخروج من التطبيق والعودة إليه)
+      await page.close();
+      const freshPage = await context.newPage();
+      await freshPage.goto('/', { waitUntil: 'domcontentloaded' });
+      await expect(freshPage.locator('body')).not.toBeEmpty();
     } finally {
-      await page.context().setOffline(false);
+      await context.setOffline(false);
     }
   });
 

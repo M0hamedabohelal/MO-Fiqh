@@ -219,12 +219,14 @@ export function useAppVersion(): AppVersionState {
   const reloadNow = useCallback((): void => {
     setReloading(true);
 
-    // 1. تنظيف الـ Cache Storage فورًا من أي كاش قديم لـ index.html وحزم JS
+    // 1. تنظيف الكاشات العابرة فقط مع حماية كاش Workbox Precache لوضع عدم الاتصال (Offline Mode)
     if (typeof window !== 'undefined' && 'caches' in window) {
       try {
         window.caches.keys().then((keys) => {
           keys.forEach((key) => {
-            void window.caches.delete(key);
+            if (!key.startsWith('workbox-precache')) {
+              void window.caches.delete(key);
+            }
           });
         });
       } catch { /* ignore */ }
