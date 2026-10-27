@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiBookmark, FiChevronLeft, FiBook, FiSearch } from 'react-icons/fi';
+import { FiBookmark, FiChevronLeft, FiBook, FiSearch, FiEdit3 } from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
 import { useApp } from '../Layout/AppContext';
 
@@ -22,7 +22,25 @@ const BookmarksView = () => {
     : bookmarkedLessons;
 
   return (
-    <div className="mt-4 mb-5">
+    <div className="mt-3 mt-md-4 mb-5">
+      {/* تبويبات التبديل السلس بين الفوائد والمفضلة */}
+      <div className="d-flex gap-2 mb-3 p-1 rounded-3" style={{ background: 'var(--badge-bg)', width: 'fit-content' }}>
+        <button
+          type="button"
+          className="btn btn-sm px-3 py-1 rounded-2 text-muted fw-bold border-0"
+          onClick={() => setCurrentView('highlights')}
+        >
+          <FiEdit3 className="ms-1" /> الفوائد والزوائد
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm px-3 py-1 rounded-2 shadow-sm fw-bold border-0"
+          style={{ backgroundColor: 'var(--primary-color)', color: 'var(--text-on-primary)' }}
+        >
+          <FiBookmark className="ms-1" /> المسائل المفضلة ({bookmarkedLessons.length})
+        </button>
+      </div>
+
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h3 className="mb-0 fw-bold" style={{ color: 'var(--primary-color)' }}>
           <FiBookmark className="ms-2" /> المفضلة

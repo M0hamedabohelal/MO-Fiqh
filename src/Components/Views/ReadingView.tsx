@@ -108,6 +108,7 @@ const ReadingView = () => {
   });
 
   const [quoteImage, setQuoteImage] = useState<QuoteImageState>({ show: false, text: '' });
+  const [isTOCOpen, setIsTOCOpen] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const [isSmallScreen, setIsSmallScreen] = useState<boolean>(() => {
@@ -231,9 +232,12 @@ const ReadingView = () => {
     );
   }
 
+  // ضبط العنوان وتفادي نزول النقطتين أو علامات الترقيم في سطر بمفردها
+  const cleanedTitle = (lesson.title || '').replace(/\s+([:،؛.؟!])/g, '$1');
+
   return (
     <div
-      className="container reading-container py-4 position-relative"
+      className="container reading-container py-2 py-md-4 px-2 px-md-3 position-relative"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       style={{ minHeight: '80vh' }}
@@ -248,7 +252,7 @@ const ReadingView = () => {
         onOpenQuoteImage={openQuoteImage}
       />
 
-      {/* شريط التحكم العلوي */}
+      {/* شريط التحكم العلوي المدمج */}
       <ReadingHeaderBar
         onBackToIndex={onBackToIndex}
         isRead={isRead}
@@ -262,6 +266,7 @@ const ReadingView = () => {
         canGoNext={canGoNext}
         onPrev={onPrev}
         onNext={onNext}
+        onOpenTOC={() => setIsTOCOpen((prev) => !prev)}
       />
 
       <AnimatePresence mode="wait">
@@ -275,29 +280,36 @@ const ReadingView = () => {
         >
           <Breadcrumb book={lesson.bookName} chapter={lesson.chapterName} />
 
-          <h2 className="h3 mb-3 fw-bold mt-4 text-center" style={{ color: 'var(--primary-color)' }}>
-            {lesson.title}
+          <h2
+            className="h4 h3-md mb-2 mb-md-3 fw-bold mt-2 mt-md-4 text-center reading-lesson-title"
+            style={{
+              color: 'var(--primary-color)',
+              wordBreak: 'normal',
+              overflowWrap: 'break-word',
+            }}
+          >
+            {cleanedTitle}
           </h2>
 
-          <div className="reading-meta d-flex justify-content-center flex-wrap gap-3 mb-4">
+          <div className="reading-meta d-flex justify-content-center flex-wrap gap-2 gap-md-3 mb-3 mb-md-4">
             {String(lesson.pageNumber ?? '').trim() && (
-              <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
-                <FiBook className="ms-2" style={{ color: 'var(--accent-color)' }} /> ص {lesson.pageNumber}
+              <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
+                <FiBook className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> ص {lesson.pageNumber}
               </span>
             )}
             {String(lesson.videoNumber ?? '').trim() && (
-              <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
-                <FiVideo className="ms-2" style={{ color: 'var(--accent-color)' }} /> {lesson.videoNumber}
+              <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
+                <FiVideo className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> {lesson.videoNumber}
               </span>
             )}
             {String(lesson.videoTimestamp ?? '').trim() && (
-              <span className="badge badge-custom d-flex align-items-center py-2 px-3 shadow-sm">
-                <FiClock className="ms-2" style={{ color: 'var(--accent-color)' }} /> يبدأ عند: {lesson.videoTimestamp}
+              <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
+                <FiClock className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> يبدأ عند: {lesson.videoTimestamp}
               </span>
             )}
             <button
               type="button"
-              className="badge d-flex align-items-center py-2 px-3 shadow-sm border-0"
+              className="badge d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm border-0"
               style={{
                 cursor: 'pointer',
                 transition: 'all 0.3s',
@@ -308,14 +320,14 @@ const ReadingView = () => {
               aria-pressed={isStopMarked}
               title="حفظ أو إزالة علامة الوقوف لهذا الكتاب"
             >
-              <FiFlag className="ms-2" style={{ color: 'var(--accent-color)' }} />
+              <FiFlag className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} />
               {isStopMarked ? 'علامة الوقوف محفوظة' : 'ضع علامة وقوف'}
             </button>
           </div>
 
           <BismillahHeader />
           {(lesson.adminNote || '').trim() && (
-            <div className="custom-card p-4 mb-4 d-flex gap-3 align-items-start shadow-sm" style={{ borderRight: '4px solid var(--accent-color)' }}>
+            <div className="custom-card p-3 p-md-4 mb-3 mb-md-4 d-flex gap-3 align-items-start shadow-sm" style={{ borderRight: '4px solid var(--accent-color)' }}>
               <FiInfo className="mt-1 flex-shrink-0" size={24} style={{ color: 'var(--accent-color)' }} />
               <div>
                 <h4 className="h6 fw-bold mb-2" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-heading)' }}>ملحوظة هامة:</h4>
@@ -372,7 +384,9 @@ const ReadingView = () => {
       <FloatingTOC 
         currentLesson={lesson} 
         allLessons={allLessons} 
-        onSelectLesson={onSelectLesson} 
+        onSelectLesson={onSelectLesson}
+        isOpen={isTOCOpen}
+        onToggle={setIsTOCOpen}
       />
 
       {/* بطاقة الاقتباس المصوّرة من النص المحدد */}

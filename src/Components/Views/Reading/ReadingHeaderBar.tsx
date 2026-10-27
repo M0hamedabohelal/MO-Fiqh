@@ -6,6 +6,7 @@ import {
   FiBookmark,
   FiChevronLeft,
   FiChevronRight,
+  FiList,
 } from 'react-icons/fi';
 
 interface ReadingHeaderBarProps {
@@ -21,6 +22,7 @@ interface ReadingHeaderBarProps {
   canGoNext: boolean;
   onPrev: () => void;
   onNext: () => void;
+  onOpenTOC?: () => void;
 }
 
 export const ReadingHeaderBar = ({
@@ -36,21 +38,80 @@ export const ReadingHeaderBar = ({
   canGoNext,
   onPrev,
   onNext,
+  onOpenTOC,
 }: ReadingHeaderBarProps) => {
   return (
     <>
-      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <button
-          className="btn btn-sm text-muted d-flex align-items-center"
-          aria-label="العودة لفهرس المسائل"
-          title="العودة لفهرس المسائل"
-          onClick={onBackToIndex}
-        >
-          <FiArrowRight className="ms-2" /> <span className="d-none d-md-inline">العودة لفهرس المسائل</span>
-        </button>
-        <div className="reading-actions d-flex align-items-center gap-2 flex-wrap">
+      {/* شريط أدوات القراءة الموحد — سطر واحد أنيق ومدمج على الهاتف */}
+      <div className="reading-header-toolbar d-flex justify-content-between align-items-center gap-2 mb-2 mb-md-3">
+        <div className="d-flex align-items-center gap-1 gap-md-2">
           <button
-            className="btn btn-sm d-flex align-items-center shadow-sm"
+            type="button"
+            className="btn btn-sm text-muted d-flex align-items-center reading-back-btn p-1 p-md-2"
+            aria-label="العودة لفهرس المسائل"
+            title="العودة لفهرس المسائل"
+            onClick={onBackToIndex}
+          >
+            <FiArrowRight size={20} className="ms-md-2" />
+            <span className="d-none d-md-inline">العودة لفهرس المسائل</span>
+          </button>
+
+          {/* تنقل سريع بالسابق والتالي مدمج للهاتف بدلاً من حجز سطر كامل */}
+          <div className="d-flex align-items-center d-md-none border rounded-pill px-1" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--badge-bg)' }} role="group" aria-label="التنقل بين المسائل">
+            <button
+              type="button"
+              className="btn btn-sm p-1 border-0"
+              style={{ color: canGoPrev ? 'var(--text-main)' : 'var(--text-muted)' }}
+              onClick={onPrev}
+              disabled={!canGoPrev}
+              aria-label="المسألة السابقة"
+              title="المسألة السابقة"
+            >
+              <FiChevronRight size={18} />
+            </button>
+            <span className="text-muted" style={{ fontSize: '10px' }} aria-hidden="true">|</span>
+            <button
+              type="button"
+              className="btn btn-sm p-1 border-0"
+              style={{ color: canGoNext ? 'var(--text-main)' : 'var(--text-muted)' }}
+              onClick={onNext}
+              disabled={!canGoNext}
+              aria-label="المسألة التالية"
+              title="المسألة التالية"
+            >
+              <FiChevronLeft size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className="reading-actions d-flex align-items-center gap-1 gap-md-2 flex-nowrap">
+          {/* زر شجرة الفقه — يفتح فهرس المسائل مباشرة دون الحاجة لزر عائم فوق النص */}
+          {onOpenTOC && (
+            <button
+              type="button"
+              className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2"
+              style={{
+                borderRadius: '10px',
+                fontWeight: 'bold',
+                backgroundColor: 'var(--badge-bg)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--primary-color)',
+                border: '1px solid',
+                minHeight: '38px',
+              }}
+              onClick={onOpenTOC}
+              title="شجرة الفقه — مسائل الكتاب"
+              aria-label="شجرة الفقه"
+            >
+              <FiList size={18} />
+              <span className="ms-1 d-none d-lg-inline">شجرة الفقه</span>
+            </button>
+          )}
+
+          {/* زر حالة القراءة */}
+          <button
+            type="button"
+            className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2"
             style={{
               borderRadius: '10px',
               fontWeight: 'bold',
@@ -59,6 +120,7 @@ export const ReadingHeaderBar = ({
               borderColor: isRead ? '#27ae60' : 'var(--border-color)',
               color: isRead ? '#fff' : 'var(--text-main)',
               border: '1px solid',
+              minHeight: '38px',
             }}
             onClick={onToggleRead}
             title={isRead ? 'إلغاء تعليم المسألة كمقروءة' : 'تعليم المسألة كمقروءة'}
@@ -68,8 +130,10 @@ export const ReadingHeaderBar = ({
             <span className="d-none d-sm-inline">{isRead ? 'خلصتها' : 'خلصتها؟'}</span>
           </button>
 
+          {/* زر الطباعة — يظهر على الشاشات الكبيرة فقط حيث الطباعة ذات معنى */}
           <button
-            className="btn btn-sm d-flex align-items-center shadow-sm"
+            type="button"
+            className="btn btn-sm d-none d-md-flex align-items-center shadow-sm"
             style={{
               borderRadius: '10px',
               fontWeight: 'bold',
@@ -78,6 +142,7 @@ export const ReadingHeaderBar = ({
               borderColor: 'var(--border-color)',
               color: 'var(--primary-color)',
               border: '1px solid',
+              minHeight: '38px',
             }}
             onClick={onPrintChapter}
             title="طباعة الباب كاملاً"
@@ -91,10 +156,17 @@ export const ReadingHeaderBar = ({
             className="d-flex align-items-center shadow-sm"
             role="group"
             aria-label="حجم الخط"
-            style={{ backgroundColor: 'var(--badge-bg)', border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}
+            style={{
+              backgroundColor: 'var(--badge-bg)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '10px',
+              overflow: 'hidden',
+              minHeight: '38px',
+            }}
           >
             <button
-              className="btn btn-sm fw-bold px-2"
+              type="button"
+              className="btn btn-sm fw-bold px-1 px-sm-2"
               style={{ color: 'var(--text-main)' }}
               onClick={() => setFontSize((p) => Math.max(p - 2, 14))}
               disabled={fontSize <= 14}
@@ -105,7 +177,8 @@ export const ReadingHeaderBar = ({
             </button>
             <span className="px-1 small fw-bold" style={{ color: 'var(--text-muted)' }} aria-hidden="true">{fontSize}</span>
             <button
-              className="btn btn-sm fw-bold px-2"
+              type="button"
+              className="btn btn-sm fw-bold px-1 px-sm-2"
               style={{ color: 'var(--text-main)' }}
               onClick={() => setFontSize((p) => Math.min(p + 2, 24))}
               disabled={fontSize >= 24}
@@ -116,19 +189,24 @@ export const ReadingHeaderBar = ({
             </button>
           </div>
 
+          {/* زر المفضلة */}
           <button
+            type="button"
             className={`bookmark-btn ${isBookmarked ? 'active' : ''}`}
             onClick={onToggleBookmark}
             title="حفظ في المفضلة"
             aria-label={isBookmarked ? 'إزالة من المفضلة' : 'حفظ في المفضلة'}
+            style={{ minHeight: '38px', minWidth: '38px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            <FiBookmark size={24} fill={isBookmarked ? 'currentColor' : 'none'} />
+            <FiBookmark size={22} fill={isBookmarked ? 'currentColor' : 'none'} />
           </button>
         </div>
       </div>
 
-      <div className="reading-top-nav d-flex justify-content-between mb-4" aria-label="التنقل بين المسائل">
+      {/* سطر التنقل الأفقي على الشاشات الكبيرة فقط */}
+      <div className="reading-top-nav d-none d-md-flex justify-content-between mb-4" aria-label="التنقل بين المسائل">
         <button
+          type="button"
           className="btn nav-lesson-btn btn-sm d-flex align-items-center"
           onClick={onPrev}
           disabled={!canGoPrev}
@@ -136,6 +214,7 @@ export const ReadingHeaderBar = ({
           <FiChevronRight className="ms-1" /> السابقة
         </button>
         <button
+          type="button"
           className="btn nav-lesson-btn btn-sm d-flex align-items-center"
           onClick={onNext}
           disabled={!canGoNext}

@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiList, FiX } from 'react-icons/fi';
 import type { Lesson } from '../../types';
@@ -7,10 +7,29 @@ interface FloatingTOCProps {
   currentLesson: Lesson;
   allLessons: Lesson[];
   onSelectLesson: (lesson: Lesson) => void;
+  isOpen?: boolean;
+  onToggle?: (open: boolean) => void;
 }
 
-const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+const FloatingTOC = ({
+  currentLesson,
+  allLessons,
+  onSelectLesson,
+  isOpen: controlledOpen,
+  onToggle: controlledOnToggle,
+}: FloatingTOCProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = typeof controlledOpen === 'boolean';
+  const isOpen = isControlled ? controlledOpen : internalOpen;
+
+  const handleSetOpen = useCallback((next: boolean) => {
+    if (isControlled && controlledOnToggle) {
+      controlledOnToggle(next);
+    } else {
+      setInternalOpen(next);
+    }
+  }, [isControlled, controlledOnToggle]);
+
   const panelRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -20,11 +39,11 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
     const onPointerDown = (e: PointerEvent) => {
       if (panelRef.current && panelRef.current.contains(e.target as Node)) return;
       if (btnRef.current && btnRef.current.contains(e.target as Node)) return;
-      setIsOpen(false);
+      handleSetOpen(false);
     };
     const onEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setIsOpen(false);
+        handleSetOpen(false);
         btnRef.current?.focus();
       }
     };
@@ -34,7 +53,7 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onEscape);
     };
-  }, [isOpen]);
+  }, [isOpen, handleSetOpen]);
 
   const bookName = currentLesson?.bookName;
 
@@ -61,10 +80,10 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
 
   return (
     <>
-      {/* Toggle Button */}
+      {/* Toggle Button — على الشاشات الكبيرة فقط، بينما على الجوال يُفتح من شريط القراءة العلوي الموحد */}
       <button
         ref={btnRef}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => handleSetOpen(!isOpen)}
         className="btn shadow-lg d-flex align-items-center justify-content-center floating-toc-btn"
         title="شجرة الفقه"
         aria-label={isOpen ? 'إغلاق شجرة الفقه' : 'فتح شجرة الفقه'}
@@ -107,11 +126,21 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
             }}
           >
             <div className="shadow-lg h-100 d-flex flex-column parchment-texture" style={{ backgroundColor: 'var(--card-bg)', borderRadius: '16px', border: '2px solid var(--border-color)', overflow: 'hidden' }}>
-              <div className="p-3 border-bottom" style={{ borderColor: 'var(--border-color)' }}>
-                <h6 className="fw-bold mb-0 d-flex align-items-center" style={{ color: 'var(--primary-color)' }}>
-                  <FiList className="ms-2" /> شجرة الفقه
-                </h6>
-                <small className="text-muted d-block mt-1">{currentLesson.bookName}</small>
+              <div className="p-3 border-bottom d-flex align-items-center justify-content-between" style={{ borderColor: 'var(--border-color)' }}>
+                <div>
+                  <h6 className="fw-bold mb-0 d-flex align-items-center" style={{ color: 'var(--primary-color)' }}>
+                    <FiList className="ms-2" /> شجرة الفقه
+                  </h6>
+                  <small className="text-muted d-block mt-1">{currentLesson.bookName}</small>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-link text-muted p-1 d-md-none"
+                  onClick={() => handleSetOpen(false)}
+                  aria-label="إغلاق شجرة الفقه"
+                >
+                  <FiX size={20} />
+                </button>
               </div>
               
               <div className="p-2 overflow-auto flex-grow-1 reading-mode-scroll">
@@ -138,10 +167,7 @@ const FloatingTOC = ({ currentLesson, allLessons, onSelectLesson }: FloatingTOCP
                               }}
                               onClick={() => {
                                 onSelectLesson(lesson);
-                                // Optional: Close on mobile when selecting a lesson
-                                if (window.innerWidth < 992) {
-                                  setIsOpen(false);
-                                }
+                                handleSetOpen(false);
                               }}
                             >
                               <div className="d-flex align-items-start justify-content-start gap-2 text-start">

@@ -1,5 +1,17 @@
 import { useRef, useState } from 'react';
-import { FiEdit3, FiTrash2, FiBook, FiChevronLeft, FiPrinter, FiSearch, FiDownload, FiUpload, FiCopy, FiRefreshCw } from 'react-icons/fi';
+import {
+  FiEdit3,
+  FiTrash2,
+  FiBook,
+  FiChevronLeft,
+  FiPrinter,
+  FiSearch,
+  FiDownload,
+  FiUpload,
+  FiCopy,
+  FiRefreshCw,
+  FiBookmark,
+} from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
 import ShareButton from '../UI/ShareButton';
 import { exportNotesPrint } from '../../utils/printExport';
@@ -53,9 +65,9 @@ const HighlightsView = () => {
   const handleCopyAll = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(backupToText({ bookmarks, highlights, notes, readLessons, stopMarks }, titleOf));
-      setNotice('تم نسخ مكتبتك كنص.');
+      setNotice('تم نسخ كل الفوائد والملاحظات إلى الحافظة.');
     } catch {
-      setNotice('تعذّر النسخ — جرّب التصدير.');
+      setNotice('تعذر النسخ إلى الحافظة.');
     }
     setTimeout(() => setNotice(''), 3000);
   };
@@ -76,7 +88,25 @@ const HighlightsView = () => {
   };
 
   return (
-    <div className="mt-4 mb-5">
+    <div className="mt-3 mt-md-4 mb-5">
+      {/* تبويبات التبديل السلس بين الفوائد والمفضلة */}
+      <div className="d-flex gap-2 mb-3 p-1 rounded-3" style={{ background: 'var(--badge-bg)', width: 'fit-content' }}>
+        <button
+          type="button"
+          className="btn btn-sm px-3 py-1 rounded-2 shadow-sm fw-bold border-0"
+          style={{ backgroundColor: 'var(--primary-color)', color: 'var(--text-on-primary)' }}
+        >
+          <FiEdit3 className="ms-1" /> الفوائد والزوائد ({highlights.length})
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm px-3 py-1 rounded-2 text-muted fw-bold border-0"
+          onClick={() => setCurrentView('bookmarks')}
+        >
+          <FiBookmark className="ms-1" /> المسائل المفضلة ({bookmarks.length})
+        </button>
+      </div>
+
       <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
         <h3 className="mb-0 fw-bold" style={{ color: 'var(--primary-color)' }}>
           <FiEdit3 className="ms-2" /> الفوائد المقتبسة

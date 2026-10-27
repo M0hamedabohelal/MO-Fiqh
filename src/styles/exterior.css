@@ -63,13 +63,17 @@
 }
 @media (max-width: 768px) {
   .floating-toc-btn {
-    bottom: 140px !important; /* Above MobileBottomNav and BackToTop */
+    display: none !important; /* مخفي على الجوال ومدمج داخل شريط القراءة العلوي */
   }
   .floating-toc-panel {
-    bottom: 200px !important;
-    top: 80px !important; /* مساحة آمنة من الأعلى لتجنب القص بسبب شريط المتصفح */
-    height: auto !important; /* التمدد التلقائي بين القمة والقاع */
-    max-height: calc(100dvh - 280px) !important;
+    bottom: calc(var(--nav-h, 64px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
+    top: 70px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    height: auto !important;
+    max-height: calc(100dvh - 160px) !important;
   }
 }
 
@@ -283,35 +287,9 @@
 }
 
 /* ==================== زر البحث العائم للفون ==================== */
+/* تم دمج البحث مباشرة داخل شريط التنقل السفلي للهاتف كوجهة أساسية لمنع حجب النص */
 .mobile-search-fab {
-  position: fixed;
-  right: 16px;
-  bottom: calc(var(--nav-h, 64px) + 14px + env(safe-area-inset-bottom, 0px));
-  z-index: var(--z-fab);
-  width: 50px;
-  height: 50px;
-  min-width: var(--tap-comfort, 48px);
-  min-height: var(--tap-comfort, 48px);
-  border-radius: 50%;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #1a1a1a;
-  background: linear-gradient(135deg, var(--accent-color) 0%, var(--brand-gold) 100%);
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--brand-gold) 45%, transparent), 0 2px 8px var(--shadow-soft);
-  touch-action: manipulation;
-}
-
-.mobile-search-fab:active {
-  transform: scale(0.92) !important;
-}
-
-@media (min-width: 768px) {
-  .mobile-search-fab {
-    display: none;
-  }
+  display: none !important;
 }
 
 /* ==================== تبسيط التوب بار على الفون (صف واحد مدمج) ==================== */
@@ -825,12 +803,10 @@
   .manuscript-frame::after {
     inset: 9px;
   }
-  /* إظهار تسمية الزر النشط فقط لتقليل الزحمة */
+  /* شريط سفلي متزن بخمس وجهات واضحة مع إظهار التسميات بنسق ثابت دون قفزات */
   .mobile-bottom-nav .nav-item span {
-    display: none;
-  }
-  .mobile-bottom-nav .nav-item.active span {
     display: block;
+    font-size: 0.72rem;
   }
 }
 
