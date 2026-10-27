@@ -28,7 +28,7 @@ export const SettingsSection = ({
   const panelId = `section-panel-${id}`;
 
   return (
-    <section className={styles.accordionSection} aria-labelledby={headerId}>
+    <div className={styles.accordionSection}>
       <button
         type="button"
         id={headerId}
@@ -73,7 +73,7 @@ export const SettingsSection = ({
       >
         <div className={styles.accordionContentWrapper}>{children}</div>
       </div>
-    </section>
+    </div>
   );
 };
 

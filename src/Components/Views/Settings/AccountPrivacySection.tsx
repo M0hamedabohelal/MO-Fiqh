@@ -1,10 +1,22 @@
 import { useState, useCallback } from 'react';
-import { FiShield, FiCheck, FiAward, FiChevronLeft, FiRefreshCw, FiTrash2 } from 'react-icons/fi';
+import {
+  FiShield,
+  FiCheck,
+  FiAward,
+  FiChevronLeft,
+  FiRefreshCw,
+  FiTrash2,
+  FiBell,
+  FiClock,
+  FiFileText,
+  FiExternalLink,
+} from 'react-icons/fi';
 import styles from '../SettingsView.module.css';
 import { SettingsSection, FeedbackAlert } from './SettingsSection';
 import type { FeedbackMessage } from './types';
 import { safeRemove } from '../../../utils/safeStorage';
 import { setSyncDisabled } from '../../../utils/librarySync';
+import { useReadingReminder } from '../../../hooks/useReadingReminder';
 
 interface AccountPrivacySectionProps {
   isOpen: boolean;
@@ -24,6 +36,48 @@ export const AccountPrivacySection = ({
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearingCloud, setClearingCloud] = useState(false);
   const [cloudFeedback, setCloudFeedback] = useState<FeedbackMessage | null>(null);
+
+  const reminder = useReadingReminder();
+  const [reminderFeedback, setReminderFeedback] = useState<FeedbackMessage | null>(null);
+
+  const handleToggleReminder = async (): Promise<void> => {
+    setReminderFeedback(null);
+    if (reminder.isEnabled) {
+      reminder.disableReminder();
+      setReminderFeedback({
+        type: 'info',
+        text: 'تم إيقاف تذكير القراءة اليومي.',
+      });
+    } else {
+      const ok = await reminder.enableReminder();
+      if (ok) {
+        setReminderFeedback({
+          type: 'success',
+          text: 'تم تفعيل تذكير الورد الفقهي اليومي بنجاح!',
+        });
+      } else {
+        setReminderFeedback({
+          type: 'warning',
+          text: 'يرجى السماح بإذن الإشعارات من إعدادات المتصفح لتفعيل التذكير.',
+        });
+      }
+    }
+  };
+
+  const handleTestReminder = (): void => {
+    const ok = reminder.triggerTestReminder();
+    if (ok) {
+      setReminderFeedback({
+        type: 'success',
+        text: 'تم إرسال إشعار تجريبي لهاتفك/حاسوبك الآن.',
+      });
+    } else {
+      setReminderFeedback({
+        type: 'warning',
+        text: 'تعذر إرسال الإشعار، تأكد من تفعيل إذن الإشعارات في المتصفح.',
+      });
+    }
+  };
 
   const handleClearCloudData = async (): Promise<void> => {
     if (!user || clearingCloud) return;
@@ -237,6 +291,162 @@ export const AccountPrivacySection = ({
           </p>
         </div>
       )}
+
+      {/* البطاقة الفرعية 3: تذكير الورد الفقهي اليومي */}
+      <div className={styles.subCard}>
+        <div className={styles.cardHeader}>
+          <div className={styles.cardTitleGroup}>
+            <div className={styles.cardIcon}>
+              <FiBell />
+            </div>
+            <h4 id="reminder-heading" className={styles.cardTitle}>
+              تذكير الورد الفقهي اليومي
+            </h4>
+          </div>
+          {reminder.isSupported ? (
+            reminder.isEnabled ? (
+              <span className={`${styles.statusChip} ${styles.statusSuccess}`}>
+                <FiCheck size={14} /> التذكير مفعّل
+              </span>
+            ) : (
+              <span className={`${styles.statusChip} ${styles.statusInfo}`}>التذكير متوقف</span>
+            )
+          ) : (
+            <span className={`${styles.statusChip} ${styles.statusWarning}`}>غير مدعوم بالجهاز</span>
+          )}
+        </div>
+
+        <p className={styles.cardDesc}>
+          إشعار محلي لطيف يذكّرك بقراءة وردك اليومي ومسألة فقهية نافعة في ضوء الكتاب والسنة، مرتبط بسلسلة مواظبتك اليومية.
+        </p>
+
+        {reminder.isSupported ? (
+          <div className={styles.actionRow} style={{ flexDirection: 'column', gap: '0.85rem', alignItems: 'stretch' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                className={reminder.isEnabled ? styles.btnSecondary : styles.btnPrimary}
+                onClick={handleToggleReminder}
+                aria-label={reminder.isEnabled ? 'إيقاف تذكير الورد اليومي' : 'تفعيل تذكير الورد اليومي'}
+              >
+                <FiBell />
+                <span>{reminder.isEnabled ? 'إيقاف التذكير اليومي' : 'تفعيل التذكير اليومي'}</span>
+              </button>
+
+              {reminder.isEnabled && (
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={handleTestReminder}
+                  title="إرسال إشعار تجريبي الآن للتأكد"
+                >
+                  <FiRefreshCw />
+                  <span>تجربة الإشعار الآن</span>
+                </button>
+              )}
+            </div>
+
+            {reminder.isEnabled && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                <FiClock />
+                <span>الوقت المفضل للتذكير:</span>
+                <input
+                  type="time"
+                  value={reminder.preferredTime}
+                  onChange={(e) => reminder.setPreferredTime(e.target.value)}
+                  style={{
+                    background: 'var(--input-bg, #1a2020)',
+                    color: 'var(--text-main, #e6e8e6)',
+                    border: '1px solid var(--border-color, #2a3535)',
+                    borderRadius: '6px',
+                    padding: '0.25rem 0.5rem',
+                    fontFamily: 'inherit',
+                  }}
+                  aria-label="اختيار وقت التذكير اليومي"
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className={styles.cardDesc} style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            ميزة إشعارات التصفح غير مدعومة على متصفحك أو بيئتك الحالية.
+          </p>
+        )}
+
+        <FeedbackAlert feedback={reminderFeedback} />
+      </div>
+
+      {/* البطاقة الفرعية 4: وثائق وروابط المنصة القانونية */}
+      <div className={styles.subCard}>
+        <div className={styles.cardHeader}>
+          <div className={styles.cardTitleGroup}>
+            <div className={styles.cardIcon}>
+              <FiFileText />
+            </div>
+            <h4 id="legal-heading" className={styles.cardTitle}>
+              وثائق المنصة والصفحات القانونية
+            </h4>
+          </div>
+          <span className={`${styles.statusChip} ${styles.statusSuccess}`}>رسمية وموثّقة</span>
+        </div>
+
+        <p className={styles.cardDesc}>
+          منهجية المنصة، الشروط وحقوق النشر، وسياسة الخصوصية وحماية بيانات الزوار.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.6rem', marginTop: '0.5rem' }}>
+          <a
+            href="/about/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.btnSecondary}
+            style={{ justifyContent: 'space-between', padding: '0.65rem 0.85rem', textDecoration: 'none' }}
+          >
+            <span>عن المنصة والمنهجية</span>
+            <FiExternalLink size={16} />
+          </a>
+          <a
+            href="/privacy/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.btnSecondary}
+            style={{ justifyContent: 'space-between', padding: '0.65rem 0.85rem', textDecoration: 'none' }}
+          >
+            <span>سياسة الخصوصية</span>
+            <FiExternalLink size={16} />
+          </a>
+          <a
+            href="/terms/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.btnSecondary}
+            style={{ justifyContent: 'space-between', padding: '0.65rem 0.85rem', textDecoration: 'none' }}
+          >
+            <span>شروط الاستخدام</span>
+            <FiExternalLink size={16} />
+          </a>
+          <a
+            href="/disclaimer/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.btnSecondary}
+            style={{ justifyContent: 'space-between', padding: '0.65rem 0.85rem', textDecoration: 'none' }}
+          >
+            <span>إخلاء المسؤولية الفقهية</span>
+            <FiExternalLink size={16} />
+          </a>
+          <a
+            href="/copyright/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.btnSecondary}
+            style={{ justifyContent: 'space-between', padding: '0.65rem 0.85rem', textDecoration: 'none' }}
+          >
+            <span>حقوق النشر والملكية</span>
+            <FiExternalLink size={16} />
+          </a>
+        </div>
+      </div>
     </SettingsSection>
   );
 };

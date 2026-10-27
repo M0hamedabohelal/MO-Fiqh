@@ -58,7 +58,7 @@
 
 
   /* ── الرموز الدلالية ونظام الألوان (Design Tokens) ── */
-  --tone-success: #27ae60;
+  --tone-success: #196934;
   --tone-warning: #d35400;
   --tone-danger: #e74c3c;
   --tone-info: #2980b9;
@@ -69,7 +69,7 @@
 
   --brand-gold-18: color-mix(in srgb, var(--brand-gold) 18%, transparent);
   --brand-teal-22: color-mix(in srgb, var(--brand-teal) 22%, transparent);
-  --tone-success-bg: color-mix(in srgb, var(--tone-success) 12%, transparent);
+  --tone-success-bg: color-mix(in srgb, var(--tone-success) 10%, transparent);
   --tone-warning-bg: color-mix(in srgb, var(--tone-warning) 12%, transparent);
   --tone-danger-bg: color-mix(in srgb, var(--tone-danger) 12%, transparent);
   --tone-info-bg: color-mix(in srgb, var(--tone-info) 12%, transparent);
@@ -458,7 +458,7 @@ button:active:not(:disabled),
   --card-bg-alpha: rgba(250, 243, 227, 0.9);
 
   /* ── الرموز الدلالية — وضع السيبيا (تراثي) ── */
-  --tone-success: #3f7a46;
+  --tone-success: #26542c;
   --tone-warning: #b0762a;
   --tone-danger: #b23a2e;
   --tone-info: #4a6fa5;
@@ -469,7 +469,7 @@ button:active:not(:disabled),
 
   --brand-gold-18: color-mix(in srgb, var(--brand-gold) 18%, transparent);
   --brand-teal-22: color-mix(in srgb, var(--brand-teal) 22%, transparent);
-  --tone-success-bg: color-mix(in srgb, var(--tone-success) 14%, transparent);
+  --tone-success-bg: color-mix(in srgb, var(--tone-success) 12%, transparent);
   --tone-warning-bg: color-mix(in srgb, var(--tone-warning) 14%, transparent);
   --tone-danger-bg: color-mix(in srgb, var(--tone-danger) 14%, transparent);
   --tone-info-bg: color-mix(in srgb, var(--tone-info) 14%, transparent);
