@@ -111,7 +111,7 @@ test.describe('المسارات الحرجة', () => {
     const errors = collectErrors(page);
     await openBooks(page);
 
-    await page.getByRole('button', { name: 'بحث', exact: true }).click();
+    await page.getByRole('button', { name: /بحث/ }).click();
     const input = page.getByPlaceholder(/عنوان، نص، رقم المسألة/);
     await expect(input).toBeVisible();
     await input.fill('الطهارة');
