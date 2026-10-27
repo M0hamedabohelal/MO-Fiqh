@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { Lesson } from "../types";
+import { trackPageView } from "../utils/analytics";
 
 // ─── الروابط المباشرة: قراءة الرابط عند أول فتح (#/lesson/15 أو #/book/... أو #/books ...) ───
 
@@ -398,6 +399,9 @@ export function useHashRoute(lessons: Lesson[]) {
         },
       });
     }
+
+    // قياس التنقل في صفحات SPA يدوياً في GA4 مع كل انتقال
+    trackPageView(window.__currentCleanPath || hash, document.title);
   }, [currentView, currentIndex, selectedBookName, openChapterName, lessons]);
 
   const goBackToList = useCallback(() => {

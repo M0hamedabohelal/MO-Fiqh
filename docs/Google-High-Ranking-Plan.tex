@@ -1,0 +1,259 @@
+% !TEX program = xelatex
+% ============================================================
+%  خطة الظهور في أوائل نتائج جوجل باسم «يَسِّر»
+%  (Search Console · السلطة · صفحات الهبوط · العلامة التجارية)
+%  الاستخدام على Overleaf:
+%    1) New Project ← Blank Project
+%    2) الصق المحتوى في main.tex
+%    3) Menu ← Compiler ← اختر: XeLaTeX   (مهم للعربية)
+%    4) Recompile ← نزّل PDF
+% ============================================================
+\documentclass[11pt]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{arabic}
+\setotherlanguage{english}
+\newfontfamily\arabicfont[Script=Arabic,Scale=1.0]{Amiri}
+\newfontfamily\arabicfontsf[Script=Arabic,Scale=1.0]{Amiri}
+\setmonofont{DejaVu Sans Mono}[Scale=0.8]
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.2cm}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{fontawesome5}
+
+% ── الألوان (هوية يَسِّر) ──
+\definecolor{gold}{HTML}{B8933B}
+\definecolor{teal}{HTML}{0F3D3E}
+\definecolor{darkbg}{HTML}{101414}
+\definecolor{okgreen}{HTML}{27AE60}
+\definecolor{warnred}{HTML}{C0392B}
+\definecolor{softgray}{HTML}{F4F4F4}
+\definecolor{midgray}{HTML}{7A7A7A}
+\definecolor{codebg}{HTML}{1A2020}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[R]{\small\color{gold}خطة الظهور في أوائل جوجل — منصة يَسِّر}
+\fancyhead[L]{\small\color{midgray}Google Ranking Roadmap}
+\fancyfoot[C]{\small\thepage}
+
+\titleformat{\section}{\Large\bfseries\color{gold}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkbg}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{midgray}}{\thesubsubsection}{0.4em}{}
+
+\setlist[itemize]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+
+\hypersetup{
+  colorlinks=true, linkcolor=gold, urlcolor=gold,
+  pdftitle={خطة الظهور في أوائل جوجل}, pdfauthor={منصة يَسِّر}
+}
+
+% ── صناديق مخصّصة ──
+\newtcolorbox{goalbox}[1][]{
+  colback=gold!8, colframe=gold, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{notebox}[1][]{
+  colback=softgray, colframe=midgray, boxrule=0.6pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{warnbox}[1][]{
+  colback=warnred!6, colframe=warnred, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{codebox}[1][]{
+  colback=codebg, colframe=codebg, coltext=white,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+
+\begin{document}
+
+% ============================================================
+\begin{center}
+  {\Huge\bfseries\color{gold} خطة الظهور في أوائل جوجل}\\[4pt]
+  {\large\color{darkbg} كلمة «يَسِّر» كعلامة تجارية + عبارات محددة}\\[6pt]
+  {\small\color{midgray} منصة يَسِّر الفقهية — \today}
+\end{center}
+
+\vspace{4pt}
+\hrule
+\vspace{10pt}
+
+% ============================================================
+\section{التشخيص — قبل أي وعد}
+
+\begin{warnbox}
+\textbf{حقيقة يجب قولها صريحةً:} كلمة «يسر» عربية شائعة جداً (بمعنى السهولة، وترد في القرآن).
+التنافس عليها وحدها على المرتبة الأولى \textbf{غير واقعي عملياً} لمشروع جديد.
+\textbf{الهدف الواقعي القابل للتحقيق} هو تصدّر
+\textbf{«يَسِّر» كعلامة تجارية} والعبارات المركّبة («منصة يسر» · «يَسِّر الفقه» · «الفقه الميسر»).
+\end{warnbox}
+
+\begin{goalbox}
+\textbf{الخبر الجيد:} الأساس التقني للـ SEO \textbf{متقدّم بالفعل} في المنصة —
+JSON-LD غني (\texttt{WebSite}+\texttt{Organization}+\texttt{Article}+\texttt{Book}+\texttt{FAQPage}+\texttt{BreadcrumbList})،
+\texttt{SearchAction}، sitemap بـ\texttt{lastmod}، وأيقونات. الفجوة ليست تقنية، بل
+\textbf{السلطة (Authority)} و\textbf{القياس}.
+\end{goalbox}
+
+\subsection*{الفجوات المرصودة}
+\begin{itemize}
+  \item لا تحقّق Google Search Console في \texttt{index.html} — \textbf{لا قياس أصلاً}.
+  \item \texttt{sameAs} في \texttt{Organization} فارغ — لا ربط بحسابات اجتماعية.
+  \item لا روابط خارجية (Backlinks) — أهم عامل ترتيب مفقود.
+  \item عناوين المسائل غير مُحسَّنة لعبارات البحث.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ١ — تأسيس القياس (أساس كل شيء)}
+
+\begin{notebox}
+بلا قياس، لا يمكن معرفة الترتيب ولا تحسينه. هذه أول خطوة إلزامية.
+\end{notebox}
+
+\begin{itemize}
+  \item تسجيل الموقع في \textbf{Google Search Console} (نطاق \texttt{fqh.me}).
+  \item إضافة \texttt{<meta name="google-site-verification">} في \texttt{index.html}.
+  \item إرسال \texttt{sitemap.xml} في GSC.
+  \item ربط GSC بحساب GA4 (من خطة اكتمال الموقع).
+  \item طلب فهرسة يدوية للصفحة الرئيسية من ``URL Inspection''.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ٢ — سلطة النطاق (Off-page)} 
+
+\begin{goalbox}
+هذه \textbf{أهم مرحلة} لرفع الترتيب، وهي الغائبة تماماً اليوم. الترتيب في جوجل
+يعتمد قبل كل شيء على ``الثقة'' التي تمنحها مواقع أخرى بذكر المنصة.
+\end{goalbox}
+
+\begin{itemize}
+  \item \textbf{روابط خارجية (Backlinks):} ذكر المنصة في منتديات فقهية، مدوّنات دعوية،
+        أدلة المواقع الإسلامية، والمجتمعات العلمية الموثوقة.
+  \item \textbf{\texttt{sameAs}:} ربط حسابات المنصة الرسمية في \texttt{Organization} JSON-LD
+        (الحقل موجود وبنية القيمة جاهزة — ينتظر الروابط فقط).
+  \item \textbf{حسابات اجتماعية رسمية} موثّقة (تخدم الـ \texttt{sameAs} و\textbf{Knowledge Panel}).
+  \item \textbf{محتوى قابل للمشاركة:} الفوائد المصوّرة (الميزة الموجودة) تُشارَك فتُنتج إشارات طبيعية.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ٣ — صفحات هبوط إستراتيجية}
+
+بدل التنافس على «يسر» العامة، نستهدف عبارات واقعية لها نية بحث واضحة:
+
+\vspace{6pt}
+\renewcommand{\arraystretch}{1.35}
+\begin{longtable}{@{}p{0.34\textwidth} p{0.58\textwidth}@{}}
+\toprule
+\textbf{العبارة المستهدفة} & \textbf{الصفحة / الأداة} \\
+\midrule
+\endhead
+أحكام الطهارة · الصلاة · الزكاة · الصيام & صفحات الكتب الثابتة (\texttt{/books/...}) — موجودة ويُحسَّن عنوانها ووصفها \\
+منصة يسر · يَسِّر الفقه · الفقه الميسر & الصفحة الرئيسية + \texttt{/about/} + \texttt{alternateName} في JSON-LD \\
+حكم [مسألة] · [مسألة] في الفقه & صفحات المسائل الثابتة — إثراء العناوين بعبارات بحثية \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1.0}
+
+\begin{itemize}
+  \item استثمار \texttt{FAQPage} الموجود لجذب \textbf{المقتطفات المميزة} في نتائج جوجل.
+  \item تحسين الوصف الميتا (120--160 حرفاً) لكل صفحة.
+  \item الروابط الداخلية بين الكتب والمسائل (موجودة) تُوزّع السلطة داخلياً.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ٤ — المحتوى الطازج والعميق}
+
+\begin{itemize}
+  \item نشر مسائل جديدة دورياً (آلية لوحة الإدارة موجودة).
+  \item \texttt{lastmod} في sitemap (موجود) يُسرّع إعادة الزحف عند كل تحديث.
+  \item عمق المحتوى: نص المسألة + تعليق الشيخ (موجود) — إشارة جودة.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ٥ — Core Web Vitals}
+
+\begin{itemize}
+  \item قياس LCP / CLS / INP عبر PageSpeed Insights بعد تركيب GA4.
+  \item المنصة قوية هنا مسبقاً (خطوط محلية · PRPL · تجزئة حزم) — الغرض مراقبة عدم التراجع.
+  \item تجنّب أي تراجع ناتج عن سكربتات التحليلات (تحميل غير معطِّل).
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ٦ — إشارات العلامة التجارية «يَسِّر»}
+
+\begin{itemize}
+  \item \textbf{Knowledge Panel:} تقوية \texttt{Organization} بـ\texttt{sameAs} + \texttt{logo}
+        (الشعار موجود) ← قد تُنشئ جوجل بطاقة معرفة.
+  \item \textbf{اسم الموقع في النتائج:} مدعوم بـ\texttt{WebSite.name} (موجود) وأيقونات الموقع (موجودة).
+  \item \textbf{\texttt{notranslate}} (موجود) يمنع تشويه الاسم بالترجمة الآلية.
+  \item \textbf{تعجيل الفهرسة:} طلب إعادة فهرسة بعد أي تغيير جوهري في الاسم/البنية.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ٧ — القياس الأسبوعي}
+
+\begin{itemize}
+  \item GSC ← ``الأداء'': تتبّع ظهور كلمة «يَسِّر» والعبارات المستهدفة أسبوعياً.
+  \item مراقبة ظهور \textbf{Knowledge Panel} تدريجياً.
+  \item فحص دوري بـ\textbf{Rich Results Test} لكل نوع schema.
+  \item مراجعة \textbf{Core Web Vitals} شهرياً في GSC.
+\end{itemize}
+
+% ============================================================
+\section{الجدول الزمني والأثر}
+
+\renewcommand{\arraystretch}{1.35}
+\begin{longtable}{@{}p{0.08\textwidth} p{0.44\textwidth} p{0.14\textwidth} p{0.24\textwidth}@{}}
+\toprule
+\textbf{\#} & \textbf{المرحلة} & \textbf{المدة} & \textbf{زمن الأثر} \\
+\midrule
+\endhead
+١ & تأسيس القياس (GSC) & نصف يوم & فوري \\
+٢ & سلطة النطاق (Off-page) & مستمر & 4--12 أسبوعاً \\
+٣ & صفحات هبوط إستراتيجية & يومان & 2--6 أسابيع \\
+٤ & المحتوى الطازج & مستمر & متراكم \\
+٥ & Core Web Vitals & نصف يوم & فوري \\
+٦ & إشارات العلامة & يوم & 4--8 أسابيع \\
+٧ & القياس الأسبوعي & أسبوعي & — \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1.0}
+
+\begin{warnbox}
+\textbf{لا يمكن تسريع الفهرسة والتصنيف قسراً.} الفهرسة تحتاج \textbf{٢--٦ أسابيع}،
+وبناء السلطة يحتاج \textbf{أشهراً}. أي وعد بغير ذلك غير صادق.
+\end{warnbox}
+
+% ============================================================
+\section{معايير القبول}
+
+\begin{itemize}
+  \item[${\color{okgreen}\faCheckCircle}$] المنصة موثّقة في Google Search Console ومفهرسة.
+  \item[${\color{okgreen}\faCheckCircle}$] \texttt{sameAs} مملوء بحسابات المنصة الرسمية.
+  \item[${\color{okgreen}\faCheckCircle}$] صفحات الكتب والمسائل لها عناوين وأوصاف مُحسَّنة.
+  \item[${\color{okgreen}\faCheckCircle}$] «يَسِّر» تظهر كاسم الموقع في النتائج.
+  \item[${\color{okgreen}\faCheckCircle}$] ظهور معرفي (Knowledge Panel) عند تراكم الإشارات.
+  \item[${\color{okgreen}\faCheckCircle}$] \texttt{check:seo} وRich Results Test بلا أخطاء.
+\end{itemize}
+
+\end{document}

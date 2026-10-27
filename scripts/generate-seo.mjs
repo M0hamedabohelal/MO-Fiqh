@@ -249,6 +249,11 @@ const PAGE_CSS = `
   .hub ul{margin:0 0 .8rem}
   .hub h2{margin-top:2rem;border-top:1px solid rgba(92,192,181,.15);padding-top:1.2rem}
   .hub h2 a{border-bottom:none}
+  .legal-content p{margin:.8rem 0;color:#cdd3cf}
+  .legal-content ul{list-style:disc;padding-right:1.4rem;margin:1rem 0}
+  .legal-content li{margin:.6rem 0;color:#cdd3cf}
+  .legal-content strong{color:#5cc0b5}
+  .footer a{margin:0 .2rem}
   @media(max-width:520px){.pager{flex-direction:column}}`;
 
 // صورة المشاركة: كتاب له صورته، والمسألة تشارك صورة كتابها حتى لا تبقى الميتا بلا صورة.
@@ -302,28 +307,65 @@ ${next ? `<link rel="next" href="${next}">` : ''}
 <body><div class="wrap">`;
 }
 
+const PUBLISHER_LD = {
+  '@type': 'Organization',
+  '@id': `${BASE}/#organization`,
+  name: 'يَسِّر',
+  alternateName: [
+    'منصة يَسِّر',
+    'منصة يسر الفقهية',
+    'منصة يَسِّر لتعليم الفقه الإسلامي',
+    'الفقه الميسر',
+  ],
+  url: BASE,
+  logo: {
+    '@type': 'ImageObject',
+    '@id': `${BASE}/#logo`,
+    url: `${BASE}/icons/icon-512.png`,
+    caption: 'شعار منصة يَسِّر',
+    width: 512,
+    height: 512,
+  },
+  sameAs: [
+    'https://github.com/M0hamedabohelal/MO-Fiqh',
+    'https://wa.me/201093122064',
+    'https://www.facebook.com/profile.php?id=100015027550497',
+    'https://www.linkedin.com/in/mohamed-abohelal',
+  ],
+  knowsAbout: [
+    'الفقه الإسلامي',
+    'الفقه الميسر',
+    'أحكام الطهارة',
+    'أحكام الصلاة',
+    'أحكام الزكاة',
+    'أحكام الصيام',
+  ],
+};
+
 const foot = (appLink) => `
 <a class="cta" href="${appLink}" rel="noopener">📖 افتح في الموقع التفاعلي</a>
-<div class="footer">يَسِّر — منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر — <a href="/">fqh.me</a> · <a href="/books/">فهرس الكتب</a> · <a href="/lessons/">كل المسائل</a></div>
+<div class="footer">يَسِّر — منصة تعليم الفقه الإسلامي بأسلوب عصري ميسّر — <a href="/">fqh.me</a> · <a href="/books/">فهرس الكتب</a> · <a href="/lessons/">كل المسائل</a> · <a href="/about/">عن المنصة</a> · <a href="/privacy/">سياسة الخصوصية</a> · <a href="/terms/">شروط الاستخدام</a> · <a href="/disclaimer/">إخلاء المسؤولية</a> · <a href="/copyright/">حقوق النشر</a></div>
 </div></body></html>`;
 
 // ← توليد صفحات الكتب
 function bookPage(name, lessons) {
   const url = `${BASE}/books/${enc(name)}/`;
-  const desc = `${name} — ${lessonChapters(lessons).length} أبواب من المسائل الفقهية مع شرح الشيخ.`;
+  const topic = name.replace(/^كتاب\s+/, '');
+  const title = `${name} — أحكام وفقه ${topic} ومسائله — منصة يَسِّر`;
+  const desc = `أحكام وفقه ${topic} كاملاً في ${name} — ${lessonChapters(lessons).length} أبواب تجمع ${lessons.length} مسألة فقهية موثقة في ضوء الكتاب والسنة مع شرح الشيخ د. محمد بن علي الهبدان.`;
   const bookLd = {
     '@type': 'Book',
     name,
     numberOfPages: lessons.length,
     inLanguage: 'ar',
     url,
-    publisher: { '@type': 'Organization', name: 'يَسِّر', url: BASE },
+    publisher: PUBLISHER_LD,
   };
   const breadcrumbLd = {
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: `${BASE}/` },
-      { '@type': 'ListItem', position: 2, name: 'فهرس المسائل', item: `${BASE}/lessons/` },
+      { '@type': 'ListItem', position: 2, name: 'فهرس الكتب', item: `${BASE}/books/` },
       { '@type': 'ListItem', position: 3, name, item: url },
     ],
   };
@@ -355,7 +397,7 @@ ${chLessons
 
   return (
     head({
-      title: `${name} — يَسِّر`,
+      title,
       desc,
       url,
       jsonld,
@@ -397,7 +439,7 @@ function lessonPage(l, bookLessons, bookName) {
     isPartOf: { '@type': 'Book', name: bookName },
     url,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
-    publisher: { '@type': 'Organization', name: 'يَسِّر', url: BASE },
+    publisher: PUBLISHER_LD,
     author: {
       '@type': 'Person',
       name: 'فضيلة الشيخ محمد بن علي الهبدان',
@@ -476,7 +518,7 @@ function booksIndexPage() {
     inLanguage: 'ar',
     url,
     isPartOf: { '@type': 'WebSite', name: 'يَسِّر', url: `${BASE}/` },
-    publisher: { '@type': 'Organization', name: 'يَسِّر', url: BASE },
+    publisher: PUBLISHER_LD,
   };
   const breadcrumbLd = {
     '@type': 'BreadcrumbList',
@@ -543,7 +585,7 @@ function lessonsIndexPage() {
     inLanguage: 'ar',
     url,
     isPartOf: { '@type': 'WebSite', name: 'يَسِّر', url: `${BASE}/` },
-    publisher: { '@type': 'Organization', name: 'يَسِّر', url: BASE },
+    publisher: PUBLISHER_LD,
   };
   const breadcrumbLd = {
     '@type': 'BreadcrumbList',
@@ -589,6 +631,204 @@ ${groupsHtml}
     foot(`/#/lessons`)
   );
 }
+
+// ← توليد الصفحات القانونية الثابتة
+function legalPage(slug, title, bodyHtml) {
+  const url = `${BASE}/${slug}/`;
+  const desc = snippet(bodyHtml.replace(/<[^>]+>/g, ' '), 155);
+  const webpageLd = {
+    '@type': 'WebPage',
+    name: title,
+    description: desc,
+    url,
+    inLanguage: 'ar',
+    isPartOf: { '@type': 'WebSite', name: 'يَسِّر', url: `${BASE}/` },
+    publisher: PUBLISHER_LD,
+  };
+  const breadcrumbLd = {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: `${BASE}/` },
+      { '@type': 'ListItem', position: 2, name: title, item: url },
+    ],
+  };
+  const jsonld = {
+    '@context': 'https://schema.org',
+    '@graph': [webpageLd, breadcrumbLd],
+  };
+
+  return (
+    head({
+      title: `${title} — منصة يَسِّر`,
+      desc,
+      url,
+      jsonld,
+      ogType: 'website',
+      ogImage: ogImageFor(null),
+    }) +
+    `<div class="breadcrumb"><a href="/">الرئيسية</a> › ${escapeHtml(title)}</div>
+<h1>${escapeHtml(title)}</h1>
+<div class="legal-content">
+${bodyHtml}
+</div>` +
+    foot(`/#/`)
+  );
+}
+
+// ← توليد صفحة «عن المنصة والمنهجية»
+function aboutPage() {
+  const url = `${BASE}/about/`;
+  const title = 'عن منصة يَسِّر — الرؤية والمنهجية الفقهية';
+  const desc = 'تعرّف على منصة يَسِّر لتعليم الفقه الإسلامي الميسّر في ضوء الكتاب والسنة، منهجيتها العلمية، ومصدر محتواها المعتمد لفضيلة الشيخ د. محمد بن علي الهبدان.';
+  const aboutLd = {
+    '@type': 'AboutPage',
+    name: title,
+    description: desc,
+    url,
+    inLanguage: 'ar',
+    isPartOf: { '@type': 'WebSite', name: 'يَسِّر', url: `${BASE}/` },
+    mainEntity: {
+      '@type': 'Organization',
+      name: 'يَسِّر',
+      url: BASE,
+      description: desc,
+      founder: {
+        '@type': 'Person',
+        name: 'فضيلة الشيخ د. محمد بن علي الهبدان',
+        jobTitle: 'عالم وداعية إسلامي',
+      },
+      publisher: PUBLISHER_LD,
+    },
+    publisher: PUBLISHER_LD,
+  };
+  const breadcrumbLd = {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'الرئيسية', item: `${BASE}/` },
+      { '@type': 'ListItem', position: 2, name: 'عن المنصة', item: url },
+    ],
+  };
+  const jsonld = {
+    '@context': 'https://schema.org',
+    '@graph': [aboutLd, breadcrumbLd],
+  };
+
+  const bodyHtml = `
+  <h2>رسالة المنصة</h2>
+  <p>منصة «يَسِّر» هي بيئة رقمية تعليمية متكاملة تهدف إلى تقريب الفقه الإسلامي لعموم المسلمين بأسلوب عصري، سلس وميسّر، يجمع بين أصالة الدليل وسهولة التناول، مستفيدةً من أرقى تقنيات الويب الحديثة لخدمة العلوم الشرعية.</p>
+
+  <h2>المنهجية العلمية</h2>
+  <p>تقوم منهجية المنصة على ركائز أصيلة:</p>
+  <ul>
+    <li><strong>الاستدلال بالكتاب والسنة:</strong> عرض المسائل مقرونةً بأدلتها من القرآن الكريم وصحيح السنة النبوية المطهرة.</li>
+    <li><strong>فهم سلف الأمة:</strong> سلوك سبيل أهل السنة والجماعة وقواعد الاستنباط الفقهي الرصينة.</li>
+    <li><strong>التيسير ورفع الحرج:</strong> إبراز يسر الشريعة الإسلامية ومقاصدها السامية دون إفراط أو تفريط.</li>
+    <li><strong>التكامل الصوتي والنصي:</strong> ربط نصوص المسائل بالشروح والتعليقات الصوتية لفضيلة الشيخ لإيضاح المراد.</li>
+  </ul>
+
+  <h2>مصدر المحتوى العلمي</h2>
+  <p>المحتوى العلمي والتعليقات الفقهية والشروح الصوتية المضمنة في المنصة من نتاج فضيلة <strong>الشيخ د. محمد بن علي الهبدان</strong> — حفظه الله ورعاه — مع تدقيق علمي ومراجعة مستمرة لكافة نصوص المسائل والأبواب.</p>
+
+  <h2>المزايا التقنية والاستقلالية</h2>
+  <p>صُممت منصة «يَسِّر» لتكون عملاً علمياً غير ربحي وخالياً تماماً من الإعلانات والمشتتات، وتدعم القراءة أوفلاين (بدون اتصال بالإنترنت)، مع مزامنة سحابية اختيارية، ومراعاة لأعلى معايير السرعة وسهولة الوصول.</p>
+  `;
+
+  return (
+    head({
+      title,
+      desc,
+      url,
+      jsonld,
+      ogType: 'website',
+      ogImage: ogImageFor(null),
+    }) +
+    `<div class="breadcrumb"><a href="/">الرئيسية</a> › عن المنصة</div>
+<h1>${escapeHtml(title)}</h1>
+<p class="meta">منصة تعليم الفقه الإسلامي الميسّر في ضوء الكتاب والسنة</p>
+<div class="legal-content">
+${bodyHtml}
+</div>` +
+    foot(`/#/`)
+  );
+}
+
+const LEGAL_PAGES = [
+  {
+    slug: 'privacy',
+    title: 'سياسة الخصوصية وحماية البيانات',
+    body: `
+    <h2>مقدمة والتزام</h2>
+    <p>تحرص منصة «يَسِّر» (fqh.me) على حماية خصوصية مستخدميها وضمان سرية بياناتهم. نوضح في هذه الوثيقة طبيعة البيانات التي نتعامل معها، وأوجه استخدامها، وكيفية التحكم بها.</p>
+
+    <h2>البيانات التي تُجمع وكيفية التعامل معها</h2>
+    <ul>
+      <li><strong>بيانات الحساب الشخصي (اختياري):</strong> عند قيامك بتسجيل الدخول عبر البريد الإلكتروني أو حساب جوجل، يُستخدم معرف المستخدم (UID) والبريد الإلكتروني فقط لتمكينك من حفظ ومزامنة مكتبتك عبر مختلف أجهزتك. التصفح والقراءة متاحان بالكامل دون أي تسجيل.</li>
+      <li><strong>بيانات المكتبة وسجل القراءة:</strong> تشمل المسائل المفضلة، علامات الوقف، الملاحظات الشخصية، والفوائد المحددة. تُخزن هذه البيانات محلياً على جهازك (عبر IndexedDB وLocalStorage)، وتُزامن سحابياً مع قاعدة بيانات Firebase Firestore فقط عند تسجيل الدخول.</li>
+      <li><strong>إحصاءات الاستخدام المجهولة (Google Analytics 4):</strong> نستخدم خدمة Google Analytics 4 (GA4) لجمع مؤشرات وإحصاءات فنية مجهولة الهوية بالكامل (مثل أوقات الزيارة، نوع المتصفح، والشاشات الأكثر قراءة)، بهدف قياس الأداء وتحسين سرعة التصفح. لا يتم إرسال أي بيانات شخصية أو ربط الهوية بالإحصاءات.</li>
+    </ul>
+
+    <h2>أين تُخزن البيانات وكيف تُحمى؟</h2>
+    <p>تُخزن البيانات السحابية في بيئة آمنة مشفرة وفق أعلى معايير الحماية بواسطة خوادم Google Firebase، وتخضع لقواعد أمان صارمة تمنع وصول أي طرف ثالث لبياناتك الشخصية أو ملاحظاتك.</p>
+
+    <h2>حق النسيان ومسح البيانات</h2>
+    <p>أنت تملك بياناتك بالكامل؛ وتتيح لك منصة «يَسِّر» في أي وقت مسح بياناتك السحابية نهائياً من خوادمنا بنقرة واحدة من شاشة <strong>«الإعدادات ← حسابي والخصوصية ← مسح بياناتي السحابية»</strong>، كما يمكنك حذف البيانات المحلية بمسح ذاكرة التخزين المؤقت للمتصفح.</p>
+
+    <h2>ملفات تعريف الارتباط (Cookies)</h2>
+    <p>لا تستخدم المنصة ملفات تعريف ارتباط دعائية أو تتبعية لأغراض تجارية، وتقتصر على الملفات الضرورية لتشغيل الجلسة وتخزين التفضيلات (مثل المظهر وحجم الخط) والتحليلات المجهولة المذكورة أعلاه.</p>
+
+    <h2>التواصل بشأن الخصوصية</h2>
+    <p>إذا كانت لديك أي استفسارات أو ملاحظات حول خصوصية بياناتك في المنصة، يُسعدنا تواصلك المباشر مع إدارة المنصة عبر صفحة التواصل أو البريد الرسمي.</p>
+    `,
+  },
+  {
+    slug: 'terms',
+    title: 'شروط الاستخدام',
+    body: `
+    <h2>القبول بالشروط</h2>
+    <p>باستخدامك لمنصة «يَسِّر» (fqh.me) أو تثبيتها كتطبيق ويب تقدمي (PWA)، فإنك توافق على الالتزام بشروط الاستخدام الموضحة أدناه وكافة القوانين والأنظمة المعمول بها.</p>
+
+    <h2>طبيعة الخدمة والغرض منها</h2>
+    <p>«يَسِّر» هي منصة تعليمية غير ربحية تقدم محتوى فقهياً ميسراً في ضوء الكتاب العزيز والسنة النبوية بهدف نشر العلم الشرعي النافع وتيسير دراسته لعموم المسلمين، وتوفر خدماتها مجاناً دون أي مقابل مالي.</p>
+
+    <h2>الاستخدام المقبول والمحظور</h2>
+    <ul>
+      <li><strong>الاستخدام المسموح:</strong> الاطلاع على المسائل الفقهية، الاستماع للشروح الصوتية، مشاركة الفوائد والبطاقات الدعوية ونشرها للأغراض التعليمية والشخصية غير التجارية.</li>
+      <li><strong>الممارسات المحظورة:</strong> يُحظر استغلال محتوى المنصة لأغراض تجارية، أو محاولة اختراقها، أو إرسال طلبات آلية ضارة تعطل السيرفرات، أو إعادة نشر المحتوى مع تحريفه أو إزالة نسبة الشروح لمصدرها الأصلي.</li>
+    </ul>
+
+    <h2>حق التعديل والتحديث</h2>
+    <p>تحتفظ إدارة المنصة بالحق في تعديل هذه الشروط أو تحديث المحتوى الفقهي والميزات التقنية في أي وقت لضمان استمرار التطوير وخدمة المستخدمين.</p>
+    `,
+  },
+  {
+    slug: 'disclaimer',
+    title: 'إخلاء المسؤولية الفقهية',
+    body: `
+    <h2>المنهجية وطبيعة المحتوى الفقهي</h2>
+    <p>المحتوى المقدم عبر منصة «يَسِّر» هو محتوى علمي تعليمي يهدف لبيان أصول المسائل الفقهية في العبادات والمعاملات على منهج أهل السنة والجماعة، ولا يُعد بديلاً عن الفتوى الرسمية في الوقائع الحياتية الخاصة.</p>
+
+    <h2>الاستفتاء في النوازل والقضايا القضائية</h2>
+    <p>المسائل والقواعد المعروضة عامة ومجردة؛ ولذا ننبه على أن الوقائع الشخصية، والخصومات المالية، وقضايا الأحوال الشخصية، والنوازل المستجدة تستلزم عرض المسألة بظروفها وتفاصيلها على أهل العلم الموثوقين واللجان والدوائر الإفتائية المعتمدة في بلدك.</p>
+
+    <h2>العناية والمراجعة العلمية</h2>
+    <p>بُذل في إعداد هذا المحتوى وتدقيقه أقصى وسع، ومع ذلك فإن العصمة لكتاب الله وسنة رسوله ﷺ، فإن وجد القارئ الكريم أي سبق قلم أو خطأ مطبعي في النصوص، فنرجو مراسلتنا فوراً لتعديله وتصويبه.</p>
+    `,
+  },
+  {
+    slug: 'copyright',
+    title: 'حقوق النشر والملكية الفكرية',
+    body: `
+    <h2>نسبة المحتوى العلمي والشرعي</h2>
+    <p>كافة الشروح الفقهية، والتعليقات الصوتية، والتوجيهات المعتمدة في هذه المنصة منقولة عن فضيلة <strong>الشيخ د. محمد بن علي الهبدان</strong> — حفظه الله وجزاه عن الإسلام والمسلمين خير الجزاء — وحقوق نسبة هذا العلم لفضيلته محفوظة ديانةً وقانوناً.</p>
+
+    <h2>حقوق التطوير والبرمجيات</h2>
+    <p>التصميم، البرمجة، والواجهات التفاعلية لمنصة «يَسِّر» طُوّرت احتساباً لوجه الله تعالى لخدمة طلبة العلم وعموم المسلمين، ويُسمح بالاستفادة من الكود المصدري المفتوح للمشروع وفق رخصة المصدر المفتوح على منصة GitHub.</p>
+
+    <h2>مشاركة المحتوى والفوائد الدعوية</h2>
+    <p>يُرحّب الموقع بنشر ومشاركة بطاقات الفوائد المصورة، النصوص الفقهية، والروابط في وسائل التواصل الاجتماعي والمجموعات الدعوية، بشرط الحفاظ على صحة النصوص، وذكر اسم المنصة ومصدر المحتوى، وعدم استغلالها في أي نشاط تجاري ربحي.</p>
+    `,
+  },
+];
 
 
 function lessonChapters(lessons) {
@@ -808,6 +1048,19 @@ console.log(`📚 SEO: صفحة فهرس الكتب (/books/) تربط ${bookNam
 writeFileSync(join(PUBLIC, 'lessons', 'index.html'), lessonsIndexPage(), 'utf8');
 console.log(`🔗 SEO: صفحة فهرس كل المسائل (/lessons/) تربط ${lessonsData.length} مسألة`);
 
+// ── إنشاء صفحات عن المنصة والصفحات القانونية ──
+const aboutDir = join(PUBLIC, 'about');
+mkdirSync(aboutDir, { recursive: true });
+writeFileSync(join(aboutDir, 'index.html'), aboutPage(), 'utf8');
+console.log('🏛️  SEO: صفحة عن المنصة والمنهجية (/about/)');
+
+for (const lp of LEGAL_PAGES) {
+  const dir = join(PUBLIC, lp.slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'index.html'), legalPage(lp.slug, lp.title, lp.body), 'utf8');
+  console.log(`⚖️  SEO: صفحة قانونية (/${lp.slug}/)`);
+}
+
 // ── تنظيف المجلدات اليتيمة (إن حُذفت مسألة أو كتاب) دون إفراغ الشجرة مسبقًا ──
 try {
   const lessonsDir = join(PUBLIC, 'lessons');
@@ -840,6 +1093,11 @@ const urlEntry = (loc, lastmod, extra = '') =>
   `  <url><loc>${loc}</loc><lastmod>${lastmod || globalLastmod}</lastmod><changefreq>weekly</changefreq>${extra}</url>`;
 const urls = [
   urlEntry(`${BASE}/`, globalLastmod),
+  urlEntry(`${BASE}/about/`, globalLastmod),
+  urlEntry(`${BASE}/privacy/`, globalLastmod),
+  urlEntry(`${BASE}/terms/`, globalLastmod),
+  urlEntry(`${BASE}/disclaimer/`, globalLastmod),
+  urlEntry(`${BASE}/copyright/`, globalLastmod),
   urlEntry(`${BASE}/books/`, globalLastmod),
   urlEntry(`${BASE}/lessons/`, globalLastmod),
 ];

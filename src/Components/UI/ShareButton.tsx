@@ -119,7 +119,7 @@ const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareBut
           className={`btn d-flex align-items-center gap-2 shadow-sm ${isSmall ? 'btn-sm px-2 py-1' : 'px-3 py-2'}`}
           style={{
             backgroundColor: downloaded ? '#27ae60' : failed ? '#e74c3c' : 'var(--primary-color)',
-            color: '#fff',
+            color: downloaded || failed ? '#fff' : 'var(--text-on-primary)',
             borderRadius: '20px',
             border: 'none',
             fontSize: isSmall ? '0.8rem' : '0.9rem',

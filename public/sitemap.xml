@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://fqh.me/</loc><lastmod>2026-10-27</lastmod><changefreq>weekly</changefreq></url>
+  <url><loc>https://fqh.me/about/</loc><lastmod>2026-10-27</lastmod><changefreq>weekly</changefreq></url>
+  <url><loc>https://fqh.me/privacy/</loc><lastmod>2026-10-27</lastmod><changefreq>weekly</changefreq></url>
+  <url><loc>https://fqh.me/terms/</loc><lastmod>2026-10-27</lastmod><changefreq>weekly</changefreq></url>
+  <url><loc>https://fqh.me/disclaimer/</loc><lastmod>2026-10-27</lastmod><changefreq>weekly</changefreq></url>
+  <url><loc>https://fqh.me/copyright/</loc><lastmod>2026-10-27</lastmod><changefreq>weekly</changefreq></url>
   <url><loc>https://fqh.me/books/</loc><lastmod>2026-10-27</lastmod><changefreq>weekly</changefreq></url>
   <url><loc>https://fqh.me/lessons/</loc><lastmod>2026-10-27</lastmod><changefreq>weekly</changefreq></url>
   <url><loc>https://fqh.me/books/%D9%83%D8%AA%D8%A7%D8%A8%20%D8%A7%D9%84%D8%B7%D9%87%D8%A7%D8%B1%D8%A9/</loc><lastmod>2026-10-27</lastmod><changefreq>weekly</changefreq></url>

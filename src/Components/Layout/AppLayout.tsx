@@ -92,7 +92,13 @@ const AppLayout = () => {
       <header role="banner">
         <Topbar
           theme={theme}
-          toggleTheme={() => setTheme(theme === 'dark' ? 'sepia' : 'dark')}
+          toggleTheme={(nextTheme) => {
+            if (nextTheme === 'dark' || nextTheme === 'sepia' || nextTheme === 'light') {
+              setTheme(nextTheme);
+            } else {
+              setTheme(theme === 'dark' ? 'sepia' : theme === 'sepia' ? 'light' : 'dark');
+            }
+          }}
         />
       </header>
 

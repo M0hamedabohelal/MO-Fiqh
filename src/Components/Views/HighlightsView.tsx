@@ -87,7 +87,7 @@ const HighlightsView = () => {
             className="btn btn-sm d-flex align-items-center shadow-sm"
             style={{
               backgroundColor: 'var(--primary-color)',
-              color: '#fff',
+              color: 'var(--text-on-primary)',
               border: 'none',
               borderRadius: '10px',
               fontWeight: 'bold',

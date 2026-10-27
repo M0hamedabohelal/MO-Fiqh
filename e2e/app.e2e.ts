@@ -341,4 +341,36 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
 
     expect(errors, errors.join('\n')).toEqual([]);
   });
+
+  test('17) المظهر (Themes): التنقل بين الداكن والتراثي والفاتح وحفظ الفاتح بعد إعادة التحميل', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/');
+
+    const themeBtn = page.getByRole('button', { name: /تبديل المظهر/ });
+    await expect(themeBtn).toBeVisible({ timeout: 20_000 });
+
+    // وضع ثيم الفاتح يدويًا والتحقق من احترامه وعدم تحويله لداكن
+    await page.evaluate(() => {
+      localStorage.setItem('theme', 'light');
+    });
+    await page.reload();
+
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light', { timeout: 20_000 });
+    const stored = await page.evaluate(() => localStorage.getItem('theme'));
+    expect(stored).toBe('light');
+
+    // التبديل من الفاتح إلى الداكن
+    await page.getByRole('button', { name: /تبديل المظهر.*فاتح/ }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+    // التبديل من الداكن إلى التراثي (sepia)
+    await page.getByRole('button', { name: /تبديل المظهر.*داكن/ }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'sepia');
+
+    // التبديل من التراثي إلى الفاتح
+    await page.getByRole('button', { name: /تبديل المظهر.*تراثي/ }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
 });

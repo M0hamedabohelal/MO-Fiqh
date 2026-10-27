@@ -1,4 +1,11 @@
 User-agent: *
 Allow: /
+Allow: /about/
+Allow: /privacy/
+Allow: /terms/
+Allow: /disclaimer/
+Allow: /copyright/
+Allow: /books/
+Allow: /lessons/
 
 Sitemap: https://fqh.me/sitemap.xml

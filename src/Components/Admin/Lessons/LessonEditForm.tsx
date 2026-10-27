@@ -342,9 +342,9 @@ export const LessonEditForm = ({
           </button>
           <button
             type="submit"
-            className="btn px-4 text-white d-flex align-items-center gap-2"
+            className="btn px-4 d-flex align-items-center gap-2"
             disabled={busy || uploadingMedia || uploadingAudio}
-            style={{ backgroundColor: 'var(--primary-color)' }}
+            style={{ backgroundColor: 'var(--primary-color)', color: 'var(--text-on-primary)' }}
           >
             {busy ? <span className="spinner-border spinner-border-sm" /> : null}
             {editingDocId ? 'حفظ التعديلات' : 'إضافة المسألة'}

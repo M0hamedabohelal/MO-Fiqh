@@ -1,6 +1,7 @@
 /* الخطوط تُحمَّل من index.html عبر link (أسرع) — لا تستخدم @import هنا */
 
-:root {
+:root,
+[data-theme="light"] {
   /* طبقات التراكب العامة — مصدر واحد بدل أرقام سحرية متناثرة (الترتيب محفوظ كما كان) */
   --z-nav: 1000;
   --z-fab: 1040;
@@ -20,7 +21,7 @@
   --accent-color: #fbdc99;
   --text-main: #2c2c2c;
   --text-on-accent: #0f3d3e;
-  --text-on-primary: #fbdc99;
+  --text-on-primary: #ffffff;
   --text-muted: #595959;
   --nav-active-color: #0c3834;
   --card-bg: #ffffff;
@@ -81,7 +82,7 @@
   --accent-color: #d8a06a;        /* ذهبي-برتقالي دافئ */
   --text-main: #e6e8e6;
   --text-on-accent: #121212;
-  --text-on-primary: #121212;
+  --text-on-primary: #08231f;
   --text-muted: #a9b1ad;
   --nav-active-color: #e2c06a;
   --card-bg: #1a2020;             /* مائل للتينال ليمتزج مع هوية الموقع */
@@ -385,8 +386,18 @@ button:active:not(:disabled),
 }
 .search-filters .chip-btn.chip-active {
   background: var(--primary-color);
-  color: #fff;
+  color: var(--text-on-primary);
   border-color: var(--primary-color);
+}
+
+/* تباين أزرار وعناصر اللون الرئيسي (Teal) في الوضع الداكن — نص داكن (#08231f) لتباين 7.4:1 متوافق مع WCAG AAA */
+[data-theme="dark"] .btn[style*="var(--primary-color)"],
+[data-theme="dark"] .btn[style*="background: var(--primary-color)"],
+[data-theme="dark"] .btn[style*="background-color: var(--primary-color)"],
+[data-theme="dark"] .btn[style*="backgroundColor: var(--primary-color)"],
+[data-theme="dark"] .chip-btn.chip-active,
+[data-theme="dark"] .nav-lesson-btn:hover:not(:disabled) {
+  color: #08231f !important;
 }
 .search-result-count {
   font-size: .78rem;
@@ -703,6 +714,7 @@ button:active:not(:disabled),
   background-color: var(--primary-color);
   color: var(--text-on-primary);
   border-color: var(--primary-color);
+
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(15, 61, 62, 0.25);
 }

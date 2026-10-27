@@ -91,19 +91,19 @@ function App() {
     const saved = Number(safeGet('fontSize'));
     return Number.isFinite(saved) && saved >= 14 && saved <= 24 ? saved : 16;
   });
-  const [theme, setTheme]                 = useState<'dark' | 'sepia'>(() => {
+  const [theme, setTheme]                 = useState<'dark' | 'sepia' | 'light'>(() => {
     const saved = safeGet('theme');
-    if (saved === 'sepia' || saved === 'dark') return saved;
+    if (saved === 'sepia' || saved === 'dark' || saved === 'light') return saved;
     // احترام تفضيل نظام التشغيل (prefers-color-scheme) عند أول زيارة
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      return prefersDark ? 'dark' : 'sepia';
+      return prefersDark ? 'dark' : 'light';
     }
     return 'dark';
   });
   // الثيم يُحفظ للجميع محليًا (لا يحتاج حسابًا للعرض)، لكن مزامنته بين الأجهزة
   // تتطلب حسابًا — لذلك نُطبّقه فورًا ونُظهر تنبيهًا إرشاديًا خفيفًا للزائر.
-  const changeTheme = useCallback((next: 'dark' | 'sepia') => {
+  const changeTheme = useCallback((next: 'dark' | 'sepia' | 'light') => {
     setTheme(next);
     if (!user?.uid) { requireLogin({ action: 'الثيم' }); }
   }, [user?.uid]);
@@ -128,8 +128,8 @@ function App() {
         applyMergedStopMarks(merged.stopMarks);
       }
       // ── الثيم: تطبيق الأحدث ──
-      if (merged.theme && (merged.theme === 'dark' || merged.theme === 'sepia') && merged.theme !== theme) {
-        setTheme(merged.theme);
+      if (merged.theme && (merged.theme === 'dark' || merged.theme === 'sepia' || merged.theme === 'light') && merged.theme !== theme) {
+        setTheme(merged.theme as 'dark' | 'sepia' | 'light');
       }
     },
   });

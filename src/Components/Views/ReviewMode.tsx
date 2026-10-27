@@ -87,7 +87,7 @@ const ReviewMode = ({ onClose }: ReviewModeProps) => {
             <button
               type="button"
               className="btn btn-sm d-flex align-items-center gap-2 px-4 py-2"
-              style={{ background: 'var(--primary-color)', color: '#fff', borderRadius: '10px', fontWeight: 'bold' }}
+              style={{ background: 'var(--primary-color)', color: 'var(--text-on-primary)', borderRadius: '10px', fontWeight: 'bold' }}
               onClick={reset}
             >
               <FiRefreshCw size={16} /> مراجعة جديدة

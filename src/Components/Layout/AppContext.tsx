@@ -21,7 +21,7 @@ export interface AppContextValue {
   user: User | null;
   isAdminUser: boolean;
   theme: string;
-  setTheme: (next: 'dark' | 'sepia') => void;
+  setTheme: (next: 'dark' | 'sepia' | 'light') => void;
   fontSize: number;
   setFontSize: Dispatch<SetStateAction<number>>;
   cloudStatus: string;

@@ -132,7 +132,7 @@ export const BulkImportSection = ({
                 className="btn btn-sm d-flex align-items-center gap-2"
                 disabled={busy}
                 onClick={handleBulkImport}
-                style={{ backgroundColor: 'var(--primary-color)', color: '#fff', borderRadius: '8px' }}
+                style={{ backgroundColor: 'var(--primary-color)', color: 'var(--text-on-primary)', borderRadius: '8px' }}
               >
                 <FiUpload size={14} />
                 {busy ? <span className="spinner-border spinner-border-sm" /> : `رفع ${bulkItems.length} مسألة`}

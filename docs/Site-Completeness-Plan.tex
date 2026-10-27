@@ -1,0 +1,251 @@
+% !TEX program = xelatex
+% ============================================================
+%  خطة اكتمال الموقع — الجاهزية المؤسسية
+%  (الصفحات القانونية · عن المنصة · GA4 · التذكير المحلي)
+%  الاستخدام على Overleaf:
+%    1) New Project ← Blank Project
+%    2) الصق المحتوى في main.tex
+%    3) Menu ← Compiler ← اختر: XeLaTeX   (مهم للعربية)
+%    4) Recompile ← نزّل PDF
+% ============================================================
+\documentclass[11pt]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{arabic}
+\setotherlanguage{english}
+\newfontfamily\arabicfont[Script=Arabic,Scale=1.0]{Amiri}
+\newfontfamily\arabicfontsf[Script=Arabic,Scale=1.0]{Amiri}
+\setmonofont{DejaVu Sans Mono}[Scale=0.8]
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.2cm}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{fontawesome5}
+
+% ── الألوان (هوية يَسِّر) ──
+\definecolor{gold}{HTML}{B8933B}
+\definecolor{teal}{HTML}{0F3D3E}
+\definecolor{darkbg}{HTML}{101414}
+\definecolor{okgreen}{HTML}{27AE60}
+\definecolor{warnred}{HTML}{C0392B}
+\definecolor{softgray}{HTML}{F4F4F4}
+\definecolor{midgray}{HTML}{7A7A7A}
+\definecolor{codebg}{HTML}{1A2020}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[R]{\small\color{gold}خطة اكتمال الموقع — منصة يَسِّر}
+\fancyhead[L]{\small\color{midgray}Site Completeness}
+\fancyfoot[C]{\small\thepage}
+
+\titleformat{\section}{\Large\bfseries\color{gold}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkbg}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{midgray}}{\thesubsubsection}{0.4em}{}
+
+\setlist[itemize]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+
+\hypersetup{
+  colorlinks=true, linkcolor=gold, urlcolor=gold,
+  pdftitle={خطة اكتمال الموقع}, pdfauthor={منصة يَسِّر}
+}
+
+% ── صناديق مخصّصة ──
+\newtcolorbox{goalbox}[1][]{
+  colback=gold!8, colframe=gold, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{notebox}[1][]{
+  colback=softgray, colframe=midgray, boxrule=0.6pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{warnbox}[1][]{
+  colback=warnred!6, colframe=warnred, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{codebox}[1][]{
+  colback=codebg, colframe=codebg, coltext=white,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+
+\begin{document}
+
+% ============================================================
+\begin{center}
+  {\Huge\bfseries\color{gold} خطة اكتمال الموقع}\\[4pt]
+  {\large\color{darkbg} من «منتج وظيفي» إلى «موقع كامل»}\\[6pt]
+  {\small\color{midgray} منصة يَسِّر الفقهية — \today}
+\end{center}
+
+\vspace{4pt}
+\hrule
+\vspace{10pt}
+
+% ============================================================
+\section{الهدف}
+
+\begin{goalbox}
+سدّ الفجوات التي تفصل منصة يَسِّر — المكتملة وظيفياً وتقنياً — عن موقع جاهز
+للجمهور العام والتطبيقات: \textbf{الصفحات القانونية}، \textbf{صفحة عن المنصة}،
+\textbf{تحليلات GA4}، و\textbf{تذكير القراءة المحلي}.
+\end{goalbox}
+
+\subsection*{نتائج الفحص المُوجِزة}
+\begin{itemize}
+  \item لا توجد أي صفحات قانونية (خصوصية · شروط · إخلاء · حقوق).
+  \item لا توجد صفحة «عن المنصة والمنهجية».
+  \item لا تحليلات ولا تحقق Google Search Console في \texttt{index.html}.
+  \item لا إشعارات تذكير رغم وجود سلاسل مواظبة.
+  \item \texttt{prefers-color-scheme} غير مطبّق (الثيم داكن دائماً).
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ١ — الصفحات القانونية}
+
+\subsection*{المخرَج: أربع صفحات ثابتة}
+تُبنى جميعها عبر \texttt{scripts/generate-seo.mjs} بالقالب الموجود (\texttt{head()} / \texttt{foot()})
+في مسارات نظيفة بنهاية مائلة.
+
+\vspace{6pt}
+\renewcommand{\arraystretch}{1.35}
+\begin{longtable}{@{}p{0.20\textwidth} p{0.72\textwidth}@{}}
+\toprule
+\textbf{الصفحة} & \textbf{المحتوى} \\
+\midrule
+\endhead
+\texttt{/privacy/} & ما يُجمَع (Auth · مكتبة المستخدم · إحصاءات مجهولة · GA4) · أين يُخزَّن (Firestore + محلي) · مدة الحفظ · حقّ النسيان (منفّذ عبر حذف المكتبة) \\
+\texttt{/terms/} & شروط الاستخدام · مسؤولية المستخدم · حدود الخدمة \\
+\texttt{/disclaimer/} & إخلاء المسؤولية · المحتوى اجتهاد فقهي يُراجَع مع أهل العلم \\
+\texttt{/copyright/} & حقوق النشر · نسبة المحتوى للشيخ · ترخيص الاستخدام \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1.0}
+
+\subsubsection*{التنفيذ}
+\begin{itemize}
+  \item دالة جديدة \texttt{legalPage(slug, title, bodyHtml)} في \texttt{generate-seo.mjs}.
+  \item مصفوفة صفحات قانونية تُبَنى تلقائياً مع كل بناء، وتُضاف إلى \texttt{sitemap.xml}.
+  \item ربط الصفحات في فوتر \texttt{foot()} لكل الصفحات الثابتة.
+  \item إضافة روابط في فوتر التطبيق التفاعلي (شاشة الإعدادات).
+\end{itemize}
+
+\subsection*{التحقق}
+توسيع \texttt{check-seo.mjs} ليفشل صراحةً عند غياب أي صفحة قانونية أو رابطها.
+
+\begin{warnbox}
+\textbf{قاعدة حاكمة:} سياسة الخصوصية يجب أن تذكر \textbf{GA4} صراحةً (ملفات تعريف ارتباط / قياس)
+قبل إضافته — وإلا وقع تناقض قانوني. لذلك المرحلة ١ تسبق المرحلة ٣.
+\end{warnbox}
+
+% ============================================================
+\section{المرحلة ٢ — صفحة «عن المنصة والمنهجية»}
+
+\begin{itemize}
+  \item \textbf{المسار:} \texttt{/about/}.
+  \item \textbf{المحتوى:} الرسالة · المنهجية (الكتاب والسنة) · مصدر المحتوى (فضيلة الشيخ) · آلية التحقق والمراجعة.
+  \item \textbf{الأثر على SEO:} تقوية \textbf{E-E-A-T} (الخبرة · التخصص · الموثوقية) — عامل حاسم لجوجل في المحتوى الديني.
+  \item \textbf{التنفيذ:} دالة \texttt{aboutPage()} + ربط في الفوتر + \texttt{AboutPage} schema.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ٣ — تحليلات GA4}
+
+\subsection*{التنفيذ}
+\begin{itemize}
+  \item سكربت GA4 في \texttt{index.html} بعد موافقة لطيفة (بلا تخزين مسبق).
+  \item قياس انتقالات التطبيق الهاشيّ (\texttt{useHashRoute}) كأحداث \texttt{page\_view} يدوية.
+  \item ملف جديد \texttt{src/utils/analytics.ts}: غلاف آمن (لا يكسر التطبيق إن فشل التحميل).
+\end{itemize}
+
+\begin{warnbox}
+\textbf{قيد CSP إلزامي:} يجب تعديل \texttt{firebase.json} وإلا حُجب GA4 \textbf{صامتاً}:
+\begin{codebox}
+{\ttfamily\small\raggedleft
+script-src \ ...\ https://www.googletagmanager.com;\\
+connect-src \ ...\ https://*.google-analytics.com\ https://*.analytics.google.com;
+}
+\end{codebox}
+هذه نقطة نسيان شائعة موثّقة سابقاً في مشروع المنصة.
+\end{warnbox}
+
+\subsection*{كيف نتحقق من عملها}
+فتح لوحة GA4 ← ``Realtime'' ← التصفح يظهر خلال ثوانٍ · ثم فحص Console بلا أخطاء CSP.
+
+% ============================================================
+\section{المرحلة ٤ — تذكير القراءة المحلي}
+
+\begin{notebox}
+\textbf{القرار:} تذكير محلي فقط عبر \texttt{Notification API} — بلا FCM ولا خادم،
+يناسب نطاق النشر الحالي (Firebase Hosting بلا Functions).
+\end{notebox}
+
+\begin{itemize}
+  \item طلب إذن الإشعارات مرة واحدة بلطف (لكل مستخدم).
+  \item جدولة تذكير يومي داخل التطبيق مرتبط بسلسلة المواظبة.
+  \item ملف جديد \texttt{src/hooks/useReadingReminder.ts}.
+  \item \textbf{الحد المعلوم:} الإشعار يظهر عند فتح التطبيق/التصفح (لا خادم يوقظه مغلقاً).
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ٥ — تحسينات إكمال}
+
+\begin{itemize}
+  \item احترام \texttt{prefers-color-scheme} عند أول زيارة (الثيم الافتراضي يتبع النظام، والحفظ اليدوي يبقى).
+  \item توسيع \texttt{robots.txt} + إشارة الصفحات القانونية للزاحف.
+  \item مراجعة صفحة تواصل عامة (خارج شاشة الإعدادات).
+\end{itemize}
+
+% ============================================================
+\section{الملفات والتحقق}
+
+\textbf{ملفات تُعدَّل/تُضاف:}
+\begin{itemize}
+  \item \texttt{scripts/generate-seo.mjs} — دوال الصفحات القانونية و«عن المنصة».
+  \item \texttt{scripts/check-seo.mjs} — فحص وجود الصفحات القانونية.
+  \item \texttt{index.html} — سكربت GA4 + رابط الفوتر.
+  \item \texttt{firebase.json} — CSP لـ GA4.
+  \item \texttt{src/utils/analytics.ts} · \texttt{src/hooks/useReadingReminder.ts} (جديد).
+\end{itemize}
+
+\vspace{6pt}
+\textbf{أوامر التحقق:}
+\begin{codebox}
+{\ttfamily\small\raggedleft
+npm run typecheck\\
+npm run lint\\
+npm test\\
+npm run build\\
+npm run check:seo
+}
+\end{codebox}
+
+% ============================================================
+\section{معايير القبول}
+
+\begin{itemize}
+  \item[${\color{okgreen}\faCheckCircle}$] ست صفحات ثابتة جديدة (4 قانونية + about + ربط).
+  \item[${\color{okgreen}\faCheckCircle}$] سياسة الخصوصية تذكر GA4 صراحةً.
+  \item[${\color{okgreen}\faCheckCircle}$] GA4 يعمل بلا مخالفات CSP.
+  \item[${\color{okgreen}\faCheckCircle}$] تذكير محلي يعمل بعد الإذن.
+  \item[${\color{okgreen}\faCheckCircle}$] \texttt{check:seo} يفشل عند فقدان صفحة قانونية.
+  \item[${\color{okgreen}\faCheckCircle}$] كل بوابات الجودة خضراء بعد كل مرحلة.
+\end{itemize}
+
+\end{document}

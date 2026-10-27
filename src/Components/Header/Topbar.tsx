@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiMoon, FiBell, FiWifiOff } from 'react-icons/fi';
+import { FiMoon, FiSun, FiBell, FiWifiOff } from 'react-icons/fi';
 import { BsBook } from 'react-icons/bs';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import AnnouncementsModal from '../UI/AnnouncementsModal';
@@ -21,19 +21,22 @@ const Topbar = ({ theme, toggleTheme }: TopbarProps) => {
     markAsRead();
   };
 
-  // دالة للتبديل بين الوضعين فقط: داكن <-> تراثي (الفاتح محذوف)
+  // التبديل بين الأوضاع الثلاثة: داكن -> تراثي -> فاتح -> داكن
   const cycleTheme = () => {
-    if (theme === 'sepia') toggleTheme('dark');
-    else toggleTheme('sepia');
+    if (theme === 'dark') toggleTheme('sepia');
+    else if (theme === 'sepia') toggleTheme('light');
+    else toggleTheme('dark');
   };
 
   const getThemeIcon = () => {
     if (theme === 'sepia') return <BsBook size={20} />;
+    if (theme === 'light') return <FiSun size={20} />;
     return <FiMoon size={20} />;
   };
 
   const getThemeLabel = () => {
     if (theme === 'sepia') return 'تراثي';
+    if (theme === 'light') return 'فاتح';
     return 'داكن';
   };
 
