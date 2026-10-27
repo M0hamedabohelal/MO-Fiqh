@@ -285,20 +285,12 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
     expect(errors, errors.join('\n')).toEqual([]);
   });
 
-  test('14) شاشة القراءة: اختبار سريع وتكبير/تصغير الخط', async ({ page }) => {
+  test('14) شاشة القراءة: تكبير/تصغير الخط وتصفح الشرح', async ({ page }) => {
     const errors = collectErrors(page);
     await openLesson(page, 1);
 
-    // تفعيل وضع الاختبار السريع
-    const quizToggleBtn = page.getByRole('button', { name: /وضع الاختبار السريع/ });
-    if (await quizToggleBtn.isVisible()) {
-      await quizToggleBtn.click();
-      await expect(page.getByText(/استذكر حكم المسألة/)).toBeVisible();
-
-      // كشف الحكم
-      await page.getByRole('button', { name: /كشف التعليق والحكم/ }).click();
-      await expect(page.getByText(/تعليق الشيخ/)).toBeVisible();
-    }
+    // التحقق من ظهور تعليق الشيخ
+    await expect(page.getByText(/تعليق الشيخ/)).toBeVisible();
 
     // فحص أزرار حجم الخط
     const increaseBtn = page.getByRole('button', { name: 'تكبير الخط' });

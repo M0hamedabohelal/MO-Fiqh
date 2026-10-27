@@ -7,9 +7,7 @@ import {
   FiFlag,
   FiBook,
   FiInfo,
-  FiHelpCircle,
 } from 'react-icons/fi';
-import { recordReviewSession } from '../../hooks/useReviewMode';
 
 import Breadcrumb from '../Header/Breadcrumb';
 import QuoteCard from '../Content/QuoteCard';
@@ -110,9 +108,6 @@ const ReadingView = () => {
   });
 
   const [quoteImage, setQuoteImage] = useState<QuoteImageState>({ show: false, text: '' });
-  const [quizMode, setQuizMode] = useState(false);
-  const [quizRevealedId, setQuizRevealedId] = useState<string | null>(null);
-  const quizRevealed = quizRevealedId === lessonId;
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const [isSmallScreen, setIsSmallScreen] = useState<boolean>(() => {
@@ -342,68 +337,8 @@ const ReadingView = () => {
 
           <ArabesqueDivider />
 
-          {/* زر التبديل إلى وضع الاختبار السريع واستذكار الحكم */}
           {(lesson.sheikhExplanation || '').trim() && (
-            <div className="d-flex justify-content-center mb-3">
-              <button
-                type="button"
-                className="btn btn-sm d-inline-flex align-items-center gap-2 shadow-sm"
-                style={{
-                  backgroundColor: quizMode ? 'var(--primary-color)' : 'var(--badge-bg)',
-                  color: quizMode ? '#fff' : 'var(--primary-color)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '20px',
-                  padding: '6px 16px',
-                  fontSize: '0.84rem',
-                  fontWeight: 'bold',
-                  transition: 'all 0.25s ease',
-                }}
-                onClick={() => {
-                  setQuizMode((prev) => !prev);
-                  setQuizRevealedId(null);
-                }}
-                aria-pressed={quizMode}
-                title="إخفاء التعليق لاختبار استذكارك للحكم أولاً"
-              >
-                <FiHelpCircle size={15} />
-                {quizMode ? 'إلغاء وضع الاختبار السريع' : 'وضع الاختبار السريع (استذكار الحكم)'}
-              </button>
-            </div>
-          )}
-
-          {quizMode && !quizRevealed ? (
-            <div
-              className="custom-card p-4 p-md-5 text-center my-3 shadow-sm parchment-texture cv-auto-card"
-              style={{ border: '2px dashed var(--accent-color)', borderRadius: '16px' }}
-            >
-              <div className="h5 fw-bold mb-2" style={{ color: 'var(--primary-color)' }}>
-                🧠 استذكر حكم المسألة
-              </div>
-              <p className="text-muted mb-4" style={{ lineHeight: '1.9' }}>
-                استحضر الحكم وتعليق الشيخ في ذهنك قبل قراءة الشرح، ثم انقر أدناه للتحقق من صواب استذكارك.
-              </p>
-              <button
-                type="button"
-                className="btn btn-sm px-4 py-2 shadow-sm"
-                style={{
-                  background: 'linear-gradient(135deg, #c9a84c, #e6c875)',
-                  color: '#1a1a1a',
-                  fontWeight: 'bold',
-                  borderRadius: '12px',
-                  border: 'none',
-                }}
-                onClick={() => {
-                  setQuizRevealedId(lessonId);
-                  recordReviewSession(1, 1);
-                }}
-              >
-                كشف التعليق والحكم 👁️
-              </button>
-            </div>
-          ) : (
-            (lesson.sheikhExplanation || '').trim() && (
-              <ExplanationCard explanation={lesson.sheikhExplanation || ''} searchQuery={searchQuery} glossary={glossary} />
-            )
+            <ExplanationCard explanation={lesson.sheikhExplanation || ''} searchQuery={searchQuery} glossary={glossary} />
           )}
           
           <MediaCard key={`media-${lessonId}`} mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} title={lesson.title} />
