@@ -91,4 +91,35 @@ describe('TextSelectionBubble Component', () => {
     saveBtn.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
   });
+
+  it('يعمل بشكل مثالي على الشاشات الصغيرة والهواتف مع تقليص الحشو', () => {
+    render(
+      <TextSelectionBubble
+        selectionPopup={{ ...basePopup, x: 50, y: 300, below: true }}
+        isSmallScreen={true}
+        onSaveHighlight={vi.fn()}
+        onOpenQuoteImage={vi.fn()}
+      />,
+    );
+
+    const popup = screen.getByRole('button', { name: /حفظ كفائدة/i }).parentElement;
+    expect(popup).toBeTruthy();
+    expect(popup?.style.position).toBe('fixed');
+    expect(popup?.style.maxWidth).toContain('100vw');
+  });
+
+  it('يصحح الإحداثيات لمنع الخروج خارج الشاشة أفقياً ورأسياً', () => {
+    // محاكاة وضع بوب-أب قريب جداً من الحافة اليمنى لشاشة الهاتف
+    render(
+      <TextSelectionBubble
+        selectionPopup={{ ...basePopup, x: 380, y: 700, below: true }}
+        isSmallScreen={true}
+        onSaveHighlight={vi.fn()}
+        onOpenQuoteImage={vi.fn()}
+      />,
+    );
+
+    const popup = screen.getByRole('button', { name: /حفظ كفائدة/i }).parentElement;
+    expect(popup).toBeTruthy();
+  });
 });

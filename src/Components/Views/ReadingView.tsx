@@ -154,20 +154,57 @@ const ReadingView = () => {
       }
       if (!rect || (rect.width === 0 && rect.height === 0)) return;
 
-      const popupWidth = 220;
-      const margin = 10;
-      const rawX = rect.left + rect.width / 2;
-      const clampedX = Math.max(
-        popupWidth / 2 + margin,
-        Math.min(window.innerWidth - popupWidth / 2 - margin, rawX),
-      );
-
-      // في الهواتف: تفضيل العرض أسفل التحديد لتجنب حجب شريط النسخ الافتراضي للنظام
-      // في الشاشات الكبيرة: العرض فوق النص إلا إذا كان قريباً من الترويسة
+      // حساب أبعاد الشاشة والبوب-أب بدقة لمنع خروجه من الشاشة على الهواتف
       const isMobile = window.innerWidth <= 768;
-      const topY = rect.top - 52;
-      const placeBelow = isMobile ? (rect.bottom + 65 < window.innerHeight) : (topY < 65);
-      const clampedY = placeBelow ? Math.min(window.innerHeight - 60, rect.bottom + 10) : Math.max(65, topY);
+      const screenW = typeof document !== 'undefined' && document.documentElement ? document.documentElement.clientWidth : window.innerWidth;
+      const screenH = window.innerHeight;
+
+      const popupWidth = isMobile ? 240 : 250;
+      const popupHeight = 44;
+      const marginX = 14;
+
+      // منع خروج البوب-أب أفقياً من الشاشة (يساراً أو يميناً)
+      const rawX = rect.left + rect.width / 2;
+      const minX = popupWidth / 2 + marginX;
+      const maxX = Math.max(minX, screenW - popupWidth / 2 - marginX);
+      const clampedX = Math.max(minX, Math.min(maxX, rawX));
+
+      // حساب المساحات الرأسية مع مراعاة شريط التنقل السفلي في الهواتف
+      const bottomNavReserve = isMobile ? 80 : 24;
+      const topReserve = 54;
+      const maxAllowedY = Math.max(topReserve, screenH - bottomNavReserve - popupHeight);
+
+      const spaceBelow = screenH - rect.bottom;
+      const canFitBelow = spaceBelow >= (popupHeight + bottomNavReserve + 6);
+      const canFitAbove = rect.top >= (popupHeight + topReserve + 6);
+
+      let targetY: number;
+      let placeBelow: boolean;
+
+      if (isMobile) {
+        // في الهواتف: تفضيل العرض أسفل النص إذا اتسعت المسافة قبل شريط التنقل، وإلا أعلاه
+        if (canFitBelow) {
+          targetY = rect.bottom + 8;
+          placeBelow = true;
+        } else if (canFitAbove) {
+          targetY = rect.top - popupHeight - 8;
+          placeBelow = false;
+        } else {
+          targetY = spaceBelow > rect.top ? rect.bottom + 6 : rect.top - popupHeight - 6;
+          placeBelow = spaceBelow > rect.top;
+        }
+      } else {
+        // في الشاشات الكبيرة: تفضيل العرض أعلى النص
+        if (canFitAbove) {
+          targetY = rect.top - popupHeight - 8;
+          placeBelow = false;
+        } else {
+          targetY = rect.bottom + 8;
+          placeBelow = true;
+        }
+      }
+
+      const clampedY = Math.max(topReserve, Math.min(maxAllowedY, targetY));
 
       setSelectionPopup({
         show: true,
@@ -209,14 +246,26 @@ const ReadingView = () => {
       }
     };
 
+    const onScrollOrResize = (): void => {
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && sel.toString().trim().length >= 2) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(run, 60);
+      }
+    };
+
     document.addEventListener('mouseup', onMouseUp);
     document.addEventListener('touchend', onTouchEnd, { passive: true });
     document.addEventListener('selectionchange', onSelectionChange);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
     return () => {
       if (timer) clearTimeout(timer);
       document.removeEventListener('mouseup', onMouseUp);
       document.removeEventListener('touchend', onTouchEnd);
       document.removeEventListener('selectionchange', onSelectionChange);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize);
     };
   }, [handleSelection]);
 
