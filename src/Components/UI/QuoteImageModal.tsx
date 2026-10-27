@@ -162,24 +162,30 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
       const file = new File([blob], `fqh-quote-${template}-${Date.now()}.png`, { type: 'image/png' });
 
       if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: 'فائدة فقهية من منصة يَسِّر',
-          text: source ? `${cleanText}\n\n— ${source}` : cleanText,
-          files: [file],
-        });
-        setDone(true);
-        setTimeout(() => setDone(false), 2000);
-      } else {
-        // Fallback تنزيل تلقائي إن كانت المشاركة المباشرة غير مدعومة
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = `fqh-quote-${template}-${ratio}-${Date.now()}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setDone(true);
-        setTimeout(() => setDone(false), 2000);
+        try {
+          await navigator.share({
+            title: 'فائدة فقهية من منصة يَسِّر',
+            text: source ? `${cleanText}\n\n— ${source}` : cleanText,
+            files: [file],
+          });
+          setDone(true);
+          setTimeout(() => setDone(false), 2000);
+          return;
+        } catch (shareErr) {
+          if ((shareErr as Error)?.name === 'AbortError') return;
+          console.warn('تعذرت المشاركة المباشرة، جاري التنزيل كبديل:', shareErr);
+        }
       }
+
+      // Fallback تنزيل تلقائي إن كانت المشاركة المباشرة غير مدعومة أو تعذرت
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `fqh-quote-${template}-${ratio}-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setDone(true);
+      setTimeout(() => setDone(false), 2000);
     } catch (err) {
       if ((err as Error)?.name !== 'AbortError') {
         console.error('فشل مشاركة الصورة:', err);
