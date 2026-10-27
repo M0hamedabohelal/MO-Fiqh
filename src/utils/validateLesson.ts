@@ -1,6 +1,7 @@
 // التحقق من بيانات المسألة قبل الحفظ — يمنع بيانات فاسدة تكسر العرض أو الترتيب
 // بدون اعتماديات خارجية (صفر زيادة في الحزمة) — نفس قواعد zod المقترحة يدويًا
 import type { Lesson } from '../types';
+import { normalizeChapterName } from './textFormatting';
 
 interface LessonInput {
   bookName?: unknown;
@@ -70,6 +71,9 @@ export function cleanLessonForm<T extends object>(form: T): T {
   const out: Record<string, unknown> = { ...(form as Record<string, unknown>) };
   for (const k of ['bookName', 'chapterName', 'title', 'mainText', 'sheikhExplanation', 'videoUrl', 'audioUrl', 'mediaUrl', 'adminNote'] as const) {
     if (typeof out[k] === 'string') out[k] = (out[k] as string).trim();
+  }
+  if (typeof out['chapterName'] === 'string') {
+    out['chapterName'] = normalizeChapterName(out['chapterName'] as string);
   }
   return out as T;
 }

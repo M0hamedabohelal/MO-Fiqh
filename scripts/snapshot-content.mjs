@@ -101,6 +101,8 @@ const tmpPath = `${targetPath}.tmp`;
 try {
   writeFileSync(tmpPath, output, 'utf8');
   renameSync(tmpPath, targetPath);
+  const idsPath = join(root, 'data', 'content', 'bundled-ids.json');
+  writeFileSync(idsPath, JSON.stringify(lessons.map((l) => String(l.id))) + '\n', 'utf8');
 } catch (err) {
   try { if (existsSync(tmpPath)) unlinkSync(tmpPath); } catch { /* تجاهل */ }
   console.error('❌ فشلت الكتابة:', err.message);

@@ -15,6 +15,17 @@ export const isHadithText = (part: string): boolean => {
   return false;
 };
 
+/**
+ * توحيد صياغة اسم الباب: إزالة المسافات الشاذة قبل علامات الترقيم (مثل " ، " أو " : ") وضبط المسافات البينية
+ */
+export const normalizeChapterName = (name: string | undefined | null): string => {
+  if (!name) return '';
+  return String(name)
+    .replace(/\s+([،,.:])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+};
+
 // تظليل كلمة البحث بخلفية ذهبية
 const highlightSearch = (plainText: string, searchQuery: string, baseKey: string | number): ReactNode => {
   if (!searchQuery || !searchQuery.trim()) {

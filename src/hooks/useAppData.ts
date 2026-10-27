@@ -5,6 +5,7 @@ import { logError } from '../utils/logError';
 import { readCachedLessons, writeCachedLessons } from '../utils/contentCache';
 import { resolveContentSource } from '../utils/contentSource';
 import { BOOKS_LIST } from '../data/books';
+import { normalizeChapterName } from '../utils/textFormatting';
 import type { Lesson, GlossaryMap } from '../types';
 
 const CLOUD_LESSONS_TIMEOUT_MS = 15_000;
@@ -92,7 +93,7 @@ export function useAppData({ isOffline, deferCloud = false }: { isOffline: boole
       return 999;
     };
 
-    return [...rawLessons].sort((a, b) => {
+    return rawLessons.map((l) => (l.chapterName ? { ...l, chapterName: normalizeChapterName(l.chapterName) } : l)).sort((a, b) => {
       const bNameA = (a.bookName || '').trim();
       const bNameB = (b.bookName || '').trim();
       const bookA = BOOKS_LIST.indexOf(bNameA) === -1 ? 999 : BOOKS_LIST.indexOf(bNameA);

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { isValidElement } from 'react';
-import { isHadithText, formatBrackets } from './textFormatting';
+import { isHadithText, formatBrackets, normalizeChapterName } from './textFormatting';
 
 describe('isHadithText', () => {
   it('يعتبر النص المبدوء بـ « حديثًا', () => {
@@ -41,5 +41,25 @@ describe('formatBrackets', () => {
       (n) => isValidElement(n) && (n.props as { className?: string }).className === 'quran-text',
     );
     expect(quran).toBeDefined();
+  });
+});
+
+describe('normalizeChapterName', () => {
+  it('يزيل المسافة الزائدة قبل الفاصلة مثل المسألتين 91 و 92', () => {
+    expect(normalizeChapterName('الباب الخامس: في صلاة التطوع ، وفيه مسائل')).toBe(
+      'الباب الخامس: في صلاة التطوع، وفيه مسائل',
+    );
+  });
+
+  it('يزيل المسافة الزائدة قبل النقطتين الرأسيتين', () => {
+    expect(normalizeChapterName('الباب الثالث : في قضاء الحاجة وآدابها')).toBe(
+      'الباب الثالث: في قضاء الحاجة وآدابها',
+    );
+  });
+
+  it('يتعامل مع القيم الفارغة أو غير المعرّفة بأمان', () => {
+    expect(normalizeChapterName('')).toBe('');
+    expect(normalizeChapterName(null)).toBe('');
+    expect(normalizeChapterName(undefined)).toBe('');
   });
 });

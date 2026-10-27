@@ -1,20 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react';
+import type { TouchEvent as ReactTouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiVideo,
   FiClock,
-  FiChevronLeft,
-  FiChevronRight,
-  FiBookmark,
-  FiEdit3,
   FiFlag,
-  FiCheckCircle,
   FiBook,
-  FiArrowRight,
   FiInfo,
-  FiPrinter,
-  FiImage,
 } from 'react-icons/fi';
 
 import Breadcrumb from '../Header/Breadcrumb';
@@ -34,24 +26,16 @@ import QuoteImageModal from '../UI/QuoteImageModal';
 import { useApp } from '../Layout/AppContext';
 import type { Lesson } from '../../types';
 import { getStopMarkForBook } from '../../features/stopMarks/model';
-
-
-
-interface SelectionPopup {
-  show: boolean;
-  text: string;
-  x: number;
-  y: number;
-  below: boolean;
-}
+import { TextSelectionBubble, type SelectionPopupState } from './Reading/TextSelectionBubble';
+import { ReadingHeaderBar } from './Reading/ReadingHeaderBar';
+import { ReadingBottomNav } from './Reading/ReadingBottomNav';
 
 interface QuoteImageState {
   show: boolean;
   text: string;
 }
 
-// البوب-أب (حفظ كفائدة / صورة) لا يظهر إلا داخل نص المتن أو تعليق الشيخ،
-// لا في عناوين الصفحة أو الشارات أو الملاحظات أو بطاقات الأدوات.
+// البوب-أب (حفظ كفائدة / صورة) لا يظهر إلا داخل نص المتن أو تعليق الشيخ
 const BODY_TEXT_SELECTOR = '[data-selectable="body-text"]';
 
 function isInsideBodyText(range: Range): boolean {
@@ -88,7 +72,6 @@ const ReadingView = () => {
     setFontSize,
   } = useApp();
   const lesson = currentLesson;
-  // AppLayout لا يعرض هذه الشاشة أصلًا بلا مسألة — حارس دفاعي بعد كل الخطافات
   const lessonId = lesson ? String(lesson.id) : '';
   const noteValue = lesson ? (notes[lessonId] || '') : '';
   const isRead = lesson ? readLessons.includes(lessonId) : false;
@@ -99,323 +82,187 @@ const ReadingView = () => {
   const canGoNext = currentIndex < lessons.length - 1;
   const onToggleRead = (): void => { if (lesson) toggleReadLesson(lesson.id); };
   const onToggleBookmark = (): void => { if (lesson) toggleBookmark(lessonId); };
-  const onToggleStopMark = (): void => { if (lesson) toggleStopMark(lesson); };
-  const onSelectLesson = (l: Lesson): void => openLessonById(l.id);
-
-  useEffect(() => {
-    if (!lessonId) return;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
-  }, [lessonId]);
-
-  // طباعة الباب كاملاً
-  const handlePrintChapter = (): void => {
-    if (!lesson) return;
-    const chapterLessons = allLessons.filter(l => l.chapterName === lesson.chapterName && l.bookName === lesson.bookName);
-    exportChapterPrint({ chapterName: lesson.chapterName, bookName: lesson.bookName, lessons: chapterLessons });
+  const onToggleStopMark = (): void => {
+    if (lesson) toggleStopMark(lesson);
+  };
+  const onSelectLesson = (selected: Lesson): void => {
+    openLessonById(selected.id);
   };
 
-  // التقاط تحديد النص لحفظه كفائدة مقتبسة
-  const [selectionPopup, setSelectionPopup] = useState<SelectionPopup>({ show: false, text: '', x: 0, y: 0, below: false });
-  const [quoteImage, setQuoteImage] = useState<QuoteImageState>({ show: false, text: '' });
+  const handlePrintChapter = (): void => {
+    if (!lesson) return;
+    const chapterName = lesson.chapterName || 'بدون باب';
+    const bookName = lesson.bookName || 'بدون كتاب';
+    const chapterLessons = allLessons.filter(
+      (l) => (l.chapterName || 'بدون باب') === chapterName && (l.bookName || 'بدون كتاب') === bookName,
+    );
+    exportChapterPrint({ chapterName, bookName, lessons: chapterLessons });
+  };
 
-  const captureSelection = useCallback((): void => {
-    const selection = window.getSelection();
-    const text = selection ? selection.toString().trim() : '';
-    if (text.length > 5) {
-      const range = selection ? selection.getRangeAt(0) : null;
-      if (!range || !isInsideBodyText(range)) {
-        setSelectionPopup({ show: false, text: '', x: 0, y: 0, below: false });
+  const [selectionPopup, setSelectionPopup] = useState<SelectionPopupState>({
+    show: false,
+    text: '',
+    x: 0,
+    y: 0,
+    below: false,
+  });
+
+  const [quoteImage, setQuoteImage] = useState<QuoteImageState>({ show: false, text: '' });
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const [isSmallScreen, setIsSmallScreen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 768px)').matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handler = (e: MediaQueryListEvent): void => setIsSmallScreen(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const handleSelection = useCallback((): void => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) {
+      setSelectionPopup((prev) => (prev.show ? { ...prev, show: false } : prev));
+      return;
+    }
+    const text = sel.toString().trim();
+    if (text.length < 2) {
+      setSelectionPopup((prev) => (prev.show ? { ...prev, show: false } : prev));
+      return;
+    }
+
+    try {
+      const range = sel.getRangeAt(0);
+      if (!isInsideBodyText(range)) {
+        setSelectionPopup((prev) => (prev.show ? { ...prev, show: false } : prev));
         return;
       }
       const rect = range.getBoundingClientRect();
-      // تمركز أفقي مع منع الخروج من الشاشة (مهم للفون)
-      const cx = rect.left + rect.width / 2;
-      const halfPopup = 115;
-      const x = Math.min(Math.max(cx, halfPopup + 8), window.innerWidth - halfPopup - 8);
-      // لو التحديد قريب من أعلى الشاشة، اعرض البوب-أب تحته بدل فوقه
-      let y = rect.top - 10;
-      let below = false;
-      if (rect.top < 100) {
-        y = rect.bottom + 12;
-        below = true;
-      }
-      setSelectionPopup({ show: true, text, x, y, below });
-    } else {
-      setSelectionPopup({ show: false, text: '', x: 0, y: 0, below: false });
+      const popupWidth = 140;
+      const margin = 8;
+      const rawX = rect.left + rect.width / 2;
+      const clampedX = Math.max(
+        popupWidth / 2 + margin,
+        Math.min(window.innerWidth - popupWidth / 2 - margin, rawX),
+      );
+      const topY = rect.top - 46;
+      const below = topY < 50;
+      const clampedY = below ? rect.bottom + 8 : topY;
+
+      setSelectionPopup({
+        show: true,
+        text,
+        x: clampedX,
+        y: clampedY,
+        below,
+      });
+    } catch {
+      setSelectionPopup((prev) => (prev.show ? { ...prev, show: false } : prev));
     }
   }, []);
 
-  const handleMouseUp = (e: ReactMouseEvent<HTMLDivElement>): void => {
-    if (quoteImage.show) return;
-    // لا نفعل التحديد إذا كنا نضغط على زر
-    if ((e.target as HTMLElement).closest('button')) return;
-    captureSelection();
-  };
-
-  // مراجع السحب (فون)
-  const touchStartRef = useRef({ x: 0, y: 0, t: 0 });
-  // مؤقت التقاط التحديد بعد اللمس — يُمسح عند الإزالة لمنع setState على مكوّن أُزيل
-  const selectionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (selectionTimerRef.current) clearTimeout(selectionTimerRef.current);
-  }, []);
-
-  const handleTouchStart = (e: ReactTouchEvent<HTMLDivElement>): void => {
-    if (e.touches.length === 1) {
-      const t = e.touches[0];
-      touchStartRef.current = { x: t.clientX, y: t.clientY, t: Date.now() };
-    }
-  };
-
-  const handleTouchEnd = (e: ReactTouchEvent<HTMLDivElement>): void => {
-    if (quoteImage.show) return;
-    const touchTarget = e.target as HTMLElement;
-    if (touchTarget.closest && touchTarget.closest('button')) return;
-    // السحب الأفقي = تنقل بين المسائل (يمين/شمال)، مع تجاهل السحب العمودي والتحديد
-    const changed = e.changedTouches && e.changedTouches[0];
-    if (changed && e.changedTouches.length === 1) {
-      const s = touchStartRef.current;
-      const dx = changed.clientX - s.x;
-      const dy = changed.clientY - s.y;
-      const dt = Date.now() - s.t;
-      const hasSelection = (window.getSelection()?.toString().trim() ?? '').length > 0;
-      if (!hasSelection && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8 && dt < 600) {
-        // RTL: السحب لليسار = المسألة التالية، لليمين = السابقة
-        if (dx < 0 && canGoNext) { onNext(); return; }
-        if (dx > 0 && canGoPrev) { onPrev(); return; }
+  useEffect(() => {
+    const onMouseUp = (): void => {
+      setTimeout(handleSelection, 10);
+    };
+    const onSelectionChange = (): void => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed) {
+        setSelectionPopup((prev) => (prev.show ? { ...prev, show: false } : prev));
       }
-    }
-    // نفس المنطق للمس في الموبايل مع مهلة قصيرة لاكتمال التحديد
-    if (selectionTimerRef.current) clearTimeout(selectionTimerRef.current);
-    selectionTimerRef.current = setTimeout(captureSelection, 100);
-  };
+    };
+    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('selectionchange', onSelectionChange);
+    return () => {
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('selectionchange', onSelectionChange);
+    };
+  }, [handleSelection]);
 
   const saveSelectionAsHighlight = (): void => {
-    if (!selectionPopup.text) return;
+    if (!selectionPopup.text || !lesson) return;
     onCreateHighlight(selectionPopup.text);
-    window.getSelection()?.removeAllRanges();
-    setSelectionPopup({ show: false, text: '', x: 0, y: 0, below: false });
+    setSelectionPopup((prev) => ({ ...prev, show: false }));
+    const sel = window.getSelection();
+    if (sel) sel.removeAllRanges();
   };
 
   const openQuoteImage = (): void => {
-    if (!selectionPopup.text) return;
+    if (!selectionPopup.text || !lesson) return;
     setQuoteImage({ show: true, text: selectionPopup.text });
-    window.getSelection()?.removeAllRanges();
-    setSelectionPopup({ show: false, text: '', x: 0, y: 0, below: false });
+    setSelectionPopup((prev) => ({ ...prev, show: false }));
+    const sel = window.getSelection();
+    if (sel) sel.removeAllRanges();
   };
 
-  // على الفون: أنيميشن دخول بسيط (opacity فقط) بدل حركة 3D الثقيلة على الـ GPU
-  const [isSmallScreen, setIsSmallScreen] = useState(
-    () => typeof window !== 'undefined' && window.innerWidth < 768,
-  );
-  useEffect(() => {
-    const mql = window.matchMedia('(max-width: 767px)');
-    const update = (e: MediaQueryListEvent | MediaQueryList) => setIsSmallScreen(e.matches);
-    mql.addEventListener('change', update);
-    return () => mql.removeEventListener('change', update);
-  }, []);
+  const handleTouchStart = (e: ReactTouchEvent<HTMLDivElement>): void => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
 
-  // عنوان لاصق يظهر عند السكرول لأسفل (فون فقط)
-  const [showSticky, setShowSticky] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onScroll = () => setShowSticky(window.scrollY > 340);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  const handleTouchEnd = (e: ReactTouchEvent<HTMLDivElement>): void => {
+    if (!touchStartRef.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = t.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+    if (Math.abs(dx) > 75 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx > 0 && canGoPrev) onPrev();
+      else if (dx < 0 && canGoNext) onNext();
+    }
+  };
 
-  if (!lesson) return null;
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [lessonId]);
+
+  if (!lesson) {
+    return (
+      <div className="container py-5 text-center">
+        <p className="text-muted">لم يتم اختيار مسألة لعرضها.</p>
+        <button type="button" className="btn btn-secondary mt-2" onClick={onBackToIndex}>
+          العودة لفهرس المسائل
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="reading-view" onMouseUp={handleMouseUp} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-      {/* عنوان لاصق أعلى الشاشة عند السكرول (فون فقط) */}
-      <AnimatePresence>
-        {showSticky && (
-          <motion.button
-            type="button"
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.2 }}
-            onClick={() => window.scrollTo({ top: 0 })}
-            title="العودة لأعلى"
-            aria-label="العودة لأعلى الصفحة"
-            className="reading-sticky-title"
-          >
-            {lesson.title}
-          </motion.button>
-        )}
-      </AnimatePresence>
-      {/* ✅ شريط تقدم القراءة */}
+    <div
+      className="container reading-container py-4 position-relative"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      style={{ minHeight: '80vh' }}
+    >
       <ReadingProgressBar />
 
-      {/* زر حفظ التحديد كفائدة أو تحويله لبطاقة مصوّرة */}
-      <AnimatePresence>
-        {selectionPopup.show && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className="selection-popup"
-            style={{
-              position: 'fixed',
-              top: selectionPopup.y,
-              left: selectionPopup.x,
-              transform: selectionPopup.below ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
-              zIndex: 'var(--z-tooltip)',
-              background: 'linear-gradient(135deg, #c9a84c 0%, #e6c875 50%, #c9a84c 100%)',
-              color: isSmallScreen ? '#1a1a1a' : 'var(--text-main)',
-              padding: '6px 8px',
-              borderRadius: '50px',
-              boxShadow: '0 6px 20px rgba(201, 168, 76, 0.55), 0 2px 8px rgba(0,0,0,0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2px',
-              fontWeight: '700',
-              whiteSpace: 'nowrap',
-              maxWidth: 'calc(100vw - 16px)',
-              fontSize: '0.9rem',
-              fontFamily: 'var(--font-ui)',
-              userSelect: 'none',
-            }}
-          >
-            <button
-              onClick={saveSelectionAsHighlight}
-              title="حفظ النص المحدد كفائدة"
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                background: 'transparent', border: 'none', color: 'inherit',
-                fontWeight: 'inherit', fontSize: 'inherit', fontFamily: 'inherit',
-                padding: '6px 12px', borderRadius: '50px', cursor: 'pointer',
-              }}
-            >
-              <FiEdit3 size={16} /> حفظ كفائدة
-            </button>
-            <span style={{ width: '1px', height: '20px', background: 'rgba(26,26,26,0.25)' }} />
-            <button
-              onClick={openQuoteImage}
-              title="تحويل النص المحدد إلى بطاقة مصوّرة"
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                background: 'transparent', border: 'none', color: 'inherit',
-                fontWeight: 'inherit', fontSize: 'inherit', fontFamily: 'inherit',
-                padding: '6px 12px', borderRadius: '50px', cursor: 'pointer',
-              }}
-            >
-              <FiImage size={16} /> صورة
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* بوب-أب حفظ كفائدة أو صورة عند تحديد أي نص */}
+      <TextSelectionBubble
+        selectionPopup={selectionPopup}
+        isSmallScreen={isSmallScreen}
+        onSaveHighlight={saveSelectionAsHighlight}
+        onOpenQuoteImage={openQuoteImage}
+      />
 
-      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <button
-          className="btn btn-sm text-muted d-flex align-items-center"
-          aria-label="العودة لفهرس المسائل"
-          title="العودة لفهرس المسائل"
-          onClick={onBackToIndex}
-        >
-          <FiArrowRight className="ms-2" /> <span className="d-none d-md-inline">العودة لفهرس المسائل</span>
-        </button>
-        <div className="reading-actions d-flex align-items-center gap-2 flex-wrap">
-
-          <button
-            className="btn btn-sm d-flex align-items-center shadow-sm"
-            style={{
-              borderRadius: '10px',
-              fontWeight: 'bold',
-              transition: 'all 0.3s',
-              backgroundColor: isRead ? '#27ae60' : 'var(--badge-bg)',
-              borderColor: isRead ? '#27ae60' : 'var(--border-color)',
-              color: isRead ? '#fff' : 'var(--text-main)',
-              border: '1px solid',
-            }}
-            onClick={onToggleRead}
-            title={isRead ? 'إلغاء تعليم المسألة كمقروءة' : 'تعليم المسألة كمقروءة'}
-            aria-label={isRead ? 'إلغاء تعليم المسألة كمقروءة' : 'تعليم المسألة كمقروءة'}
-          >
-            <FiCheckCircle size={16} className="ms-1" />
-            <span className="d-none d-sm-inline">{isRead ? 'خلصتها' : 'خلصتها؟'}</span>
-          </button>
-
-          <button
-            className="btn btn-sm d-flex align-items-center shadow-sm"
-            style={{
-              borderRadius: '10px',
-              fontWeight: 'bold',
-              transition: 'all 0.3s',
-              backgroundColor: 'var(--badge-bg)',
-              borderColor: 'var(--border-color)',
-              color: 'var(--primary-color)',
-              border: '1px solid',
-            }}
-            onClick={handlePrintChapter}
-            title="طباعة الباب كاملاً"
-            aria-label="طباعة الباب كاملاً"
-          >
-            <FiPrinter size={18} /> <span className="ms-1 d-none d-sm-inline">الباب كامل</span>
-          </button>
-
-          {/* التحكم في حجم الخط داخل القراءة — واضح للفون وكبار السن */}
-          <div
-            className="d-flex align-items-center shadow-sm"
-            role="group"
-            aria-label="حجم الخط"
-            style={{ backgroundColor: 'var(--badge-bg)', border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}
-          >
-            <button
-              className="btn btn-sm fw-bold px-2"
-              style={{ color: 'var(--text-main)' }}
-              onClick={() => setFontSize((p) => Math.max(p - 2, 14))}
-              disabled={fontSize <= 14}
-              title="تصغير الخط"
-              aria-label="تصغير الخط"
-            >
-              A−
-            </button>
-            <span className="px-1 small fw-bold" style={{ color: 'var(--text-muted)' }} aria-hidden="true">{fontSize}</span>
-            <button
-              className="btn btn-sm fw-bold px-2"
-              style={{ color: 'var(--text-main)' }}
-              onClick={() => setFontSize((p) => Math.min(p + 2, 24))}
-              disabled={fontSize >= 24}
-              title="تكبير الخط"
-              aria-label="تكبير الخط"
-            >
-              A+
-            </button>
-          </div>
-
-          <button
-            className={`bookmark-btn ${isBookmarked ? 'active' : ''}`}
-            onClick={onToggleBookmark}
-            title="حفظ في المفضلة"
-            aria-label={isBookmarked ? 'إزالة من المفضلة' : 'حفظ في المفضلة'}
-          >
-            <FiBookmark size={24} fill={isBookmarked ? 'currentColor' : 'none'} />
-          </button>
-        </div>
-      </div>
-
-      <div className="reading-top-nav d-flex justify-content-between mb-4" aria-label="التنقل بين المسائل">
-        <button
-          className="btn nav-lesson-btn btn-sm d-flex align-items-center"
-          onClick={onPrev}
-          disabled={!canGoPrev}
-        >
-          <FiChevronRight className="ms-1" /> السابقة
-        </button>
-        <button
-          className="btn nav-lesson-btn btn-sm d-flex align-items-center"
-          onClick={onNext}
-          disabled={!canGoNext}
-        >
-          التالية <FiChevronLeft className="me-1" />
-        </button>
-      </div>
+      {/* شريط التحكم العلوي */}
+      <ReadingHeaderBar
+        onBackToIndex={onBackToIndex}
+        isRead={isRead}
+        onToggleRead={onToggleRead}
+        onPrintChapter={handlePrintChapter}
+        fontSize={fontSize}
+        setFontSize={setFontSize}
+        isBookmarked={isBookmarked}
+        onToggleBookmark={onToggleBookmark}
+        canGoPrev={canGoPrev}
+        canGoNext={canGoNext}
+        onPrev={onPrev}
+        onNext={onNext}
+      />
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -509,23 +356,18 @@ const ReadingView = () => {
             onSave={onSaveNote} 
           />
 
-          <nav className="reading-bottom-nav" aria-label="التنقل للدرس السابق أو التالي">
-            <div className="reading-bottom-nav-meta">
-              <span>المسألة {currentIndex + 1} من {lessons.length}</span>
-              {String(lesson.pageNumber ?? '').trim() && <span>صفحة {lesson.pageNumber}</span>}
-            </div>
-            <div className="reading-bottom-nav-buttons">
-              <button type="button" className="btn nav-lesson-btn" onClick={onPrev} disabled={!canGoPrev}>
-                <FiChevronRight aria-hidden="true" /> السابقة
-              </button>
-              <button type="button" className="btn nav-lesson-btn" onClick={onNext} disabled={!canGoNext}>
-                التالية <FiChevronLeft aria-hidden="true" />
-              </button>
-            </div>
-          </nav>
+          {/* شريط التنقل السفلي */}
+          <ReadingBottomNav
+            currentIndex={currentIndex}
+            totalLessons={lessons.length}
+            pageNumber={lesson.pageNumber}
+            canGoPrev={canGoPrev}
+            canGoNext={canGoNext}
+            onPrev={onPrev}
+            onNext={onNext}
+          />
         </motion.div>
       </AnimatePresence>
-
 
       <FloatingTOC 
         currentLesson={lesson} 

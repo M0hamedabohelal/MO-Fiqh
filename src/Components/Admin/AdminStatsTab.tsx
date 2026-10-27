@@ -36,11 +36,11 @@ const AdminStatsTab = ({ lessons, cloudLessonsLoaded, cloudStatus }: AdminStatsT
 
   useEffect(() => {
     let cancelled = false;
-    // اللقطة المضمّنة تُطلب عند فتح تبويب الإحصائيات فقط (حزمة منفصلة، لا تُحمَّل للمستخدم العادي)
-    void import('../../data/lessons')
+    // معرّفات اللقطة المضمّنة تُطلب من حزمة معرّفات خفيفة جدًا (~0.5KB) دون تحميل ملف المسائل الكامل (348KB)
+    void import('../../data/bundledIds')
       .then((mod) => {
         if (cancelled) return;
-        setBundledIds((mod.lessonsData || []).map((lesson) => String(lesson.id)));
+        setBundledIds(mod.bundledLessonIds || []);
       })
       .catch(() => { /* بلا لقطة: تُخفى المقارنة فقط */ });
     return () => { cancelled = true; };

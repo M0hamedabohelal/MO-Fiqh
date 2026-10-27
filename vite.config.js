@@ -31,6 +31,7 @@ export default defineConfig({
           'og/**',
           '**/AdminPanel-*.js',
           '**/lessons-*.js',
+          '**/bundledIds-*.js',
         ],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         navigateFallback: '/index.html',

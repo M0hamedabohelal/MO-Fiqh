@@ -40,7 +40,10 @@ function validLessons(arr) {
   if (clean.length < arr.length) {
     console.warn(`⚠️ SEO: تجاهل ${arr.length - clean.length} عناصر فاسدة بلا id/عنوان.`);
   }
-  return clean.map(({ _docId, ...rest }) => rest);
+  return clean.map(({ _docId, ...rest }) => ({
+    ...rest,
+    chapterName: rest.chapterName ? String(rest.chapterName).replace(/\s+([،,.:])/g, '$1').replace(/\s{2,}/g, ' ').trim() : '',
+  }));
 }
 
 async function loadLiveLessons() {
@@ -821,4 +824,10 @@ ${urls.join('\n')}
 `;
 writeFileSync(join(PUBLIC, 'sitemap.xml'), sitemap, 'utf8');
 
+try {
+  const idsFile = join(root, 'data', 'content', 'bundled-ids.json');
+  writeFileSync(idsFile, JSON.stringify(lessonsData.map(l => String(l.id))) + '\n', 'utf8');
+} catch {
+  // تجاهل في حال تعذر الكتابة
+}
 console.log(`✅ بريرندرينج: ${count} صفحة ثابتة (${bookNames.length} كتاب + ${lessonsData.length} مسألة) + فهرس + sitemap.xml`);
