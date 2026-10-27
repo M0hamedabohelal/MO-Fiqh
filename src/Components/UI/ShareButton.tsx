@@ -290,18 +290,36 @@ const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareBut
     setGenerating(true);
     setFailed(false);
     // التأجيل يتيح للزر إظهار حالة التحميل قبل العملية الثقيلة (حتى لا تتجمد الواجهة)
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
         const canvas = generateImage();
+        // محاولة مشاركة الصورة مباشرة عبر Web Share API عند الدعم
+        const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
+        if (blob && typeof navigator !== 'undefined' && navigator.canShare) {
+          const file = new File([blob], `${title}.png`, { type: 'image/png' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title,
+              text: title,
+              files: [file],
+            });
+            setDownloaded(true);
+            setTimeout(() => setDownloaded(false), 2500);
+            return;
+          }
+        }
+
         const link = document.createElement('a');
         link.download = `${title}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
         setDownloaded(true);
         setTimeout(() => setDownloaded(false), 2500);
-      } catch {
-        setFailed(true);
-        setTimeout(() => setFailed(false), 2500);
+      } catch (err) {
+        if ((err as Error)?.name !== 'AbortError') {
+          setFailed(true);
+          setTimeout(() => setFailed(false), 2500);
+        }
       } finally {
         setGenerating(false);
       }

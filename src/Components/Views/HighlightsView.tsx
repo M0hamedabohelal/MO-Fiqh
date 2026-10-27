@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { FiEdit3, FiTrash2, FiBook, FiChevronLeft, FiPrinter, FiSearch, FiDownload, FiUpload, FiCopy } from 'react-icons/fi';
+import { FiEdit3, FiTrash2, FiBook, FiChevronLeft, FiPrinter, FiSearch, FiDownload, FiUpload, FiCopy, FiRefreshCw } from 'react-icons/fi';
 import EmptyState from '../UI/EmptyState';
 import ShareButton from '../UI/ShareButton';
 import { exportNotesPrint } from '../../utils/printExport';
@@ -18,6 +18,7 @@ const HighlightsView = () => {
     deleteHighlight: onDeleteHighlight,
     openLessonById: onOpenLessonById,
     restoreLibrary,
+    setCurrentView,
   } = useApp();
   const [query, setQuery] = useState('');
   const [notice, setNotice] = useState('');
@@ -81,6 +82,21 @@ const HighlightsView = () => {
           <FiEdit3 className="ms-2" /> الفوائد المقتبسة
         </h3>
         <div className="d-flex gap-2 flex-wrap">
+          <button
+            type="button"
+            className="btn btn-sm d-flex align-items-center shadow-sm"
+            style={{
+              backgroundColor: 'var(--primary-color)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '10px',
+              fontWeight: 'bold',
+            }}
+            onClick={() => setCurrentView('review')}
+            title="مراجعة الفوائد والمسائل بأسلوب البطاقات"
+          >
+            <FiRefreshCw className="ms-1" size={14} /> وضع المراجعة
+          </button>
           {hasAnySavedContent && (
             <button
               className="btn btn-sm d-flex align-items-center shadow-sm"

@@ -41,6 +41,7 @@ import {
   enableFirestoreNetwork,
   disableFirestoreNetwork,
   __resetNetworkStateForTests,
+  initAppCheck,
 } from './config';
 
 describe('enableFirestoreNetwork — سياسة إعادة الاتصال', () => {
@@ -80,5 +81,12 @@ describe('enableFirestoreNetwork — سياسة إعادة الاتصال', () =
     // عودة ثانية بلا انقطاع جديد: يجب ألا تُلمس SDK
     await enableFirestoreNetwork();
     expect(enableNetwork).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('initAppCheck — السلوك الآمن وحماية الإقلاع', () => {
+  it('يعيد null بصمت ولا يرمي أي استثناء عند غياب مفتاح reCAPTCHA', async () => {
+    const res = await initAppCheck();
+    expect(res).toBeNull();
   });
 });

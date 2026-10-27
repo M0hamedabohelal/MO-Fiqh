@@ -3,6 +3,18 @@
   position: relative;
 }
 
+/* ==================== تحسين أداء التصيير (Content Visibility) ==================== */
+.cv-auto-list-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 76px;
+}
+
+.cv-auto-card,
+.explanation-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
+}
+
 /* Texture class to be added to QuoteCard and ExplanationCard */
 .parchment-texture {
   position: relative;
@@ -688,6 +700,8 @@
 
 /* صف فهرس تراثي: عنوان + نقاط + رقم الصفحة */
 .toc-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 48px;
   display: flex;
   align-items: baseline;
   gap: 10px;
@@ -743,6 +757,8 @@
     font-size: 1.15rem;
   }
   .toc-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 48px;
     font-size: 1rem;
     padding: 10px 2px;
   }

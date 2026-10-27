@@ -1,10 +1,11 @@
 import { useMemo, useState, useEffect } from 'react';
-import { FiBook, FiZap, FiAward, FiStar, FiEdit3, FiFileText, FiLock, FiTrendingUp, FiDownload } from 'react-icons/fi';
+import { FiBook, FiZap, FiAward, FiStar, FiEdit3, FiFileText, FiLock, FiTrendingUp, FiDownload, FiRefreshCw } from 'react-icons/fi';
 import type { IconType } from 'react-icons';
 import CertificateModal from '../UI/CertificateModal';
 import { useApp } from '../Layout/AppContext';
 import type { BookStats } from '../../types';
 import { readVisitDays, visitDaysStorageKey, VISIT_DAYS_UPDATED_EVENT } from '../../hooks/useVisitTracking';
+import { useReviewStats } from '../../hooks/useReviewMode';
 
 
 
@@ -46,7 +47,8 @@ function getStreak(days: string[]): number {
 
 // شاشة الإنجازات: سلسلة الأيام + شارات التقدم + حلقة الإتمام + الشهادات
 const AchievementsView = () => {
-  const { readLessons, highlights, notes, booksWithStats, lessonsCount, user } = useApp();
+  const { readLessons, highlights, notes, booksWithStats, lessonsCount, user, setCurrentView } = useApp();
+  const reviewStats = useReviewStats();
   const userName = user?.displayName || user?.email || 'طالب العلم';
   const [visitDays, setVisitDays] = useState<string[]>(() => readVisitDays(visitDaysStorageKey(user?.uid)));
   useEffect(() => {
@@ -85,6 +87,7 @@ const AchievementsView = () => {
     })),
     { icon: FiEdit3, title: 'المقتبس', desc: 'احفظ 10 فوائد', earned: (highlights || []).length >= 10 },
     { icon: FiFileText, title: 'المدون', desc: 'اكتب 5 ملاحظات', earned: notesCount >= 5 },
+    { icon: FiRefreshCw, title: 'المسترجع الحافظ', desc: 'أتمم 3 جلسات مراجعة', earned: reviewStats.totalCompletedSessions >= 3 },
   ];
   const earnedCount = badges.filter((b) => b.earned).length;
 
@@ -155,7 +158,7 @@ const AchievementsView = () => {
           { icon: FiBook, label: 'مسائل مقروءة', value: readCount },
           { icon: FiTrendingUp, label: 'أيام متتالية', value: streak },
           { icon: FiEdit3, label: 'فوائد محفوظة', value: (highlights || []).length },
-          { icon: FiFileText, label: 'ملاحظات', value: notesCount },
+          { icon: FiRefreshCw, label: 'جلسات المراجعة', value: reviewStats.totalCompletedSessions },
         ] as QuickStat[]).map(({ icon: Icon, label, value }) => (
           <div className="col-6 col-md-3" key={label}>
             <div className="custom-card p-3 text-center shadow-sm h-100">
@@ -165,6 +168,35 @@ const AchievementsView = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* بطاقة المراجعة والاستذكار اليومي */}
+      <div
+        className="custom-card p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2 shadow-sm"
+        style={{ borderRight: '4px solid var(--accent-color)' }}
+      >
+        <div>
+          <h6 className="fw-bold mb-1" style={{ color: 'var(--primary-color)' }}>
+            <FiRefreshCw className="ms-2" /> المراجعة والاستذكار النشط
+          </h6>
+          <small className="text-muted">
+            راجع ما قرأته وحفظته بنظام البطاقات التفاعلية لترسيخ الأحكام في الذاكرة
+          </small>
+        </div>
+        <button
+          type="button"
+          className="btn btn-sm d-flex align-items-center gap-2"
+          style={{
+            backgroundColor: 'var(--primary-color)',
+            color: '#fff',
+            borderRadius: '10px',
+            fontWeight: 'bold',
+            padding: '8px 16px',
+          }}
+          onClick={() => setCurrentView('review')}
+        >
+          ابدأ المراجعة الآن
+        </button>
       </div>
 
       {/* الشهادات */}

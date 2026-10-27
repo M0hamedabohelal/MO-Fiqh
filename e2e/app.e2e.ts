@@ -250,3 +250,70 @@ test.describe('المسارات الحرجة', () => {
     expect(errors, errors.join('\n')).toEqual([]);
   });
 });
+
+test.describe('توسيع التغطية: الإعدادات، الإنجازات، المراجعة، والتفضيلات', () => {
+  test('12) شاشة الإعدادات: فتح وطي مجموعات الأكورديون', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/#/settings');
+    await expect(page.getByRole('heading', { level: 3, name: 'الإعدادات' })).toBeVisible({ timeout: 30_000 });
+
+    // فحص مجموعات الأكورديون
+    const accordionHeader = page.locator('button[data-group-id]').first();
+    await expect(accordionHeader).toBeVisible();
+    const initialExpanded = await accordionHeader.getAttribute('aria-expanded');
+
+    // الضغط للفتح أو الطي
+    await accordionHeader.click();
+    const nextExpanded = await accordionHeader.getAttribute('aria-expanded');
+    expect(nextExpanded).not.toBe(initialExpanded);
+
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
+
+  test('13) شاشة الإنجازات والانتقال إلى وضع المراجعة', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/#/achievements');
+    await expect(page.getByRole('heading', { level: 3, name: 'إنجازاتي' })).toBeVisible({ timeout: 30_000 });
+
+    // زر بدء المراجعة ينقل إلى وضع المراجعة
+    const startReviewBtn = page.getByRole('button', { name: /ابدأ المراجعة الآن/ });
+    await expect(startReviewBtn).toBeVisible();
+    await startReviewBtn.click();
+
+    await expect(page).toHaveURL(/#\/review/);
+    await expect(page.getByRole('heading', { name: /وضع المراجعة/ })).toBeVisible({ timeout: 20_000 });
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
+
+  test('14) شاشة القراءة: اختبار سريع وتكبير/تصغير الخط', async ({ page }) => {
+    const errors = collectErrors(page);
+    await openLesson(page, 1);
+
+    // تفعيل وضع الاختبار السريع
+    const quizToggleBtn = page.getByRole('button', { name: /وضع الاختبار السريع/ });
+    if (await quizToggleBtn.isVisible()) {
+      await quizToggleBtn.click();
+      await expect(page.getByText(/استذكر حكم المسألة/)).toBeVisible();
+
+      // كشف الحكم
+      await page.getByRole('button', { name: /كشف التعليق والحكم/ }).click();
+      await expect(page.getByText(/تعليق الشيخ/)).toBeVisible();
+    }
+
+    // فحص أزرار حجم الخط
+    const increaseBtn = page.getByRole('button', { name: 'تكبير الخط' });
+    if (await increaseBtn.isVisible()) {
+      await increaseBtn.click();
+    }
+
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
+
+  test('15) شاشة الفوائد المقتبسة والوصول إليها', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/#/highlights');
+    await expect(page.getByRole('heading', { level: 3, name: 'الفوائد المقتبسة' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('button', { name: /وضع المراجعة/ })).toBeVisible();
+    expect(errors, errors.join('\n')).toEqual([]);
+  });
+});

@@ -2,8 +2,8 @@
 import { useState, useMemo } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import {
-  FiPlus, FiEdit2, FiTrash2, FiX, FiBook,
-  FiSearch, FiEye, FiClock, FiRotateCcw,
+  FiPlus, FiX, FiBook,
+  FiSearch, FiRotateCcw,
 } from 'react-icons/fi';
 import {
   createLesson, updateLesson, deleteLessonById,
@@ -17,6 +17,8 @@ import { EMPTY_LESSON } from './Lessons/types';
 import type { LessonFormState } from './Lessons/types';
 import { BulkImportSection } from './Lessons/BulkImportSection';
 import { LessonEditForm } from './Lessons/LessonEditForm';
+import { DeletedLessonsSection } from './Lessons/DeletedLessonsSection';
+import { LessonRowCard } from './Lessons/LessonRowCard';
 
 interface AdminLessonsTabProps {
   lessons: Lesson[];
@@ -296,28 +298,13 @@ const AdminLessonsTab = ({ lessons, cloudBackupReady, onDataChanged, flash }: Ad
         <button type="button" className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2" onClick={() => void toggleDeletedLessons()}>
           <FiRotateCcw size={15} /> {showDeleted ? 'إخفاء المحذوفة' : 'عرض المحذوفة واستعادتها'}
         </button>
-        {showDeleted && (
-          <div className="custom-card p-3 mt-2">
-            <h6 className="fw-bold mb-2">المسائل المحذوفة مؤخرًا</h6>
-            {deletedLessons === null ? (
-              <div className="text-muted small">جارٍ تحميل القائمة...</div>
-            ) : deletedLessons.length === 0 ? (
-              <div className="text-muted small">لا توجد مسائل محذوفة قابلة للاستعادة.</div>
-            ) : (
-              <div className="d-flex flex-column gap-2">
-                {deletedLessons.map((item) => (
-                  <div key={item.docId} className="d-flex align-items-center justify-content-between flex-wrap gap-2 p-2 rounded" style={{ backgroundColor: 'var(--badge-bg)' }}>
-                    <span className="small">ID {item.lesson.id} — {item.lesson.title}<small className="d-block text-muted">{new Date(item.deletedAt).toLocaleString('ar-EG')}</small></span>
-                    <button type="button" className="btn btn-sm btn-outline-success d-flex align-items-center gap-1" disabled={busy || !cloudBackupReady} onClick={() => void handleRestoreDeletedLesson(item)}>
-                      <FiRotateCcw size={14} /> استعادة
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {!cloudBackupReady && <small className="text-muted d-block mt-2">الاستعادة تحتاج اتصالًا بالسحابة.</small>}
-          </div>
-        )}
+        <DeletedLessonsSection
+          showDeleted={showDeleted}
+          deletedLessons={deletedLessons}
+          busy={busy}
+          cloudBackupReady={cloudBackupReady}
+          onRestore={handleRestoreDeletedLesson}
+        />
       </div>
 
       {/* قسم النسخ الاحتياطي والاستيراد بالجملة */}
@@ -364,63 +351,23 @@ const AdminLessonsTab = ({ lessons, cloudBackupReady, onDataChanged, flash }: Ad
             {bookLessons.map((lesson) => {
               const docId = lesson._docId || String(lesson.id);
               return (
-                <div key={docId} className="custom-card p-3 shadow-sm">
-                  <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap">
-                    <div className="flex-grow-1">
-                      <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                        <span className="badge badge-custom">ID {lesson.id}</span>
-                        <h6 className="fw-bold mb-0">{lesson.title}</h6>
-                        <a href={`#/lesson/${lesson.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-link p-0 text-muted" title="معاينة في صفحة القراءة">
-                          <FiEye size={15} />
-                        </a>
-                      </div>
-                      {lesson.chapterName && (
-                        <small className="text-muted">{lesson.chapterName} {lesson.pageNumber ? `• ص ${lesson.pageNumber}` : ''}</small>
-                      )}
-                    </div>
-                    <div className="d-flex gap-1 flex-shrink-0">
-                      <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => void toggleLessonHistory(docId)} title="سجل تعديلات هذه المسألة" aria-label="سجل التعديلات">
-                        <FiClock size={15} />
-                      </button>
-                      <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => openEditForm(lesson)} title="تعديل المسألة" aria-label="تعديل المسألة">
-                        <FiEdit2 size={15} />
-                      </button>
-                      <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => setShowDeleteConfirm(docId)} title="حذف المسألة" aria-label="حذف المسألة">
-                        <FiTrash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {showDeleteConfirm === docId && (
-                    <div className="alert alert-danger mt-3 mb-0 p-2 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                      <span className="small">هل أنت متأكد من حذف مسألة «{lesson.title}»؟</span>
-                      <div className="d-flex gap-2">
-                        <button type="button" className="btn btn-danger btn-sm" disabled={busy} onClick={() => void handleDeleteLesson(docId)}>
-                          {busy ? 'جارٍ الحذف...' : 'نعم، احذف'}
-                        </button>
-                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowDeleteConfirm(null)}>
-                          إلغاء
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {historyDocId === docId && showDeleteConfirm !== docId && (
-                    <div className="custom-card p-3 mt-2" aria-live="polite">
-                      <h6 className="fw-bold mb-2">سجل تعديل المسألة: {lesson.title}</h6>
-                      {historyLoading ? <div className="text-muted small">جارٍ تحميل السجل...</div> : historyItems.length === 0 ? <div className="text-muted small">لا توجد نسخ سابقة لهذه المسألة.</div> : (
-                        <div className="d-flex flex-column gap-2">
-                          {historyItems.map((revision) => (
-                            <div key={revision.id} className="d-flex align-items-center justify-content-between flex-wrap gap-2 p-2 rounded" style={{ backgroundColor: 'var(--badge-bg)' }}>
-                              <span className="small">{revision.lesson.title}<small className="d-block text-muted">{new Date(revision.savedAt).toLocaleString('ar-EG')}</small></span>
-                              <button type="button" className="btn btn-sm btn-outline-success" disabled={busy || !cloudBackupReady} onClick={() => void handleRestoreRevision(docId, revision)}>استعادة هذه النسخة</button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                <LessonRowCard
+                  key={docId}
+                  lesson={lesson}
+                  docId={docId}
+                  isConfirmingDelete={showDeleteConfirm === docId}
+                  isHistoryOpen={historyDocId === docId}
+                  historyLoading={historyLoading}
+                  historyItems={historyItems}
+                  busy={busy}
+                  cloudBackupReady={cloudBackupReady}
+                  onOpenEdit={openEditForm}
+                  onRequestDelete={(id) => setShowDeleteConfirm(id)}
+                  onCancelDelete={() => setShowDeleteConfirm(null)}
+                  onConfirmDelete={handleDeleteLesson}
+                  onToggleHistory={toggleLessonHistory}
+                  onRestoreRevision={handleRestoreRevision}
+                />
               );
             })}
           </div>

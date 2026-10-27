@@ -1,0 +1,331 @@
+% !TEX program = xelatex
+% ============================================================
+%  خطة التطوير الشاملة — منصة يَسِّر
+%  (الميزات · الأداء · الأمان · الجودة · SEO)
+%  الاستخدام على Overleaf:
+%    1) New Project ← Blank Project
+%    2) الصق المحتوى في main.tex
+%    3) Menu ← Compiler ← اختر: XeLaTeX   (مهم للعربية)
+%    4) Recompile ← نزّل PDF
+% ============================================================
+\documentclass[11pt]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{arabic}
+\setotherlanguage{english}
+\newfontfamily\arabicfont[Script=Arabic,Scale=1.0]{Amiri}
+\newfontfamily\arabicfontsf[Script=Arabic,Scale=1.0]{Amiri}
+\setmonofont{DejaVu Sans Mono}[Scale=0.8]
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.2cm}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{fontawesome5}
+
+% ── الألوان (هوية يَسِّر) ──
+\definecolor{gold}{HTML}{B8933B}
+\definecolor{teal}{HTML}{0F3D3E}
+\definecolor{darkbg}{HTML}{101414}
+\definecolor{okgreen}{HTML}{27AE60}
+\definecolor{warnred}{HTML}{C0392B}
+\definecolor{softgray}{HTML}{F4F4F4}
+\definecolor{midgray}{HTML}{7A7A7A}
+\definecolor{codebg}{HTML}{1A2020}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[R]{\small\color{gold}خطة التطوير الشاملة — منصة يَسِّر}
+\fancyhead[L]{\small\color{midgray}Roadmap 11 items}
+\fancyfoot[C]{\small\thepage}
+
+\titleformat{\section}{\Large\bfseries\color{gold}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkbg}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{midgray}}{\thesubsubsection}{0.4em}{}
+
+\setlist[itemize]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+
+\hypersetup{
+  colorlinks=true, linkcolor=gold, urlcolor=gold,
+  pdftitle={خطة التطوير الشاملة}, pdfauthor={منصة يَسِّر}
+}
+
+% ── صناديق مخصّصة ──
+\newtcolorbox{goalbox}[1][]{
+  colback=gold!8, colframe=gold, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{notebox}[1][]{
+  colback=softgray, colframe=midgray, boxrule=0.6pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{warnbox}[1][]{
+  colback=warnred!6, colframe=warnred, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{codebox}[1][]{
+  colback=codebg, colframe=codebg, coltext=white,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+
+\begin{document}
+
+% ============================================================
+\begin{center}
+  {\Huge\bfseries\color{gold} خطة التطوير الشاملة}\\[4pt]
+  {\large\color{darkbg} أحد عشر تحسينًا: ميزات · أداء · أمان · جودة · SEO}\\[6pt]
+  {\small\color{midgray} منصة يَسِّر الفقهية — \today}
+\end{center}
+
+\vspace{4pt}
+\hrule
+\vspace{10pt}
+
+% ============================================================
+\section{نظرة عامة}
+
+\begin{goalbox}
+ترتيب أحد عشر بندًا في أربع موجات، كل موجة تُشحن مستقلة وتُختبر قبل التالية.
+الأولوية: أمن وأداء ملموس، ثم ميزات تفاعل، ثم جودة وصيانة، ثم SEO.
+\end{goalbox}
+
+\vspace{6pt}
+\renewcommand{\arraystretch}{1.35}
+\begin{longtable}{@{}p{0.06\textwidth} p{0.42\textwidth} p{0.20\textwidth} p{0.24\textwidth}@{}}
+\toprule
+\textbf{\#} & \textbf{البند} & \textbf{الموجة} & \textbf{المخاطرة} \\
+\midrule
+\endhead
+3  & مشاركة الفوائد كصورة محسّنة & ٢ — تفاعل & منخفضة \\
+5  & وضع المراجعة والاختبار السريع & ٢ — تفاعل & متوسطة \\
+7  & \texttt{content-visibility} للأقسام الطويلة & ١ — أداء & منخفضة \\
+8  & استيراد Bootstrap مُجزَّأ & ١ — أداء & منخفضة \\
+9  & تفعيل App Check & ١ — أمان & متوسطة \\
+10 & الرفع الموقّع لـ Cloudinary & ١ — أمان & متوسطة \\
+12 & اختبار قواعد Firestore عبر Emulator & ٣ — جودة & منخفضة \\
+13 & تقسيم الملفات العملاقة & ٣ — جودة & منخفضة \\
+14 & توسيع اختبارات e2e & ٣ — جودة & منخفضة \\
+15 & إثراء Schema.org (FAQ + QAPage) & ٤ — SEO & منخفضة \\
+16 & sitemap ديناميكي مع \texttt{lastmod} & ٤ — SEO & منخفضة \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1.0}
+
+% ============================================================
+\section{الموجة الأولى: الأداء والأمان}
+
+\subsection{البند 3 — مشاركة الفوائد كصورة محسّنة}
+
+\begin{notebox}
+\textbf{الحالة:} يوجد \texttt{QuoteImageModal.tsx} و\texttt{ShareButton.tsx} ومكتبة \texttt{html-to-image}
+جاهزة. البند = رفع الجودة لا بناءً من الصفر.
+\end{notebox}
+
+\begin{itemize}
+  \item \textbf{قوالب متعددة:} ٣ قوالب (كلاسيكي ذهبي، داكن عصري، ورقي تراثي) يُختار بينها قبل التصدير.
+  \item \textbf{نِسَب جاهزة:} مربع ١:١ (إنستغرام/فيسبوك)، طولي ٩:١٦ (ستوريز)، أفقي ١٦:٩ (تويتر).
+  \item \textbf{علامة مائية موحّدة:} شعار + «fqh.me» بموضع ثابت وزاوية خفيفة.
+  \item \textbf{مشاركة مباشرة:} استخدام Web Share API (\texttt{navigator.share}) لملف الصورة عند الدعم،
+        و\texttt{fallback} تنزيل.
+  \item \textbf{الملفات:} \texttt{QuoteImageModal.tsx} (القوالب والنِسَب)، \texttt{ShareButton.tsx} (المشاركة المباشرة).
+  \item \textbf{التحقق:} اختبار وحدة لتفاوت القوالب + فحص بصري يدوي.
+\end{itemize}
+
+\subsection{البند 5 — وضع المراجعة والاختبار السريع}
+
+\begin{itemize}
+  \item \textbf{مصدر البيانات:} المسائل المقروءة (\texttt{readLessons}) والفوائد المحفوظة.
+  \item \textbf{«اختبار سريع» في شاشة القراءة:} زر يخفي التعليق ويطلب من المستخدم استذكار الحكم، ثم كشف.
+  \item \textbf{«مراجعة الفوائد»:} شاشة بطاقات (\texttt{HighlightsView}) بوضع قلب البطاقة (سؤال ← جواب).
+  \item \textbf{تتبّع التقدّم:} دمج نتيجة المراجعة في \texttt{AchievementsView} (سلسلة مواظبة/إتمام).
+  \item \textbf{الملفات:} مكوّن جديد \texttt{ReviewMode.tsx} + hook \texttt{useReviewMode.ts}، وربط بالـ \texttt{App.tsx}.
+  \item \textbf{التحقق:} اختبارات وحدة للمنطق + مسار e2e.
+\end{itemize}
+
+\subsection{البند 7 — \texttt{content-visibility} للأقسام الطويلة}
+
+\begin{itemize}
+  \item تطبيق \texttt{content-visibility: auto} + \texttt{contain-intrinsic-size} على قوائم المسائل
+        وبطاقات الشرح في \texttt{LessonsView}/\texttt{ReadingView}.
+  \item \textbf{الملفات:} \texttt{index.css} + \texttt{exterior.css} (أصناف مخصصة موجودة).
+  \item \textbf{الحذر:} \texttt{contain-intrinsic-size} بقيمة واقعية لمنع قفزات التمرير.
+  \item \textbf{التحقق:} قياس زمن التمرير قبل/بعد + عدم ظهور قفزات.
+\end{itemize}
+
+\subsection{البند 8 — استيراد Bootstrap مُجزَّأ}
+
+\begin{notebox}
+\textbf{الحالة:} \texttt{main.tsx} يستورد \texttt{bootstrap.rtl.min.css} كاملة (٢٢٥KB، ٣١KB gzip)
+بينما المستخدم أجزاء قليلة (grid، utilities، reset).
+\end{notebox}
+
+\begin{itemize}
+  \item \textbf{الخطوة ١:} جرد أصناف Bootstrap المستخدمة فعليًا (\texttt{rg} على \texttt{className}).
+  \item \textbf{الخطوة ٢:} استيراد ملفات SCSS الجزئية فقط من \texttt{bootstrap/scss} بدل الحزمة الكاملة
+        (\texttt{\_grid}, \texttt{\_utilities}, \texttt{\_reboot}, \texttt{\_buttons}, \texttt{\_forms}).
+  \item \textbf{الخطوة ٣:} ضبط Vite على دعم Sass (\texttt{sass} كـ devDependency).
+  \item \textbf{البديل الأبسط:} PurgeCSS على المخرج إن أردنا تجنّب SCSS.
+  \item \textbf{التحقق:} مقارنة حجم CSS النهائي (المتوقّع توفير ٨٠--١٢٠KB) + فحص بصري لكل الصفحات.
+\end{itemize}
+
+\subsection{البند 9 — تفعيل App Check}
+
+\begin{warnbox}
+\textbf{تحذير حرج:} \texttt{initAppCheck} موجود لكنه مُعطَّل. التفعيل **قبل** تسجيل التطبيق في الكونسول
+يُنتج خطأ ٤٠٠ في كل تحميل بلا أي حماية. التسلسل إلزامي.
+\end{warnbox}
+
+\begin{enumerate}
+  \item تسجيل تطبيق الويب في Firebase Console ← App Check ← reCAPTCHA v3، واستخراج المفتاح.
+  \item خبز \texttt{VITE\_FIREBASE\_APPCHECK\_KEY} في بناء الإنتاج، و\texttt{VITE\_ENABLE\_APPCHECK=true}.
+  \item مراقبة لوحة App Check حتى تصبح الطلبات «متحقّقة» بنسبة عالية.
+  \item \textbf{بعدها فقط:} إنفاذ \texttt{appCheck.token} في \texttt{firestore.rules}.
+  \item \textbf{الملفات:} \texttt{src/firebase/config.ts} (موجود)، \texttt{firestore.rules}، إعدادات النشر.
+  \item \textbf{التحقق:} تتبّع نسبة التحقق في الكونسول + عدم كسر كتابات العملاء.
+\end{enumerate}
+
+\subsection{البند 10 — الرفع الموقّع لـ Cloudinary}
+
+\begin{warnbox}
+\textbf{الحالة الأمنية:} الرفع الحالي \textbf{غير موقّع} من العميل — أي زائر يستهلك حصّة الرفع
+(\texttt{utils/cloudinary.ts}). هذا إصلاح أمني حقيقي لا تحسين تجميلي.
+\end{warnbox}
+
+\begin{itemize}
+  \item \textbf{النسخة الكاملة:} Cloud Function (تُضاف لاحقًا) تولّد توقيعًا لحظيًا؛
+        \texttt{CLOUDINARY\_API\_SECRET} في Secret Manager فقط.
+  \item \textbf{النسخة الوسيطة (بلا سيرفر):} تقييد الـ preset في Cloudinary أشدّ: تنسيقات مسموحة،
+        حدّ حجم، مجلد ثابت، ورفع \texttt{moderation} — تقليل سطح العبث فورًا.
+  \item \textbf{الملفات:} \texttt{utils/cloudinary.ts} (طلب التوقيع + استخدامه)، وإعداد Cloudinary.
+  \item \textbf{التحقق:} \texttt{grep -r "CLOUDINARY\_API\_SECRET\|AIza" dist/} ← لا نتائج.
+\end{itemize}
+
+% ============================================================
+\section{الموجة الثانية: الميزات (مُدرجة أعلاه)}
+
+البندان ٣ و٥ من هذه الموجة وقيمتهما في زيادة التفاعل والاحتفاظ بالمستخدم،
+ويرتبطان مباشرة بـ \texttt{AchievementsView} القائم.
+
+% ============================================================
+\section{الموجة الثالثة: الجودة والصيانة}
+
+\subsection{البند 12 — اختبار قواعد Firestore عبر Emulator}
+
+\begin{notebox}
+\textbf{الحالة:} \texttt{rulesSchema.test.ts} الحالي هو فحص \textbf{تطابق نصوصي} (contract check) لا تشغيل حقيقي.
+\end{notebox}
+
+\begin{itemize}
+  \item إضافة \texttt{@firebase/rules-unit-testing} كـ devDependency.
+  \item كتابة اختبارات تُشغّل Emulator وتثبّت: قراءة عامة للمحتوى، رفض كتابة العميل على \texttt{lessons}،
+        ملكية \texttt{users/\{uid\}}، وحدود المفاتيح.
+  \item \textbf{الملفات:} \texttt{src/firebase/rules.test.ts} جديد + سكربت \texttt{test:rules}.
+  \item \textbf{التحقق:} تشغيل محلي في CI (يحتاج Java للـ Emulator).
+\end{itemize}
+
+\subsection{البند 13 — تقسيم الملفات العملاقة}
+
+\begin{itemize}
+  \item \texttt{AdminLessonsTab.tsx} (٤٠KB): استخراج مكوّنات فرعية (نموذج التحرير، قائمة المسائل، سلة المحذوفات).
+  \item \texttt{SettingsView.tsx} (٤٠KB): استخراج \texttt{SettingsSection} و\texttt{Feedback} لمكوّنات مستقلة.
+  \item \textbf{الهدف:} كل ملف < ٢٠KB، ومسؤولية واحدة واضحة.
+  \item \textbf{التحقق:} \texttt{typecheck} + \texttt{lint} + الاختبارات القائمة تبقى خضراء (لا تغيير سلوكي).
+\end{itemize}
+
+\subsection{البند 14 — توسيع اختبارات e2e}
+
+\begin{notebox}
+\textbf{الحالة:} ١١ اختبار e2e تغطي المسارات الحرجة. البند = تغطية الشاشات المتبقية.
+\end{notebox}
+
+\begin{itemize}
+  \item مسارات جديدة: الإعدادات (فتح/طي الـ Accordion)، الإنجازات، الفوائد المقتبسة، الوضع الداكن/سيپيا،
+        توسيع/تصغير الخط، ورفض الوصول للإدارة.
+  \item \textbf{الملفات:} \texttt{e2e/app.e2e.ts} (إضافة describe جديدة).
+  \item \textbf{التحقق:} تشغيل \texttt{npm run test:e2e} أخضر مع الميزانية الحالية (\texttt{workers: 1}).
+\end{itemize}
+
+% ============================================================
+\section{الموجة الرابعة: SEO}
+
+\subsection{البند 15 — إثراء Schema.org}
+
+\begin{notebox}
+\textbf{الحالة:} \texttt{Article} و\texttt{BreadcrumbList} و\texttt{WebSite} و\texttt{Organization}
+موجودة بالفعل في \texttt{scripts/generate-seo.mjs}. البند = إضافة أنواع جديدة.
+\end{notebox}
+
+\begin{itemize}
+  \item \textbf{FAQPage:} لكل مسألة، بناء أسئلة من العنوان + الحكم (يحسّن ظهور النتائج الغنية).
+  \item \textbf{QAPage:} البديل الأنسب للمحتوى الفقهي سؤال/جواب.
+  \item \textbf{إثراء Article:} \texttt{author} (\texttt{Person})، \texttt{datePublished}، \texttt{educationalLevel}.
+  \item \textbf{الملفات:} \texttt{scripts/generate-seo.mjs} (دالة الـ lesson).
+  \item \textbf{التحقق:} \texttt{check:seo} + Rich Results Test من جوجل.
+\end{itemize}
+
+\subsection{البند 16 — sitemap ديناميكي مع lastmod}
+
+\begin{itemize}
+  \item إضافة \texttt{<lastmod>} لكل مسألة من طابع تعديلها (يُخزَّن عند النشر).
+  \item التأكد أن \texttt{sitemap.xml} يُحدَّث آليًا مع كل مسألة جديدة (مولّد أصلًا في البناء).
+  \item \textbf{الملفات:} \texttt{scripts/generate-seo.mjs} (قسم الـ sitemap).
+  \item \textbf{التحقق:} \texttt{check:seo} + رفع الموقع في Search Console.
+\end{itemize}
+
+% ============================================================
+\section{ترتيب التنفيذ والأثر المتوقّع}
+
+\renewcommand{\arraystretch}{1.35}
+\begin{longtable}{@{}p{0.10\textwidth} p{0.40\textwidth} p{0.44\textwidth}@{}}
+\toprule
+\textbf{الموجة} & \textbf{البنود} & \textbf{الأثر} \\
+\midrule
+\endhead
+١ & 7 · 8 · 9 · 10 & حزمة أخف، تمرير أسرع، إغلاق سطحَي عبث أمنيين \\
+٢ & 3 · 5 & تفاعل أعلى واحتفاظ أفضل \\
+٣ & 12 · 13 · 14 & سلوك مؤكَّد بالاختبار، ملفات أصغر، ثقة أعلى \\
+٤ & 15 · 16 & ظهور أفضل في محركات البحث \\
+\bottomrule
+\end{longtable}
+\renewcommand{\arraystretch}{1.0}
+
+\begin{goalbox}
+بعد كل بند: \texttt{npm run typecheck} \; \texttt{npm run lint} \; \texttt{npm test} \; \texttt{npm run build}
+كلها خضراء. لا بند يُودَع قبل ذلك.
+\end{goalbox}
+
+% ============================================================
+\section{معايير القبول}
+
+\begin{itemize}
+  \item[${\color{okgreen}\faCheckCircle}$] مشاركة الفوائد بقوالب ونِسَب متعددة ومشاركة مباشرة.
+  \item[${\color{okgreen}\faCheckCircle}$] وضع مراجعة/اختبار يعمل من المسائل المقروءة والفوائد.
+  \item[${\color{okgreen}\faCheckCircle}$] \texttt{content-visibility} مطبّق دون قفزات تمرير.
+  \item[${\color{okgreen}\faCheckCircle}$] حجم CSS النهائي انخفض بوضوح بعد تجزئة Bootstrap.
+  \item[${\color{okgreen}\faCheckCircle}$] App Check متحقّق عليه في الإنتاج والإنفاذ مُفعَّل في القواعد.
+  \item[${\color{okgreen}\faCheckCircle}$] لا سرّ Cloudinary في \texttt{dist/}.
+  \item[${\color{okgreen}\faCheckCircle}$] اختبارات Emulator تثبّت سلوك القواعد فعليًا.
+  \item[${\color{okgreen}\faCheckCircle}$] لا ملف في \texttt{src} يتجاوز ٢٠KB.
+  \item[${\color{okgreen}\faCheckCircle}$] تغطية e2e تشمل الإعدادات والإنجازات والثيمات.
+  \item[${\color{okgreen}\faCheckCircle}$] JSON-LD موسّع (FAQ/QAPage) دون أخطاء في Rich Results.
+  \item[${\color{okgreen}\faCheckCircle}$] sitemap يحمل \texttt{lastmod} ويُحدَّث آليًا.
+\end{itemize}
+
+\end{document}

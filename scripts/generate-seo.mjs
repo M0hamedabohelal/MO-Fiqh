@@ -384,6 +384,11 @@ function lessonPage(l, bookLessons, bookName) {
   const prevUrl = prevLesson ? `${BASE}/lessons/${encId(prevLesson.id)}/` : null;
   const nextUrl = nextLesson ? `${BASE}/lessons/${encId(nextLesson.id)}/` : null;
   const desc = snippet(l.mainText, 155);
+  const publishedDate = l.createdAt ? new Date(l.createdAt).toISOString() : '2025-01-01T00:00:00.000Z';
+  const tMod = timestampOf(l);
+  const modifiedDate = tMod ? new Date(tMod).toISOString() : publishedDate;
+  const answerText = (l.sheikhExplanation ? `${l.mainText || ''}\n\nتعليق الشيخ: ${l.sheikhExplanation}` : (l.mainText || '')).trim();
+
   const articleLd = {
     '@type': 'Article',
     headline: l.title,
@@ -393,6 +398,13 @@ function lessonPage(l, bookLessons, bookName) {
     url,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     publisher: { '@type': 'Organization', name: 'يَسِّر', url: BASE },
+    author: {
+      '@type': 'Person',
+      name: 'فضيلة الشيخ محمد بن علي الهبدان',
+    },
+    educationalLevel: 'Intermediate',
+    datePublished: publishedDate,
+    dateModified: modifiedDate,
   };
   const breadcrumbLd = {
     '@type': 'BreadcrumbList',
@@ -403,9 +415,22 @@ function lessonPage(l, bookLessons, bookName) {
       { '@type': 'ListItem', position: 4, name: l.title, item: url },
     ],
   };
+  const faqLd = {
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: l.title.startsWith('ما حكم') ? l.title : `ما حكم ${l.title}؟`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: answerText || desc,
+        },
+      },
+    ],
+  };
   const jsonld = {
     '@context': 'https://schema.org',
-    '@graph': [articleLd, breadcrumbLd],
+    '@graph': [articleLd, breadcrumbLd, faqLd],
   };
 
   // تنسيق نص المتن: استبدال أقواس الآيات بعلامات ملونة
@@ -758,7 +783,11 @@ for (const l of lessonsData) {
   const dir = join(PUBLIC, 'lessons', String(l.id));
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'index.html'), lessonPage(l, bookLessons, bookName), 'utf8');
-  lessonLastmod[String(l.id)] = timestampOf(l) ? new Date(timestampOf(l)).toISOString().slice(0, 10) : null;
+  const t = timestampOf(l);
+  const fallbackDate = new Date().toISOString().slice(0, 10);
+  lessonLastmod[String(l.id)] = t
+    ? new Date(t).toISOString().slice(0, 10)
+    : (bookLastmod[bookName] || fallbackDate);
   count += 1;
 }
 
@@ -806,16 +835,17 @@ try {
 }
 
 // ── sitemap شامل ──
+const globalLastmod = lastmodOf(lessonsData) || new Date().toISOString().slice(0, 10);
 const urlEntry = (loc, lastmod, extra = '') =>
-  `  <url><loc>${loc}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}<changefreq>weekly</changefreq>${extra}</url>`;
+  `  <url><loc>${loc}</loc><lastmod>${lastmod || globalLastmod}</lastmod><changefreq>weekly</changefreq>${extra}</url>`;
 const urls = [
-  urlEntry(`${BASE}/`, lastmodOf(lessonsData)),
-  urlEntry(`${BASE}/books/`, lastmodOf(lessonsData)),
-  urlEntry(`${BASE}/lessons/`, lastmodOf(lessonsData)),
+  urlEntry(`${BASE}/`, globalLastmod),
+  urlEntry(`${BASE}/books/`, globalLastmod),
+  urlEntry(`${BASE}/lessons/`, globalLastmod),
 ];
-bookNames.forEach((n) => urls.push(urlEntry(`${BASE}/books/${enc(n)}/`, bookLastmod[n])));
+bookNames.forEach((n) => urls.push(urlEntry(`${BASE}/books/${enc(n)}/`, bookLastmod[n] || globalLastmod)));
 lessonsData.forEach((l) =>
-  urls.push(urlEntry(`${BASE}/lessons/${encId(l.id)}/`, lessonLastmod[String(l.id)])),
+  urls.push(urlEntry(`${BASE}/lessons/${encId(l.id)}/`, lessonLastmod[String(l.id)] || globalLastmod)),
 );
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

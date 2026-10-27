@@ -17,6 +17,7 @@ const HighlightsView = lazy(() => import('../Views/HighlightsView'));
 const ReadingView    = lazy(() => import('../Views/ReadingView'));
 const SettingsView   = lazy(() => import('../Views/SettingsView'));
 const AchievementsView = lazy(() => import('../Views/AchievementsView'));
+const ReviewMode     = lazy(() => import('../Views/ReviewMode'));
 const AdminPanel     = lazy(() => import('../Admin/AdminPanel'));
 
 interface ViewSpinnerProps {
@@ -47,7 +48,7 @@ const AppLayout = () => {
   } = useApp();
 
   // الشاشات التي تعتمد على المسائل فعليًا — تُستبدل بحالة "تعذّر تحميل المسائل" عند غياب المحتوى
-  const contentViews = ['books', 'chapters', 'lessons', 'reading', 'bookmarks', 'highlights', 'achievements'];
+  const contentViews = ['books', 'chapters', 'lessons', 'reading', 'bookmarks', 'highlights', 'achievements', 'review'];
 
   // عنوان الصفحة الدلالي (h1) — لكل شاشة عنوان واحد واضح للزحّاف وقارئ الشاشة
   const viewTitle = currentView === 'reading'
@@ -61,6 +62,7 @@ const AppLayout = () => {
         achievements: 'إنجازاتي ومواظبتي',
         settings: 'الإعدادات',
         admin: 'لوحة الإدارة',
+        review: 'وضع المراجعة والاختبار',
       } as Record<string, string>)[currentView] ?? 'يَسِّر';
 
   return (
@@ -217,6 +219,12 @@ const AppLayout = () => {
               {currentView === 'achievements' && (
                 <ErrorBoundary fallback={<ViewErrorFallback />}>
                   <AchievementsView />
+                </ErrorBoundary>
+              )}
+
+              {currentView === 'review' && (
+                <ErrorBoundary fallback={<ViewErrorFallback />}>
+                  <ReviewMode onClose={() => setCurrentView('highlights')} />
                 </ErrorBoundary>
               )}
 

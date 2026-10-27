@@ -97,7 +97,7 @@ const LessonsView = memo(() => {
             animate="show"
           >
             {issues.map((lesson) => (
-              <motion.div key={lesson.id} variants={itemVariants}>
+              <motion.div key={lesson.id} variants={itemVariants} className="cv-auto-list-item">
                 <LessonListItem
                   title={lesson.title}
                   pageNumber={lesson.pageNumber}
