@@ -1,0 +1,258 @@
+% !TEX program = xelatex
+% ============================================================
+%  خطة إصلاح مطابقة مصطلحات القاموس مع النص
+%  (حدود الكلمات · التسامح الصرفي · توحيد المنطق · صحة التعريف)
+%  الاستخدام على Overleaf:
+%    1) New Project ← Blank Project
+%    2) الصق المحتوى في main.tex
+%    3) Menu ← Compiler ← اختر: XeLaTeX   (مهم للعربية)
+%    4) Recompile ← نزّل PDF
+% ============================================================
+\documentclass[11pt]{article}
+
+\usepackage{polyglossia}
+\setmainlanguage{arabic}
+\setotherlanguage{english}
+\newfontfamily\arabicfont[Script=Arabic,Scale=1.0]{Amiri}
+\newfontfamily\arabicfontsf[Script=Arabic,Scale=1.0]{Amiri}
+\setmonofont{DejaVu Sans Mono}[Scale=0.8]
+
+\usepackage{geometry}
+\geometry{a4paper, margin=2.2cm}
+
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{fontawesome5}
+
+% ── الألوان (هوية يَسِّر) ──
+\definecolor{gold}{HTML}{B8933B}
+\definecolor{teal}{HTML}{0F3D3E}
+\definecolor{darkbg}{HTML}{101414}
+\definecolor{okgreen}{HTML}{27AE60}
+\definecolor{warnred}{HTML}{C0392B}
+\definecolor{softgray}{HTML}{F4F4F4}
+\definecolor{midgray}{HTML}{7A7A7A}
+\definecolor{codebg}{HTML}{1A2020}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[R]{\small\color{gold}خطة مطابقة مصطلحات القاموس — منصة يَسِّر}
+\fancyhead[L]{\small\color{midgray}Glossary Matching Fix}
+\fancyfoot[C]{\small\thepage}
+
+\titleformat{\section}{\Large\bfseries\color{gold}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{darkbg}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{midgray}}{\thesubsubsection}{0.4em}{}
+
+\setlist[itemize]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{rightmargin=0pt, itemsep=2pt, topsep=3pt}
+
+\hypersetup{
+  colorlinks=true, linkcolor=gold, urlcolor=gold,
+  pdftitle={خطة مطابقة مصطلحات القاموس}, pdfauthor={منصة يَسِّر}
+}
+
+% ── صناديق مخصّصة ──
+\newtcolorbox{goalbox}[1][]{
+  colback=gold!8, colframe=gold, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{notebox}[1][]{
+  colback=softgray, colframe=midgray, boxrule=0.6pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{warnbox}[1][]{
+  colback=warnred!6, colframe=warnred, boxrule=0.8pt,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+\newtcolorbox{codebox}[1][]{
+  colback=codebg, colframe=codebg, coltext=white,
+  arc=3pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  breakable, #1
+}
+
+\begin{document}
+
+% ============================================================
+\begin{center}
+  {\Huge\bfseries\color{gold} خطة إصلاح مطابقة مصطلحات القاموس}\\[4pt]
+  {\large\color{darkbg} أن يطابق التعريفُ الكلمةَ في النص بدقة}\\[6pt]
+  {\small\color{midgray} منصة يَسِّر الفقهية — \today}
+\end{center}
+
+\vspace{4pt}
+\hrule
+\vspace{10pt}
+
+% ============================================================
+\section{المشكلة}
+
+\begin{goalbox}
+المطابقة الحالية تبحث عن مصطلح القاموس داخل النص بلا \textbf{حدود كلمات} وبلا \textbf{تسامح صرفي}.
+النتيجة: تطابقات خاطئة (مصطلح داخل كلمة أطول)، وفوائت (صيغة في النص لا تطابق مفتاح القاموس)،
+ومدير يضطر لتكرار المصطلح بيده بمشكّل وبلا مشكّل.
+\end{goalbox}
+
+\subsection*{الدليل المقاس من البيانات}
+\begin{itemize}
+  \item \textbf{تكرار مصطنع في القاموس} (\texttt{src/data/glossary.ts}): \texttt{مُنْقٍ} و\texttt{منق}،
+        \texttt{إداوة} و\texttt{اداوة}، \texttt{عَنَزَة} و\texttt{عنزة}، \texttt{رَجِيع} و\texttt{رجيع}،
+        \texttt{البراز} و\texttt{البَراز} — أزواج متطابقة بعد التطبيع، تُثبت أن المطابقة لا تتسامح كفاية.
+  \item \textbf{تطابقات خاطئة}: البحث عن \texttt{يد} يطابق داخل «صَعِيدًا»، «سعيد»، «الحديد»، «يدخل».
+        و\texttt{غسل} داخل «اغسلني»، والحال نفسه مع أي مصطلح قصير.
+  \item \textbf{منطق مكرّر}: المطابقة مكتوبة مرتين — في \texttt{glossaryUtil.tsx} (المولّد القياسي)
+        وفي \texttt{QuoteCard.tsx} (نسخة يدوية مطابقة). أي إصلاح في أحدهما لا يسري على الآخر.
+\end{itemize}
+
+\begin{notebox}
+\textbf{نطاق المطابقة:} متن المسألة (\texttt{QuoteCard}) وشرح الشيخ (\texttt{ExplanationCard})،
+عبر \texttt{sortedGlossaryTerms} و\texttt{createGlossaryRenderer} ونسخة \texttt{QuoteCard} المكرّرة.
+\end{notebox}
+
+% ============================================================
+\section{المرحلة ١ — فرض حدود الكلمات}
+
+\subsection*{المبدأ}
+لا يُطابق المصطلح إلا إذا كان \textbf{مستقلاً} (قبله وبعده ليس حرفاً عربياً).
+
+\begin{itemize}
+  \item عند كل موضع مرشّح، تحقّق أن الحرف المطبَّع السابق \textbf{ليس} حرفاً عربياً
+        (\texttt{[\textbackslash u0600-\textbackslash u06FF]}).
+  \item والحرف المطبَّع التالي \textbf{ليس} حرفاً عربياً.
+  \item \textbf{استثناء مقصود:} علامات ترقيم/مسافات/نهاية النص تُعامَل كحدود صحيحة.
+\end{itemize}
+
+\begin{codebox}
+{\ttfamily\small\raggedleft
+// المفاهيم (لا الكود النهائي):\\
+const isArabic = (c) => /[\textbackslash u0600-\textbackslash u06FF]/.test(c);\\
+function atWordBoundary(norm, start, end) \{\\
+\hspace*{1em}const beforeOk = start === 0 || !isArabic(norm[start - 1]);\\
+\hspace*{1em}const afterOk = end >= norm.length || !isArabic(norm[end]);\\
+\hspace*{1em}return beforeOk \&\& afterOk;\\
+\}
+}
+\end{codebox}
+
+\begin{warnbox}
+\textbf{الحذر:} فرض الحدود وحده \textbf{يكسر} المصطلحات متعددة الكلمات إذا احتُسبت المسافة بينها.
+يجب أن يكون فحص الحدود على \textbf{أول} حرف من المصطلح و\textbf{آخر} حرف منه فقط، مع السماح بالمسافات داخله.
+\end{warnbox}
+
+% ============================================================
+\section{المرحلة ٢ — التسامح الصرفي (ال التعريف والضمائر)}
+
+\subsection*{المشكلة}
+مفتاح القاموس \texttt{الصلاة} لا يطابق نصاً فيه «صلاة» أو «وصلاته» بلا «ال».
+
+\begin{itemize}
+  \item \textbf{خيار (أ) — مطابقة اختيارية لـ«ال» التعريف:} عند بناء \texttt{sortedTerms}،
+        يُقبل تطابق المصطلح مع أو بدون «ال» البادئة.
+  \item \textbf{خيار (ب) — تطبيع المفتاح بتجريده من «ال» مع حفظ الصيغة الأصلية} للنافذة.
+  \item \textbf{قاعدة الأمان:} تطبيع جهة المفتاح \textbf{و} جهة النص معاً بنفس الدالة
+        (يجري أصلاً في \texttt{normalizeWithIndex})، فلا ينتج انحراف موضع.
+  \item \textbf{حدّ التطبيع:} لا قوائم صرفية كاملة (جذر/وزن) — \textbf{مبالغة} وخطأ.
+        نكتفي بـ: تشكيل · تطويل · أشكال الألف · ة/ه · ى/ي · «ال» الاختيارية.
+\end{itemize}
+
+\begin{notebox}
+هذا يحلّ سبب التكرار اليدوي: \texttt{البراز} و\texttt{البَراز} يُدغمان تلقائياً لأن
+التشكيل يُطبع و«ال» اختيارية — فيكفي مفتاح واحد.
+\end{notebox}
+
+% ============================================================
+\section{المرحلة ٣ — توحيد منطق المطابقة}
+
+\begin{warnbox}
+\textbf{مشكلة جوهرية:} المنطق مكرّر في موضعين. أي إصلاح في أحدهما يترك الآخر معطوباً.
+\end{warnbox}
+
+\begin{itemize}
+  \item حصر المطابقة في \textbf{مصدر واحد}: \texttt{createGlossaryRenderer} في \texttt{glossaryUtil.tsx}.
+  \item تحويل \texttt{QuoteCard.tsx} لاستدعاء نفس المولّد بدل النسخة اليدوية (سطور 188--246).
+  \item التأكد أن كولباكس الأحداث (\texttt{onHover}/\texttt{onClick}/\texttt{onLeave}/\texttt{onMove}) تُمرَّر كما هي.
+  \item \textbf{الأثر:} إصلاح واحد يسري على المتن والشرح معاً، ويقلّ الكود المكرّر.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ٤ — تنظيف القاموس من التكرار}
+
+\begin{itemize}
+  \item بعد إصلاح التسامح، حذف الأزواج المتطابقة بعد التطبيع
+        (\texttt{اداوة}، \texttt{عنزة}، \texttt{رجيع}، \texttt{يتخلى}، ...) والإبقاء على نسخة واحدة.
+  \item تغيير الفاصل: \textbf{لا يفقد تعريفاً} — تُراجع كل الأزواج يدوياً قبل الحذف عبر سكربت كشف.
+  \item \textbf{سكربت مساعد} \texttt{scripts/audit-glossary.mjs}: يطبع أي مفتاحين متساويين بعد التطبيع.
+  \item إبقاء \texttt{الطهور}/\texttt{الطهارة} (مصطلحان مختلفان تعريفاً) — التشابه لا يعني التكرار.
+\end{itemize}
+
+% ============================================================
+\section{المرحلة ٥ — صحة التعريف مع النص}
+
+\begin{itemize}
+  \item إضافة \textbf{وضع تحقق} في لوحة الإدارة: عند كتابة مصطلح، يُعرض \emph{عدّ المواضع التي
+        سيُبرز فيها في المسائل الحالية} (باستخدام دالة المطابقة نفسها).
+  \item \textbf{قيمة مباشرة:} يرى المدير فوراً إن كان المصطلح سيظهر فعلاً أم لا (يكشف الفوائت).
+  \item \textbf{تحذير فوري} لو تطابق مصطلح قصير (سطر أو سطران) بكثرة مفرطة (خطر تطابق خاطئ).
+  \item \textbf{الملفات:} \texttt{AdminGlossaryTab.tsx} (معاينة المطابقة) + دالة عدّ مشتركة.
+\end{itemize}
+
+% ============================================================
+\section{الملفات والتحقق}
+
+\textbf{ملفات تُعدَّل:}
+\begin{itemize}
+  \item \texttt{src/utils/glossaryUtil.tsx} — حدود الكلمات + التسامح الصرفي (المصدر الواحد).
+  \item \texttt{src/Components/Content/QuoteCard.tsx} — حذف النسخة المكرّرة واستدعاء المولّد.
+  \item \texttt{src/data/glossary.ts} — حذف المفاتيح المكرّرة بعد التطبيع.
+  \item \texttt{src/Components/Admin/AdminGlossaryTab.tsx} — معاينة عدد المطابقات.
+  \item \texttt{scripts/audit-glossary.mjs} — كشف التكرار (جديد).
+\end{itemize}
+
+\vspace{6pt}
+\textbf{أوامر التحقق:}
+\begin{codebox}
+{\ttfamily\small\raggedleft
+npm run typecheck\\
+npm run lint\\
+npm test\\
+npm run build
+}
+\end{codebox}
+
+\subsection*{اختبارات إلزامية جديدة (\texttt{glossaryUtil.test.ts})}
+\begin{itemize}
+  \item لا تطابق \texttt{يد} داخل «صَعِيدًا»/«سعيد»/«الحديد».
+  \item لا تطابق \texttt{ماء} داخل «سماء»/«ماء الورد» (حدّ كلمة).
+  \item تطابق \texttt{الصلاة} مع نص فيه «صلاة» و«وصلاته» (تسامح «ال»).
+  \item تطابق \texttt{البراز} مع «البَراز» (تسامح تشكيل) بمفتاح واحد.
+  \item المصطلح متعدد الكلمات (\texttt{مفهوم المخالفة}) يُطابق بمسافاته الداخلية.
+  \item حفاظ المواضع: النص المُبرز يطابق المقطع الأصلي حرفياً.
+\end{itemize}
+
+% ============================================================
+\section{معايير القبول}
+
+\begin{itemize}
+  \item[${\color{okgreen}\faCheckCircle}$] لا تطابق مصطلح داخل كلمة أطول (حدود كلمات صارمة).
+  \item[${\color{okgreen}\faCheckCircle}$] «ال» التعريف اختيارية بلا انحراف مواضع.
+  \item[${\color{okgreen}\faCheckCircle}$] منطق مطابقة واحد فقط (لا تكرار).
+  \item[${\color{okgreen}\faCheckCircle}$] القاموس بلا مفاتيح مكرّرة بعد التطبيع.
+  \item[${\color{okgreen}\faCheckCircle}$] لوحة الإدارة تُظهر عدد المطابقات قبل الحفظ.
+  \item[${\color{okgreen}\faCheckCircle}$] كل بوابات الجودة خضراء.
+\end{itemize}
+
+\end{document}

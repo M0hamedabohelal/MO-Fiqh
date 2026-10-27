@@ -7,7 +7,7 @@ import styles from './QuoteCard.module.css';
 import { glossaryData as defaultGlossary } from '../../data/glossary';
 import { formatBrackets } from '../../utils/textFormatting';
 import { copyText } from '../../utils/clipboard';
-import { normalizeWithIndex, sortedGlossaryTerms } from '../../utils/glossaryUtil';
+import { sortedGlossaryTerms, createGlossaryRenderer } from '../../utils/glossaryUtil';
 import type { GlossaryMap } from '../../types';
 
 interface QuoteCardProps {
@@ -181,69 +181,20 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
     });
   };
 
-  // مصطلحات القاموس مُطبَّعة ومرتّبة من الأطول للأقصر — من الأداة المشتركة (نفس منطق شرائح الشرح)
+  // مصطلحات القاموس مُطبَّعة ومرتّبة من الأطول للأقصر — من الأداة المشتركة
   const glossaryTerms = useMemo(() => sortedGlossaryTerms(glossary), [glossary]);
 
-  // إبراز المصطلحات بتطبيع متسامح مع التشكيل واختلاف أشكال الحروف
-  const renderGlossary = (plainText: string, baseKey: string | number): ReactNode[] => {
-    if (glossaryTerms.length === 0) {
-      return [<React.Fragment key={`${baseKey}-empty`}>{parseCrossLinks(plainText, `${baseKey}-p`)}</React.Fragment>];
-    }
-    const { norm, map } = normalizeWithIndex(plainText);
-    const nodes: ReactNode[] = [];
-    let cur = 0;
-    let lastOrig = 0;
-    let k = 0;
-    while (cur < norm.length) {
-      let best: { term: string; def: string; norm: string } | null = null;
-      for (const e of glossaryTerms) {
-        if (norm.startsWith(e.norm, cur) && (!best || e.norm.length > best.norm.length)) {
-          best = e;
-        }
-      }
-      if (best) {
-        const matched = best;
-        if (lastOrig < map[cur]) {
-          nodes.push(parseCrossLinks(plainText.slice(lastOrig, map[cur]), `${baseKey}-t${k}`));
-        }
-        const end = cur + best.norm.length;
-        const origStart = map[cur];
-        const origEnd = map[end - 1] + 1;
-        nodes.push(
-          <span
-            key={`${baseKey}-g-${k}`}
-            className="glossary-term"
-            role="button"
-            tabIndex={0}
-            aria-label={`تعريف مصطلح: ${matched.term}`}
-            onMouseEnter={(e) => handleTermHover(e, matched.term)}
-            onClick={(e) => handleTermClick(e, matched.term)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                handleTermClick({ clientX: rect.left + rect.width / 2, clientY: rect.bottom + 8 } as unknown as MouseEvent, matched.term);
-              }
-            }}
-            onMouseMove={(e) => handleTermMove(e)}
-            onMouseLeave={handleTermLeave}
-            onBlur={handleTermLeave}
-          >
-            {plainText.slice(origStart, origEnd)}
-          </span>
-        );
-        lastOrig = origEnd;
-        cur = end;
-        k += 1;
-      } else {
-        cur += 1;
-      }
-    }
-    if (lastOrig < plainText.length) {
-      nodes.push(parseCrossLinks(plainText.slice(lastOrig), `${baseKey}-t${k}`));
-    }
-    return nodes;
-  };
+  // النصوص تُعرض عبر renderer يمرر معالجات القاموس الموحدة مع ربط الإحالات التبادلية
+  // eslint-disable-next-line react-hooks/refs
+  const renderGlossaryBase = createGlossaryRenderer(glossaryTerms, {
+    onHover: handleTermHover,
+    onClick: handleTermClick,
+    onMove: handleTermMove,
+    onLeave: handleTermLeave,
+  });
+
+  const renderGlossary = (plainText: string, baseKey: string | number): ReactNode[] =>
+    renderGlossaryBase(plainText, baseKey, parseCrossLinks);
 
   const renderParagraph = (paragraph: string, index: number): ReactNode => {
     if (!paragraph.trim()) return null;

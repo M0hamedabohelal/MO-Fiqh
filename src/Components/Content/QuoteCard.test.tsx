@@ -21,7 +21,8 @@ describe('QuoteCard Component', () => {
       />
     );
 
-    expect(screen.getByText(/الماء طهور لا ينجسه شيء/)).toBeTruthy();
+    expect(screen.getByText('طهور')).toBeTruthy();
+    expect(screen.getByText(/لا ينجسه شيء/)).toBeTruthy();
     expect(screen.getByRole('button', { name: /نسخ نص المسألة/i })).toBeTruthy();
   });
 

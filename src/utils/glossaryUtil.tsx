@@ -2,8 +2,8 @@ import { Fragment } from 'react';
 import type { ReactNode, MouseEvent } from 'react';
 import type { GlossaryMap } from '../types';
 
-// أدوات مطابقة مصطلحات القاموس في النصوص (بتطبيع متسامح مع التشكيل/أشكال الحروف)
-// تُستخدم في متن المسألة (QuoteCard) وشرح الشيخ (ExplanationCard)
+// أدوات مطابقة مصطلحات القاموس في النصوص (حدود الكلمات · التسامح الصرفي · توحيد المنطق)
+// تُستخدم في متن المسألة (QuoteCard) وشرح الشيخ (ExplanationCard) ولوحة الإدارة
 
 // تطبيع حرفي عربي للتسامح مع التشكيل واختلاف أشكال الحروف (للمطابقة فقط)
 export function normalizeGlossaryTerm(s: string): string {
@@ -12,10 +12,11 @@ export function normalizeGlossaryTerm(s: string): string {
     .replace(/[\u064B-\u0652\u0670\u0640]/g, '') // تشكيل + تطويل
     .replace(/[أإآٱ]/g, 'ا')
     .replace(/ة/g, 'ه')
-    .replace(/ى/g, 'ي');
+    .replace(/ى/g, 'ي')
+    .trim();
 }
 
-// تطبيع مع حفظ خريطة موضع (NormIndex → OrigIndex) كي نُبرز النص الأصلي
+// تطبيع مع حفظ خريطة موضع (NormIndex → OrigIndex) كي نُبرز النص الأصلي بدقة
 export function normalizeWithIndex(s: string): { norm: string; map: number[] } {
   const map: number[] = [];
   let norm = '';
@@ -30,18 +31,138 @@ export function normalizeWithIndex(s: string): { norm: string; map: number[] } {
   return { norm, map };
 }
 
-interface GlossaryEntry {
+// فحص الحرف العربي والكلمي (لتحديد حدود الكلمات بدقة)
+export function isWordChar(c?: string): boolean {
+  if (!c) return false;
+  // حروف اللغة العربية (من همزة إلى ياء والألفات الممدودة والمقصورة) بالإضافة للأرقام واللاتيني
+  return /[\u0621-\u064A\u0671-\u06D3\u06EE-\u06EF\u06FA-\u06FCa-zA-Z0-9]/.test(c);
+}
+
+// التحقق من حدود الكلمة: الحرف السابق واللاحق ليسا حرفًا عربيًا أو حرف كلمة
+export function atWordBoundary(norm: string, start: number, end: number): boolean {
+  const beforeOk = start === 0 || !isWordChar(norm[start - 1]);
+  const afterOk = end >= norm.length || !isWordChar(norm[end]);
+  return beforeOk && afterOk;
+}
+
+export interface GlossaryEntry {
   term: string;
   def: string;
   norm: string;
 }
 
+// توليد الصيغ المشتقة من المصطلح الواحد للتسامح مع "ال" التعريف والسوابق واللواحق الشائعة
+function generateTermVariants(term: string, def: string): GlossaryEntry[] {
+  const canonicalNorm = normalizeGlossaryTerm(term);
+  if (!canonicalNorm) return [];
+
+  const variants = new Map<string, GlossaryEntry>();
+  const add = (n: string) => {
+    if (n && !variants.has(n)) {
+      variants.set(n, { term, def, norm: n });
+    }
+  };
+
+  // 1. الصيغة المطبّعة الأساسية
+  add(canonicalNorm);
+
+  // إذا كان المصطلح متعدد الكلمات (مثل "مفهوم المخالفة" أو "بئر بضاعة")، يطابق كعبارة كاملة بمسافاتها الداخلية
+  if (canonicalNorm.includes(' ')) {
+    return Array.from(variants.values());
+  }
+
+  // 2. التسامح الصرفي للكلمات المفردة:
+  // استخراج الجذر المجرّد من "ال" إن وجدت
+  let bare = canonicalNorm;
+  if (canonicalNorm.startsWith('ال') && canonicalNorm.length > 3) {
+    bare = canonicalNorm.slice(2);
+  }
+
+  // الصيغة المعرفة بـ "ال"
+  const withAl = canonicalNorm.startsWith('ال') ? canonicalNorm : `ال${canonicalNorm}`;
+
+  add(bare);
+  add(withAl);
+
+  // سوابق العطف والجر الشائعة في كتب الفقه (و، ف، ب، ل، ك)
+  const prefixes = ['و', 'ف', 'ب', 'ل', 'ك'];
+  for (const p of prefixes) {
+    add(`${p}${bare}`);
+    add(`${p}${withAl}`);
+  }
+
+  // لام الجر عند دخولها على "ال" التعريف (مثل "للصلاة"، "للطهور")
+  if (withAl.startsWith('ال')) {
+    const lamAl = `لل${withAl.slice(2)}`;
+    add(lamAl);
+    add(`و${lamAl}`);
+    add(`ف${lamAl}`);
+  }
+
+  // الضمائر المتصلة الشائعة (مثل "صلاته"، "وضوءه"، "خفه"، "صلاتهم")
+  // إذا كانت الكلمة تنتهي بتاء مربوطة (تحولت في التطبيع إلى هاء)، فإنها تصبح تاء مع الضمير (صلاة -> صلاته)
+  const stem = bare.endsWith('ه') ? `${bare.slice(0, -1)}ت` : bare;
+  const suffixes = ['ه', 'ها', 'هم', 'ك', 'ي', 'نا'];
+  for (const s of suffixes) {
+    const suffixed = `${stem}${s}`;
+    add(suffixed);
+    add(`و${suffixed}`);
+    add(`ف${suffixed}`);
+    add(`ب${suffixed}`);
+    add(`ل${suffixed}`);
+  }
+
+  return Array.from(variants.values());
+}
+
 // بناء قائمة مصطلحات مُطبَّعة ومرتّبة من الأطول للأقصر (تفضيل أطول تطابق)
 export function sortedGlossaryTerms(glossary: GlossaryMap | undefined): GlossaryEntry[] {
-  return Object.entries(glossary || {})
-    .map(([term, def]) => ({ term, def, norm: normalizeGlossaryTerm(term) }))
-    .filter((e) => e.norm)
-    .sort((a, b) => b.norm.length - a.norm.length);
+  if (!glossary) return [];
+
+  const allEntries: GlossaryEntry[] = [];
+  const seenNorms = new Set<string>();
+
+  for (const [term, def] of Object.entries(glossary)) {
+    const termVariants = generateTermVariants(term, def);
+    for (const v of termVariants) {
+      if (!seenNorms.has(v.norm)) {
+        seenNorms.add(v.norm);
+        allEntries.push(v);
+      }
+    }
+  }
+
+  // الترتيب من الأطول للأقصر لضمان تطابق الأطول أولاً (مثل "الماء الطهور" قبل "الماء")
+  return allEntries.sort((a, b) => b.norm.length - a.norm.length);
+}
+
+// إحصاء عدد مرات تطابق مصطلح معين في نصوص معينة (للوحة الإدارة والمعاينة)
+export function countTermMatches(term: string, texts: string[]): number {
+  const normTerm = normalizeGlossaryTerm(term);
+  if (!normTerm || !texts || texts.length === 0) return 0;
+  const entries = sortedGlossaryTerms({ [term]: 'test' });
+  let count = 0;
+  for (const text of texts) {
+    if (!text) continue;
+    const { norm } = normalizeWithIndex(text);
+    let cur = 0;
+    while (cur < norm.length) {
+      let matched = false;
+      for (const e of entries) {
+        if (norm.startsWith(e.norm, cur)) {
+          const end = cur + e.norm.length;
+          if (atWordBoundary(norm, cur, end)) {
+            count += 1;
+            cur = end;
+            matched = true;
+            break;
+          }
+        }
+      }
+      if (!matched) cur += 1;
+    }
+  }
+  return count;
 }
 
 type ParseLinksFn = (text: string, key: string) => ReactNode;
@@ -54,12 +175,12 @@ interface GlossaryHandlers {
 }
 
 // مُولّد دالة عرض النص مع إبراز المصطلحات كـ <span class="glossary-term">
-// يجب تمرير كولباكس الأحداث (hover/click/leave) التي تدير نافذة التعريف.
+// المصدر الواحد المشترك لمتن المسألة وشرح الشيخ
 export function createGlossaryRenderer(
   sortedTerms: GlossaryEntry[],
   { onHover, onClick, onLeave, onMove }: GlossaryHandlers,
 ) {
-  return function renderGlossary(plainText: string, baseKey: string, parseLinks?: ParseLinksFn): ReactNode[] {
+  return function renderGlossary(plainText: string, baseKey: string | number, parseLinks?: ParseLinksFn): ReactNode[] {
     if (sortedTerms.length === 0) {
       return [
         <Fragment key={`${baseKey}-e`}>
@@ -73,10 +194,14 @@ export function createGlossaryRenderer(
     let lastOrig = 0;
     let k = 0;
     while (cur < norm.length) {
-      let best = null;
+      let best: GlossaryEntry | null = null;
       for (const e of sortedTerms) {
-        if (norm.startsWith(e.norm, cur) && (!best || e.norm.length > best.norm.length)) {
-          best = e;
+        if (norm.startsWith(e.norm, cur)) {
+          const end = cur + e.norm.length;
+          if (atWordBoundary(norm, cur, end)) {
+            best = e;
+            break; // sortedTerms مرتبة من الأطول للأقصر
+          }
         }
       }
       if (best) {
@@ -86,7 +211,11 @@ export function createGlossaryRenderer(
         }
         const end = cur + best.norm.length;
         const origStart = map[cur];
-        const origEnd = map[end - 1] + 1;
+        let origEnd = map[end - 1] + 1;
+        // استيعاب أي علامات تشكيل تابعة لآخر حرف من الكلمة في النص الأصلي (منع الحركات العائمة)
+        while (origEnd < plainText.length && /[\u064B-\u0652\u0670\u0640]/.test(plainText[origEnd])) {
+          origEnd += 1;
+        }
         nodes.push(
           <span
             key={`${baseKey}-g-${k}`}

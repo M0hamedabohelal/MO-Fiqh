@@ -20,6 +20,7 @@
     "check:backup-key": "node scripts/check-backup-key.mjs",
     "restore": "node scripts/restore-firestore.mjs",
     "audit:data": "node scripts/audit-content.mjs",
+    "audit:glossary": "node scripts/audit-glossary.mjs",
     "migrate": "node scripts/migrate-to-firestore.mjs",
     "brand": "node scripts/build-brand-assets.mjs",
     "setup:fonts": "node scripts/setup-local-fonts.mjs",

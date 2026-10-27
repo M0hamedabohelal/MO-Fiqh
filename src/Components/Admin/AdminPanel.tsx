@@ -93,7 +93,7 @@ const AdminPanel = () => {
         <AdminLessonsTab lessons={lessons} cloudBackupReady={cloudLessonsLoaded && !isOffline} onDataChanged={onDataChanged} flash={flash} />
       )}
       {tab === 'glossary' && (
-        <AdminGlossaryTab glossary={glossary} onDataChanged={onDataChanged} flash={flash} />
+        <AdminGlossaryTab glossary={glossary} lessons={lessons} onDataChanged={onDataChanged} flash={flash} />
       )}
       {tab === 'stats' && (
         <AdminStatsTab lessons={lessons} cloudLessonsLoaded={cloudLessonsLoaded} cloudStatus={cloudStatus} />
