@@ -56,7 +56,7 @@ export const ReadingHeaderBar = ({
         {onOpenTOC && (
           <button
             type="button"
-            className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2"
+            className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 reading-toolbar-btn"
             style={{
               borderRadius: '10px',
               fontWeight: 'bold',
@@ -78,7 +78,7 @@ export const ReadingHeaderBar = ({
         {/* 2. زر طباعة الباب كاملاً — متاح دائماً على الهاتف والكمبيوتر */}
         <button
           type="button"
-          className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2"
+          className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 reading-toolbar-btn"
           style={{
             borderRadius: '10px',
             fontWeight: 'bold',

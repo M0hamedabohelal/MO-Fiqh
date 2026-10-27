@@ -149,10 +149,11 @@ const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareBut
           disabled={generating}
           className={`btn d-flex align-items-center gap-2 shadow-sm ${isSmall ? 'btn-sm px-2 py-1' : 'px-3 py-2'}`}
           style={{
-            backgroundColor: 'rgba(201, 168, 76, 0.15)',
-            color: 'var(--accent-color, #c9a84c)',
+            backgroundColor: 'color-mix(in srgb, var(--accent-color) 12%, transparent)',
+            color: 'var(--accent-color)',
             borderRadius: '20px',
-            border: '1px solid var(--accent-color, #c9a84c)',
+            border: '1.5px solid var(--accent-color)',
+            fontWeight: 700,
             fontSize: isSmall ? '0.8rem' : '0.9rem',
             transition: 'all 0.3s ease',
           }}

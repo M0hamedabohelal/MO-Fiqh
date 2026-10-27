@@ -18,9 +18,9 @@
   --z-overlay: 10000;
   --bg-color: #fafaf7;
   --primary-color: #0f3d3e;
-  --accent-color: #fbdc99;
+  --accent-color: #966816;
   --text-main: #2c2c2c;
-  --text-on-accent: #0f3d3e;
+  --text-on-accent: #ffffff;
   --text-on-primary: #ffffff;
   --text-muted: #595959;
   --nav-active-color: #0c3834;
@@ -62,7 +62,7 @@
   --tone-warning: #d35400;
   --tone-danger: #e74c3c;
   --tone-info: #2980b9;
-  --brand-gold: #c9a84c;
+  --brand-gold: #966816;
   --brand-teal: #5cc0b5;
   --shadow-soft: rgba(0, 0, 0, 0.06);
   --shadow-soft-lg: rgba(0, 0, 0, 0.08);
@@ -390,14 +390,32 @@ button:active:not(:disabled),
   border-color: var(--primary-color);
 }
 
-/* تباين أزرار وعناصر اللون الرئيسي (Teal) في الوضع الداكن — نص داكن (#08231f) لتباين 7.4:1 متوافق مع WCAG AAA */
-[data-theme="dark"] .btn[style*="var(--primary-color)"],
+/* تباين أزرار وعناصر اللون الرئيسي (Teal) في الوضع الداكن — نص داكن (#08231f) لأزرار الخلفية التيل فقط لتباين 7.4:1 متوافق مع WCAG AAA */
 [data-theme="dark"] .btn[style*="background: var(--primary-color)"],
 [data-theme="dark"] .btn[style*="background-color: var(--primary-color)"],
 [data-theme="dark"] .btn[style*="backgroundColor: var(--primary-color)"],
 [data-theme="dark"] .chip-btn.chip-active,
 [data-theme="dark"] .nav-lesson-btn:hover:not(:disabled) {
   color: #08231f !important;
+}
+
+/* تباين أزرار شريط القراءة العلوية وشجرة الفقه في الوضع الداكن */
+.reading-toolbar-btn {
+  color: var(--primary-color) !important;
+}
+[data-theme="dark"] .reading-toolbar-btn {
+  color: var(--primary-color) !important;
+  background-color: var(--badge-bg) !important;
+  border-color: var(--border-color) !important;
+}
+[data-theme="dark"] .reading-toolbar-btn:hover {
+  background-color: rgba(92, 192, 181, 0.15) !important;
+  color: #ffffff !important;
+}
+[data-theme="dark"] .floating-toc-btn {
+  color: var(--primary-color) !important;
+  background-color: var(--card-bg) !important;
+  border-color: var(--accent-color) !important;
 }
 .search-result-count {
   font-size: .78rem;
@@ -443,7 +461,7 @@ button:active:not(:disabled),
 [data-theme="sepia"] {
   --bg-color: #f4ecd8;
   --primary-color: #5b3a29;
-  --accent-color: #c09553;
+  --accent-color: #8c5b20;
   --text-main: #3e2a1a;
   --text-on-accent: #3e2a1a;
   --text-on-primary: #f4ecd8;
