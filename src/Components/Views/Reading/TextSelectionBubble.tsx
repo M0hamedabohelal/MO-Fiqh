@@ -1,3 +1,4 @@
+import { useRef, useState, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiEdit3, FiImage } from 'react-icons/fi';
 
@@ -22,10 +23,62 @@ export const TextSelectionBubble = ({
   onSaveHighlight,
   onOpenQuoteImage,
 }: TextSelectionBubbleProps) => {
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const [offset, setOffset] = useState<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
+
+  // فحص وتصحيح موضع البوب-أب فوراً قبل الرسم لضمان عدم خروجه من حدود الشاشة إطلاقاً
+  useLayoutEffect(() => {
+    if (!selectionPopup.show || !bubbleRef.current) {
+      setOffset({ dx: 0, dy: 0 });
+      return;
+    }
+
+    const el = bubbleRef.current;
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+
+    const screenW = document.documentElement.clientWidth || window.innerWidth;
+    const screenH = window.innerHeight;
+
+    const marginX = 12;
+    const marginTop = 50;
+    // حجز مساحة لشريط التنقل السفلي في الهواتف لمنع تداخله مع البوب-أب
+    const marginBottom = isSmallScreen ? 82 : 24;
+
+    let dx = 0;
+    let dy = 0;
+
+    // حماية الحافة اليمنى: منع خروج البوب-أب خارج الشاشة يميناً
+    if (rect.right > screenW - marginX) {
+      dx -= (rect.right - (screenW - marginX));
+    }
+    // حماية الحافة اليسرى: منع خروج البوب-أب خارج الشاشة يساراً
+    if (rect.left + dx < marginX) {
+      dx += (marginX - (rect.left + dx));
+    }
+
+    // حماية الحافة السفلية: منع خروج البوب-أب أسفل الشاشة أو فوق شريط التنقل
+    const maxBottom = screenH - marginBottom;
+    if (rect.bottom > maxBottom) {
+      dy -= (rect.bottom - maxBottom);
+    }
+    // حماية الحافة العلوية: منع خروج البوب-أب أعلى الشاشة خلف الترويسة
+    if (rect.top + dy < marginTop) {
+      dy += (marginTop - (rect.top + dy));
+    }
+
+    if (dx !== 0 || dy !== 0) {
+      setOffset({ dx, dy });
+    } else {
+      setOffset({ dx: 0, dy: 0 });
+    }
+  }, [selectionPopup.show, selectionPopup.x, selectionPopup.y, isSmallScreen]);
+
   return (
     <AnimatePresence>
       {selectionPopup.show && (
         <motion.div
+          ref={bubbleRef}
           className="selection-popup"
           initial={{ opacity: 0, scale: 0.88, y: selectionPopup.below ? -8 : 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -44,8 +97,8 @@ export const TextSelectionBubble = ({
           }}
           style={{
             position: 'fixed',
-            left: `${selectionPopup.x}px`,
-            top: `${selectionPopup.y}px`,
+            left: `${selectionPopup.x + offset.dx}px`,
+            top: `${selectionPopup.y + offset.dy}px`,
             transform: 'translateX(-50%)',
             zIndex: 9999,
             backgroundColor: 'var(--card-bg, #ffffff)',
@@ -56,11 +109,13 @@ export const TextSelectionBubble = ({
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25), 0 2px 10px rgba(150, 104, 22, 0.35)',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
+            gap: isSmallScreen ? '3px' : '4px',
             fontWeight: 700,
             whiteSpace: 'nowrap',
-            maxWidth: 'calc(100vw - 16px)',
-            fontSize: isSmallScreen ? '0.85rem' : '0.9rem',
+            maxWidth: 'calc(100vw - 20px)',
+            width: 'max-content',
+            boxSizing: 'border-box',
+            fontSize: isSmallScreen ? '0.84rem' : '0.9rem',
             fontFamily: 'var(--font-ui)',
             userSelect: 'none',
             touchAction: 'manipulation',
@@ -86,7 +141,7 @@ export const TextSelectionBubble = ({
               fontWeight: 'inherit',
               fontSize: 'inherit',
               fontFamily: 'inherit',
-              padding: isSmallScreen ? '8px 12px' : '6px 14px',
+              padding: isSmallScreen ? '7px 11px' : '6px 14px',
               borderRadius: '50px',
               cursor: 'pointer',
               minHeight: '38px',
@@ -125,7 +180,7 @@ export const TextSelectionBubble = ({
               fontWeight: 'inherit',
               fontSize: 'inherit',
               fontFamily: 'inherit',
-              padding: isSmallScreen ? '8px 12px' : '6px 14px',
+              padding: isSmallScreen ? '7px 11px' : '6px 14px',
               borderRadius: '50px',
               cursor: 'pointer',
               minHeight: '38px',
