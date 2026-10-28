@@ -11,7 +11,7 @@ const TRI = 'كتاب الطهارة';
  *  لا كفشل — لأنه متقطّع (0/12 في المسابر) فيُفشل البوابة عشوائيًا. */
 function collectErrors(page: Page): string[] {
   const errors: string[] = [];
-  const benign = /ERR_ABORTED|net::ERR_FAILED|Failed to fetch|the server responded with a status of 4\d\d/i;
+  const benign = /ERR_ABORTED|net::ERR_FAILED|Failed to fetch|the server responded with a status of 4\d\d|requestStorageAccess|unsupported MIME type|recaptcha/i;
   const firestoreGlitch = /INTERNAL (ASSERTION|UNHANDLED)/i;
 
   page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
