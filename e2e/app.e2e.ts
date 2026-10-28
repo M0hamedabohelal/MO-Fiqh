@@ -267,7 +267,8 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
   test('12) شاشة الإعدادات: فتح وطي مجموعات الأكورديون', async ({ page }) => {
     const errors = collectErrors(page);
     await page.goto('/#/settings');
-    await expect(page.getByRole('heading', { name: /الإعدادات/ })).toBeVisible({ timeout: 30_000 });
+    // h1 الدلالي المخفي يحمل «الإعدادات» أيضًا، فنحدّد المستوى 2 لتفادي الالتباس
+    await expect(page.getByRole('heading', { level: 2, name: /الإعدادات/ })).toBeVisible({ timeout: 30_000 });
 
     // فحص مجموعات الأكورديون
     const accordionHeader = page.locator('button[data-group-id]').first();
@@ -293,7 +294,8 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
     await startReviewBtn.click();
 
     await expect(page).toHaveURL(/#\/review/);
-    await expect(page.getByRole('heading', { name: /وضع المراجعة/ })).toBeVisible({ timeout: 20_000 });
+    // h1 الدلالي المخفي يحمل «وضع المراجعة والاختبار»، فنحدّد المستوى 3 والنص الفعلي للشاشة
+    await expect(page.getByRole('heading', { level: 3, name: /وضع المراجعة والاستذكار/ })).toBeVisible({ timeout: 20_000 });
     expect(errors, errors.join('\n')).toEqual([]);
   });
 
