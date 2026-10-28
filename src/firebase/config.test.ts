@@ -37,12 +37,12 @@ vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key');
 vi.stubEnv('VITE_FIREBASE_PROJECT_ID', 'test-project');
 vi.stubEnv('VITE_FIREBASE_APP_ID', 'test-app-id');
 
-import {
+const {
   enableFirestoreNetwork,
   disableFirestoreNetwork,
   __resetNetworkStateForTests,
   initAppCheck,
-} from './config';
+} = await import('./config');
 
 describe('enableFirestoreNetwork — سياسة إعادة الاتصال', () => {
   beforeEach(() => {
