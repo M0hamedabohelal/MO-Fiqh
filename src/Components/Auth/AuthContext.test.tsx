@@ -263,4 +263,32 @@ describe('AuthContext & AuthProvider', () => {
     expect(status).toBe(true);
     expect(result.current.isAdminUser).toBe(true);
   });
+
+  it('في التطبيق المثبت (PWA Standalone) يستخدم Popup دائمًا ولا يستخدم Redirect', async () => {
+    mockSignInWithPopup.mockResolvedValueOnce({ user: { uid: 'pwa-google-uid' } });
+    window.matchMedia = vi.fn().mockImplementation((query) => ({
+      matches: query === '(display-mode: standalone)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+
+    const { result } = await renderAndReady();
+    await act(async () => {
+      authCallback?.(null);
+    });
+
+    let res;
+    await act(async () => {
+      res = await result.current.loginWithGoogle();
+    });
+
+    expect(res).toEqual({ success: true });
+    expect(mockSignInWithPopup).toHaveBeenCalled();
+    expect(mockSignInWithRedirect).not.toHaveBeenCalled();
+  });
 });

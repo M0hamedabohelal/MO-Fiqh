@@ -36,9 +36,16 @@ export const useAuth = (): AuthContextValue => {
   return ctx;
 };
 
-const isMobileDevice = (): boolean => {
-  if (typeof navigator === 'undefined') return false;
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isStandalone = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const isStandaloneDisplay = typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches;
+    const isIosStandalone = (navigator as unknown as { standalone?: boolean })?.standalone === true;
+    const isAndroidApp = typeof document !== 'undefined' && typeof document.referrer === 'string' && document.referrer.includes('android-app://');
+    return Boolean(isStandaloneDisplay || isIosStandalone || isAndroidApp);
+  } catch {
+    return false;
+  }
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -190,11 +197,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const provider = new authMod.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
 
-      // في أجهزة الجوال، النوافذ المنبثقة تُحجب أو تفقد اتصال النافذة الأم،
-      // لذا نستخدم signInWithRedirect مباشرة وفق معايير Firebase الرسمية
-      if (isMobileDevice()) {
-        await authMod.signInWithRedirect(auth, provider);
-        return { success: true };
+      // في التطبيق المثبت (PWA / Standalone):
+      // استخدام Redirect يخرج المستخدم من نافذة التطبيق إلى المتصفح الخارجي فتضيع الجلسة ولا تعود للتطبيق.
+      // لذلك نستخدم signInWithPopup دائماً في وضع التطبيق المثبت.
+      if (isStandalone()) {
+        try {
+          const result = await authMod.signInWithPopup(auth, provider);
+          if (result?.user) return { success: true };
+          return { success: true };
+        } catch (popupErr) {
+          const code = errCode(popupErr);
+          if (code === "auth/popup-closed-by-user") {
+            return { success: false, error: "تم إلغاء تسجيل الدخول." };
+          }
+          throw popupErr;
+        }
       }
 
       // محاولة Popup أولاً (أفضل تجربة في المتصفح العادي)
@@ -296,6 +313,10 @@ function translateAuthError(code: string): string {
       return 'محاولات كثيرة خاطئة — انتظر قليلاً ثم حاول مرة أخرى.';
     case 'auth/network-request-failed':
       return 'مشكلة في الاتصال بالإنترنت — تحقق من شبكتك.';
+    case 'auth/unauthorized-domain':
+      return 'نطاق التطبيق غير مضاف في قائمة النطاقات المصرّح بها (Authorized Domains) في Firebase.';
+    case 'auth/popup-blocked':
+      return 'تم حجب النافذة المنبثقة — يرجى السماح بالنوافذ المنبثقة للمتابعة.';
     case 'auth/operation-not-allowed':
       return 'تسجيل الدخول بالبريد غير مفعّل في مشروع Firebase.';
     case 'auth/popup-closed-by-user':
