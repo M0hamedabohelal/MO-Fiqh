@@ -32,6 +32,25 @@ describe('Cloudinary Upload Security & Validation', () => {
     expect(err).toContain('حجم الملف يتجاوز الحد المسموح');
   });
 
+  it('يرفض الملف الفارغ (حجم صفر)', () => {
+    const empty = new File([], 'empty.pdf', { type: 'application/pdf' });
+    const err = validateUploadFile(empty);
+    expect(err).not.toBeNull();
+    expect(err).toContain('فارغ');
+  });
+
+  it('يرفض الملف عندما لا يطابق نوع MIME الامتداد', () => {
+    const spoofed = new File(['data'], 'photo.png', { type: 'application/x-msdownload' });
+    const err = validateUploadFile(spoofed);
+    expect(err).not.toBeNull();
+    expect(err).toContain('لا يطابق امتداده');
+  });
+
+  it('يقبل ملفًا مطابق النوع (image/jpeg مع .jpg)', () => {
+    const ok = new File(['data'], 'cover.jpg', { type: 'image/jpeg' });
+    expect(validateUploadFile(ok)).toBeNull();
+  });
+
   it('الثوابت لا تسرب أي سر أو مفتاح خادم في حزمة العميل', () => {
     expect(CLOUDINARY_UPLOAD_URL).toContain('https://api.cloudinary.com/v1_1/');
     expect(CLOUDINARY_UPLOAD_PRESET).toBeDefined();

@@ -4,6 +4,7 @@ import { getFirestore, isFirebaseConfigured } from './config';
 import type { Firestore } from 'firebase/firestore';
 import type * as FsMod from 'firebase/firestore';
 import type { Lesson, GlossaryMap, AnnouncementItem } from '../types';
+import { logError } from '../utils/logError';
 
 async function getDb(): Promise<{ db: Firestore; fs: typeof FsMod }> {
   if (!isFirebaseConfigured) throw new Error('Firebase غير مهيأ');
@@ -72,10 +73,7 @@ async function reserveLessonIds(count: number): Promise<number[] | null> {
     return Array.from({ length: count }, (_, i) => start + i);
   } catch (err) {
     // سقوط آمن للمنطق القديم — مع تسجيل السبب (صلاحيات/أوفلاين) للمراقبة
-    try {
-      const { logError } = await import('../utils/logError');
-      logError('lessons.reserveIds', err, { count });
-    } catch { /* تجاهل */ }
+    logError('lessons.reserveIds', err, { count });
     return null;
   }
 }
@@ -300,12 +298,7 @@ export async function trackLessonView(lessonId: string | number): Promise<void> 
     );
   } catch (err) {
     // تجاهل أخطاء التتبع — ليست حرجة (تُسجَّل محليًا فقط وبخنق)
-    try {
-      const { logError } = await import('../utils/logError');
-      logError('stats.trackLessonView', err, { lessonId: String(lessonId) });
-    } catch {
-      /* تجاهل */
-    }
+    logError('stats.trackLessonView', err, { lessonId: String(lessonId) });
   }
 }
 
@@ -337,10 +330,7 @@ export async function isAdmin(uid: string, options?: { server?: boolean }): Prom
     return adminDoc.exists();
   } catch (error) {
     // فشل حقيقي (offline / permission / تهيئة باردة) — ليس رفضًا
-    try {
-      const { logError } = await import('../utils/logError');
-      logError('admins.check', error, { uid, server: Boolean(options?.server) });
-    } catch { /* تجاهل */ }
+    logError('admins.check', error, { uid, server: Boolean(options?.server) });
     return 'unknown';
   }
 }

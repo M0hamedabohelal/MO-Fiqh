@@ -127,13 +127,19 @@ export function getAuthModule(): Promise<{ app: FirebaseApp; auth: Auth; authMod
 let appCheckPromise: Promise<AppCheck> | null = null;
 // ─── App Check (reCAPTCHA v3): يحمي نقاط الكتابة العامة من البوتات ───
 // يُستدعى مرة واحدة عند الإقلاع (fire-and-forget) — لا يرمي أبدًا ولا يحجب التطبيق.
-// بلا مفتاح (VITE_FIREBASE_APPCHECK_KEY) يُتخطى بصمت ويبقى السلوك الحالي كما هو.
-// ملاحظة: التفعيل في القواعد (appCheck.token) خطوة لاحقة بعد خبز المفتاح في بناء الإنتاج
-// وإلا انكسرت كتابات العملاء وسكربت SEO (بلا توكن) — لا تُفعَّل قبلها.
+//
+// ⚠️ تسلسل التفعيل إلزامي (وإلا انكسرت كتابات العملاء بنسبة 100%):
+//   1) سجّل تطبيق الويب في Firebase Console ← App Check ← reCAPTCHA v3، واستخرج المفتاح.
+//   2) اضبط VITE_FIREBASE_APPCHECK_KEY، و VITE_ENABLE_APPCHECK=true في بناء الإنتاج.
+//   3) راقب لوحة App Check حتى تصبح الطلبات "متحقّقة" بنسبة عالية.
+//   4) بعدها فقط: فعّل إنفاذ appCheck.token في firestore.rules.
+//
+// البوابة مزدوجة: المفتاح الموجود وحده لا يُفعّل App Check — يجب VITE_ENABLE_APPCHECK=true صراحةً.
 export function initAppCheck(): Promise<AppCheck | null> {
   if (appCheckPromise) return appCheckPromise.then((ac) => ac).catch(() => null);
   const siteKey = import.meta.env.VITE_FIREBASE_APPCHECK_KEY as string | undefined;
-  if (!isFirebaseConfigured || !siteKey) {
+  const enabled = String(import.meta.env.VITE_ENABLE_APPCHECK ?? '').toLowerCase() === 'true';
+  if (!isFirebaseConfigured || !siteKey || !enabled) {
     appCheckPromise = Promise.reject(new Error('AppCheck غير مهيأ'));
     // رفض مُلتقط داخليًا — المتصلون يستخدمون void/call آمن
     appCheckPromise.catch(() => {});
