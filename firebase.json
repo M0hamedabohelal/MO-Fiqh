@@ -14,6 +14,16 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "rewrites": [
+      {
+        "source": "/lessons/**",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/books/**",
+        "destination": "/index.html"
+      }
+    ],
     "redirects": [
       {
         "source": "/service-worker.js",

@@ -109,6 +109,20 @@ export function hashFromCleanPath(pathname: string): string | null {
   return null;
 }
 
+// وسم noindex للمسار النظيف الذي لم يوجد له محتوى.
+// السبب: rewrites في firebase.json تُمرّر /lessons/{id}/ غير المبني إلى التطبيق حتى يفتح
+// فعلًا (مسألة تُضاف من لوحة الإدارة قبل إعادة البناء)، فيكون الرد 200 لا 404. بلا noindex
+// يصير soft-404 قابلًا للفهرسة ويُنافس صفحة الفهرس. noindex يُبقي الحماية ويُنجي الرابط.
+export function markSoftNotFound(): void {
+  let el = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+  if (!el) {
+    el = document.createElement("meta");
+    el.setAttribute("name", "robots");
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", "noindex, follow");
+}
+
 // تحديث بيانات منظمة (JSON-LD) لأجل النتائج الغنية في محركات البحث
 function updateStructuredData(obj: Record<string, unknown>): void {
   let el = document.getElementById("ld-json") as HTMLScriptElement | null;
@@ -146,6 +160,11 @@ export function useHashRoute(lessons: Lesson[]) {
   // تأثيرا الحلّ والتسجيل موضوعان أدناه بعد مزامنة المراجع: قاعدة react-hooks/immutability
   // تمنع الكتابة في مرجع قُرئ في تأثير سابق، وحلّ المعرّف يجب أن يسبق تسجيله في نفس الدفعة
   const readingLessonIdRef = useRef<string | null>(null);
+
+  // هل جاء الزائر عبر مسار نظيف قابل للفهرسة (/lessons/{id}/)؟
+  // يُلتقط عند الإقلاع في مرجع ثابت لأن __currentCleanPath يُحدَّث لاحقًا بقيمة null
+  // حين لا تكون هناك مسألة محلولة — فلو قرأناه وقت الفشل لضاع أثر الوصول.
+  const arrivedViaCleanPathRef = useRef<string | null>(window.__currentCleanPath ?? null);
 
   // لحفظ التبويب الأخير الذي كان به قائمة (للرجوع إليه)
   const lastListView = useRef<string>(
@@ -189,7 +208,10 @@ export function useHashRoute(lessons: Lesson[]) {
         setCurrentIndex(idx);
         setCurrentView("reading");
       } else if (currentViewRef.current === "reading") {
-        // معرّف غير موجود في البيانات — عودة آمنة للفهرس بدل عرض مسألة خاطئة
+        // معرّف غير موجود في البيانات — عودة آمنة للفهرس بدل عرض مسألة خاطئة.
+        // إن كان الوصول عبر مسار نظيف (/lessons/{id}/) فالفهرس لم يعرفه، والـ rewrite
+        // جعل الرد 200 → نعلن noindex حتى لا يُفهرس soft-404.
+        if (arrivedViaCleanPathRef.current) markSoftNotFound();
         setCurrentView(lastListView.current);
       }
       return;

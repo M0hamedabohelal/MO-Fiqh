@@ -444,11 +444,23 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
       expect(page.url()).not.toMatch(/[?&]v=\d+/);
       await expect(noteBox).toHaveValue('مسودة أكتبها الآن');
 
-      // المسار اليدوي: زر «تحديث الآن» يعمل حين يُقرّر المستخدم التحديث بنفسه
+      // المسار اليدوي: زر «تحديث الآن» يعمل حين يقرّر المستخدم التحديث بنفسه
       await page.getByRole('button', { name: /تحديث الآن/ }).click();
       await page.waitForURL(/[?&]v=\d+/, { timeout: 25_000 });
     } finally {
       await ctx.close();
     }
+  });
+
+  test('20) مسار مسألة غير مبنية يفتح التطبيق ويُعلن noindex (لا soft-404 قابل للفهرسة)', async ({ page }) => {
+    // rewrites في firebase.json تُمرّر /lessons/{id}/ غير المبني إلى التطبيق، فيكون الرد
+    // 200 — وهذا soft-404 لو تُرك بلا noindex يُنافس صفحة الفهرس في نتائج البحث.
+    await page.goto('/lessons/999/', { waitUntil: 'domcontentloaded' });
+
+    // التطبيق يعمل فعلًا (لا صفحة خطأ) — الرابط لا يكون ميتًا
+    await expect(page.locator('#root > *').first()).toBeVisible({ timeout: 30_000 });
+
+    // ومعلَّم بأنه غير قابل للفهرسة
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/, { timeout: 30_000 });
   });
 });
