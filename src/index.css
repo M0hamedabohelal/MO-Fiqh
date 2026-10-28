@@ -463,7 +463,7 @@ button:active:not(:disabled),
   --primary-color: #5b3a29;
   --accent-color: #8c5b20;
   --text-main: #3e2a1a;
-  --text-on-accent: #3e2a1a;
+  --text-on-accent: #ffffff;
   --text-on-primary: #f4ecd8;
   --text-muted: #544335;
   --nav-active-color: #6d441f;

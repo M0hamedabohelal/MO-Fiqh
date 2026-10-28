@@ -74,4 +74,18 @@ describe('NotesCard Component', () => {
     const alert = screen.getByRole('alert');
     expect(alert.textContent).toContain('الملاحظة فارغة! لا يوجد شيء لتصديره.');
   });
+
+  it('زر حفظ الملاحظات يستخدم متغيرات التباين العالي var(--text-on-accent)', () => {
+    render(
+      <NotesCard
+        lessonId={1}
+        lessonTitle="مسألة المياه"
+        onSave={vi.fn()}
+      />
+    );
+
+    const saveButton = screen.getByRole('button', { name: /حفظ الملاحظات/i });
+    expect(saveButton.style.backgroundColor).toBe('var(--accent-color)');
+    expect(saveButton.style.color).toBe('var(--text-on-accent)');
+  });
 });

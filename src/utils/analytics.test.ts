@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { initGA, trackPageView, trackEvent, _resetAnalyticsForTesting } from './analytics';
+import { initGA, trackPageView, trackEvent, setupDeferredGA, _resetAnalyticsForTesting } from './analytics';
 
 describe('analytics utility', () => {
   beforeEach(() => {
@@ -72,5 +72,18 @@ describe('analytics utility', () => {
       trackPageView('/test');
       trackEvent('test_event');
     }).not.toThrow();
+  });
+
+  it('setupDeferredGA waits for user interaction before injecting GA script', () => {
+    setupDeferredGA();
+
+    // No script should exist before interaction
+    expect(document.querySelector('script[src*="googletagmanager.com/gtag/js"]')).toBeNull();
+
+    // Trigger user click
+    window.dispatchEvent(new MouseEvent('click'));
+
+    // Script should now be injected
+    expect(document.querySelector('script[src*="googletagmanager.com/gtag/js"]')).toBeTruthy();
   });
 });

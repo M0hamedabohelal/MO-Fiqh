@@ -5,6 +5,7 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { AuthProvider } from './Components/Auth/AuthContext';
 import { initAppCheck } from './firebase/config';
 import { installFirestoreRecovery } from './utils/firestoreRecovery';
+import { setupDeferredGA } from './utils/analytics';
 import { hashFromCleanPath } from './hooks/useHashRoute';
 import 'bootstrap/dist/css/bootstrap.rtl.min.css';
 import './index.css';
@@ -24,6 +25,9 @@ if (!window.location.hash) {
 
 // إنقاذ تلقائي من الأعطال الداخلية القاتلة في Firestore (ca9/b815) قبل أي تهيئة
 installFirestoreRecovery();
+
+// تحميل تحليلات GA4 فقط بعد تفاعل المستخدم (خصوصية + أداء LCP)
+setupDeferredGA();
 
 // App Check (حماية من البوتات): معطّل افتراضيًا.
 // السبب: تطبيق الويب غير مُسجَّل في App Check لهذا المشروع، فكل تحميل يصدر 400

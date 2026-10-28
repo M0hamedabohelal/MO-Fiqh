@@ -73,6 +73,22 @@ export function initGA(customId?: string): boolean {
 }
 
 /**
+ * تهيئة التحليلات عند أول تفاعل فعلي للمستخدم (لمس، نقر، تمرير، أو ضغط مفتاح)
+ * لحماية خصوصية وبيانات المستخدم، وتسريع تحميل الصفحة الأولى (LCP/TBT).
+ */
+export function setupDeferredGA(): void {
+  if (typeof window === 'undefined') return;
+
+  const events = ['click', 'touchstart', 'scroll', 'keydown'] as const;
+  const trigger = () => {
+    events.forEach((evt) => window.removeEventListener(evt, trigger));
+    initGA();
+  };
+
+  events.forEach((evt) => window.addEventListener(evt, trigger, { passive: true, once: true }));
+}
+
+/**
  * Tracks a manual SPA page view with safe error suppression.
  */
 export function trackPageView(pagePath: string, pageTitle?: string): void {
