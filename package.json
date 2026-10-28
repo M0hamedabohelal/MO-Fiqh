@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/generate-seo.mjs && vite build && node scripts/purge-bootstrap.mjs",
+    "build:live": "node scripts/generate-seo.mjs --live && vite build && node scripts/purge-bootstrap.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.e2e.json",
     "lint": "eslint .",
     "deadcode": "knip",

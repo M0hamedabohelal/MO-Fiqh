@@ -119,7 +119,11 @@ function loadBackupLessons() {
   return null;
 }
 
-const liveLessons = await loadLiveLessons();
+const useLive = process.argv.includes('--live') || process.env.SEO_USE_LIVE === 'true';
+if (!useLive) {
+  console.log('⚡ SEO: استخدام البيانات المحلية والاحتياطية (توفير حصة Firestore). استخدم --live للسحب المباشر من السحابة.');
+}
+const liveLessons = useLive ? await loadLiveLessons() : null;
 const backupLessons = liveLessons ? null : loadBackupLessons();
 const { lessonsData: localLessons } = await import('../src/data/lessons.ts');
 // عند تعذّر السحابة قد تكون النسخة الاحتياطية أقدم من البيانات المحلية.

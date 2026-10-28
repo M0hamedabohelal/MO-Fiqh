@@ -1,10 +1,24 @@
 import { test, expect, devices, type Page, type ConsoleMessage } from '@playwright/test';
+import { lessonsData } from '../src/data/lessons';
 
 // 6 مسارات حرجة على مقاس فون + حارس أخطاء كونسول.
 // الهدف: ما لا تستطيع اختبارات الوحدة رؤيته — DOM حقيقي، توجيه هاشي، وحفظ فعلي
 // بعد إعادة تحميل الصفحة.
 
 const TRI = 'كتاب الطهارة';
+
+/** يضمن وجود كاش المسائل المحلي في بيئة الاختبار حتى لا تتعطل الاختبارات عند استنفاد حصة Firestore (HTTP 429) */
+async function seedLessonsCache(page: Page): Promise<void> {
+  await page.addInitScript((lessons) => {
+    try {
+      if (!localStorage.getItem('content_lessons_cache_v1')) {
+        localStorage.setItem('content_lessons_cache_v1', JSON.stringify({ at: Date.now(), lessons }));
+      }
+    } catch {
+      // تجاهل أخطاء التخزين
+    }
+  }, lessonsData);
+}
 
 /** يجمع أخطاء الكونسول الحقيقية. أخطاء الشبكة العابرة تُتجاهل،
  *  وعطل Firestore الداخلي المعروف (ca9/b815) يُسجَّل كتعليق مرئي في التقرير
@@ -28,8 +42,9 @@ function collectErrors(page: Page): string[] {
   return errors;
 }
 
-/** يفتح فهرس الكتب وينتظر وصول المحتوى من السحابة */
+/** يفتح فهرس الكتب وينتظر وصول المحتوى من السحابة أو الكاش */
 async function openBooks(page: Page): Promise<void> {
+  await seedLessonsCache(page);
   await page.goto('/#/books');
   await expect(page.getByRole('heading', { level: 3, name: 'فهرس الكتب' })).toBeVisible();
   await expect(page.getByText(TRI).first()).toBeVisible({ timeout: 30_000 });
@@ -39,6 +54,7 @@ async function openBooks(page: Page): Promise<void> {
 
 /** يفتح مسألة وينتظر انتهاء شاشة البداية (تظهر h1 مؤقت) قبل تأكيد محتوى القراءة */
 async function openLesson(page: Page, id: number): Promise<void> {
+  await seedLessonsCache(page);
   await page.goto(`/#/lesson/${id}`);
   await expect(page.getByRole('heading', { level: 1, name: /المسألة/ })).toBeVisible({ timeout: 30_000 });
   // علامة أن شاشة القراءة نفسها اكتمل تحميلها (بطاقة الملاحظات تُركَّب دائمًا)
