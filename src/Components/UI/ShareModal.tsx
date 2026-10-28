@@ -234,8 +234,15 @@ const ShareModal = ({
                   onDownloadImage();
                   onClose();
                 }}
-                className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
-                style={{ borderRadius: '20px' }}
+                className="btn btn-sm d-inline-flex align-items-center gap-1"
+                style={{
+                  borderRadius: '20px',
+                  border: '1.5px solid var(--primary-color)',
+                  color: 'var(--primary-color)',
+                  backgroundColor: 'transparent',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease',
+                }}
               >
                 <FiDownload size={14} /> حفظ كصورة
               </button>

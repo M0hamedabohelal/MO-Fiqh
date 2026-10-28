@@ -32,6 +32,7 @@ export const SettingsSection = ({
       <button
         type="button"
         id={headerId}
+        data-group-id={id}
         className={`${styles.accordionHeaderBtn} ${isOpen ? styles.accordionHeaderOpen : ''}`}
         onClick={onToggle}
         aria-expanded={isOpen}

@@ -28,14 +28,46 @@ function getMeasurementId(): string {
 }
 
 let isInitialized = false;
+let isGated = true;
+
+interface QueuedEvent {
+  type: 'page_view' | 'custom';
+  name?: string;
+  params: Record<string, unknown>;
+}
+
+let eventQueue: QueuedEvent[] = [];
+
+function flushQueue(): void {
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return;
+  while (eventQueue.length > 0) {
+    const item = eventQueue.shift();
+    if (!item) break;
+    try {
+      if (item.type === 'page_view') {
+        window.gtag('event', 'page_view', item.params);
+      } else if (item.name) {
+        window.gtag('event', item.name, item.params);
+      }
+    } catch {
+      // Ignore errors during flush
+    }
+  }
+}
 
 /**
  * Initializes GA4 script dynamically if not already loaded,
  * with send_page_view disabled by default for SPA manual control.
+ * Opens the gate and flushes any queued events.
  */
 export function initGA(customId?: string): boolean {
   if (typeof window === 'undefined') return false;
-  if (isInitialized) return true;
+  isGated = false;
+
+  if (isInitialized) {
+    flushQueue();
+    return true;
+  }
 
   const measurementId = customId || getMeasurementId();
   if (!measurementId) return false;
@@ -65,6 +97,7 @@ export function initGA(customId?: string): boolean {
     }
 
     isInitialized = true;
+    flushQueue();
     return true;
   } catch (err) {
     console.warn('Analytics initialization failed safely:', err);
@@ -90,9 +123,22 @@ export function setupDeferredGA(): void {
 
 /**
  * Tracks a manual SPA page view with safe error suppression.
+ * If GA is gated (user has not interacted yet), the pageview is queued in memory
+ * and will be sent automatically the moment the user interacts.
  */
 export function trackPageView(pagePath: string, pageTitle?: string): void {
   if (typeof window === 'undefined') return;
+
+  const params = {
+    page_path: pagePath,
+    page_title: pageTitle || document.title,
+    page_location: window.location.href,
+  };
+
+  if (isGated) {
+    eventQueue.push({ type: 'page_view', params });
+    return;
+  }
 
   try {
     if (!isInitialized) {
@@ -100,11 +146,7 @@ export function trackPageView(pagePath: string, pageTitle?: string): void {
     }
 
     if (typeof window.gtag === 'function') {
-      window.gtag('event', 'page_view', {
-        page_path: pagePath,
-        page_title: pageTitle || document.title,
-        page_location: window.location.href,
-      });
+      window.gtag('event', 'page_view', params);
     }
   } catch {
     // Fail silently without disrupting user experience
@@ -113,9 +155,17 @@ export function trackPageView(pagePath: string, pageTitle?: string): void {
 
 /**
  * Tracks a custom event (e.g. lesson_complete, share_quote, bookmark_add).
+ * If GA is gated, the event is queued in memory and flushed on interaction.
  */
 export function trackEvent(eventName: string, params?: AnalyticsEventParams): void {
   if (typeof window === 'undefined') return;
+
+  const eventParams = (params || {}) as Record<string, unknown>;
+
+  if (isGated) {
+    eventQueue.push({ type: 'custom', name: eventName, params: eventParams });
+    return;
+  }
 
   try {
     if (!isInitialized) {
@@ -123,7 +173,7 @@ export function trackEvent(eventName: string, params?: AnalyticsEventParams): vo
     }
 
     if (typeof window.gtag === 'function') {
-      window.gtag('event', eventName, params);
+      window.gtag('event', eventName, eventParams);
     }
   } catch {
     // Fail silently
@@ -131,8 +181,17 @@ export function trackEvent(eventName: string, params?: AnalyticsEventParams): vo
 }
 
 /**
- * Helper to reset initialization state in tests.
+ * Helper to get queued events count (useful for testing and auditing).
+ */
+export function _getQueuedEventsCount(): number {
+  return eventQueue.length;
+}
+
+/**
+ * Helper to reset initialization state and gate in tests.
  */
 export function _resetAnalyticsForTesting(): void {
   isInitialized = false;
+  isGated = true;
+  eventQueue = [];
 }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { initGA, trackPageView, trackEvent, setupDeferredGA, _resetAnalyticsForTesting } from './analytics';
+import { initGA, trackPageView, trackEvent, setupDeferredGA, _getQueuedEventsCount, _resetAnalyticsForTesting } from './analytics';
 
 describe('analytics utility', () => {
   beforeEach(() => {
@@ -85,5 +85,24 @@ describe('analytics utility', () => {
 
     // Script should now be injected
     expect(document.querySelector('script[src*="googletagmanager.com/gtag/js"]')).toBeTruthy();
+  });
+
+  it('بوابة GA: تجميع الأحداث في طابور انتظار قبل تفاعل المستخدم وتفريغها بعد التفاعل', () => {
+    // 1. قبل تفاعل المستخدم: البوابة مغلقة
+    trackPageView('/lessons/1/', 'المسألة الأولى');
+    trackEvent('lesson_open', { lesson_id: 1 });
+
+    // لا يوجد أي سكربت تم حقنه
+    expect(document.querySelector('script[src*="googletagmanager.com/gtag/js"]')).toBeNull();
+    // الطابور يحمل الحدثين
+    expect(_getQueuedEventsCount()).toBe(2);
+
+    // 2. تفاعل المستخدم (استدعاء initGA)
+    initGA('G-TEST12345');
+
+    // تم حقن السكربت
+    expect(document.querySelector('script[src*="googletagmanager.com/gtag/js"]')).toBeTruthy();
+    // تم تفريغ طابور الانتظار بنجاح
+    expect(_getQueuedEventsCount()).toBe(0);
   });
 });

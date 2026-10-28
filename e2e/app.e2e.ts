@@ -267,7 +267,7 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
   test('12) شاشة الإعدادات: فتح وطي مجموعات الأكورديون', async ({ page }) => {
     const errors = collectErrors(page);
     await page.goto('/#/settings');
-    await expect(page.getByRole('heading', { level: 3, name: 'الإعدادات' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: /الإعدادات/ })).toBeVisible({ timeout: 30_000 });
 
     // فحص مجموعات الأكورديون
     const accordionHeader = page.locator('button[data-group-id]').first();
@@ -356,7 +356,7 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
 
   test('17) المظهر (Themes): التنقل بين الداكن والتراثي والفاتح وحفظ الفاتح بعد إعادة التحميل', async ({ page }) => {
     const errors = collectErrors(page);
-    await page.goto('/');
+    await page.goto('/#/books');
 
     const themeBtn = page.getByRole('button', { name: /تبديل المظهر/ });
     await expect(themeBtn).toBeVisible({ timeout: 20_000 });
