@@ -36,6 +36,11 @@ export const useAuth = (): AuthContextValue => {
   return ctx;
 };
 
+const isMobileDevice = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdminUser, setIsAdminUser] = useState(false);
@@ -184,6 +189,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { auth, authMod } = await getAuthModule();
       const provider = new authMod.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
+
+      // في أجهزة الجوال، النوافذ المنبثقة تُحجب أو تفقد اتصال النافذة الأم،
+      // لذا نستخدم signInWithRedirect مباشرة وفق معايير Firebase الرسمية
+      if (isMobileDevice()) {
+        await authMod.signInWithRedirect(auth, provider);
+        return { success: true };
+      }
 
       // محاولة Popup أولاً (أفضل تجربة في المتصفح العادي)
       // في حالة الفشل (متصفح مقيّد أو نافذة محجوبة) ننتقل لـ Redirect
