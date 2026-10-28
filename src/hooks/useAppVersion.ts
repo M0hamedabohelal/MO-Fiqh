@@ -103,6 +103,33 @@ export const __resetBootBuildForTests = (): void => { bootBuildMemo = null; };
 
 const CHECK_INTERVAL_MS = 2 * 60 * 1000;
 
+// هل التحديث التلقائي آمن الآن؟ القاعدة: لا نُقاطع كتابةً جارية.
+// الملاحظات في هذا التطبيق تُحفظ بزر «حفظ» لا مع كل حرف، فإعادة تحميل مفاجئة أثناء
+// الكتابة تُفقد المسودة. نتحقق من العنصر النشط: حقل بمحتوى = غير آمن، وما عداه آمن.
+export const isSafeToAutoReload = (doc: Document = document): boolean => {
+  const el = doc.activeElement as HTMLElement | null;
+  if (!el) return true;
+  const tag = el.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+    return String((el as HTMLInputElement).value ?? '').trim() === '';
+  }
+  // سمة contenteditable لا خاصية isContentEditable: الثانية غير منفَّذة في بيئة الاختبار
+  // (jsdom) فتُرجع دائمًا false فيمرّ الاختبار كاذبًا.
+  const editableAttr = el.getAttribute?.('contenteditable');
+  if (el.isContentEditable || editableAttr === '' || editableAttr === 'true') {
+    return String(el.textContent ?? '').trim() === '';
+  }
+  return true;
+};
+
+// تأجيل قصير قبل التطبيق التلقائي: يتيح للمستخدم رؤية الشريط ولا يقطع رسم الصفحة
+const AUTO_APPLY_DELAY_MS = 1500;
+
+// محاولة واحدة لكل جلسة. بدونها: لو لم يستلم الـ Service Worker النسخة الجديدة بعد
+// (العامل الجديد لم يُفعَّل)، يُخدَم الهيكل القديم مرة أخرى، فيُكتشف «نشر أحدث» من جديد
+// وتدور إعادة التحميل إلى ما لا نهاية. الحارس يحوّل الحالة إلى الشريط اليدوي بدل الحلقة.
+const AUTO_APPLY_KEY = 'auto_update_applied';
+
 export interface AppVersionState {
   /** يوجد نشر أحدث من الحزمة العاملة */
   updateReady: boolean;
@@ -294,6 +321,25 @@ export function useAppVersion(): AppVersionState {
   }, [checkNow, reloadNow]);
 
   const dismiss = useCallback((): void => setDismissed(true), []);
+
+  // تطبيق التحديث تلقائيًا حين يكون آمنًا.
+  // سبب الوجود: بعد كل نشر يظل الـ Service Worker يخدم الهيكل القديم من precache حتى
+  // يضغط المستخدم «تحديث الآن». عمليًا: يفتح رابطًا فيرى نسخة قديمة، ولا تظهر الجديدة
+  // إلا بريفرش قسري — وهي الشكوى المتكررة. التطبيق التلقائي يزيل الخطوة اليدوية،
+  // ويُستثنى منه الكتابة الجارية حتى لا تُفقد مسودة ملاحظة.
+  useEffect(() => {
+    if (!updateReady || dismissed) return undefined;
+    if (!isSafeToAutoReload()) return undefined;
+    // محاولة واحدة فقط في الجلسة — يمنع حلقة إعادة تحميل إن لم يستلم العامل النسخة الجديدة
+    try {
+      if (sessionStorage.getItem(AUTO_APPLY_KEY) === '1') return undefined;
+      sessionStorage.setItem(AUTO_APPLY_KEY, '1');
+    } catch {
+      return undefined; // بلا تخزين جلسة لا نُخاطر بحلقة
+    }
+    const t = setTimeout(() => reloadNow(), AUTO_APPLY_DELAY_MS);
+    return () => clearTimeout(t);
+  }, [updateReady, dismissed, reloadNow]);
 
   // الاستماع لتحديثات الـ Service Worker (PWA)
   useEffect(() => {

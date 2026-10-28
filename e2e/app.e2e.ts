@@ -1,4 +1,4 @@
-import { test, expect, type Page, type ConsoleMessage } from '@playwright/test';
+import { test, expect, devices, type Page, type ConsoleMessage } from '@playwright/test';
 
 // 6 مسارات حرجة على مقاس فون + حارس أخطاء كونسول.
 // الهدف: ما لا تستطيع اختبارات الوحدة رؤيته — DOM حقيقي، توجيه هاشي، وحفظ فعلي
@@ -133,30 +133,36 @@ test.describe('المسارات الحرجة', () => {
     expect(errors, errors.join('\n')).toEqual([]);
   });
 
-  test('7) شريط «نسخة جديدة متاحة» يظهر عند نشر حزمة مختلفة ويُحدّث الصفحة', async ({ page }) => {
+  test('7) شريط «نسخة جديدة متاحة» يظهر عند نشر حزمة مختلفة ويُحدّث الصفحة', async ({ browser }) => {
+    // بلا Service Worker: هذا الاختبار يحكم على منطق كشف النشر (فحص index.html)، والـ SW
+    // يمرّر نفس الطلب عبر قاعدته فلا تصل المحاكاة. سلوك الـ SW له اختبار مستقل (رقم 10).
+    const ctx = await browser.newContext({ ...devices['Pixel 7'], locale: 'ar-EG', serviceWorkers: 'block' });
+    const page = await ctx.newPage();
     const errors = collectErrors(page);
-    await openBooks(page);
-    await expect(page.locator('.update-banner')).toHaveCount(0);
+    try {
+      await openBooks(page);
+      await expect(page.locator('.update-banner')).toHaveCount(0);
 
-    // الخادم يقدّم حزمة أحدث من العاملة (محاكاة نشر جديد)
-    await page.route('**/index.html*', async (route) => {
-      const res = await route.fetch();
-      const body = (await res.text()).replace(/assets\/index-[A-Za-z0-9_-]+\.js/, 'assets/index-ZZZnew99.js');
-      await route.fulfill({ response: res, body });
-    });
+      // الخادم يقدّم حزمة أحدث من العاملة (محاكاة نشر جديد)
+      await page.route('**/index.html*', async (route) => {
+        const res = await route.fetch();
+        const body = (await res.text()).replace(/assets\/index-[A-Za-z0-9_-]+\.js/, 'assets/index-ZZZnew99.js');
+        await route.fulfill({ response: res, body });
+      });
 
-    // الزناد الحقيقي: عودة التبويب إلى المقدمة
-    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+      // الزناد الحقيقي: عودة التبويب إلى المقدمة
+      await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
 
-    const banner = page.locator('.update-banner');
-    await expect(banner).toBeVisible({ timeout: 20_000 });
-    await expect(banner).toContainText('نسخة جديدة متاحة');
+      const banner = page.locator('.update-banner');
+      await expect(banner).toBeVisible({ timeout: 20_000 });
+      await expect(banner).toContainText('نسخة جديدة متاحة');
 
-    await page.unroute('**/index.html*');
-    await page.getByRole('button', { name: /تحديث الآن/ }).click();
-    // بعد التحميل تعود الحالة نظيفة ويختفي الشريط
-    await expect(page.locator('.update-banner')).toHaveCount(0, { timeout: 30_000 });
-    expect(errors, errors.join('\n')).toEqual([]);
+      // لا نضغط «تحديث الآن» هنا: التطبيق التلقائي (الاختبار 18) هو المسار الأساسي،
+      // ومساره اليدوي مُغطّى في الاختبار 19. الضغط هنا كان يتسابق مع التطبيق التلقائي.
+      expect(errors, errors.join('\n')).toEqual([]);
+    } finally {
+      await ctx.close();
+    }
   });
 
   // ── الصفحات الثابتة (SEO) هي المدخل الأول لزوّار جوجل، فيجب ألا تكون طريقًا مسدودًا:
@@ -386,5 +392,63 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
     expect(errors, errors.join('\n')).toEqual([]);
+  });
+
+  // ── تطبيق النشر الجديد تلقائيًا ──
+  // الشكوى الأصلية: «أفتح رابطًا فأرى نسخة قديمة، ولا تظهر الجديدة إلا بريفرش».
+  // السبب: الـ Service Worker يخدم الهيكل من precache حتى يضغط المستخدم «تحديث الآن».
+  // الحل: تطبيق تلقائي حين يكون آمنًا، ومحاولة واحدة لكل جلسة (منعًا لحلقة إعادة تحميل).
+  // يُجرَّب بلا Service Worker لأن الاختبار يحكم على منطق التطبيق لا على العامل.
+  const newBuildRoute = async (target: Page): Promise<void> => {
+    await target.route('**/index.html*', async (route) => {
+      const res = await route.fetch();
+      const body = (await res.text()).replace(/assets\/index-[A-Za-z0-9_-]+\.js/, 'assets/index-ZZZnew99.js');
+      await route.fulfill({ response: res, body });
+    });
+  };
+
+  test('18) نشر جديد يُطبَّق تلقائيًا بلا تدخّل من المستخدم', async ({ browser }) => {
+    const ctx = await browser.newContext({ ...devices['Pixel 7'], locale: 'ar-EG', serviceWorkers: 'block' });
+    const page = await ctx.newPage();
+    try {
+      await openBooks(page);
+      await newBuildRoute(page);
+
+      // الزناد: عودة التبويب للمقدمة (نفس مسار الكشف الحقيقي)
+      await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+
+      // إعادة التحميل التلقائية تُضيف ?v=<طابع زمني> لكسر الكاش
+      await page.waitForURL(/[?&]v=\d+/, { timeout: 25_000 });
+    } finally {
+      await ctx.close();
+    }
+  });
+
+  test('19) لا يُقاطع الكتابة: مسودة ملاحظة غير محفوظة تُبقي التحديث يدويًا', async ({ browser }) => {
+    const ctx = await browser.newContext({ ...devices['Pixel 7'], locale: 'ar-EG', serviceWorkers: 'block' });
+    const page = await ctx.newPage();
+    try {
+      await openLesson(page, 5);
+
+      // ملاحظة تُحفظ بزر لا مع كل حرف — والمؤشر يبقى داخل الحقل
+      const noteBox = page.getByRole('textbox', { name: 'ملاحظاتك حول هذه المسألة' });
+      await noteBox.fill('مسودة أكتبها الآن');
+      await noteBox.focus();
+
+      await newBuildRoute(page);
+      await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+
+      // الشريط يظهر (المستخدم يرى وجود تحديث) لكن الصفحة لا تُعاد تحميلها
+      await expect(page.locator('.update-banner')).toBeVisible({ timeout: 20_000 });
+      await page.waitForTimeout(3500);
+      expect(page.url()).not.toMatch(/[?&]v=\d+/);
+      await expect(noteBox).toHaveValue('مسودة أكتبها الآن');
+
+      // المسار اليدوي: زر «تحديث الآن» يعمل حين يُقرّر المستخدم التحديث بنفسه
+      await page.getByRole('button', { name: /تحديث الآن/ }).click();
+      await page.waitForURL(/[?&]v=\d+/, { timeout: 25_000 });
+    } finally {
+      await ctx.close();
+    }
   });
 });

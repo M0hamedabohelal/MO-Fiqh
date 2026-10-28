@@ -9,6 +9,7 @@ import {
   extractEntryAsset,
   currentEntryAsset,
   isNewerBuild,
+  isSafeToAutoReload,
   readBootBuild,
   useAppVersion,
   __resetBootBuildForTests,
@@ -63,6 +64,46 @@ describe('readBootBuild — حزمة أول إقلاع في الجلسة', () =>
   it('يتجاهل القيمة الفارغة ولا يسجّلها', () => {
     expect(readBootBuild(null)).toBeNull();
     expect(sessionStorage.length).toBe(0);
+  });
+});
+
+// بوابة الأمان: إعادة التحميل التلقائية عند وجود نشر جديد جائزة، لكن لا تُقاطع كتابةً
+// جارية لأن الملاحظات تُحفظ بزر لا مع كل حرف، فتحديث مفاجئ يُفقد المسودة.
+describe('isSafeToAutoReload — لا نقاطع كتابة جارية', () => {
+  const mount = (html: string): HTMLElement => {
+    document.body.innerHTML = html;
+    return document.body.firstElementChild as HTMLElement;
+  };
+
+  it('آمن حين لا يوجد عنصر نشط', () => {
+    document.body.innerHTML = '';
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    expect(isSafeToAutoReload(document)).toBe(true);
+  });
+
+  it('غير آمن حين يكون المؤشر داخل حقل نصي فيه محتوى (مسودة غير محفوظة)', () => {
+    const field = mount('<textarea></textarea>') as HTMLTextAreaElement;
+    field.value = 'ملاحظة أكتبها الآن';
+    field.focus();
+    expect(isSafeToAutoReload(document)).toBe(false);
+  });
+
+  it('آمن حين يكون الحقل النشط فارغًا — لا شيء يُفقد', () => {
+    const field = mount('<input value="" />') as HTMLInputElement;
+    field.focus();
+    expect(isSafeToAutoReload(document)).toBe(true);
+  });
+
+  it('غير آمن داخل عنصر contentEditable فيه نص', () => {
+    const box = mount('<div contenteditable="true">نص</div>');
+    box.focus();
+    expect(isSafeToAutoReload(document)).toBe(false);
+  });
+
+  it('آمن حين يكون التركيز على زر أو رابط', () => {
+    const btn = mount('<button>حفظ</button>') as HTMLButtonElement;
+    btn.focus();
+    expect(isSafeToAutoReload(document)).toBe(true);
   });
 });
 
