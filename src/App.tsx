@@ -399,7 +399,7 @@ function App() {
       )}
       {isLoginOpen && (
         <Suspense fallback={null}>
-          <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { executePendingAction(); if (currentView === 'hero') setCurrentView('books'); }} />
+          <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { executePendingAction(); }} />
         </Suspense>
       )}
       {showShortcutsHelp && (

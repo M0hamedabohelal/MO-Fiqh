@@ -101,31 +101,33 @@ describe('AuthContext & AuthProvider', () => {
   });
 
   it('يحمي من تلوّث حالة المشرف عند تبديل الحساب سريعًا (حارس uid)', async () => {
-    let resolveFirstAdmin: (val: boolean) => void = () => {};
-    mockCheckAdmin.mockImplementationOnce(() => new Promise((resolve) => {
-      resolveFirstAdmin = resolve;
-    }));
+    let resolveFirst: ((val: boolean) => void) | null = null;
+    mockCheckAdmin.mockImplementationOnce(
+      () => new Promise((res) => { resolveFirst = res; }),
+    );
+    mockCheckAdmin.mockResolvedValueOnce(false);
 
     const { result } = await renderAndReady();
 
-    // دخول مستخدم أول
+    // المستخدم الأول (مشرف) يبدأ الفحص
     await act(async () => {
-      authCallback?.({ uid: 'user-A' } as User);
+      authCallback?.({ uid: 'admin-slow' } as User);
     });
 
-    // تبديل سريع لمستخدم ثانٍ قبل اكتمال فحص الأول
-    mockCheckAdmin.mockResolvedValueOnce(false);
+    // تبديل سريع لمستخدم عادي قبل انتهاء الأول
     await act(async () => {
-      authCallback?.({ uid: 'user-B' } as User);
+      authCallback?.({ uid: 'normal-fast' } as User);
     });
 
-    // الآن تكتمل نتيجة الفحص الأول بـ true
-    await act(async () => {
-      resolveFirstAdmin(true);
+    await waitFor(() => {
+      expect(result.current.user?.uid).toBe('normal-fast');
     });
 
-    await waitFor(() => expect(result.current.user?.uid).toBe('user-B'));
-    // يجب ألا يصبح user-B مشرفًا بسبب نتيجة user-A القديمة
+    // استجابة المشرف الأول المتأخرة تصل الآن — يجب ألا تجعل الحساب الثاني مشرفًا
+    await act(async () => {
+      resolveFirst?.(true);
+    });
+
     expect(result.current.isAdminUser).toBe(false);
   });
 
@@ -193,7 +195,7 @@ describe('AuthContext & AuthProvider', () => {
     expect(mockUpdateProfile).toHaveBeenCalledWith(mockCreatedUser, { displayName: 'أحمد' });
   });
 
-  it('تسجيل الدخول بحساب جوجل عبر Popup', async () => {
+  it('تسجيل الدخول بحساب جوجل عبر Popup على سطح المكتب', async () => {
     mockSignInWithPopup.mockResolvedValueOnce({ user: { uid: 'google-uid' } });
     const { result } = await renderAndReady();
 
@@ -264,8 +266,8 @@ describe('AuthContext & AuthProvider', () => {
     expect(result.current.isAdminUser).toBe(true);
   });
 
-  it('في التطبيق المثبت (PWA Standalone) يستخدم Popup دائمًا ولا يستخدم Redirect', async () => {
-    mockSignInWithPopup.mockResolvedValueOnce({ user: { uid: 'pwa-google-uid' } });
+  it('في أجهزة الجوال أو التطبيق المثبت (PWA) يستخدم Redirect مباشرة وفق معايير Firebase', async () => {
+    mockSignInWithRedirect.mockResolvedValueOnce(undefined);
     window.matchMedia = vi.fn().mockImplementation((query) => ({
       matches: query === '(display-mode: standalone)',
       media: query,
@@ -288,7 +290,7 @@ describe('AuthContext & AuthProvider', () => {
     });
 
     expect(res).toEqual({ success: true });
-    expect(mockSignInWithPopup).toHaveBeenCalled();
-    expect(mockSignInWithRedirect).not.toHaveBeenCalled();
+    expect(mockSignInWithRedirect).toHaveBeenCalled();
+    expect(mockSignInWithPopup).not.toHaveBeenCalled();
   });
 });

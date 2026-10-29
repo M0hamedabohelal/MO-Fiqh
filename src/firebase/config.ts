@@ -9,9 +9,22 @@ import type * as FsMod from 'firebase/firestore';
 import type * as AuthMod from 'firebase/auth';
 import type * as AcMod from 'firebase/app-check';
 
+// تخصيص نطاق المصادقة (Custom Auth Domain):
+// على الإنتاج (fqh.me): استخدام نفس نطاق التطبيق يمنع حجب الكوكيز والـ Storage من المتصفحات
+// ويجعل عملية تسجيل الدخول تعمل كـ Same-Origin داخل تطبيق الـ PWA دون الخروج من نطاقه.
+const resolveAuthDomain = (): string => {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'fqh.me' || host.endsWith('.fqh.me')) {
+      return host;
+    }
+  }
+  return import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'fiqh-app-9f98c.firebaseapp.com';
+};
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  authDomain: resolveAuthDomain(),
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,

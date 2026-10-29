@@ -51,4 +51,20 @@ describe('Slider Component', () => {
     combinedBtn = screen.getByRole('button', { name: /الفوائد والمفضلة/i });
     expect(combinedBtn.className).not.toContain('sidebar-btn-active');
   });
+
+  it('يعرض زر الإعدادات وينتقل لصفحة الإعدادات وتظهر فئة التفعيل النشطة', () => {
+    const setActiveView = vi.fn();
+    const { rerender } = render(<Slider {...defaultProps} setActiveView={setActiveView} />);
+
+    const settingsBtn = screen.getByRole('button', { name: /الإعدادات/i });
+    expect(settingsBtn).toBeTruthy();
+    expect(settingsBtn.className).not.toContain('sidebar-settings-active');
+
+    fireEvent.click(settingsBtn);
+    expect(setActiveView).toHaveBeenCalledWith('settings');
+
+    rerender(<Slider {...defaultProps} activeView="settings" />);
+    const activeSettingsBtn = screen.getByRole('button', { name: /الإعدادات/i });
+    expect(activeSettingsBtn.className).toContain('sidebar-settings-active');
+  });
 });

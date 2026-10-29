@@ -36,6 +36,11 @@ export const useAuth = (): AuthContextValue => {
   return ctx;
 };
 
+const isMobileDevice = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+};
+
 const isStandalone = (): boolean => {
   if (typeof window === 'undefined') return false;
   try {
@@ -138,7 +143,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // ✅ معالجة نتيجة Google Redirect عند العودة للتطبيق، دون حجب استعادة الجلسة.
         void authMod.getRedirectResult(auth)
           .then((result) => {
-            if (result?.user && !cancelled) setAuthError('');
+            if (result?.user && !cancelled) {
+              setUser(result.user);
+              currentUidRef.current = result.user.uid;
+              setAuthError('');
+            }
           })
           .catch((redirectErr: unknown) => {
             if (!cancelled) {
@@ -197,24 +206,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const provider = new authMod.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
 
-      // في التطبيق المثبت (PWA / Standalone):
-      // استخدام Redirect يخرج المستخدم من نافذة التطبيق إلى المتصفح الخارجي فتضيع الجلسة ولا تعود للتطبيق.
-      // لذلك نستخدم signInWithPopup دائماً في وضع التطبيق المثبت.
-      if (isStandalone()) {
-        try {
-          const result = await authMod.signInWithPopup(auth, provider);
-          if (result?.user) return { success: true };
-          return { success: true };
-        } catch (popupErr) {
-          const code = errCode(popupErr);
-          if (code === "auth/popup-closed-by-user") {
-            return { success: false, error: "تم إلغاء تسجيل الدخول." };
-          }
-          throw popupErr;
-        }
+      // في أجهزة الجوال أو التطبيق المثبت (PWA / Standalone):
+      // النوافذ المنبثقة (Popup) في المتصفحات النقالة وWebAPK تفقد اتصال النافذة الأم (window.opener)
+      // وتؤدي لإعادة تشغيل التطبيق في الخلفية كضيف وضياع الجلسة.
+      // لذلك نستخدم signInWithRedirect وفق معايير Firebase الرسمية؛
+      // وبفضل ضبط authDomain على نفس النطاق (fqh.me)، يظل التوجيه داخل الـ PWA وتلتقطه getRedirectResult فوراً.
+      if (isMobileDevice() || isStandalone()) {
+        await authMod.signInWithRedirect(auth, provider);
+        return { success: true };
       }
 
-      // محاولة Popup أولاً (أفضل تجربة في المتصفح العادي)
+      // محاولة Popup أولاً (أفضل تجربة في المتصفح العادي على الكمبيوتر)
       // في حالة الفشل (متصفح مقيّد أو نافذة محجوبة) ننتقل لـ Redirect
       try {
         const result = await authMod.signInWithPopup(auth, provider);
@@ -233,7 +235,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (redirectCodes.includes(errCode(popupErr))) {
           // استخدام Redirect كبديل
           await authMod.signInWithRedirect(auth, provider);
-          // ملاحظة: مع Redirect الصفحة ستُغلق وتُفتح جوجل ثم تعود
           // النتيجة ستُعالج في useEffect عبر getRedirectResult
           return { success: true };
         }
