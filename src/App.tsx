@@ -147,7 +147,7 @@ function App() {
   // ✅ Onboarding: يظهر مرة واحدة بعد تسجيل الدخول لأول مرة
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // تبديل الحساب يعود إلى الشاشة الرئيسية.
+  // بعد اكتمال تسجيل الدخول تماماً أو تبديل الحساب: العودة للشاشة الرئيسية (Hero) وإغلاق النافذة
   const previousUidRef = useRef<string | null>(user?.uid ?? null);
   useEffect(() => {
     if (authLoading) return;
@@ -155,7 +155,7 @@ function App() {
     const previousUid = previousUidRef.current;
     if (uid === previousUid) return;
     previousUidRef.current = uid;
-    if (previousUid) {
+    if (uid) {
       setIsLoginOpen(false);
       setCurrentView('hero');
     }
@@ -399,7 +399,7 @@ function App() {
       )}
       {isLoginOpen && (
         <Suspense fallback={null}>
-          <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { executePendingAction(); }} />
+          <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { executePendingAction(); setCurrentView('hero'); }} />
         </Suspense>
       )}
       {showShortcutsHelp && (
