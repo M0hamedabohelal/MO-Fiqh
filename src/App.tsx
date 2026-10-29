@@ -148,11 +148,19 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // بعد اكتمال تسجيل الدخول تماماً أو تبديل الحساب: العودة للشاشة الرئيسية (Hero) وإغلاق النافذة
-  const previousUidRef = useRef<string | null>(user?.uid ?? null);
+  const isInitialAuthRef = useRef(true);
+  const previousUidRef = useRef<string | null>(null);
   useEffect(() => {
     if (authLoading) return;
     const uid = user?.uid ?? null;
     const previousUid = previousUidRef.current;
+
+    if (isInitialAuthRef.current) {
+      isInitialAuthRef.current = false;
+      previousUidRef.current = uid;
+      return;
+    }
+
     if (uid === previousUid) return;
     previousUidRef.current = uid;
     if (uid) {

@@ -227,7 +227,8 @@ describe('AuthContext & AuthProvider', () => {
       res = await result.current.loginWithGoogle();
     });
 
-    expect(res).toEqual({ success: true });
+    // في حالة Redirect لا نُعلن النجاح الفوري لأن المتصفح سينتقل لصفحة المزود
+    expect(res).toEqual({ success: false });
     expect(mockSignInWithRedirect).toHaveBeenCalled();
   });
 
@@ -266,18 +267,8 @@ describe('AuthContext & AuthProvider', () => {
     expect(result.current.isAdminUser).toBe(true);
   });
 
-  it('في أجهزة الجوال أو التطبيق المثبت (PWA) يستخدم Redirect مباشرة وفق معايير Firebase', async () => {
-    mockSignInWithRedirect.mockResolvedValueOnce(undefined);
-    window.matchMedia = vi.fn().mockImplementation((query) => ({
-      matches: query === '(display-mode: standalone)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
+  it('إلغاء نافذة تسجيل الدخول المنبثقة من قِبل المستخدم يعيد رسالة إلغاء ولا يرمي خطأ', async () => {
+    mockSignInWithPopup.mockRejectedValueOnce({ code: 'auth/popup-closed-by-user' });
 
     const { result } = await renderAndReady();
     await act(async () => {
@@ -289,8 +280,7 @@ describe('AuthContext & AuthProvider', () => {
       res = await result.current.loginWithGoogle();
     });
 
-    expect(res).toEqual({ success: true });
-    expect(mockSignInWithRedirect).toHaveBeenCalled();
-    expect(mockSignInWithPopup).not.toHaveBeenCalled();
+    expect(res).toEqual({ success: false, error: 'تم إلغاء تسجيل الدخول.' });
+    expect(mockSignInWithRedirect).not.toHaveBeenCalled();
   });
 });

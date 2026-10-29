@@ -36,22 +36,6 @@ export const useAuth = (): AuthContextValue => {
   return ctx;
 };
 
-const isMobileDevice = (): boolean => {
-  if (typeof navigator === 'undefined') return false;
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-};
-
-const isStandalone = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  try {
-    const isStandaloneDisplay = typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches;
-    const isIosStandalone = (navigator as unknown as { standalone?: boolean })?.standalone === true;
-    const isAndroidApp = typeof document !== 'undefined' && typeof document.referrer === 'string' && document.referrer.includes('android-app://');
-    return Boolean(isStandaloneDisplay || isIosStandalone || isAndroidApp);
-  } catch {
-    return false;
-  }
-};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -206,37 +190,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const provider = new authMod.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
 
-      // في أجهزة الجوال أو التطبيق المثبت (PWA / Standalone):
-      // النوافذ المنبثقة (Popup) في المتصفحات النقالة وWebAPK تفقد اتصال النافذة الأم (window.opener)
-      // وتؤدي لإعادة تشغيل التطبيق في الخلفية كضيف وضياع الجلسة.
-      // لذلك نستخدم signInWithRedirect وفق معايير Firebase الرسمية؛
-      // وبفضل ضبط authDomain على نفس النطاق (fqh.me)، يظل التوجيه داخل الـ PWA وتلتقطه getRedirectResult فوراً.
-      if (isMobileDevice() || isStandalone()) {
-        await authMod.signInWithRedirect(auth, provider);
-        return { success: true };
-      }
-
-      // محاولة Popup أولاً (أفضل تجربة في المتصفح العادي على الكمبيوتر)
-      // في حالة الفشل (متصفح مقيّد أو نافذة محجوبة) ننتقل لـ Redirect
+      // محاولة Popup أولاً — تنتظر اكتمال اختيار الحساب من قِبل المستخدم
+      // وتُعيد النتيجة مباشرة دون إغلاق مسبق للنافذة ودون تحويل المسار
       try {
         const result = await authMod.signInWithPopup(auth, provider);
         if (result?.user) {
+          setUser(result.user);
+          currentUidRef.current = result.user.uid;
           return { success: true };
         }
         return { success: true };
       } catch (popupErr) {
-        // أخطاء تستوجب التحويل لـ Redirect
-        // ملاحظة: إغلاق المستخدم للنافذة بنفسه ليس فشلًا تقنيًا — يُعرض كرسالة إلغاء بدل سحبه لتدفق Redirect كامل
+        const code = errCode(popupErr);
+        // إغلاق المستخدم للنافذة بنفسه ليس خطأ تقنياً — لا نحوله لـ Redirect
+        if (code === 'auth/popup-closed-by-user') {
+          return { success: false, error: 'تم إلغاء تسجيل الدخول.' };
+        }
+        // أخطاء تستوجب التحويل لـ Redirect عند حجب النوافذ المنبثقة
         const redirectCodes = [
           'auth/popup-blocked',
           'auth/cancelled-popup-request',
           'auth/operation-not-supported-in-this-environment',
         ];
-        if (redirectCodes.includes(errCode(popupErr))) {
-          // استخدام Redirect كبديل
+        if (redirectCodes.includes(code)) {
           await authMod.signInWithRedirect(auth, provider);
-          // النتيجة ستُعالج في useEffect عبر getRedirectResult
-          return { success: true };
+          // في Redirect لا نعلن نجاحاً فورياً حتى لا تُغلق النافذة قبل انتقال المتصفح
+          return { success: false };
         }
         throw popupErr;
       }

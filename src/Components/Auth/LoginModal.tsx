@@ -47,13 +47,14 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
 
   const handleGoogleLogin = async (): Promise<void> => {
     setGoogleBusy(true);
-    const res = await loginWithGoogle();
-    setGoogleBusy(false);
-    if (res.success) {
-      // في حالة Popup: ننتظر onAuthStateChanged لإغلاق النافذة
-      // في حالة Redirect: الصفحة ستُعاد تحميلها تلقائياً
-      onClose();
-      if (onSuccess) onSuccess();
+    try {
+      const res = await loginWithGoogle();
+      if (res.success) {
+        onClose();
+        if (onSuccess) onSuccess();
+      }
+    } finally {
+      setGoogleBusy(false);
     }
   };
 
