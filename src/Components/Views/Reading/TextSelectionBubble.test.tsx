@@ -16,18 +16,17 @@ describe('TextSelectionBubble Component', () => {
     below: false,
   };
 
-  it('يعرض أزرار حفظ كفائدة وصورة عند تفعيل show', () => {
+  it('يعرض زر حفظ كفائدة فقط ولا يعرض زر صورة عند تفعيل show', () => {
     render(
       <TextSelectionBubble
         selectionPopup={basePopup}
         isSmallScreen={false}
         onSaveHighlight={vi.fn()}
-        onOpenQuoteImage={vi.fn()}
       />,
     );
 
     expect(screen.getByRole('button', { name: /حفظ كفائدة/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /صورة/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /صورة/i })).toBeNull();
   });
 
   it('لا يعرض أي عنصر إذا كان show: false', () => {
@@ -36,7 +35,6 @@ describe('TextSelectionBubble Component', () => {
         selectionPopup={{ ...basePopup, show: false }}
         isSmallScreen={false}
         onSaveHighlight={vi.fn()}
-        onOpenQuoteImage={vi.fn()}
       />,
     );
 
@@ -51,7 +49,6 @@ describe('TextSelectionBubble Component', () => {
         selectionPopup={basePopup}
         isSmallScreen={false}
         onSaveHighlight={onSave}
-        onOpenQuoteImage={vi.fn()}
       />,
     );
 
@@ -60,29 +57,12 @@ describe('TextSelectionBubble Component', () => {
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
-  it('الضغط على صورة يستدعي onOpenQuoteImage', () => {
-    const onQuote = vi.fn();
-    render(
-      <TextSelectionBubble
-        selectionPopup={basePopup}
-        isSmallScreen={false}
-        onSaveHighlight={vi.fn()}
-        onOpenQuoteImage={onQuote}
-      />,
-    );
-
-    const imageBtn = screen.getByRole('button', { name: /صورة/i });
-    fireEvent.click(imageBtn);
-    expect(onQuote).toHaveBeenCalledTimes(1);
-  });
-
   it('onMouseDown يمنع السلوك الافتراضي لحماية تحديد النص من الانهيار', () => {
     render(
       <TextSelectionBubble
         selectionPopup={basePopup}
         isSmallScreen={false}
         onSaveHighlight={vi.fn()}
-        onOpenQuoteImage={vi.fn()}
       />,
     );
 
@@ -98,7 +78,6 @@ describe('TextSelectionBubble Component', () => {
         selectionPopup={{ ...basePopup, x: 50, y: 300, below: true }}
         isSmallScreen={true}
         onSaveHighlight={vi.fn()}
-        onOpenQuoteImage={vi.fn()}
       />,
     );
 
@@ -115,7 +94,6 @@ describe('TextSelectionBubble Component', () => {
         selectionPopup={{ ...basePopup, x: 380, y: 700, below: true }}
         isSmallScreen={true}
         onSaveHighlight={vi.fn()}
-        onOpenQuoteImage={vi.fn()}
       />,
     );
 

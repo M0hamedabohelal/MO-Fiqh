@@ -29,15 +29,9 @@ import { ReadingHeaderBar } from './Reading/ReadingHeaderBar';
 import { ReadingBottomNav } from './Reading/ReadingBottomNav';
 
 // تقسيم المكوّنات الإضافية والتحميل المؤجل لتخفيف حزمة شاشة القراءة الأساسية
-const QuoteImageModal = lazy(() => import('../UI/QuoteImageModal'));
 const FloatingTOC = lazy(() => import('../UI/FloatingTOC'));
 
-interface QuoteImageState {
-  show: boolean;
-  text: string;
-}
-
-// البوب-أب (حفظ كفائدة / صورة) لا يظهر إلا داخل نص المتن أو تعليق الشيخ
+// البوب-أب (حفظ كفائدة) لا يظهر إلا داخل نص المتن أو تعليق الشيخ
 const BODY_TEXT_SELECTOR = '[data-selectable="body-text"]';
 
 function isInsideBodyText(range: Range): boolean {
@@ -112,7 +106,6 @@ const ReadingView = () => {
     below: false,
   });
 
-  const [quoteImage, setQuoteImage] = useState<QuoteImageState>({ show: false, text: '' });
   const [highlightNotice, setHighlightNotice] = useState<string | null>(null);
   const [isTOCOpen, setIsTOCOpen] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -284,15 +277,6 @@ const ReadingView = () => {
     setTimeout(() => setHighlightNotice(null), 3000);
   };
 
-  const openQuoteImage = (): void => {
-    if (!selectionPopup.text || !lesson) return;
-    const textForImage = selectionPopup.text;
-    setQuoteImage({ show: true, text: textForImage });
-    setSelectionPopup((prev) => ({ ...prev, show: false }));
-    const sel = window.getSelection();
-    if (sel) sel.removeAllRanges();
-  };
-
   const handleTouchStart = (e: ReactTouchEvent<HTMLDivElement>): void => {
     const t = e.touches[0];
     touchStartRef.current = { x: t.clientX, y: t.clientY };
@@ -344,12 +328,11 @@ const ReadingView = () => {
     >
       <ReadingProgressBar />
 
-      {/* بوب-أب حفظ كفائدة أو صورة عند تحديد أي نص */}
+      {/* بوب-أب حفظ كفائدة عند تحديد أي نص */}
       <TextSelectionBubble
         selectionPopup={selectionPopup}
         isSmallScreen={isSmallScreen}
         onSaveHighlight={saveSelectionAsHighlight}
-        onOpenQuoteImage={openQuoteImage}
       />
 
       {/* شريط التحكم العلوي المدمج */}
@@ -490,18 +473,6 @@ const ReadingView = () => {
           onToggle={setIsTOCOpen}
         />
       </Suspense>
-
-      {/* بطاقة الاقتباس المصوّرة من النص المحدد — تحميل مؤجل عند الطلب */}
-      {quoteImage.show && (
-        <Suspense fallback={null}>
-          <QuoteImageModal
-            show={quoteImage.show}
-            text={quoteImage.text}
-            source={`${lesson.bookName || ''} • ${lesson.title || ''}`}
-            onClose={() => setQuoteImage({ show: false, text: '' })}
-          />
-        </Suspense>
-      )}
 
       {/* إشعار تأكيدي عند حفظ فائدة بنجاح */}
       <AnimatePresence>
