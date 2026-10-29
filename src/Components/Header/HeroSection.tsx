@@ -41,6 +41,37 @@ const HeroSection = ({
       id="hero-section"
       aria-label="الصفحة الترحيبية لمنصة يَسِّر"
     >
+      {/* ─── مؤثر ضوء الشمس العلوي والبوكيه الأثيري (Sunlight & Volumetric God Rays) ─── */}
+      <div className={styles['sunlight-system']} aria-hidden="true">
+        {/* هالة وقرص الشمس الرئيسي في الركن العلوي */}
+        <div className={styles['sun-core']} />
+        <div className={styles['sun-corona']} />
+        <div className={styles['sun-flare-burst']} />
+
+        {/* حزم أشعة الشمس المتدفقة (God Rays) */}
+        <div className={styles['sun-rays']} />
+        <div className={styles['sun-rays-secondary']} />
+
+        {/* شريط توهج العدسة المائل (Lens Flare Anamorphic Streak) */}
+        <div className={styles['lens-flare-streak']} />
+        <div className={styles['lens-flare-ring']} />
+
+        {/* دوائر البوكيه الذهبية المتطايرة (Floating Golden Bokeh Orbs) */}
+        <div className={`${styles['bokeh-orb']} ${styles['bokeh-1']}`} />
+        <div className={`${styles['bokeh-orb']} ${styles['bokeh-2']}`} />
+        <div className={`${styles['bokeh-orb']} ${styles['bokeh-3']}`} />
+        <div className={`${styles['bokeh-orb']} ${styles['bokeh-4']}`} />
+        <div className={`${styles['bokeh-orb']} ${styles['bokeh-5']}`} />
+        <div className={`${styles['bokeh-orb']} ${styles['bokeh-6']}`} />
+
+        {/* ذرات الغبار النورانية اللامعة (Light Motes / Sparkles) */}
+        <div className={`${styles['light-mote']} ${styles['mote-1']}`} />
+        <div className={`${styles['light-mote']} ${styles['mote-2']}`} />
+        <div className={`${styles['light-mote']} ${styles['mote-3']}`} />
+        <div className={`${styles['light-mote']} ${styles['mote-4']}`} />
+        <div className={`${styles['light-mote']} ${styles['mote-5']}`} />
+      </div>
+
       {/* خلفيات إضاءة أثيرية هادئة ومريحة للعين */}
       <div className={styles['ambient-mesh']} aria-hidden="true" />
       <div className={styles['ambient-glow-gold']} aria-hidden="true" />
