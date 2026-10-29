@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import type { TouchEvent as ReactTouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,17 +19,18 @@ import NotesCard from '../Content/NotesCard';
 import MediaCard from '../Content/MediaCard';
 import ShareButton from '../UI/ShareButton';
 import BismillahHeader from '../UI/BismillahHeader';
-import { exportChapterPrint } from '../../utils/printExport';
 import ArabesqueDivider from '../UI/ArabesqueDivider';
-import FloatingTOC from '../UI/FloatingTOC';
 import ReadingProgressBar from '../UI/ReadingProgressBar';
-import QuoteImageModal from '../UI/QuoteImageModal';
 import { useApp } from '../Layout/AppContext';
 import type { Lesson } from '../../types';
 import { getStopMarkForBook } from '../../features/stopMarks/model';
 import { TextSelectionBubble, type SelectionPopupState } from './Reading/TextSelectionBubble';
 import { ReadingHeaderBar } from './Reading/ReadingHeaderBar';
 import { ReadingBottomNav } from './Reading/ReadingBottomNav';
+
+// تقسيم المكوّنات الإضافية والتحميل المؤجل لتخفيف حزمة شاشة القراءة الأساسية
+const QuoteImageModal = lazy(() => import('../UI/QuoteImageModal'));
+const FloatingTOC = lazy(() => import('../UI/FloatingTOC'));
 
 interface QuoteImageState {
   show: boolean;
@@ -92,13 +93,14 @@ const ReadingView = () => {
     openLessonById(selected.id);
   };
 
-  const handlePrintChapter = (): void => {
+  const handlePrintChapter = async (): Promise<void> => {
     if (!lesson) return;
     const chapterName = lesson.chapterName || 'بدون باب';
     const bookName = lesson.bookName || 'بدون كتاب';
     const chapterLessons = allLessons.filter(
       (l) => (l.chapterName || 'بدون باب') === chapterName && (l.bookName || 'بدون كتاب') === bookName,
     );
+    const { exportChapterPrint } = await import('../../utils/printExport');
     exportChapterPrint({ chapterName, bookName, lessons: chapterLessons });
   };
 
@@ -479,21 +481,27 @@ const ReadingView = () => {
         </motion.div>
       </AnimatePresence>
 
-      <FloatingTOC 
-        currentLesson={lesson} 
-        allLessons={allLessons} 
-        onSelectLesson={onSelectLesson}
-        isOpen={isTOCOpen}
-        onToggle={setIsTOCOpen}
-      />
+      <Suspense fallback={null}>
+        <FloatingTOC 
+          currentLesson={lesson} 
+          allLessons={allLessons} 
+          onSelectLesson={onSelectLesson}
+          isOpen={isTOCOpen}
+          onToggle={setIsTOCOpen}
+        />
+      </Suspense>
 
-      {/* بطاقة الاقتباس المصوّرة من النص المحدد */}
-      <QuoteImageModal
-        show={quoteImage.show}
-        text={quoteImage.text}
-        source={`${lesson.bookName || ''} • ${lesson.title || ''}`}
-        onClose={() => setQuoteImage({ show: false, text: '' })}
-      />
+      {/* بطاقة الاقتباس المصوّرة من النص المحدد — تحميل مؤجل عند الطلب */}
+      {quoteImage.show && (
+        <Suspense fallback={null}>
+          <QuoteImageModal
+            show={quoteImage.show}
+            text={quoteImage.text}
+            source={`${lesson.bookName || ''} • ${lesson.title || ''}`}
+            onClose={() => setQuoteImage({ show: false, text: '' })}
+          />
+        </Suspense>
+      )}
 
       {/* إشعار تأكيدي عند حفظ فائدة بنجاح */}
       <AnimatePresence>

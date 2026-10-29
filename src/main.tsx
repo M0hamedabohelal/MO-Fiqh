@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { ErrorBoundary } from './ErrorBoundary';
 import { AuthProvider } from './Components/Auth/AuthContext';
-import { initAppCheck } from './firebase/config';
 import { installFirestoreRecovery } from './utils/firestoreRecovery';
 import { setupDeferredGA } from './utils/analytics';
 import { hashFromCleanPath } from './hooks/useHashRoute';
@@ -29,13 +28,10 @@ installFirestoreRecovery();
 // تحميل تحليلات GA4 فقط بعد تفاعل المستخدم (خصوصية + أداء LCP)
 setupDeferredGA();
 
-// App Check (حماية من البوتات): معطّل افتراضيًا.
-// السبب: تطبيق الويب غير مُسجَّل في App Check لهذا المشروع، فكل تحميل يصدر 400
-// ("App not registered") في الكونسول مع تحميل reCAPTCHA بلا أي حماية فعلية.
-// (الـ APP_ID والقيم في .env.local مطابقة لإعدادات المشروع — النقص في تسجيل App Check نفسه.)
-// بعد تسجيل التطبيق في App Check وإضافة دومين الموقع لمفتاح reCAPTCHA،
-// فعّله بضبط VITE_ENABLE_APPCHECK=true ثم فعّل الإنفاذ في القواعد.
-if (import.meta.env.VITE_ENABLE_APPCHECK === 'true') void initAppCheck();
+// App Check (حماية من البوتات): تحميل مؤجل فقط عند التفعيل الصريح لتسريع التحميل الأولي
+if (import.meta.env.VITE_ENABLE_APPCHECK === 'true') {
+  void import('./firebase/config').then((m) => m.initAppCheck());
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

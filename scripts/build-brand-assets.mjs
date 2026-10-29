@@ -123,12 +123,19 @@ console.log(`✓ favicon.svg (${(favSvg.length / 1024).toFixed(0)} KB)`);
 const iconsDir = join(root, 'public', 'icons');
 await mkdir(iconsDir, { recursive: true });
 
+const webpOpts = { quality: 90, alphaQuality: 95, effort: 5 };
+
 // 48x48 (مطلوبة لمحركات البحث ومظهر جوجل في نتائج البحث)
 const icon48 = await sharp(SOURCE_CIRCLE)
   .resize(48, 48, { fit: 'cover' })
   .png({ compressionLevel: 9 })
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-48.png'), icon48);
+const icon48Webp = await sharp(SOURCE_CIRCLE)
+  .resize(48, 48, { fit: 'cover' })
+  .webp(webpOpts)
+  .toBuffer();
+await writeFile(join(iconsDir, 'icon-48.webp'), icon48Webp);
 
 // 96x96
 const icon96 = await sharp(SOURCE_CIRCLE)
@@ -136,6 +143,11 @@ const icon96 = await sharp(SOURCE_CIRCLE)
   .png({ compressionLevel: 9 })
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-96.png'), icon96);
+const icon96Webp = await sharp(SOURCE_CIRCLE)
+  .resize(96, 96, { fit: 'cover' })
+  .webp(webpOpts)
+  .toBuffer();
+await writeFile(join(iconsDir, 'icon-96.webp'), icon96Webp);
 
 // 192x192
 const icon192 = await sharp(SOURCE_CIRCLE)
@@ -143,6 +155,11 @@ const icon192 = await sharp(SOURCE_CIRCLE)
   .png({ compressionLevel: 9 })
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-192.png'), icon192);
+const icon192Webp = await sharp(SOURCE_CIRCLE)
+  .resize(192, 192, { fit: 'cover' })
+  .webp(webpOpts)
+  .toBuffer();
+await writeFile(join(iconsDir, 'icon-192.webp'), icon192Webp);
 
 // 512x512
 const icon512 = await sharp(SOURCE_CIRCLE)
@@ -150,6 +167,11 @@ const icon512 = await sharp(SOURCE_CIRCLE)
   .png({ compressionLevel: 9 })
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-512.png'), icon512);
+const icon512Webp = await sharp(SOURCE_CIRCLE)
+  .resize(512, 512, { fit: 'cover' })
+  .webp(webpOpts)
+  .toBuffer();
+await writeFile(join(iconsDir, 'icon-512.webp'), icon512Webp);
 
 // توليد favicon.ico متعدد الأحجام (16 + 32 + 48) في جذر الموقع لجوجل
 const p16 = await sharp(SOURCE_CIRCLE).resize(16, 16, { fit: 'cover' }).png().toBuffer();
@@ -213,6 +235,25 @@ const iconMaskable = await sharp({
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-maskable-512.png'), iconMaskable);
 
+const iconMaskableWebp = await sharp({
+  create: {
+    width: 512,
+    height: 512,
+    channels: 4,
+    background: DARK_BG,
+  },
+})
+  .composite([
+    {
+      input: maskableLogoPart,
+      top: Math.round((512 - MASKABLE_LOGO_SIZE) / 2),
+      left: Math.round((512 - MASKABLE_LOGO_SIZE) / 2),
+    },
+  ])
+  .webp(webpOpts)
+  .toBuffer();
+await writeFile(join(iconsDir, 'icon-maskable-512.webp'), iconMaskableWebp);
+
 // apple-touch-icon (180x180 مع خلفية داكنة مناسبة لـ iOS)
 const APPLE_SIZE = 180;
 const APPLE_LOGO_SIZE = 148;
@@ -239,6 +280,25 @@ const appleTouchIcon = await sharp({
   .toBuffer();
 await writeFile(join(iconsDir, 'apple-touch-icon.png'), appleTouchIcon);
 
-console.log('✓ PWA Icons: 192, 512, maskable-512, apple-touch-icon (180)');
+const appleTouchIconWebp = await sharp({
+  create: {
+    width: APPLE_SIZE,
+    height: APPLE_SIZE,
+    channels: 4,
+    background: DARK_BG,
+  },
+})
+  .composite([
+    {
+      input: appleLogoPart,
+      top: Math.round((APPLE_SIZE - APPLE_LOGO_SIZE) / 2),
+      left: Math.round((APPLE_SIZE - APPLE_LOGO_SIZE) / 2),
+    },
+  ])
+  .webp(webpOpts)
+  .toBuffer();
+await writeFile(join(iconsDir, 'apple-touch-icon.webp'), appleTouchIconWebp);
+
+console.log('✓ PWA Icons (PNG & WebP): 48, 96, 192, 512, maskable-512, apple-touch-icon (180)');
 
 

@@ -96,6 +96,15 @@ export default defineConfig({
   ],
   base: '/',
   build: {
+    modulePreload: {
+      resolveDependencies(filename, deps, { hostType }) {
+        if (hostType === 'html') {
+          // استبعاد شارد إعدادات Firebase من التحميل المسبق في index.html لتسريع الإقلاع الأولي
+          return deps.filter((dep) => !dep.includes('config-') && !dep.includes('firebase'));
+        }
+        return deps;
+      },
+    },
     rollupOptions: {
       output: {
         // تقسيم المكتبات لملفات منفصلة — تحميل أسرع وكاش أفضل
