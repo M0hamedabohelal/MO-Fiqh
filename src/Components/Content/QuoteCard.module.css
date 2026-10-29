@@ -1,6 +1,7 @@
 .cardContainer {
-  border-right: 6px solid var(--accent-color);
+  border-right: 5px solid var(--accent-color);
   background-color: var(--card-bg);
+  border-radius: 16px;
 }
 
 .copyButton {

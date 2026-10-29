@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { FiBookOpen, FiCopy, FiCheck } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiMessageSquare } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { formatBrackets } from '../../utils/textFormatting';
 import { glossaryData as defaultGlossary } from '../../data/glossary';
@@ -193,7 +193,20 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
         data-selectable="body-text"
         className="custom-card p-4 p-md-5 mb-4 shadow-sm explanation-card position-relative parchment-texture"
       >
-        <div className="position-absolute top-0 start-0 m-3 d-flex gap-2">
+        <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom" style={{ borderColor: 'var(--border-color)' }}>
+          <span
+            className="badge d-inline-flex align-items-center gap-2 py-1 px-3 shadow-sm"
+            style={{
+              backgroundColor: 'var(--badge-bg)',
+              color: 'var(--primary-color)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '50px',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+            }}
+          >
+            <FiMessageSquare size={16} /> شرح وتعليق الشيخ
+          </span>
           <button
             onClick={handleCopy}
             className="btn btn-sm d-flex align-items-center justify-content-center"
@@ -204,9 +217,6 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
             {copied ? <FiCheck color="green" size={20} /> : <FiCopy size={20} />}
           </button>
         </div>
-        <h3 className="h5 mb-4 d-flex align-items-center justify-content-center fw-bold explanation-title">
-           تعليق الشيخ <FiBookOpen className="ms-2" />
-        </h3>
 
         {/* عرض الشرح منسقاً ومن اليمين لليسار */}
         <div
@@ -268,9 +278,14 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
           style={{ position: 'fixed', top: tooltipInfo.y, left: tooltipInfo.x, zIndex: 'var(--z-tooltip)' }}
         >
           <div className="glossary-tooltip-content">
-            <strong className="d-block mb-1" style={{ color: 'var(--accent-color)', fontSize: '0.95rem' }}>
-              📖 {tooltipInfo.term}
-            </strong>
+            <div className="d-flex align-items-center justify-content-between mb-1 gap-2">
+              <strong style={{ color: 'var(--accent-color)', fontSize: '0.95rem' }}>
+                📖 {tooltipInfo.term}
+              </strong>
+              <span className="badge rounded-pill" style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--text-muted)', fontSize: '0.72rem', border: '1px solid var(--border-color)' }}>
+                مصطلح فقهي
+              </span>
+            </div>
             <span style={{ fontSize: '0.9rem', lineHeight: '1.7' }}>
               {tooltipInfo.definition || 'لا يوجد تعريف'}
             </span>

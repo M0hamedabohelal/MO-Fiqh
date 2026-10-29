@@ -1,5 +1,5 @@
-import { memo } from 'react';
-import { FiBook, FiFileText, FiList, FiPrinter, FiFlag } from 'react-icons/fi';
+import { memo, useState, useMemo } from 'react';
+import { FiBook, FiFileText, FiList, FiPrinter, FiFlag, FiCheckCircle, FiClock, FiBookmark, FiLayers } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import EmptyState from '../UI/EmptyState';
@@ -8,6 +8,8 @@ import { exportChapterPrint } from '../../utils/printExport';
 import { useApp } from '../Layout/AppContext';
 import type { LessonIssue } from '../../types';
 import { getStopMarkForBook } from '../../features/stopMarks/model';
+
+type FilterType = 'all' | 'read' | 'unread' | 'bookmarks';
 
 const REDUCE_LIST_ANIM =
   typeof window !== 'undefined' && window.innerWidth < 768;
@@ -31,12 +33,52 @@ const LessonsView = memo(() => {
     openLessonById,
     lessons,
     stopMarks,
+    bookmarks = [],
   } = useApp();
+
+  const [filter, setFilter] = useState<FilterType>('all');
+
   const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
   const stopMark = getStopMarkForBook(stopMarks, bookName, lessons);
   const stopLesson = stopMark?.lessonId
     ? lessons.find((lesson) => String(lesson.id) === stopMark.lessonId)
     : undefined;
+
+  const bookmarkSet = useMemo(() => new Set((bookmarks || []).map(String)), [bookmarks]);
+
+  const allIssues = useMemo(() => chapters.flatMap((c) => c.issues), [chapters]);
+
+  const counts = useMemo(() => {
+    const total = allIssues.length;
+    let read = 0;
+    let bookmarked = 0;
+    for (const issue of allIssues) {
+      if (issue.isRead) read++;
+      if (bookmarkSet.has(String(issue.id))) bookmarked++;
+    }
+    return {
+      all: total,
+      read,
+      unread: Math.max(0, total - read),
+      bookmarks: bookmarked,
+    };
+  }, [allIssues, bookmarkSet]);
+
+  const filteredChapters = useMemo(() => {
+    if (filter === 'all') return chapters;
+    return chapters
+      .map((chapter) => ({
+        ...chapter,
+        issues: chapter.issues.filter((issue) => {
+          if (filter === 'read') return Boolean(issue.isRead);
+          if (filter === 'unread') return !issue.isRead;
+          if (filter === 'bookmarks') return bookmarkSet.has(String(issue.id));
+          return true;
+        }),
+      }))
+      .filter((chapter) => chapter.issues.length > 0);
+  }, [chapters, filter, bookmarkSet]);
+
   return (
   <div className="mt-4">
     <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -44,8 +86,84 @@ const LessonsView = memo(() => {
         <FiFileText className="ms-2" /> فهرس المسائل
       </h3>
     </div>
-    <div className="text-muted fw-bold mb-4">
+    <div className="text-muted fw-bold mb-3">
       {bookName}
+    </div>
+
+    {/* أزرار التصفية السريعة */}
+    <div className="d-flex align-items-center gap-2 mb-4 overflow-x-auto pb-1" role="group" aria-label="تصفية المسائل">
+      <button
+        type="button"
+        className="btn btn-sm d-inline-flex align-items-center gap-1 shadow-sm px-3 py-1"
+        style={{
+          borderRadius: '50px',
+          fontWeight: 700,
+          fontSize: '0.85rem',
+          backgroundColor: filter === 'all' ? 'var(--primary-color)' : 'var(--badge-bg)',
+          color: filter === 'all' ? '#ffffff' : 'var(--text-main)',
+          border: '1px solid var(--border-color)',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.2s ease',
+        }}
+        onClick={() => setFilter('all')}
+        aria-pressed={filter === 'all'}
+      >
+        <FiLayers size={14} /> الكل ({counts.all})
+      </button>
+      <button
+        type="button"
+        className="btn btn-sm d-inline-flex align-items-center gap-1 shadow-sm px-3 py-1"
+        style={{
+          borderRadius: '50px',
+          fontWeight: 700,
+          fontSize: '0.85rem',
+          backgroundColor: filter === 'read' ? 'var(--primary-color)' : 'var(--badge-bg)',
+          color: filter === 'read' ? '#ffffff' : 'var(--text-main)',
+          border: '1px solid var(--border-color)',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.2s ease',
+        }}
+        onClick={() => setFilter('read')}
+        aria-pressed={filter === 'read'}
+      >
+        <FiCheckCircle size={14} /> المقروءة ({counts.read})
+      </button>
+      <button
+        type="button"
+        className="btn btn-sm d-inline-flex align-items-center gap-1 shadow-sm px-3 py-1"
+        style={{
+          borderRadius: '50px',
+          fontWeight: 700,
+          fontSize: '0.85rem',
+          backgroundColor: filter === 'unread' ? 'var(--primary-color)' : 'var(--badge-bg)',
+          color: filter === 'unread' ? '#ffffff' : 'var(--text-main)',
+          border: '1px solid var(--border-color)',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.2s ease',
+        }}
+        onClick={() => setFilter('unread')}
+        aria-pressed={filter === 'unread'}
+      >
+        <FiClock size={14} /> المتبقية ({counts.unread})
+      </button>
+      <button
+        type="button"
+        className="btn btn-sm d-inline-flex align-items-center gap-1 shadow-sm px-3 py-1"
+        style={{
+          borderRadius: '50px',
+          fontWeight: 700,
+          fontSize: '0.85rem',
+          backgroundColor: filter === 'bookmarks' ? 'var(--primary-color)' : 'var(--badge-bg)',
+          color: filter === 'bookmarks' ? '#ffffff' : 'var(--text-main)',
+          border: '1px solid var(--border-color)',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.2s ease',
+        }}
+        onClick={() => setFilter('bookmarks')}
+        aria-pressed={filter === 'bookmarks'}
+      >
+        <FiBookmark size={14} /> المفضلة ({counts.bookmarks})
+      </button>
     </div>
 
     {stopMark && stopLesson && (
@@ -69,7 +187,15 @@ const LessonsView = memo(() => {
         />
       )}
 
-      {chapters.map(({ chapterName, issues }) => (
+      {chapters.length > 0 && filteredChapters.length === 0 && (
+        <EmptyState
+          icon={FiBook}
+          title="لا توجد مسائل مطابقة"
+          message="لم نجد أي مسائل تطابق الفلتر المختار في هذا الكتاب."
+        />
+      )}
+
+      {filteredChapters.map(({ chapterName, issues }) => (
         <section key={chapterName}>
           <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
             <h5

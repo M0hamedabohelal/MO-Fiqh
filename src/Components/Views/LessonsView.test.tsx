@@ -47,6 +47,7 @@ const sampleLessons: Lesson[] = [
 
 let mockSelectedBookChapters: ChapterGroup[] = [...sampleChapters];
 let mockStopMarks: Record<string, { bookName: string; lessonId: string | null; updatedAt: number; deviceId: string }> = {};
+let mockBookmarks: string[] = [];
 
 vi.mock('../Layout/AppContext', () => ({
   useApp: () => ({
@@ -55,6 +56,7 @@ vi.mock('../Layout/AppContext', () => ({
     openLessonById: mockOpenLessonById,
     lessons: sampleLessons,
     stopMarks: mockStopMarks,
+    bookmarks: mockBookmarks,
   }),
 }));
 
@@ -67,6 +69,7 @@ describe('LessonsView Component', () => {
     vi.clearAllMocks();
     mockSelectedBookChapters = [...sampleChapters];
     mockStopMarks = {};
+    mockBookmarks = [];
   });
 
   afterEach(() => {
@@ -128,5 +131,35 @@ describe('LessonsView Component', () => {
 
     fireEvent.click(resumeBtn);
     expect(mockOpenLessonById).toHaveBeenCalledWith('1');
+  });
+
+  it('يعرض أزرار التصفية السريعة ويقوم بالتصفية حسب المقروءة والمتبقية والمفضلة', () => {
+    mockBookmarks = ['1'];
+    render(<LessonsView />);
+
+    // أزرار التصفية متوفرة مع الأعداد: الكل (2), المقروءة (1), المتبقية (1), المفضلة (1)
+    expect(screen.getByRole('button', { name: /الكل/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /المقروءة/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /المتبقية/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /المفضلة/i })).toBeTruthy();
+
+    // في البداية كل المسائل معروضة
+    expect(screen.getByText('المسألة الأولى: أحكام المياه')).toBeTruthy();
+    expect(screen.getByText('المسألة الثانية: الماء النجس')).toBeTruthy();
+
+    // التصفية للمقروءة فقط (المسألة الثانية)
+    fireEvent.click(screen.getByRole('button', { name: /المقروءة/i }));
+    expect(screen.queryByText('المسألة الأولى: أحكام المياه')).toBeNull();
+    expect(screen.getByText('المسألة الثانية: الماء النجس')).toBeTruthy();
+
+    // التصفية للمتبقية فقط (المسألة الأولى)
+    fireEvent.click(screen.getByRole('button', { name: /المتبقية/i }));
+    expect(screen.getByText('المسألة الأولى: أحكام المياه')).toBeTruthy();
+    expect(screen.queryByText('المسألة الثانية: الماء النجس')).toBeNull();
+
+    // التصفية للمفضلة فقط (المسألة الأولى لأن mockBookmarks = ['1'])
+    fireEvent.click(screen.getByRole('button', { name: /المفضلة/i }));
+    expect(screen.getByText('المسألة الأولى: أحكام المياه')).toBeTruthy();
+    expect(screen.queryByText('المسألة الثانية: الماء النجس')).toBeNull();
   });
 });

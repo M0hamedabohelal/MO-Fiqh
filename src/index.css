@@ -181,15 +181,16 @@ body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   background-color: var(--card-bg-alpha, var(--card-bg));
-  border-radius: 12px;
+  border-radius: 16px;
   border: 1px solid var(--card-border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
 }
 
 /* ظل أعمق للبطاقات في الوضع الداكن حتى تتمايز عن الخلفية */
 [data-theme="dark"] .custom-card {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.07);
 }
 
 /* Custom UI Elements */
@@ -343,8 +344,9 @@ button:active:not(:disabled),
 }
 
 .explanation-card.explanation-card {
-  background-color: var(--bg-color);
-  border-right: 6px solid var(--accent-color);
+  background-color: var(--card-bg-alpha, var(--card-bg));
+  border-right: 5px solid var(--primary-color);
+  border-radius: 16px;
 }
 
 /* متن شرح الشيخ بخط النسخ التراثي */
@@ -495,7 +497,9 @@ button:active:not(:disabled),
 }
 
 [data-theme="sepia"] .custom-card {
-  background-color: rgba(250, 243, 227, 0.9);
+  background-color: var(--card-bg-alpha, rgba(250, 243, 227, 0.92));
+  border-color: rgba(90, 60, 30, 0.12);
+  box-shadow: 0 4px 20px rgba(90, 60, 30, 0.06);
 }
 
 [data-theme="sepia"] .quran-text {
@@ -970,7 +974,7 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
 
   /* ─── بطاقات المحتوى ─── */
   .custom-card.custom-card {
-    border-radius: 10px;
+    border-radius: 14px;
   }
 
   /* QuoteCard & ExplanationCard */
@@ -1093,11 +1097,28 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
 }
 
 .reading-header-toolbar {
-  min-height: 44px;
+  position: sticky;
+  top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  z-index: var(--z-nav);
+  min-height: 48px;
+  background-color: var(--card-bg-alpha, var(--card-bg));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 0.4rem 0.75rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.25rem;
+  transition: all 0.25s ease;
+}
+
+[data-theme="dark"] .reading-header-toolbar {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
 .reading-header-toolbar .reading-back-btn {
-  min-height: 40px;
+  min-height: 38px;
+  border-radius: 10px;
 }
 
 /* تجربة القراءة على الهاتف: مساحة لمس مريحة وملاحة متاحة عند نهاية المسألة */

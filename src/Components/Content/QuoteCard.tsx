@@ -290,7 +290,20 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
         data-selectable="body-text"
         className={`custom-card p-4 p-md-5 mb-4 position-relative shadow-sm manuscript-frame parchment-texture ${styles.cardContainer}`}
       >
-        <div className="position-absolute top-0 start-0 m-3 d-flex gap-2">
+        <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom" style={{ borderColor: 'var(--border-color)' }}>
+          <span
+            className="badge d-inline-flex align-items-center gap-2 py-1 px-3 shadow-sm"
+            style={{
+              backgroundColor: 'var(--badge-bg)',
+              color: 'var(--accent-color)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '50px',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+            }}
+          >
+            <FiBookOpen size={16} /> متن المسألة
+          </span>
           <button
             onClick={handleCopy}
             className={`btn btn-sm d-flex align-items-center justify-content-center ${styles.copyButton}`}
@@ -300,10 +313,6 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
             {copied ? <FiCheck color="green" size={20} /> : <FiCopy size={20} />}
           </button>
         </div>
-        
-        <h3 className="h5 mb-4 d-flex align-items-center justify-content-center fw-bold" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-heading)' }}>
-           متن الكتاب <FiBookOpen className="ms-2" />
-        </h3>
 
         <div 
           className={`mt-3 ${styles.textContent} ${isLongIssue ? 'is-long-issue' : ''}`}
@@ -365,9 +374,14 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
             }}
           >
             <div className="glossary-tooltip-content">
-              <strong className="d-block mb-1" style={{ color: 'var(--accent-color)', fontSize: '0.95rem' }}>
-                📖 {tooltipInfo.term}
-              </strong>
+              <div className="d-flex align-items-center justify-content-between mb-1 gap-2">
+                <strong style={{ color: 'var(--accent-color)', fontSize: '0.95rem' }}>
+                  📖 {tooltipInfo.term}
+                </strong>
+                <span className="badge rounded-pill" style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--text-muted)', fontSize: '0.72rem', border: '1px solid var(--border-color)' }}>
+                  مصطلح فقهي
+                </span>
+              </div>
               <span style={{ fontSize: '0.9rem', lineHeight: '1.7' }}>
                 {tooltipInfo.definition}
               </span>
