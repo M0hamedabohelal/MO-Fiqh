@@ -146,7 +146,7 @@
   filter: blur(85px);
   pointer-events: none;
   z-index: 1;
-  opacity: 0.75;
+  opacity: 0.45;
 }
 
 .ambient-glow-emerald {
@@ -172,9 +172,10 @@
   overflow: hidden;
   pointer-events: none;
   z-index: 2;
+  opacity: 0.82;
 }
 
-/* قرص الشمس المتوهج في الزاوية العلوية اليمنى */
+/* قرص الشمس المتوهج في الزاوية العلوية اليمنى — سطوع دافئ هادئ */
 .sun-core {
   position: absolute;
   top: -70px;
@@ -185,14 +186,14 @@
   background: radial-gradient(
     circle,
     #ffffff 0%,
-    #fff8e1 22%,
-    #fbd369 48%,
-    rgba(235, 175, 45, 0.45) 70%,
+    #fffbf0 22%,
+    #f6db8d 48%,
+    rgba(215, 165, 45, 0.3) 70%,
     transparent 100%
   );
-  filter: blur(10px);
+  filter: blur(12px);
   mix-blend-mode: screen;
-  opacity: 0.95;
+  opacity: 0.78;
   animation: sunPulse 7s ease-in-out infinite alternate;
 }
 
@@ -206,12 +207,12 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(255, 235, 160, 0.35) 0%,
-    rgba(240, 190, 70, 0.22) 30%,
-    rgba(205, 150, 40, 0.12) 55%,
+    rgba(255, 238, 175, 0.22) 0%,
+    rgba(230, 180, 65, 0.14) 30%,
+    rgba(195, 140, 35, 0.06) 55%,
     transparent 75%
   );
-  filter: blur(45px);
+  filter: blur(50px);
   mix-blend-mode: screen;
   animation: coronaGlow 9s ease-in-out infinite alternate;
 }
@@ -224,10 +225,11 @@
   width: min(500px, 50vw);
   height: min(500px, 50vw);
   background:
-    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 238, 180, 0.35) 18%, transparent 50%),
-    linear-gradient(225deg, rgba(255, 240, 190, 0.3) 0%, transparent 65%);
-  filter: blur(8px);
+    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.65) 0%, rgba(255, 240, 190, 0.22) 18%, transparent 50%),
+    linear-gradient(225deg, rgba(255, 242, 195, 0.18) 0%, transparent 65%);
+  filter: blur(10px);
   mix-blend-mode: screen;
+  opacity: 0.8;
 }
 
 /* حزم أشعة الشمس المائلة المتدفقة (God Rays) */
@@ -240,22 +242,22 @@
   background: conic-gradient(
     from 190deg at 92% 3%,
     transparent 0deg,
-    rgba(255, 230, 140, 0.16) 12deg,
+    rgba(255, 235, 155, 0.10) 12deg,
     transparent 22deg,
-    rgba(255, 240, 175, 0.24) 30deg,
-    rgba(255, 215, 100, 0.08) 38deg,
+    rgba(255, 242, 185, 0.15) 30deg,
+    rgba(255, 220, 110, 0.05) 38deg,
     transparent 45deg,
-    rgba(255, 232, 145, 0.2) 54deg,
+    rgba(255, 236, 160, 0.12) 54deg,
     transparent 62deg,
-    rgba(255, 225, 120, 0.14) 70deg,
+    rgba(255, 230, 135, 0.09) 70deg,
     transparent 80deg,
-    rgba(255, 242, 170, 0.18) 90deg,
+    rgba(255, 244, 180, 0.11) 90deg,
     transparent 102deg
   );
-  filter: blur(18px);
+  filter: blur(20px);
   mix-blend-mode: screen;
-  mask-image: radial-gradient(circle at 88% 5%, black 0%, rgba(0, 0, 0, 0.75) 45%, transparent 85%);
-  -webkit-mask-image: radial-gradient(circle at 88% 5%, black 0%, rgba(0, 0, 0, 0.75) 45%, transparent 85%);
+  mask-image: radial-gradient(circle at 88% 5%, black 0%, rgba(0, 0, 0, 0.7) 45%, transparent 85%);
+  -webkit-mask-image: radial-gradient(circle at 88% 5%, black 0%, rgba(0, 0, 0, 0.7) 45%, transparent 85%);
   animation: raysDrift 14s ease-in-out infinite alternate;
 }
 
@@ -268,17 +270,17 @@
   background: conic-gradient(
     from 200deg at 94% 2%,
     transparent 0deg,
-    rgba(255, 242, 180, 0.16) 15deg,
+    rgba(255, 244, 190, 0.10) 15deg,
     transparent 28deg,
-    rgba(255, 225, 125, 0.22) 42deg,
+    rgba(255, 230, 135, 0.13) 42deg,
     transparent 52deg,
-    rgba(255, 238, 155, 0.14) 66deg,
+    rgba(255, 240, 165, 0.09) 66deg,
     transparent 80deg
   );
-  filter: blur(30px);
+  filter: blur(32px);
   mix-blend-mode: screen;
-  mask-image: radial-gradient(circle at 88% 5%, black 0%, rgba(0, 0, 0, 0.55) 55%, transparent 90%);
-  -webkit-mask-image: radial-gradient(circle at 88% 5%, black 0%, rgba(0, 0, 0, 0.55) 55%, transparent 90%);
+  mask-image: radial-gradient(circle at 88% 5%, black 0%, rgba(0, 0, 0, 0.5) 55%, transparent 90%);
+  -webkit-mask-image: radial-gradient(circle at 88% 5%, black 0%, rgba(0, 0, 0, 0.5) 55%, transparent 90%);
   animation: raysSway 18s ease-in-out infinite alternate;
 }
 
@@ -288,21 +290,21 @@
   top: 18%;
   right: -5%;
   width: 120%;
-  height: 3px;
+  height: 2.5px;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 235, 160, 0.05) 35%,
-    rgba(255, 245, 200, 0.35) 65%,
-    rgba(255, 220, 110, 0.65) 84%,
-    rgba(255, 255, 255, 0.9) 92%,
+    rgba(255, 240, 175, 0.03) 35%,
+    rgba(255, 248, 215, 0.22) 65%,
+    rgba(255, 225, 125, 0.42) 84%,
+    rgba(255, 255, 255, 0.75) 92%,
     transparent 100%
   );
   transform: rotate(-30deg);
   transform-origin: 90% 0%;
   filter: blur(2.5px);
   mix-blend-mode: screen;
-  opacity: 0.7;
+  opacity: 0.45;
 }
 
 .lens-flare-ring {
@@ -312,9 +314,9 @@
   width: min(340px, 36vw);
   height: min(340px, 36vw);
   border-radius: 50%;
-  border: 1px solid rgba(255, 225, 130, 0.22);
-  background: radial-gradient(circle, rgba(255, 220, 120, 0.08) 0%, rgba(200, 160, 60, 0.02) 70%, transparent 100%);
-  box-shadow: 0 0 35px rgba(255, 215, 100, 0.15);
+  border: 1px solid rgba(255, 230, 150, 0.14);
+  background: radial-gradient(circle, rgba(255, 225, 130, 0.05) 0%, rgba(200, 160, 60, 0.01) 70%, transparent 100%);
+  box-shadow: 0 0 25px rgba(255, 215, 100, 0.08);
   mix-blend-mode: screen;
   filter: blur(2.5px);
 }
@@ -325,15 +327,15 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(255, 240, 180, 0.32) 0%,
-    rgba(245, 205, 115, 0.2) 50%,
-    rgba(220, 170, 65, 0.12) 80%,
+    rgba(255, 242, 195, 0.20) 0%,
+    rgba(240, 200, 115, 0.12) 50%,
+    rgba(215, 165, 65, 0.06) 80%,
     transparent 100%
   );
-  border: 1.5px solid rgba(255, 235, 160, 0.42);
+  border: 1px solid rgba(255, 238, 175, 0.26);
   box-shadow:
-    inset 0 0 16px rgba(255, 230, 150, 0.24),
-    0 0 28px rgba(235, 185, 75, 0.3);
+    inset 0 0 12px rgba(255, 230, 150, 0.14),
+    0 0 20px rgba(225, 175, 65, 0.16);
   mix-blend-mode: screen;
   filter: blur(1.5px);
   will-change: transform;
@@ -353,7 +355,7 @@
   right: 6%;
   width: clamp(95px, 13vw, 135px);
   height: clamp(95px, 13vw, 135px);
-  opacity: 0.85;
+  opacity: 0.65;
   animation: bokehFloat2 15s ease-in-out infinite alternate -3s;
 }
 
@@ -386,7 +388,7 @@
   right: 64%;
   width: clamp(28px, 3.5vw, 38px);
   height: clamp(28px, 3.5vw, 38px);
-  opacity: 0.65;
+  opacity: 0.55;
   animation: bokehFloat3 12s ease-in-out infinite alternate -6s;
 }
 
@@ -396,8 +398,8 @@
   border-radius: 50%;
   background: #ffffff;
   box-shadow:
-    0 0 8px #fff0b3,
-    0 0 16px rgba(250, 205, 90, 0.9);
+    0 0 6px #fff4cc,
+    0 0 12px rgba(245, 210, 100, 0.6);
   mix-blend-mode: screen;
   will-change: transform, opacity;
 }
