@@ -1112,6 +1112,28 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   transition: all 0.25s ease;
 }
 
+.reading-sticky-title {
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+}
+
+.reading-sticky-title-mobile {
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+  animation: readingTitleSlideDown 0.22s ease-out;
+}
+
+@keyframes readingTitleSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 [data-theme="dark"] .reading-header-toolbar {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }

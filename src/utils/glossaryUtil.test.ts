@@ -193,4 +193,10 @@ describe('countTermMatches (إحصاء المعاينة للوحة الإدار�
     expect(countTermMatches('الصلاة', texts)).toBe(1);
     expect(countTermMatches('غير موجود', texts)).toBe(0);
   });
+
+  it('يدعم تمرير نصوص مطبعة مسبقًا ويمنع التكرار المزدوج للمشتقات المتداخلة', () => {
+    const raw = ['باب الوضوء وفضل الوضوء وإسباغ وضوءه'];
+    const preNorm = raw.map((t) => normalizeGlossaryTerm(t));
+    expect(countTermMatches('الوضوء', preNorm, true)).toBe(3);
+  });
 });

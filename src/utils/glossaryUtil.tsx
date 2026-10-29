@@ -136,30 +136,61 @@ export function sortedGlossaryTerms(glossary: GlossaryMap | undefined): Glossary
   return allEntries.sort((a, b) => b.norm.length - a.norm.length);
 }
 
+// كاش للصيغ المشتقة لكل مصطلح لتجنب تكرار توليد الصيغ وفرزها في كل فحص
+const termVariantsCache = new Map<string, GlossaryEntry[]>();
+
+export function getTermVariants(term: string): GlossaryEntry[] {
+  let cached = termVariantsCache.get(term);
+  if (!cached) {
+    cached = sortedGlossaryTerms({ [term]: 'def' });
+    termVariantsCache.set(term, cached);
+  }
+  return cached;
+}
+
 // إحصاء عدد مرات تطابق مصطلح معين في نصوص معينة (للوحة الإدارة والمعاينة)
-export function countTermMatches(term: string, texts: string[]): number {
+// يدعم التمرير المسبق لنصوص مطبّعة لتسريع المعالجة الفائقة عبر indexOf وحدود الكلمات
+export function countTermMatches(term: string, texts: string[], preNormalized = false): number {
   const normTerm = normalizeGlossaryTerm(term);
   if (!normTerm || !texts || texts.length === 0) return 0;
-  const entries = sortedGlossaryTerms({ [term]: 'test' });
+  const entries = getTermVariants(term);
+  if (entries.length === 0) return 0;
+
+  // تسريع فائق: تحديد أصغر نص فرعي مشترك للمصطلح ومشتقاته لتجاوز النصوص غير ذات الصلة فورًا
+  let checkSubstr = normTerm;
+  if (!normTerm.includes(' ')) {
+    let bare = normTerm;
+    if (bare.startsWith('ال') && bare.length > 3) {
+      bare = bare.slice(2);
+    }
+    checkSubstr = bare.endsWith('ه') ? bare.slice(0, -1) : bare;
+  }
+
   let count = 0;
-  for (const text of texts) {
-    if (!text) continue;
-    const { norm } = normalizeWithIndex(text);
-    let cur = 0;
-    while (cur < norm.length) {
-      let matched = false;
-      for (const e of entries) {
-        if (norm.startsWith(e.norm, cur)) {
-          const end = cur + e.norm.length;
-          if (atWordBoundary(norm, cur, end)) {
-            count += 1;
-            cur = end;
-            matched = true;
-            break;
-          }
+  for (const rawText of texts) {
+    if (!rawText) continue;
+    const norm = preNormalized ? rawText : normalizeGlossaryTerm(rawText);
+    if (checkSubstr && norm.indexOf(checkSubstr) === -1) continue;
+
+    const intervals: Array<[number, number]> = [];
+    for (const e of entries) {
+      let idx = norm.indexOf(e.norm);
+      while (idx !== -1) {
+        const end = idx + e.norm.length;
+        if (atWordBoundary(norm, idx, end)) {
+          intervals.push([idx, end]);
         }
+        idx = norm.indexOf(e.norm, idx + 1);
       }
-      if (!matched) cur += 1;
+    }
+    if (intervals.length === 0) continue;
+    intervals.sort((a, b) => (a[0] !== b[0] ? a[0] - b[0] : (b[1] - b[0]) - (a[1] - a[0])));
+    let lastEnd = -1;
+    for (const [s, e] of intervals) {
+      if (s >= lastEnd) {
+        count += 1;
+        lastEnd = e;
+      }
     }
   }
   return count;

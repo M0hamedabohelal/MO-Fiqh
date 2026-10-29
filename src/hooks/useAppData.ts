@@ -121,17 +121,25 @@ export function useAppData({ isOffline, deferCloud = false }: { isOffline: boole
   // المسائل — القراءة اللحظية كأول عملية على اتصال بارد تُطلق عطل Firestore الداخلي
   // المعروف (ca9/b815) وتُعطّل العميل كله. مستمع المسائل هو من يُدفّئ الاتصال أولًا.
   const glossaryFetchedRef = useRef(false);
+  const reloadGlossary = useCallback(async (): Promise<GlossaryMap | null> => {
+    if (!isFirebaseConfigured) return null;
+    try {
+      const cloudGlossary = await fetchGlossary();
+      if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
+        setGlossary(cloudGlossary);
+        return cloudGlossary;
+      }
+    } catch (err) {
+      logError('appData.reloadGlossary', err);
+    }
+    return null;
+  }, []);
+
   const loadGlossaryOnce = useCallback(() => {
     if (glossaryFetchedRef.current) return;
     glossaryFetchedRef.current = true;
-    void fetchGlossary()
-      .then((cloudGlossary) => {
-        if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
-          setGlossary((prev) => ({ ...prev, ...cloudGlossary }));
-        }
-      })
-      .catch(() => null);
-  }, []);
+    void reloadGlossary();
+  }, [reloadGlossary]);
 
   // شبكة أمان: لو لم تصل أي لقطة خادمية (سحابة محجوبة/بطيئة) نجلب المسرد بعد مدة
   // بدل تركه بلا تحميل للأبد.
@@ -221,13 +229,7 @@ export function useAppData({ isOffline, deferCloud = false }: { isOffline: boole
     });
 
     if (manual) {
-      void fetchGlossary()
-        .then((cloudGlossary) => {
-          if (cloudGlossary && Object.keys(cloudGlossary).length > 0) {
-            setGlossary((prev) => ({ ...prev, ...cloudGlossary }));
-          }
-        })
-        .catch(() => null);
+      void reloadGlossary();
     }
 
     setCloudAttemptDone(true);
@@ -245,7 +247,7 @@ export function useAppData({ isOffline, deferCloud = false }: { isOffline: boole
       setCloudRetryNonce((n) => n + 1);
     }
     return succeeded;
-  }, [applyCachedLessons]);
+  }, [applyCachedLessons, reloadGlossary]);
 
   // تحميل البيانات من السحابة مؤجّلاً بحيث لا ينافس أول رسم للشاشة
   // (يُجدول بعد ~0.6 ثانية — بعد اكتمال أول رسم عادةً — ويُعاد عند تغيّر حالة الاتصال)
@@ -329,5 +331,5 @@ export function useAppData({ isOffline, deferCloud = false }: { isOffline: boole
     [cloudLessonsLoaded, rawLessons.length],
   );
 
-  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, contentSource };
+  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, reloadGlossary, cloudLessonsLoaded, contentReady, contentSource };
 }

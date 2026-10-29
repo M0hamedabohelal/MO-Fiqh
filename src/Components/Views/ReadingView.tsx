@@ -305,6 +305,35 @@ const ReadingView = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [lessonId]);
 
+  // تتبع تمرير الصفحة لتثبيت اسم المسألة في الشريط العلوي عند التمرير
+  const [isTitleScrolled, setIsTitleScrolled] = useState(false);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      const handleScroll = (): void => {
+        setIsTitleScrolled(window.scrollY > 120);
+      };
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsTitleScrolled(!entry.isIntersecting && entry.boundingClientRect.top < 120);
+      },
+      {
+        root: null,
+        threshold: 0,
+        rootMargin: '-70px 0px 0px 0px',
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [lessonId]);
+
   if (!lesson) {
     return (
       <div className="container py-5 text-center">
@@ -335,7 +364,7 @@ const ReadingView = () => {
         onSaveHighlight={saveSelectionAsHighlight}
       />
 
-      {/* شريط التحكم العلوي المدمج */}
+      {/* شريط التحكم العلوي المدمج مع تثبيت اسم المسألة عند التمرير */}
       <ReadingHeaderBar
         onBackToIndex={onBackToIndex}
         isRead={isRead}
@@ -350,6 +379,8 @@ const ReadingView = () => {
         onPrev={onPrev}
         onNext={onNext}
         onOpenTOC={() => setIsTOCOpen((prev) => !prev)}
+        lessonTitle={cleanedTitle}
+        isScrolled={isTitleScrolled}
       />
 
       <AnimatePresence mode="wait">
@@ -364,6 +395,7 @@ const ReadingView = () => {
           <Breadcrumb book={lesson.bookName} chapter={lesson.chapterName} />
 
           <h2
+            ref={titleRef}
             className="h4 h3-md mb-2 mb-md-3 fw-bold mt-2 mt-md-4 text-center reading-lesson-title"
             style={{
               color: 'var(--primary-color)',

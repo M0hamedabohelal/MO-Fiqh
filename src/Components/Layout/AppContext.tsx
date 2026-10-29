@@ -66,6 +66,7 @@ export interface AppContextValue {
   onOpenSearch: () => void;
   onOpenLogin: () => void;
   reloadFromCloud: (manual?: boolean) => Promise<boolean>;
+  reloadGlossary?: () => Promise<GlossaryMap | null>;
   currentSearchQuery: string;
   lessonsCount: number;
   appVersion: AppVersionState;

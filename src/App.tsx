@@ -75,7 +75,7 @@ function App() {
   }, [deferCloud]);
 
   // ─── بيانات المحتوى ───
-  const { lessons, glossary, cloudStatus, reloadFromCloud, cloudLessonsLoaded, contentReady, contentSource } = useAppData({ isOffline, deferCloud });
+  const { lessons, glossary, cloudStatus, reloadFromCloud, reloadGlossary, cloudLessonsLoaded, contentReady, contentSource } = useAppData({ isOffline, deferCloud });
   const appVersion = useAppVersion();
 
   // ─── المكتبة الشخصية ───
@@ -362,6 +362,7 @@ function App() {
     onOpenSearch,
     onOpenLogin,
     reloadFromCloud,
+    reloadGlossary,
     currentSearchQuery,
     lessonsCount: lessons.length,
     appVersion,
@@ -380,7 +381,7 @@ function App() {
     toggleBookmark, toggleReadLesson, toggleStopMark, saveNoteForLesson,
     deleteHighlight, createHighlightFromSelection,
     restoreFullLibrary,
-    onOpenSearch, onOpenLogin, reloadFromCloud,
+    onOpenSearch, onOpenLogin, reloadFromCloud, reloadGlossary,
     currentSearchQuery,
     appVersion,
   ]);

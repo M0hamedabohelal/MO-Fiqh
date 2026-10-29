@@ -19,7 +19,7 @@ interface StatusMessage {
 }
 
 const AdminPanel = () => {
-  const { lessons, glossary, cloudLessonsLoaded, cloudStatus, isOffline, reloadFromCloud: onDataChanged } = useApp();
+  const { lessons, glossary, cloudLessonsLoaded, cloudStatus, isOffline, reloadFromCloud, reloadGlossary } = useApp();
   const [tab, setTab] = useState<AdminTab>('lessons'); // lessons | glossary | stats | announcements
   const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null); // { type: 'success'|'error', text }
   const [busy, setBusy] = useState(false);
@@ -90,10 +90,10 @@ const AdminPanel = () => {
 
       {/* محتوى التبويبات */}
       {tab === 'lessons' && (
-        <AdminLessonsTab lessons={lessons} cloudBackupReady={cloudLessonsLoaded && !isOffline} onDataChanged={onDataChanged} flash={flash} />
+        <AdminLessonsTab lessons={lessons} cloudBackupReady={cloudLessonsLoaded && !isOffline} onDataChanged={reloadFromCloud} flash={flash} />
       )}
       {tab === 'glossary' && (
-        <AdminGlossaryTab glossary={glossary} lessons={lessons} onDataChanged={onDataChanged} flash={flash} />
+        <AdminGlossaryTab glossary={glossary} lessons={lessons} onDataChanged={reloadGlossary || reloadFromCloud} flash={flash} />
       )}
       {tab === 'stats' && (
         <AdminStatsTab lessons={lessons} cloudLessonsLoaded={cloudLessonsLoaded} cloudStatus={cloudStatus} />
@@ -104,7 +104,7 @@ const AdminPanel = () => {
 
       {/* زر تحديث من السحابة */}
       <div className="text-center mt-5">
-        <button className="btn btn-sm btn-light text-muted d-flex align-items-center gap-2 mx-auto" onClick={async () => { setBusy(true); try { await onDataChanged(); } finally { setBusy(false); } }} disabled={busy}>
+        <button className="btn btn-sm btn-light text-muted d-flex align-items-center gap-2 mx-auto" onClick={async () => { setBusy(true); try { await reloadFromCloud(true); } finally { setBusy(false); } }} disabled={busy}>
           <FiRefreshCw size={14} /> تحديث البيانات من السحابة
         </button>
       </div>
