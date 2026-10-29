@@ -17,6 +17,10 @@ const OUT_OG = join(root, 'public', 'og-image.jpg');
 
 const DARK_BG = { r: 16, g: 20, b: 20, alpha: 1 }; // #101414 — نفس theme-color
 
+// خيارات PNG فعّالة: ضغط لوني (palette) + ضغط أقصى يقلّص الحجم ~70% مع الحفاظ على الجودة.
+// PNG بلا ضغط لوني يُنتج ملفات ضخمة للصور المصوّرة (icon-512 كان ~450KB) — تسحقه ميزانية الأداء.
+const pngOpts = { compressionLevel: 9, palette: true, quality: 90, effort: 10 };
+
 /** قناع دائري: يبقي ما بداخل الدائرة ويجعل ما حولها شفافًا (dest-in) */
 const circleMask = (size) =>
   Buffer.from(
@@ -98,7 +102,7 @@ const OG_H = 630;
 const OG_LOGO = 520;
 const roundOg = await sharp(SOURCE_CIRCLE)
   .resize(OG_LOGO, OG_LOGO, { fit: 'cover' })
-  .png({ compressionLevel: 9 })
+  .png(pngOpts)
   .toBuffer();
 
 await sharp({ create: { width: OG_W, height: OG_H, channels: 4, background: DARK_BG } })
@@ -111,7 +115,7 @@ console.log('✓ og-image.jpg (1200x630)');
 const FAV = 64;
 const favPng = await sharp(SOURCE_CIRCLE)
   .resize(FAV, FAV, { fit: 'cover' })
-  .png({ compressionLevel: 9 })
+  .png(pngOpts)
   .toBuffer();
 const favSvg =
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${FAV} ${FAV}">` +
@@ -128,7 +132,7 @@ const webpOpts = { quality: 90, alphaQuality: 95, effort: 5 };
 // 48x48 (مطلوبة لمحركات البحث ومظهر جوجل في نتائج البحث)
 const icon48 = await sharp(SOURCE_CIRCLE)
   .resize(48, 48, { fit: 'cover' })
-  .png({ compressionLevel: 9 })
+  .png(pngOpts)
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-48.png'), icon48);
 const icon48Webp = await sharp(SOURCE_CIRCLE)
@@ -140,7 +144,7 @@ await writeFile(join(iconsDir, 'icon-48.webp'), icon48Webp);
 // 96x96
 const icon96 = await sharp(SOURCE_CIRCLE)
   .resize(96, 96, { fit: 'cover' })
-  .png({ compressionLevel: 9 })
+  .png(pngOpts)
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-96.png'), icon96);
 const icon96Webp = await sharp(SOURCE_CIRCLE)
@@ -152,7 +156,7 @@ await writeFile(join(iconsDir, 'icon-96.webp'), icon96Webp);
 // 192x192
 const icon192 = await sharp(SOURCE_CIRCLE)
   .resize(192, 192, { fit: 'cover' })
-  .png({ compressionLevel: 9 })
+  .png(pngOpts)
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-192.png'), icon192);
 const icon192Webp = await sharp(SOURCE_CIRCLE)
@@ -164,7 +168,7 @@ await writeFile(join(iconsDir, 'icon-192.webp'), icon192Webp);
 // 512x512
 const icon512 = await sharp(SOURCE_CIRCLE)
   .resize(512, 512, { fit: 'cover' })
-  .png({ compressionLevel: 9 })
+  .png(pngOpts)
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-512.png'), icon512);
 const icon512Webp = await sharp(SOURCE_CIRCLE)
@@ -231,7 +235,7 @@ const iconMaskable = await sharp({
       left: Math.round((512 - MASKABLE_LOGO_SIZE) / 2),
     },
   ])
-  .png({ compressionLevel: 9 })
+  .png(pngOpts)
   .toBuffer();
 await writeFile(join(iconsDir, 'icon-maskable-512.png'), iconMaskable);
 
@@ -276,7 +280,7 @@ const appleTouchIcon = await sharp({
       left: Math.round((APPLE_SIZE - APPLE_LOGO_SIZE) / 2),
     },
   ])
-  .png({ compressionLevel: 9 })
+  .png(pngOpts)
   .toBuffer();
 await writeFile(join(iconsDir, 'apple-touch-icon.png'), appleTouchIcon);
 
