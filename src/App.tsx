@@ -164,6 +164,9 @@ function App() {
     if (uid === previousUid) return;
     previousUidRef.current = uid;
     if (uid) {
+      // مزامنة واجهة مقصودة عند اكتمال تسجيل الدخول/تبديل الحساب (حدث مصادقة خارجي):
+      // إغلاق نافذة الدخول والعودة للهيرو — ليس اشتقاقًا من الحالة بل استجابة لتغيّر المستخدم.
+      /* eslint-disable-next-line react-hooks/set-state-in-effect */
       setIsLoginOpen(false);
       setCurrentView('hero');
     }
