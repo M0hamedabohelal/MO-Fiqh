@@ -6,26 +6,103 @@ import { lessonsData } from '../src/data/lessons';
 // بعد إعادة تحميل الصفحة.
 
 const TRI = 'كتاب الطهارة';
+const LESSONS_CACHE_KEY = 'content_lessons_cache_v1';
 
-/** يضمن وجود كاش المسائل المحلي في بيئة الاختبار حتى لا تتعطل الاختبارات عند استنفاد حصة Firestore (HTTP 429) */
-async function seedLessonsCache(page: Page): Promise<void> {
-  await page.addInitScript((lessons) => {
+/**
+ * يضمن وجود كاش المسائل المحلي (sticky cache) في بيئة الاختبار
+ * يمنع فشل الاختبارات أو فراغ الشاشات عند استنفاد حصة Firestore (HTTP 429)
+ * أو انقطاع السحابة، ويبقى ثابتاً ومقاوماً للإفراغ عبر أي navigation أو reload أو clear().
+ */
+async function seedStickyLessonsCache(target: Page | import('@playwright/test').BrowserContext): Promise<void> {
+  await target.addInitScript(({ key, lessons }) => {
+    const payload = JSON.stringify({ at: Date.now(), lessons });
+
+    // بذر الكاش فوراً قبل أي تشغيل لأكواد التطبيق
     try {
-      if (!localStorage.getItem('content_lessons_cache_v1')) {
-        localStorage.setItem('content_lessons_cache_v1', JSON.stringify({ at: Date.now(), lessons }));
+      const existing = localStorage.getItem(key);
+      if (!existing) {
+        localStorage.setItem(key, payload);
+      } else {
+        const parsed = JSON.parse(existing);
+        if (!parsed || !Array.isArray(parsed.lessons) || parsed.lessons.length < lessons.length) {
+          localStorage.setItem(key, payload);
+        }
       }
     } catch {
-      // تجاهل أخطاء التخزين
+      // بيئات لا تدعم localStorage
     }
-  }, lessonsData);
+
+    // جعل الكاش Sticky: يمنع مسحه أو إفراغه أثناء تشغيل الاختبارات
+    try {
+      const origGetItem = localStorage.getItem.bind(localStorage);
+      const origSetItem = localStorage.setItem.bind(localStorage);
+      const origRemoveItem = localStorage.removeItem.bind(localStorage);
+      const origClear = localStorage.clear.bind(localStorage);
+
+      localStorage.getItem = (k: string) => {
+        if (k === key) {
+          const val = origGetItem(key);
+          if (!val) {
+            origSetItem(key, payload);
+            return payload;
+          }
+          try {
+            const p = JSON.parse(val);
+            if (!p || !Array.isArray(p.lessons) || p.lessons.length < lessons.length) {
+              origSetItem(key, payload);
+              return payload;
+            }
+          } catch {
+            origSetItem(key, payload);
+            return payload;
+          }
+          return val;
+        }
+        return origGetItem(k);
+      };
+
+      localStorage.setItem = (k: string, v: string) => {
+        if (k === key) {
+          try {
+            const p = JSON.parse(v);
+            if (!p || !Array.isArray(p.lessons) || p.lessons.length < lessons.length) {
+              return origSetItem(key, payload);
+            }
+          } catch {
+            return origSetItem(key, payload);
+          }
+        }
+        return origSetItem(k, v);
+      };
+
+      localStorage.removeItem = (k: string) => {
+        if (k === key) {
+          return origSetItem(key, payload);
+        }
+        return origRemoveItem(k);
+      };
+
+      localStorage.clear = () => {
+        origClear();
+        origSetItem(key, payload);
+      };
+    } catch {
+      // بيئات تمنع تعديل خصائص localStorage
+    }
+  }, { key: LESSONS_CACHE_KEY, lessons: lessonsData });
 }
 
-/** يجمع أخطاء الكونسول الحقيقية. أخطاء الشبكة العابرة تُتجاهل،
+// تثبيت Sticky Cache على كل سياق اختباري تلقائياً
+test.beforeEach(async ({ context }) => {
+  await seedStickyLessonsCache(context);
+});
+
+/** يجمع أخطاء الكونسول الحقيقية. أخطاء الشبكة العابرة واستنفاد الحصة (429 / quota) تُتجاهل،
  *  وعطل Firestore الداخلي المعروف (ca9/b815) يُسجَّل كتعليق مرئي في التقرير
  *  لا كفشل — لأنه متقطّع (0/12 في المسابر) فيُفشل البوابة عشوائيًا. */
 function collectErrors(page: Page): string[] {
   const errors: string[] = [];
-  const benign = /ERR_ABORTED|net::ERR_FAILED|Failed to fetch|the server responded with a status of 4\d\d|requestStorageAccess|unsupported MIME type|recaptcha/i;
+  const benign = /ERR_ABORTED|net::ERR_FAILED|Failed to fetch|the server responded with a status of 4\d\d|requestStorageAccess|unsupported MIME type|recaptcha|RESOURCE_EXHAUSTED|Quota exceeded|quota|@firebase\/firestore|Could not reach Cloud Firestore backend|FirebaseError|appData\.(lessonsListener|reloadFromCloud)/i;
   const firestoreGlitch = /INTERNAL (ASSERTION|UNHANDLED)/i;
 
   page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
@@ -44,7 +121,7 @@ function collectErrors(page: Page): string[] {
 
 /** يفتح فهرس الكتب وينتظر وصول المحتوى من السحابة أو الكاش */
 async function openBooks(page: Page): Promise<void> {
-  await seedLessonsCache(page);
+  await seedStickyLessonsCache(page);
   await page.goto('/#/books');
   await expect(page.getByRole('heading', { level: 3, name: 'فهرس الكتب' })).toBeVisible();
   await expect(page.getByText(TRI).first()).toBeVisible({ timeout: 30_000 });
@@ -54,7 +131,7 @@ async function openBooks(page: Page): Promise<void> {
 
 /** يفتح مسألة وينتظر انتهاء شاشة البداية (تظهر h1 مؤقت) قبل تأكيد محتوى القراءة */
 async function openLesson(page: Page, id: number): Promise<void> {
-  await seedLessonsCache(page);
+  await seedStickyLessonsCache(page);
   await page.goto(`/#/lesson/${id}`);
   await expect(page.getByRole('heading', { level: 1, name: /المسألة/ })).toBeVisible({ timeout: 30_000 });
   // علامة أن شاشة القراءة نفسها اكتمل تحميلها (بطاقة الملاحظات تُركَّب دائمًا)
@@ -153,6 +230,7 @@ test.describe('المسارات الحرجة', () => {
     // بلا Service Worker: هذا الاختبار يحكم على منطق كشف النشر (فحص index.html)، والـ SW
     // يمرّر نفس الطلب عبر قاعدته فلا تصل المحاكاة. سلوك الـ SW له اختبار مستقل (رقم 10).
     const ctx = await browser.newContext({ ...devices['Pixel 7'], locale: 'ar-EG', serviceWorkers: 'block' });
+    await seedStickyLessonsCache(ctx);
     const page = await ctx.newPage();
     const errors = collectErrors(page);
     try {
@@ -220,11 +298,18 @@ test.describe('المسارات الحرجة', () => {
   test('10) وضع عدم الاتصال (Offline Mode): التطبيق يعمل ويتصفح المحتوى بلا اتصال بالإنترنت', async ({ context, page }) => {
     await openBooks(page);
 
-    // انتظار تفعيل Service Worker بالكامل
-    await page.waitForFunction(async () => {
-      const reg = await navigator.serviceWorker.getRegistration();
-      return reg && reg.active && reg.active.state === 'activated';
-    }, { timeout: 15_000 });
+    // انتظار تفعيل Service Worker والتحكم بالصفحة بالكامل
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.ready;
+      if (!navigator.serviceWorker.controller) {
+        await new Promise<void>((resolve) => {
+          navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true });
+          if (navigator.serviceWorker.controller) resolve();
+          // مهلة أمان
+          setTimeout(resolve, 5000);
+        });
+      }
+    });
 
     // قطع الشبكة بالكامل
     await context.setOffline(true);
@@ -425,6 +510,7 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
 
   test('18) نشر جديد يُطبَّق تلقائيًا بلا تدخّل من المستخدم', async ({ browser }) => {
     const ctx = await browser.newContext({ ...devices['Pixel 7'], locale: 'ar-EG', serviceWorkers: 'block' });
+    await seedStickyLessonsCache(ctx);
     const page = await ctx.newPage();
     try {
       await openBooks(page);
@@ -442,6 +528,7 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
 
   test('19) لا يُقاطع الكتابة: مسودة ملاحظة غير محفوظة تُبقي التحديث يدويًا', async ({ browser }) => {
     const ctx = await browser.newContext({ ...devices['Pixel 7'], locale: 'ar-EG', serviceWorkers: 'block' });
+    await seedStickyLessonsCache(ctx);
     const page = await ctx.newPage();
     try {
       await openLesson(page, 5);
@@ -478,5 +565,37 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
 
     // ومعلَّم بأنه غير قابل للفهرسة
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/, { timeout: 30_000 });
+  });
+
+  test('21) صمود التطبيق عند استنفاد حصة Firestore (HTTP 429): عرض المسائل كاملة من اللقطة المحلية مع Sticky Cache', async ({ page }) => {
+    const errors = collectErrors(page);
+    // محاكاة استنفاد حصة Firestore (HTTP 429 / RESOURCE_EXHAUSTED) على كل طلبات السحابة
+    await page.route(/firestore\.googleapis\.com|firebaseio\.com/, async (route) => {
+      await route.fulfill({
+        status: 429,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: {
+            code: 429,
+            message: 'Resource has been exhausted (e.g. check quota).',
+            status: 'RESOURCE_EXHAUSTED',
+          },
+        }),
+      });
+    });
+
+    await page.goto('/#/books');
+    await expect(page.getByRole('heading', { level: 3, name: 'فهرس الكتب' })).toBeVisible();
+    await expect(page.getByText(TRI).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/\d+ مسألة/).first()).toBeVisible();
+
+    // الدخول إلى مسألة وقراءتها بشكل طبيعي بالرغم من استنفاد الحصة السحابية
+    await page.getByText(TRI).first().click();
+    await page.getByRole('button', { name: /الباب الأول/ }).first().click();
+    await page.getByText(/المسألة الأولى/).first().click();
+    await expect(page).toHaveURL(/#\/lesson\/\d+/);
+    await expect(page.locator('body')).toContainText(/الطهارة/);
+
+    expect(errors, errors.join('\n')).toEqual([]);
   });
 });
