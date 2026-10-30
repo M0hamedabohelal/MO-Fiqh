@@ -26,6 +26,7 @@ import type { Lesson } from '../../types';
 import { getStopMarkForBook } from '../../features/stopMarks/model';
 import { TextSelectionBubble, type SelectionPopupState } from './Reading/TextSelectionBubble';
 import { ReadingHeaderBar } from './Reading/ReadingHeaderBar';
+import { ReadingTopNav } from './Reading/ReadingTopNav';
 import { ReadingBottomNav } from './Reading/ReadingBottomNav';
 
 // تقسيم المكوّنات الإضافية والتحميل المؤجل لتخفيف حزمة شاشة القراءة الأساسية
@@ -376,12 +377,6 @@ const ReadingView = () => {
         setFontSize={setFontSize}
         isBookmarked={isBookmarked}
         onToggleBookmark={onToggleBookmark}
-        canGoPrev={canGoPrev}
-        canGoNext={canGoNext}
-        onPrev={onPrev}
-        onNext={onNext}
-        prevLessonTitle={prevLesson?.title}
-        nextLessonTitle={nextLesson?.title}
         onOpenTOC={() => setIsTOCOpen((prev) => !prev)}
         lessonTitle={cleanedTitle}
         isScrolled={isTitleScrolled}
@@ -395,6 +390,18 @@ const ReadingView = () => {
           exit={isSmallScreen ? { opacity: 0 } : { opacity: 0, y: -12 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
         >
+          {/* شريط التنقل العلوي بين المسائل */}
+          <ReadingTopNav
+            currentIndex={currentIndex}
+            totalLessons={lessons.length}
+            canGoPrev={canGoPrev}
+            canGoNext={canGoNext}
+            onPrev={onPrev}
+            onNext={onNext}
+            prevLessonTitle={prevLesson?.title}
+            nextLessonTitle={nextLesson?.title}
+          />
+
           {/* مسار التصفح الفقهي */}
           <Breadcrumb book={lesson.bookName} chapter={lesson.chapterName} />
 

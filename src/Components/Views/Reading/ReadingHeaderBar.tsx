@@ -5,8 +5,6 @@ import {
   FiPrinter,
   FiBookmark,
   FiList,
-  FiChevronRight,
-  FiChevronLeft,
 } from 'react-icons/fi';
 
 interface ReadingHeaderBarProps {
@@ -18,15 +16,9 @@ interface ReadingHeaderBarProps {
   setFontSize: React.Dispatch<React.SetStateAction<number>>;
   isBookmarked: boolean;
   onToggleBookmark: () => void;
-  canGoPrev?: boolean;
-  canGoNext?: boolean;
-  onPrev?: () => void;
-  onNext?: () => void;
   onOpenTOC?: () => void;
   lessonTitle?: string;
   isScrolled?: boolean;
-  prevLessonTitle?: string;
-  nextLessonTitle?: string;
 }
 
 export const ReadingHeaderBar = ({
@@ -38,15 +30,9 @@ export const ReadingHeaderBar = ({
   setFontSize,
   isBookmarked,
   onToggleBookmark,
-  canGoPrev,
-  canGoNext,
-  onPrev,
-  onNext,
   onOpenTOC,
   lessonTitle,
   isScrolled,
-  prevLessonTitle,
-  nextLessonTitle,
 }: ReadingHeaderBarProps) => {
   return (
     <div
@@ -56,8 +42,8 @@ export const ReadingHeaderBar = ({
     >
       {/* الصف الأول: أزرار التحكم مريحة وواسعة دون أي تزاحم */}
       <div className="d-flex justify-content-between align-items-center gap-2 w-100">
-        {/* زر العودة لفهرس المسائل + أزرار التنقل السريع */}
-        <div className="d-flex align-items-center gap-1 gap-md-2 flex-shrink-0">
+        {/* زر العودة لفهرس المسائل */}
+        <div className="d-flex align-items-center flex-shrink-0">
           <button
             type="button"
             className="btn btn-sm d-flex align-items-center reading-back-btn p-1 px-2 px-md-3 shadow-sm"
@@ -78,75 +64,6 @@ export const ReadingHeaderBar = ({
             <FiArrowRight size={18} className="ms-md-2" />
             <span className="d-none d-md-inline">العودة للمسائل</span>
           </button>
-
-          {/* أزرار الانتقال للمسألة السابقة والتالية المدمجة بأناقة في الشريط العلوي */}
-          {(onPrev || onNext) && (
-            <div
-              className="d-flex align-items-center shadow-sm reading-nav-pill"
-              role="group"
-              aria-label="التنقل بين المسائل"
-              style={{
-                backgroundColor: 'var(--badge-bg)',
-                borderColor: 'var(--border-color)',
-                borderRadius: '10px',
-                border: '1px solid',
-                minHeight: '38px',
-                overflow: 'hidden',
-              }}
-            >
-              <button
-                type="button"
-                className="btn btn-sm d-flex align-items-center px-2 reading-toolbar-btn reading-header-nav-btn"
-                onClick={onPrev}
-                disabled={!canGoPrev}
-                aria-label={prevLessonTitle ? `المسألة السابقة: ${prevLessonTitle}` : 'المسألة السابقة'}
-                title={prevLessonTitle ? `المسألة السابقة: ${prevLessonTitle}` : 'المسألة السابقة'}
-                style={{
-                  color: canGoPrev ? 'var(--primary-color)' : 'var(--text-muted)',
-                  opacity: canGoPrev ? 1 : 0.4,
-                  border: 'none',
-                  background: 'transparent',
-                  minHeight: '36px',
-                  fontWeight: 600,
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <FiChevronRight size={18} />
-                <span className="d-none d-lg-inline ms-1" style={{ fontSize: '0.85rem' }}>السابقة</span>
-              </button>
-
-              <span
-                style={{
-                  width: '1px',
-                  height: '18px',
-                  backgroundColor: 'var(--border-color)',
-                  opacity: 0.8,
-                }}
-                aria-hidden="true"
-              />
-
-              <button
-                type="button"
-                className="btn btn-sm d-flex align-items-center px-2 reading-toolbar-btn reading-header-nav-btn"
-                onClick={onNext}
-                disabled={!canGoNext}
-                aria-label={nextLessonTitle ? `المسألة التالية: ${nextLessonTitle}` : 'المسألة التالية'}
-                title={nextLessonTitle ? `المسألة التالية: ${nextLessonTitle}` : 'المسألة التالية'}
-                style={{
-                  color: canGoNext ? 'var(--primary-color)' : 'var(--text-muted)',
-                  opacity: canGoNext ? 1 : 0.4,
-                  border: 'none',
-                  background: 'transparent',
-                  minHeight: '36px',
-                  fontWeight: 600,
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <span className="d-none d-lg-inline me-1" style={{ fontSize: '0.85rem' }}>التالية</span>
-                <FiChevronLeft size={18} />
-              </button>
-            </div>
-          )}
         </div>
 
         {/* أزرار أدوات القراءة الموحدة */}
