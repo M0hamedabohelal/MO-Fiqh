@@ -1100,21 +1100,110 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   position: sticky;
   top: calc(0.5rem + env(safe-area-inset-top, 0px));
   z-index: var(--z-nav);
-  min-height: 48px;
+  min-height: 50px;
   background-color: var(--card-bg-alpha, var(--card-bg));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 0.4rem 0.75rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  margin-bottom: 1.25rem;
-  transition: all 0.25s ease;
+  border-radius: 16px;
+  padding: 0.45rem 0.85rem;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06);
+  margin-top: 0.25rem;
+  margin-bottom: 1.5rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reading-header-toolbar.is-scrolled {
+  box-shadow: 0 6px 24px -2px rgba(0, 0, 0, 0.12);
+  border-color: var(--accent-color);
 }
 
 .reading-sticky-title {
   font-family: var(--font-heading);
   letter-spacing: -0.01em;
+}
+
+/* شارات نوع محتوى المسألة (فيديو / صوت / مفضلة / ملاحظة / تنبيه) */
+.lesson-item-media-tags {
+  opacity: 0.9;
+}
+
+.lesson-tag-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background-color: var(--badge-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.lesson-tag-icon:hover {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.lesson-tag-icon.tag-video {
+  color: #e74c3c;
+  background-color: rgba(231, 76, 60, 0.08);
+  border-color: rgba(231, 76, 60, 0.22);
+}
+
+.lesson-tag-icon.tag-audio {
+  color: #2980b9;
+  background-color: rgba(41, 128, 185, 0.08);
+  border-color: rgba(41, 128, 185, 0.22);
+}
+
+.lesson-tag-icon.tag-info {
+  color: #d35400;
+  background-color: rgba(211, 84, 0, 0.08);
+  border-color: rgba(211, 84, 0, 0.22);
+}
+
+.lesson-tag-icon.tag-bookmark {
+  color: #f39c12;
+  background-color: rgba(243, 156, 18, 0.08);
+  border-color: rgba(243, 156, 18, 0.22);
+}
+
+.lesson-tag-icon.tag-note {
+  color: #8e44ad;
+  background-color: rgba(142, 68, 173, 0.08);
+  border-color: rgba(142, 68, 173, 0.22);
+}
+
+[data-theme="dark"] .lesson-tag-icon.tag-video {
+  background-color: rgba(231, 76, 60, 0.16);
+  border-color: rgba(231, 76, 60, 0.35);
+  color: #ff6b6b;
+}
+
+[data-theme="dark"] .lesson-tag-icon.tag-audio {
+  background-color: rgba(41, 128, 185, 0.16);
+  border-color: rgba(41, 128, 185, 0.35);
+  color: #5dade2;
+}
+
+[data-theme="dark"] .lesson-tag-icon.tag-info {
+  background-color: rgba(211, 84, 0, 0.16);
+  border-color: rgba(211, 84, 0, 0.35);
+  color: #f39c12;
+}
+
+[data-theme="dark"] .lesson-tag-icon.tag-bookmark {
+  background-color: rgba(243, 156, 18, 0.16);
+  border-color: rgba(243, 156, 18, 0.35);
+  color: #f1c40f;
+}
+
+[data-theme="dark"] .lesson-tag-icon.tag-note {
+  background-color: rgba(142, 68, 173, 0.16);
+  border-color: rgba(142, 68, 173, 0.35);
+  color: #bb8fce;
 }
 
 .reading-sticky-title-mobile {
@@ -1135,12 +1224,28 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
 }
 
 [data-theme="dark"] .reading-header-toolbar {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
-.reading-header-toolbar .reading-back-btn {
-  min-height: 38px;
-  border-radius: 10px;
+[data-theme="dark"] .reading-header-toolbar.is-scrolled {
+  border-color: rgba(212, 175, 55, 0.35);
+}
+
+.reading-header-toolbar .reading-back-btn:hover {
+  border-color: var(--accent-color) !important;
+  color: var(--primary-color) !important;
+  transform: translateX(2px);
+}
+
+.reading-toolbar-btn:hover {
+  border-color: var(--accent-color) !important;
+  transform: translateY(-1px);
+}
+
+.reading-actions .font-size-group button:hover {
+  background-color: var(--accent-color);
+  color: var(--text-on-accent) !important;
 }
 
 /* تجربة القراءة على الهاتف: مساحة لمس مريحة وملاحة متاحة عند نهاية المسألة */

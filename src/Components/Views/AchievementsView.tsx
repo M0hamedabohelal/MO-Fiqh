@@ -200,40 +200,61 @@ const AchievementsView = () => {
       </div>
 
       {/* الشهادات */}
-      {doneBooks.length > 0 && (
-        <>
-          <h5 className="fw-bold mb-3" style={{ color: 'var(--primary-color)' }}>
-            <FiAward className="ms-1" /> شهادات الإتمام
-          </h5>
-          <div className="row g-3 mb-4">
-            {doneBooks.map((b) => (
-              <div className="col-12 col-md-6" key={b.bookName}>
-                <div className="custom-card p-3 d-flex align-items-center justify-content-between gap-2 shadow-sm">
-                  <div>
-                    <div className="fw-bold" style={{ color: 'var(--text-main)' }}>{b.bookName}</div>
-                    <small className="text-muted">{b.issuesCount} مسائل مُتممة</small>
-                  </div>
-                  <button
-                    className="btn btn-sm d-flex align-items-center gap-2 flex-shrink-0"
-                    onClick={() => setCertBook(b)}
-                    style={{ backgroundColor: 'var(--accent-color)', color: 'var(--text-on-accent)', fontWeight: 'bold', borderRadius: '10px' }}
-                  >
-                    <FiDownload size={15} /> الشهادة
-                  </button>
+      <h5 className="fw-bold mb-3" style={{ color: 'var(--primary-color)' }}>
+        <FiAward className="ms-1" /> شهادات الإتمام
+      </h5>
+      {doneBooks.length > 0 ? (
+        <div className="row g-3 mb-4">
+          {doneBooks.map((b) => (
+            <div className="col-12 col-md-6" key={b.bookName}>
+              <div className="custom-card p-3 d-flex align-items-center justify-content-between gap-2 shadow-sm">
+                <div>
+                  <div className="fw-bold" style={{ color: 'var(--text-main)' }}>{b.bookName}</div>
+                  <small className="text-muted">{b.issuesCount} مسائل مُتممة</small>
                 </div>
+                <button
+                  className="btn btn-sm d-flex align-items-center gap-2 flex-shrink-0"
+                  onClick={() => setCertBook(b)}
+                  style={{ backgroundColor: 'var(--accent-color)', color: 'var(--text-on-accent)', fontWeight: 'bold', borderRadius: '10px' }}
+                >
+                  <FiDownload size={15} /> الشهادة
+                </button>
               </div>
-            ))}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="custom-card p-3 mb-4 shadow-sm d-flex align-items-center justify-content-between flex-wrap gap-3">
+          <div>
+            <div className="fw-bold mb-1" style={{ color: 'var(--text-main)' }}>
+              شهادة ختم وإتقان أندلسية
+            </div>
+            <small className="text-muted">
+              أتمم دراسة أي كتاب بالكامل لتحصل على شهادة إتمام أندلسية موثقة باسمك وقابلة للتنزيل والمشاركة.
+            </small>
           </div>
-          <CertificateModal
-            show={!!certBook}
-            bookName={certBook?.bookName || ''}
-            userName={userName}
-            lessonsCount={certBook?.issuesCount || 0}
-            dateLabel={dateLabel}
-            onClose={() => setCertBook(null)}
-          />
-        </>
+          <button
+            type="button"
+            className="btn btn-sm d-flex align-items-center gap-2 flex-shrink-0"
+            onClick={() => {
+              const sampleBook = booksWithStats[0] || { bookName: 'كتاب الطهارة', issuesCount: 53 };
+              setCertBook(sampleBook as BookStats);
+            }}
+            style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', fontWeight: 'bold', borderRadius: '10px' }}
+          >
+            <FiAward size={16} /> معاينة نموذج الشهادة
+          </button>
+        </div>
       )}
+
+      <CertificateModal
+        show={!!certBook}
+        bookName={certBook?.bookName || ''}
+        userName={userName}
+        lessonsCount={certBook?.issuesCount || 0}
+        dateLabel={dateLabel}
+        onClose={() => setCertBook(null)}
+      />
 
       {/* الشارات */}
       <h5 className="fw-bold mb-3" style={{ color: 'var(--primary-color)' }}>

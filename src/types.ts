@@ -49,6 +49,7 @@ export interface HighlightItem {
   chapterName?: string;
   title?: string;
   text: string;
+  color?: string;
 }
 
 export interface AnnouncementItem {

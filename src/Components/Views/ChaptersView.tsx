@@ -1,4 +1,5 @@
-import { FiBook, FiList, FiChevronLeft, FiFlag } from 'react-icons/fi';
+import { useMemo } from 'react';
+import { FiBook, FiList, FiChevronLeft, FiFlag, FiCheckCircle } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import EmptyState from '../UI/EmptyState';
@@ -30,7 +31,7 @@ const ORDINALS = [
 ];
 const ordinalOf = (n: number): string => (n >= 1 && n <= ORDINALS.length ? ORDINALS[n - 1] : `رقم ${n}`);
 
-// شاشة أبواب الكتاب الواحد — صفحة كتاب شرعي: ترويسة مزخرفة + فهرس بالنقاط
+// شاشة أبواب الكتاب الواحد — صفحة كتاب شرعي: ترويسة مزخرفة + فهرس بالنقاط + مؤشر إنجاز الباب
 const ChaptersView = () => {
   const {
     selectedBookName: bookName,
@@ -41,7 +42,10 @@ const ChaptersView = () => {
     contentReady,
     stopMarks,
     lessons,
+    bookmarks = [],
+    notes = {},
   } = useApp();
+  const bookmarkSet = useMemo(() => new Set((bookmarks || []).map(String)), [bookmarks]);
   const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
   const stopMark = getStopMarkForBook(stopMarks, bookName, lessons);
   const stopLesson = stopMark?.lessonId
@@ -87,6 +91,9 @@ const ChaptersView = () => {
       >
         {chapters.map(({ chapterName, issues }, chapterIndex) => {
           const isOpen = openChapterName === chapterName;
+          const chapterReadCount = issues.filter((i) => i.isRead).length;
+          const chapterTotal = issues.length;
+          const isChapterComplete = chapterTotal > 0 && chapterReadCount === chapterTotal;
 
           return (
             <motion.div key={chapterName} variants={itemVariants} className="book-page" layout>
@@ -99,7 +106,35 @@ const ChaptersView = () => {
                 <span className="chapter-band-center">
                   <span className="chapter-ordinal">الباب {ordinalOf(chapterIndex + 1)}</span>
                   <span className="chapter-band-name">{chapterName}</span>
-                  <span className="chapter-band-count">{issues.length} مسائل</span>
+                  <div className="chapter-progress-pill mt-1">
+                    <span className="chapter-band-count">{chapterTotal} مسائل</span>
+                    {chapterTotal > 0 && (
+                      <span
+                        className={`chapter-progress-badge ${
+                          isChapterComplete
+                            ? 'is-complete'
+                            : chapterReadCount > 0
+                              ? 'is-in-progress'
+                              : ''
+                        }`}
+                        title={`أتممت ${chapterReadCount} من ${chapterTotal} مسائل`}
+                      >
+                        {isChapterComplete ? (
+                          <>
+                            <FiCheckCircle size={12} />
+                            <span>أتممت الباب ({chapterTotal}/{chapterTotal})</span>
+                          </>
+                        ) : chapterReadCount > 0 ? (
+                          <>
+                            <span className="chapter-dot-progress" />
+                            <span>أتممت {chapterReadCount} من {chapterTotal} مسائل</span>
+                          </>
+                        ) : (
+                          <span>0 من {chapterTotal} مسائل</span>
+                        )}
+                      </span>
+                    )}
+                  </div>
                 </span>
                 <span className="chapter-band-side">۞</span>
                 <span className="chapter-band-chevron">
@@ -126,6 +161,11 @@ const ChaptersView = () => {
                         pageNumber={lesson.pageNumber}
                         isRead={lesson.isRead}
                         isStopMark={lesson.id.toString() === stopMark?.lessonId}
+                        hasVideo={Boolean(lesson.videoUrl)}
+                        hasAudio={Boolean(lesson.audioUrl)}
+                        hasAdminNote={Boolean(lesson.adminNote?.trim())}
+                        hasBookmark={bookmarkSet.has(String(lesson.id))}
+                        hasNotes={Boolean(notes[String(lesson.id)]?.trim())}
                         onClick={() => onSelectLesson(lesson)}
                       />
                     ))}

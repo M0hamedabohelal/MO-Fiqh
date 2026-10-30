@@ -31,6 +31,39 @@ const BooksView = memo(() => {
                 <FiBook size={14} />
               </div>
 
+              {/* مؤشر الإنجاز الدائري في الزاوية العلوية اليسرى */}
+              {issuesCount > 0 && (
+                <div
+                  className="book-progress-badge"
+                  title={`أتممت ${readCount} من ${issuesCount} مسألة (${progressPercent}%)`}
+                >
+                  {readCount === issuesCount ? (
+                    <span className="book-seal-gold" title="كتاب مُتمم">
+                      <FiCheckCircle size={14} />
+                      <span>مُتمَم</span>
+                    </span>
+                  ) : (
+                    <div className="book-circular-progress">
+                      <svg width="40" height="40" viewBox="0 0 40 40">
+                        <circle cx="20" cy="20" r="15" className="circle-bg" />
+                        <motion.circle
+                          cx="20"
+                          cy="20"
+                          r="15"
+                          className="circle-fill"
+                          strokeDasharray={94.25}
+                          initial={{ strokeDashoffset: 94.25 }}
+                          animate={{ strokeDashoffset: 94.25 - (94.25 * progressPercent) / 100 }}
+                          transition={{ duration: 0.9, ease: 'easeOut' }}
+                          transform="rotate(-90 20 20)"
+                        />
+                      </svg>
+                      <span className="progress-text">{progressPercent}%</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Inner Arch Frame */}
               <div className="book-arch-frame">
                 <div className="book-arch-inner">
@@ -38,12 +71,6 @@ const BooksView = memo(() => {
                   <div className="book-main-title">{bookName}</div>
                 </div>
               </div>
-
-              {issuesCount > 0 && readCount === issuesCount && (
-                <span className="bk-seal" title="كتاب مُتمم">
-                  <FiCheckCircle size={18} />
-                </span>
-              )}
 
               {/* معلومات الكتاب كطبقة فوق الغلاف — الغلاف يملأ البطاقة كاملة */}
               <div className="book-cover-overlay">

@@ -55,6 +55,7 @@ export interface AppContextValue {
   toggleStopMark: (lesson: Lesson) => void;
   saveNoteForLesson: (lessonId: string | number, text: string) => void;
   deleteHighlight: (highlightId: string | number) => void;
+  updateHighlightColor?: (highlightId: string | number, color: string) => void;
   createHighlightFromSelection: (text: string) => void;
   restoreLibrary: (data: {
     bookmarks?: string[];

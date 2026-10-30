@@ -79,7 +79,7 @@ function App() {
   const appVersion = useAppVersion();
 
   // ─── المكتبة الشخصية ───
-  const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, saveNoteForLesson, toggleReadLesson, restoreLibrary, applyMergedLibrary, isDataLoaded } = useUserLibrary();
+  const { bookmarks, highlights, notes, readLessons, toggleBookmark, addHighlight, deleteHighlight, updateHighlightColor, saveNoteForLesson, toggleReadLesson, restoreLibrary, applyMergedLibrary, isDataLoaded } = useUserLibrary();
   const { stopMarks, stopMarksReady, toggleStopMark, restoreStopMarks, applyMergedStopMarks } = useStopMarks();
 
   // ─── التوجيه الهاشي ───
@@ -357,7 +357,7 @@ function App() {
     setCurrentView, openBookChapters, toggleChapter,
     openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
     toggleBookmark, toggleReadLesson, toggleStopMark, saveNoteForLesson,
-    deleteHighlight, createHighlightFromSelection,
+    deleteHighlight, updateHighlightColor, createHighlightFromSelection,
     restoreLibrary: restoreFullLibrary,
     onOpenSearch,
     onOpenLogin,
@@ -379,7 +379,7 @@ function App() {
     setCurrentView, openBookChapters, toggleChapter,
     openLessonById, goToNextLesson, goToPrevLesson, goBackToList,
     toggleBookmark, toggleReadLesson, toggleStopMark, saveNoteForLesson,
-    deleteHighlight, createHighlightFromSelection,
+    deleteHighlight, updateHighlightColor, createHighlightFromSelection,
     restoreFullLibrary,
     onOpenSearch, onOpenLogin, reloadFromCloud, reloadGlossary,
     currentSearchQuery,

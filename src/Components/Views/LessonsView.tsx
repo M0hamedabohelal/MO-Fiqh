@@ -34,6 +34,7 @@ const LessonsView = memo(() => {
     lessons,
     stopMarks,
     bookmarks = [],
+    notes = {},
   } = useApp();
 
   const [filter, setFilter] = useState<FilterType>('all');
@@ -229,6 +230,11 @@ const LessonsView = memo(() => {
                   pageNumber={lesson.pageNumber}
                   isRead={lesson.isRead}
                   isStopMark={lesson.id.toString() === stopMark?.lessonId}
+                  hasVideo={Boolean(lesson.videoUrl)}
+                  hasAudio={Boolean(lesson.audioUrl)}
+                  hasAdminNote={Boolean(lesson.adminNote?.trim())}
+                  hasBookmark={bookmarkSet.has(String(lesson.id))}
+                  hasNotes={Boolean(notes[String(lesson.id)]?.trim())}
                   onClick={() => onSelectLesson(lesson)}
                 />
               </motion.div>

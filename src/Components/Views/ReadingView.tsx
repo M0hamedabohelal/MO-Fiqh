@@ -364,7 +364,58 @@ const ReadingView = () => {
         onSaveHighlight={saveSelectionAsHighlight}
       />
 
-      {/* شريط التحكم العلوي المدمج مع تثبيت اسم المسألة عند التمرير */}
+      {/* مسار التصفح الفقهي */}
+      <Breadcrumb book={lesson.bookName} chapter={lesson.chapterName} />
+
+      {/* اسم المسألة الرئيسي */}
+      <h2
+        ref={titleRef}
+        className="h4 h3-md mb-2 mb-md-3 fw-bold mt-2 mt-md-3 text-center reading-lesson-title"
+        style={{
+          color: 'var(--primary-color)',
+          wordBreak: 'normal',
+          overflowWrap: 'break-word',
+        }}
+      >
+        {cleanedTitle}
+      </h2>
+
+      {/* شارات وبيانات المسألة */}
+      <div className="reading-meta d-flex justify-content-center flex-wrap gap-2 gap-md-3 mb-2 mb-md-3">
+        {String(lesson.pageNumber ?? '').trim() && (
+          <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
+            <FiBook className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> ص {lesson.pageNumber}
+          </span>
+        )}
+        {String(lesson.videoNumber ?? '').trim() && (
+          <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
+            <FiVideo className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> {lesson.videoNumber}
+          </span>
+        )}
+        {String(lesson.videoTimestamp ?? '').trim() && (
+          <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
+            <FiClock className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> يبدأ عند: {lesson.videoTimestamp}
+          </span>
+        )}
+        <button
+          type="button"
+          className="badge d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm border-0"
+          style={{
+            cursor: 'pointer',
+            transition: 'all 0.3s',
+            backgroundColor: isStopMarked ? 'var(--primary-color)' : 'var(--badge-bg)',
+            color: isStopMarked ? 'var(--text-on-primary)' : 'var(--text-main)',
+          }}
+          onClick={onToggleStopMark}
+          aria-pressed={isStopMarked}
+          title="حفظ أو إزالة علامة الوقوف لهذا الكتاب"
+        >
+          <FiFlag className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} />
+          {isStopMarked ? 'علامة الوقوف محفوظة' : 'ضع علامة وقوف'}
+        </button>
+      </div>
+
+      {/* الشريط الأساسي للقراءة — تحت اسم المسألة وبياناتها مباشرة */}
       <ReadingHeaderBar
         onBackToIndex={onBackToIndex}
         isRead={isRead}
@@ -386,59 +437,11 @@ const ReadingView = () => {
       <AnimatePresence mode="wait">
         <motion.div
           key={lesson.id}
-          initial={isSmallScreen ? { opacity: 0 } : { opacity: 0, x: 50, rotateY: -10 }}
-          animate={isSmallScreen ? { opacity: 1 } : { opacity: 1, x: 0, rotateY: 0 }}
-          exit={isSmallScreen ? { opacity: 0 } : { opacity: 0, x: -50, rotateY: 10 }}
-          transition={{ duration: isSmallScreen ? 0.15 : 0.22, ease: 'easeOut' }}
-          style={isSmallScreen ? undefined : { perspective: '1000px' }}
+          initial={isSmallScreen ? { opacity: 0 } : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={isSmallScreen ? { opacity: 0 } : { opacity: 0, y: -12 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
         >
-          <Breadcrumb book={lesson.bookName} chapter={lesson.chapterName} />
-
-          <h2
-            ref={titleRef}
-            className="h4 h3-md mb-2 mb-md-3 fw-bold mt-2 mt-md-4 text-center reading-lesson-title"
-            style={{
-              color: 'var(--primary-color)',
-              wordBreak: 'normal',
-              overflowWrap: 'break-word',
-            }}
-          >
-            {cleanedTitle}
-          </h2>
-
-          <div className="reading-meta d-flex justify-content-center flex-wrap gap-2 gap-md-3 mb-3 mb-md-4">
-            {String(lesson.pageNumber ?? '').trim() && (
-              <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
-                <FiBook className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> ص {lesson.pageNumber}
-              </span>
-            )}
-            {String(lesson.videoNumber ?? '').trim() && (
-              <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
-                <FiVideo className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> {lesson.videoNumber}
-              </span>
-            )}
-            {String(lesson.videoTimestamp ?? '').trim() && (
-              <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
-                <FiClock className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> يبدأ عند: {lesson.videoTimestamp}
-              </span>
-            )}
-            <button
-              type="button"
-              className="badge d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm border-0"
-              style={{
-                cursor: 'pointer',
-                transition: 'all 0.3s',
-                backgroundColor: isStopMarked ? 'var(--primary-color)' : 'var(--badge-bg)',
-                color: isStopMarked ? 'var(--text-on-primary)' : 'var(--text-main)',
-              }}
-              onClick={onToggleStopMark}
-              aria-pressed={isStopMarked}
-              title="حفظ أو إزالة علامة الوقوف لهذا الكتاب"
-            >
-              <FiFlag className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} />
-              {isStopMarked ? 'علامة الوقوف محفوظة' : 'ضع علامة وقوف'}
-            </button>
-          </div>
 
           <BismillahHeader />
           {(lesson.adminNote || '').trim() && (

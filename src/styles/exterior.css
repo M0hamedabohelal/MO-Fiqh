@@ -389,24 +389,26 @@
 .book-item-btn {
   border-radius: 14px;
   overflow: hidden;
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease;
+  perspective: 1000px;
+  transform-style: preserve-3d;
 }
 
 .book-item-btn:hover {
-  transform: translateY(-6px) perspective(800px) rotateY(-3deg);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18) !important;
+  transform: translateY(-8px) perspective(1000px) rotateY(-5deg) rotateX(2deg);
 }
 
 [data-theme="dark"] .book-item-btn {
-  background-color: #1a2020 !important;
-  border-color: rgba(255, 255, 255, 0.05);
+  background-color: transparent !important;
+  border-color: transparent;
 }
 
-/* الغلاف البصري — يملأ البطاقة كاملة بنسبة ثابتة */
+/* الغلاف البصري — كعب مجلد فاخر ثلاثي الأبعاد مع صفحات ورقية */
 .book-cover-graphic {
   position: relative;
-  background-color: #273635; /* لون مشابه للصورة */
+  background-color: #1e3332;
   background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
     url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2h2v2h20v2H22v2.5h18v2H22v2.5h18v2H22v2.5h18v2H22v2.5h18v2H22v2.5h18v2H22v2.5h18v2H22v2.5h18v2H22v2.5h18v2H22V40h-2v-1.5H0v-2h20v-2H0v-2h20v-2H0v-2h20v-2H0v-2h20v-2H0v-2h20v-2H0v-2h20v-2H0v-2h20v-2H0v-2h20v-2H0v-2h20v-2H0v-2h20v-2H0v-2h20v-2z' fill='%23ffffff' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
   padding: 1.25rem 1rem 0;
   aspect-ratio: 3 / 4;
@@ -417,27 +419,54 @@
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  border-radius: 14px;
+  border-radius: 4px 14px 14px 4px;
   overflow: hidden;
-  /* كعب وتجسيم الكتاب ثلاثي الأبعاد */
-  box-shadow: inset 4px 0 8px rgba(255, 255, 255, 0.08), inset -4px 0 8px rgba(0, 0, 0, 0.35);
-  border-right: 5px solid rgba(200, 169, 126, 0.35);
+  /* تجسيم كعب الكتاب الأيمن وتدرج سماكة الصفحات على اليسار */
+  box-shadow:
+    -3px 0 0 #ece4cc,
+    -5px 0 0 #d9cdb0,
+    -8px 8px 24px rgba(0, 0, 0, 0.22),
+    inset 8px 0 16px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(200, 169, 126, 0.35);
+  border-right: 7px solid #142322;
+  transition: all 0.35s ease;
 }
 
+/* كعب المجلد مع خياطة وتطريز ذهبي خفيف */
 .book-cover-graphic::before {
   content: "";
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
-  width: 14px;
-  background: linear-gradient(to left, rgba(0, 0, 0, 0.4) 0%, rgba(255, 255, 255, 0.12) 25%, rgba(0, 0, 0, 0.15) 60%, transparent 100%);
+  width: 18px;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 38px,
+      rgba(200, 169, 126, 0.4) 39px,
+      rgba(255, 255, 255, 0.25) 40px,
+      transparent 41px
+    ),
+    linear-gradient(to left, rgba(0, 0, 0, 0.5) 0%, rgba(255, 255, 255, 0.15) 30%, rgba(0, 0, 0, 0.25) 70%, transparent 100%);
   pointer-events: none;
   z-index: 5;
+  box-shadow: inset -1px 0 0 rgba(200, 169, 126, 0.35);
+}
+
+.book-item-btn:hover .book-cover-graphic {
+  box-shadow:
+    -4px 0 0 #f4ebce,
+    -7px 0 0 #ded2b2,
+    -14px 18px 36px rgba(0, 0, 0, 0.32),
+    inset 8px 0 16px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(230, 200, 117, 0.5);
 }
 
 [data-theme="dark"] .book-cover-graphic {
-  background-color: #111a19;
+  background-color: #0d1616;
+  border-right-color: #070c0c;
 }
 
 /* شريط الزاوية الأخضر */
@@ -543,6 +572,94 @@
 }
 .book-cover-overlay .book-cover-track {
   background: rgba(255, 255, 255, 0.25);
+}
+
+/* مؤشر الإنجاز الدائري والختم المدمج في الغلاف */
+.book-progress-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s ease;
+}
+
+.book-progress-badge:hover {
+  transform: scale(1.08);
+}
+
+.book-circular-progress {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 26, 26, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(200, 169, 126, 0.25);
+}
+
+.book-circular-progress svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.book-circular-progress .circle-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 3.2;
+}
+
+.book-circular-progress .circle-fill {
+  fill: none;
+    stroke: #e6c875;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s ease-out;
+}
+
+.book-circular-progress .progress-text {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  color: #f7edd5;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  z-index: 1;
+}
+
+/* ختم إتمام الكتاب الذهبي المتمم */
+.book-seal-gold {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: bold;
+  font-family: var(--font-ui);
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  animation: pulseSeal 3s infinite ease-in-out;
+}
+
+@keyframes pulseSeal {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 18px rgba(46, 204, 113, 0.7);
+  }
 }
 
 /* ختم الإتمام */
@@ -681,6 +798,59 @@
 .chapter-band-count {
   font-size: 0.78rem;
   color: var(--text-muted);
+}
+
+.chapter-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.chapter-progress-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background-color: var(--badge-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  transition: all 0.25s ease;
+}
+
+.chapter-progress-badge.is-in-progress {
+  background-color: rgba(39, 174, 96, 0.08);
+  color: #27ae60;
+  border-color: rgba(39, 174, 96, 0.3);
+}
+
+.chapter-progress-badge.is-complete {
+  background-color: rgba(39, 174, 96, 0.16);
+  color: #1e8449;
+  border-color: rgba(39, 174, 96, 0.45);
+}
+
+[data-theme="dark"] .chapter-progress-badge.is-in-progress {
+  color: #2ecc71;
+  background-color: rgba(46, 204, 113, 0.12);
+}
+
+[data-theme="dark"] .chapter-progress-badge.is-complete {
+  color: #2ecc71;
+  background-color: rgba(46, 204, 113, 0.2);
+}
+
+.chapter-dot-progress {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #27ae60;
+  display: inline-block;
+  box-shadow: 0 0 4px rgba(39, 174, 96, 0.6);
 }
 
 .chapter-band-side {
@@ -896,4 +1066,112 @@
   .parchment-texture::before {
     display: none;
   }
+}
+
+
+/* ==================== شبكة الفوائد المقتبسة بنمط Masonry وتصنيف الألوان ==================== */
+.highlights-masonry {
+  column-count: 1;
+  column-gap: 1.25rem;
+}
+@media (min-width: 768px) {
+  .highlights-masonry {
+    column-count: 2;
+  }
+}
+@media (min-width: 1200px) {
+  .highlights-masonry {
+    column-count: 3;
+  }
+}
+
+.highlight-masonry-card {
+  break-inside: avoid;
+  margin-bottom: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  border-radius: 14px;
+}
+.highlight-masonry-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.highlight-quote-mark {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  font-family: var(--font-arabic-calligraphy, 'Amiri', serif);
+  font-size: 5rem;
+  line-height: 1;
+  opacity: 0.08;
+  pointer-events: none;
+  user-select: none;
+  color: var(--primary-color);
+}
+
+.highlight-text-content {
+  font-family: var(--font-arabic-reading, 'Traditional Arabic', serif);
+  font-size: 1.15rem;
+  line-height: 2.1;
+  font-weight: 500;
+  color: var(--text-main);
+  position: relative;
+  z-index: 1;
+}
+
+/* دوائر اختيار اللون */
+.highlight-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.highlight-color-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  position: relative;
+}
+.highlight-color-dot:hover {
+  transform: scale(1.22);
+}
+.highlight-color-dot.active {
+  border-color: var(--text-main);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px var(--card-bg);
+}
+
+/* تخصيص ألوان البطاقة حسب التصنيف */
+.highlight-card-gold {
+  border-right: 5px solid #d4af37 !important;
+  background: linear-gradient(to left, rgba(212, 175, 55, 0.06), transparent 28%), var(--card-bg) !important;
+}
+.highlight-card-green {
+  border-right: 5px solid #27ae60 !important;
+  background: linear-gradient(to left, rgba(39, 174, 96, 0.06), transparent 28%), var(--card-bg) !important;
+}
+.highlight-card-blue {
+  border-right: 5px solid #2980b9 !important;
+  background: linear-gradient(to left, rgba(41, 128, 185, 0.06), transparent 28%), var(--card-bg) !important;
+}
+.highlight-card-purple {
+  border-right: 5px solid #8e44ad !important;
+  background: linear-gradient(to left, rgba(142, 68, 173, 0.06), transparent 28%), var(--card-bg) !important;
+}
+
+/* شريط تصنيف الفوائد */
+.highlight-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+.highlight-filter-pills::-webkit-scrollbar {
+  height: 4px;
 }

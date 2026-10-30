@@ -237,6 +237,16 @@ export function useUserLibrary() {
     }));
   }, [update]);
 
+  const updateHighlightColor = useCallback((highlightId: string | number, color: string) => {
+    const id = String(highlightId);
+    update((current) => ({
+      ...current,
+      highlights: current.highlights.map((h) =>
+        String(h.id ?? h.text) === id ? { ...h, color } : h
+      ),
+    }));
+  }, [update]);
+
   const saveNoteForLesson = useCallback((lessonId: string | number, text: string) => {
     const id = String(lessonId);
     // حد أقصى لطول الملاحظة الواحدة (3,000 حرف) لحماية حجم المستند في السحابة من تجاوز سقف 1MiB
@@ -287,6 +297,7 @@ export function useUserLibrary() {
     toggleReadLesson,
     addHighlight,
     deleteHighlight,
+    updateHighlightColor,
     saveNoteForLesson,
     restoreLibrary,
     applyMergedLibrary,
