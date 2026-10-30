@@ -941,28 +941,6 @@
   }
 }
 
-/* ==================== عنوان القراءة اللاصق (فون) ==================== */
-.reading-sticky-title {
-  position: fixed;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: var(--z-nav);
-  border: none;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--card-bg);
-  color: var(--primary-color);
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 0.95rem;
-  padding: calc(10px + env(safe-area-inset-top, 0px)) 48px 10px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
 
 /* ==================== نافذة البحث مثبتة أعلى الشاشة (كل المقاسات) ==================== */
 .search-overlay {

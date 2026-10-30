@@ -84,6 +84,8 @@ export const ReadingHeaderBar = ({
               cursor: isScrolled ? 'pointer' : 'default',
               userSelect: 'none',
               pointerEvents: isScrolled ? 'auto' : 'none',
+              minWidth: 0,
+              maxWidth: '45%',
             }}
             onClick={() => {
               if (isScrolled) window.scrollTo({ top: 0, behavior: 'smooth' });
