@@ -81,4 +81,60 @@ describe('ReadingHeaderBar Component', () => {
     fireEvent.click(screen.getByLabelText('تعليم المسألة كمقروءة'));
     expect(onToggleRead).toHaveBeenCalled();
   });
+
+  it('يعرض أزرار التنقل السريع (السابقة / التالية) عند تمرير الدوال ويتفاعل معها', () => {
+    const onPrev = vi.fn();
+    const onNext = vi.fn();
+
+    render(
+      <ReadingHeaderBar
+        {...defaultProps}
+        onPrev={onPrev}
+        onNext={onNext}
+        canGoPrev={true}
+        canGoNext={true}
+        prevLessonTitle="المسألة السابقة: تعريف الصلاة"
+        nextLessonTitle="المسألة التالية: حكم سجود السهو"
+      />
+    );
+
+    const prevBtn = screen.getByRole('button', { name: /المسألة السابقة/i });
+    const nextBtn = screen.getByRole('button', { name: /المسألة التالية/i });
+
+    expect(prevBtn).toBeTruthy();
+    expect(nextBtn).toBeTruthy();
+
+    fireEvent.click(prevBtn);
+    expect(onPrev).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(nextBtn);
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
+
+  it('يُعطل أزرار التنقل السريع في الشريط العلوي عندما canGoPrev أو canGoNext غير مفعلين', () => {
+    const onPrev = vi.fn();
+    const onNext = vi.fn();
+
+    render(
+      <ReadingHeaderBar
+        {...defaultProps}
+        onPrev={onPrev}
+        onNext={onNext}
+        canGoPrev={false}
+        canGoNext={false}
+      />
+    );
+
+    const prevBtn = screen.getByRole('button', { name: 'المسألة السابقة' }) as HTMLButtonElement;
+    const nextBtn = screen.getByRole('button', { name: 'المسألة التالية' }) as HTMLButtonElement;
+
+    expect(prevBtn.disabled).toBe(true);
+    expect(nextBtn.disabled).toBe(true);
+
+    fireEvent.click(prevBtn);
+    expect(onPrev).not.toHaveBeenCalled();
+
+    fireEvent.click(nextBtn);
+    expect(onNext).not.toHaveBeenCalled();
+  });
 });

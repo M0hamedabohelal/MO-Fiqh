@@ -380,6 +380,8 @@ const ReadingView = () => {
         canGoNext={canGoNext}
         onPrev={onPrev}
         onNext={onNext}
+        prevLessonTitle={prevLesson?.title}
+        nextLessonTitle={nextLesson?.title}
         onOpenTOC={() => setIsTOCOpen((prev) => !prev)}
         lessonTitle={cleanedTitle}
         isScrolled={isTitleScrolled}

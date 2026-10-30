@@ -1300,6 +1300,30 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   transform: translateY(-1px);
 }
 
+.reading-nav-pill {
+  transition: all 0.25s ease;
+}
+
+.reading-nav-pill:hover {
+  border-color: var(--accent-color) !important;
+}
+
+.reading-header-nav-btn {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.reading-header-nav-btn:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--primary-color) 12%, transparent) !important;
+  color: var(--primary-color) !important;
+  transform: none !important;
+}
+
+[data-theme="dark"] .reading-header-nav-btn:hover:not(:disabled) {
+  background-color: rgba(92, 192, 181, 0.18) !important;
+  color: #ffffff !important;
+}
+
 .reading-actions .font-size-group button:hover {
   background-color: var(--accent-color);
   color: var(--text-on-accent) !important;
