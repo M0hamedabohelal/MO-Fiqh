@@ -30,35 +30,31 @@ describe('ReadingHeaderBar Component', () => {
     render(<ReadingHeaderBar {...defaultProps} isScrolled={false} />);
 
     expect(screen.getByLabelText('العودة لفهرس المسائل')).toBeTruthy();
-    const desktopTitle = screen.getByText('المسألة الأولى: الماء الطهور');
-    expect(desktopTitle.className).toContain('opacity-0');
-    expect(desktopTitle.getAttribute('aria-hidden')).toBe('true');
+    const title = screen.getByText('المسألة الأولى: الماء الطهور');
+    const band = title.closest('.reading-sticky-title-band');
+    expect(band?.className).toContain('opacity-0');
+    expect(band?.getAttribute('aria-hidden')).toBe('true');
   });
 
-  it('يُبرز عنوان المسألة المثبت على الشاشات الكبيرة والمحمولة عند التمرير (isScrolled = true)', () => {
+  it('يُبرز عنوان المسألة المثبت في شريط مخصص عند التمرير (isScrolled = true)', () => {
     render(<ReadingHeaderBar {...defaultProps} isScrolled={true} />);
 
-    const titles = screen.getAllByText('المسألة الأولى: الماء الطهور');
-    // عنصر للشاشات الكبيرة وآخر للموبايل
-    expect(titles.length).toBeGreaterThanOrEqual(1);
+    const title = screen.getByText('المسألة الأولى: الماء الطهور');
+    expect(title).toBeTruthy();
+    expect(title.classList.contains('reading-sticky-title')).toBe(true);
 
-    const desktopTitle = titles.find((el) => el.classList.contains('reading-sticky-title'));
-    expect(desktopTitle).toBeTruthy();
-    expect(desktopTitle?.className).toContain('opacity-100');
-    expect(desktopTitle?.getAttribute('aria-hidden')).toBe('false');
-
-    const mobileTitle = titles.find((el) => el.classList.contains('reading-sticky-title-mobile'));
-    expect(mobileTitle).toBeTruthy();
+    const band = title.closest('.reading-sticky-title-band');
+    expect(band?.className).toContain('opacity-100');
+    expect(band?.getAttribute('aria-hidden')).toBe('false');
   });
 
   it('الضغط على عنوان المسألة المثبت يصعد بالصفحة لأعلى بنعومة', () => {
     render(<ReadingHeaderBar {...defaultProps} isScrolled={true} />);
 
-    const titles = screen.getAllByText('المسألة الأولى: الماء الطهور');
-    const desktopTitle = titles.find((el) => el.classList.contains('reading-sticky-title'));
-    expect(desktopTitle).toBeTruthy();
+    const title = screen.getByText('المسألة الأولى: الماء الطهور');
+    expect(title).toBeTruthy();
 
-    fireEvent.click(desktopTitle!);
+    fireEvent.click(title);
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
   });
 

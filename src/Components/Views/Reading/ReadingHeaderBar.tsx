@@ -44,6 +44,7 @@ export const ReadingHeaderBar = ({
       role="region"
       aria-label="شريط أدوات القراءة"
     >
+      {/* الصف الأول: أزرار التحكم مريحة وواسعة دون أي تزاحم */}
       <div className="d-flex justify-content-between align-items-center gap-2 w-100">
         {/* زر العودة لفهرس المسائل */}
         <div className="d-flex align-items-center flex-shrink-0">
@@ -69,37 +70,9 @@ export const ReadingHeaderBar = ({
           </button>
         </div>
 
-        {/* عنوان المسألة المثبت في الوسط على الشاشات المتوسطة والكبيرة */}
-        {lessonTitle && (
-          <div
-            className={`reading-sticky-title text-truncate text-center px-2 flex-grow-1 d-none d-md-block ${
-              isScrolled ? 'opacity-100' : 'opacity-0'
-            }`}
-            style={{
-              color: 'var(--primary-color)',
-              fontWeight: 700,
-              fontSize: '0.96rem',
-              transition: 'opacity 0.25s ease, transform 0.25s ease',
-              transform: isScrolled ? 'translateY(0)' : 'translateY(-4px)',
-              cursor: isScrolled ? 'pointer' : 'default',
-              userSelect: 'none',
-              pointerEvents: isScrolled ? 'auto' : 'none',
-              minWidth: 0,
-              maxWidth: '45%',
-            }}
-            onClick={() => {
-              if (isScrolled) window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            title={isScrolled ? `${lessonTitle} (اضغط للصعود للأعلى)` : undefined}
-            aria-hidden={!isScrolled}
-          >
-            {lessonTitle}
-          </div>
-        )}
-
         {/* أزرار أدوات القراءة الموحدة */}
         <div className="reading-actions d-flex align-items-center gap-1 gap-md-2 flex-nowrap flex-shrink-0">
-          {/* 1. زر شجرة الفقه — يفتح فهرس المسائل مباشرة دون الحاجة لزر عائم فوق النص */}
+          {/* 1. زر شجرة الفقه */}
           {onOpenTOC && (
             <button
               type="button"
@@ -123,7 +96,7 @@ export const ReadingHeaderBar = ({
             </button>
           )}
 
-          {/* 2. زر طباعة الباب كاملاً — متاح دائماً على الهاتف والكمبيوتر */}
+          {/* 2. زر طباعة الباب كاملاً */}
           <button
             type="button"
             className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 px-md-3 reading-toolbar-btn"
@@ -145,39 +118,36 @@ export const ReadingHeaderBar = ({
             <span className="ms-1 d-none d-sm-inline">الباب كامل</span>
           </button>
 
-          {/* 3. زر حالة القراءة */}
+          {/* 3. زر تأكيد إتمام قراءة المسألة */}
           <button
             type="button"
             className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 px-md-3 reading-toolbar-btn"
             style={{
               borderRadius: '10px',
               fontWeight: 'bold',
-              transition: 'all 0.25s ease',
-              background: isRead ? 'linear-gradient(135deg, #27ae60 0%, #219653 100%)' : 'var(--badge-bg)',
-              borderColor: isRead ? '#219653' : 'var(--border-color)',
-              color: isRead ? '#ffffff' : 'var(--text-main)',
+              transition: 'all 0.2s ease',
+              backgroundColor: isRead ? 'rgba(39, 174, 96, 0.15)' : 'var(--badge-bg)',
+              borderColor: isRead ? 'rgba(39, 174, 96, 0.5)' : 'var(--border-color)',
+              color: isRead ? '#27ae60' : 'var(--primary-color)',
               border: '1px solid',
               minHeight: '38px',
-              boxShadow: isRead ? '0 2px 8px rgba(39, 174, 96, 0.3)' : undefined,
             }}
             onClick={onToggleRead}
-            title={isRead ? 'إلغاء تعليم المسألة كمقروءة' : 'تعليم المسألة كمقروءة'}
-            aria-label={isRead ? 'إلغاء تعليم المسألة كمقروءة' : 'تعليم المسألة كمقروءة'}
+            title={isRead ? 'أتممت قراءة هذه المسألة (اضغط للإلغاء)' : 'تعليم المسألة كمقروءة'}
+            aria-label={isRead ? 'إلغاء التعليم كمقروءة' : 'تعليم المسألة كمقروءة'}
           >
-            <FiCheckCircle size={16} className="ms-1" style={{ color: isRead ? '#ffffff' : '#27ae60' }} />
-            <span className="d-none d-sm-inline">{isRead ? 'أتممتها ✓' : 'خلصتها؟'}</span>
+            <FiCheckCircle size={17} />
+            <span className="ms-1 d-none d-sm-inline">{isRead ? 'أتممتها' : 'خلصتها؟'}</span>
           </button>
 
-          {/* 4. التحكم في حجم الخط داخل القراءة */}
+          {/* 4. مغير حجم الخط المدمج */}
           <div
-            className="d-flex align-items-center shadow-sm font-size-group"
-            role="group"
-            aria-label="حجم الخط"
+            className="d-flex align-items-center shadow-sm p-1 font-size-ctrl-box"
             style={{
               backgroundColor: 'var(--badge-bg)',
-              border: '1px solid var(--border-color)',
+              borderColor: 'var(--border-color)',
               borderRadius: '10px',
-              overflow: 'hidden',
+              border: '1px solid',
               minHeight: '38px',
             }}
           >
@@ -243,24 +213,44 @@ export const ReadingHeaderBar = ({
         </div>
       </div>
 
-    {/* عنوان المسألة المثبت على شاشات الهواتف عند التمرير */}
-    {lessonTitle && isScrolled && (
-      <div
-        className="reading-sticky-title-mobile text-truncate text-center w-100 d-md-none pt-1"
-        style={{
-          color: 'var(--primary-color)',
-          fontWeight: 700,
-          fontSize: '0.84rem',
-          borderTop: '1px solid var(--border-color)',
-          cursor: 'pointer',
-          userSelect: 'none',
-        }}
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        title={`${lessonTitle} (اضغط للصعود للأعلى)`}
-      >
-        {lessonTitle}
-      </div>
-    )}
-  </div>
-);
+      {/* الصف الثاني: عنوان المسألة المثبت عند التمرير — بكامل عرض الشريط وبمظهر أندلسي راقٍ وواضح تماماً */}
+      {lessonTitle && (
+        <div
+          className={`reading-sticky-title-band d-flex align-items-center justify-content-center gap-2 ${
+            isScrolled ? 'opacity-100 mt-1 pt-2' : 'opacity-0'
+          }`}
+          style={{
+            borderTop: isScrolled ? '1px solid var(--border-color)' : '1px solid transparent',
+            cursor: isScrolled ? 'pointer' : 'default',
+            userSelect: 'none',
+            maxHeight: isScrolled ? '46px' : '0px',
+            overflow: 'hidden',
+            transition: 'max-height 0.25s ease, opacity 0.25s ease, margin 0.25s ease, padding 0.25s ease, border-color 0.25s ease',
+            pointerEvents: isScrolled ? 'auto' : 'none',
+          }}
+          onClick={() => {
+            if (isScrolled) window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          title={isScrolled ? `${lessonTitle} (اضغط للصعود للأعلى)` : undefined}
+          aria-hidden={!isScrolled}
+        >
+          <span style={{ color: 'var(--accent-color)', fontSize: '0.9rem', flexShrink: 0 }}>۞</span>
+          <span
+            className="reading-sticky-title text-truncate text-center"
+            style={{
+              color: 'var(--primary-color)',
+              fontFamily: 'var(--font-heading)',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              letterSpacing: '-0.01em',
+              maxWidth: '92%',
+            }}
+          >
+            {lessonTitle}
+          </span>
+          <span style={{ color: 'var(--accent-color)', fontSize: '0.9rem', flexShrink: 0 }}>۞</span>
+        </div>
+      )}
+    </div>
+  );
 };
