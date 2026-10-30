@@ -6,6 +6,11 @@ import type { Lesson } from '../../types';
 
 const mockOpenLessonById = vi.fn();
 const mockSetCurrentView = vi.fn();
+const mockExportBookmarksPrint = vi.fn();
+
+vi.mock('../../utils/printExport', () => ({
+  exportBookmarksPrint: (...args: unknown[]) => mockExportBookmarksPrint(...args),
+}));
 
 const sampleLessons: Lesson[] = [
   {
@@ -106,5 +111,43 @@ describe('BookmarksView Component', () => {
 
     expect(screen.getByText('المسألة الثالثة: أحكام الآنية')).toBeTruthy();
     expect(screen.queryByText('المسألة الأولى: أحكام المياه')).toBeNull();
+  });
+
+  it('يستدعي تصدير كراسة المراجعة للطباعة عند النقر على زر الطباعة', () => {
+    mockBookmarks = ['1', '2'];
+
+    render(<BookmarksView />);
+
+    const printBtn = screen.getByRole('button', { name: /تصدير كراسة المراجعة/i });
+    expect(printBtn).toBeTruthy();
+
+    fireEvent.click(printBtn);
+    expect(mockExportBookmarksPrint).toHaveBeenCalledTimes(1);
+    expect(mockExportBookmarksPrint).toHaveBeenCalledWith({
+      bookmarkedLessons: expect.arrayContaining([
+        expect.objectContaining({ id: 1 }),
+        expect.objectContaining({ id: 2 }),
+      ]),
+    });
+  });
+
+  it('يعرض تصنيف المسائل تحت بطاقة الكتاب القابلة للطي', () => {
+    mockBookmarks = ['1', '4']; // كتاب الطهارة وكتاب الصلاة
+
+    render(<BookmarksView />);
+
+    expect(screen.getByText('كتاب الطهارة')).toBeTruthy();
+    expect(screen.getByText('كتاب الصلاة')).toBeTruthy();
+
+    // طي قسم كتاب الصلاة
+    const collapseBtn = screen.getByRole('button', { name: 'قسم كتاب الصلاة' });
+    fireEvent.click(collapseBtn);
+
+    // المسألة الرابعة داخل كتاب الصلاة تختفي بعد الطي
+    expect(screen.queryByText('المسألة الرابعة: شروط الصلاة')).toBeNull();
+
+    // إعادة الفتح
+    fireEvent.click(collapseBtn);
+    expect(screen.getByText('المسألة الرابعة: شروط الصلاة')).toBeTruthy();
   });
 });

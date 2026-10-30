@@ -97,6 +97,78 @@ export function exportChapterPrint({ chapterName, bookName, lessons }: { chapter
 }
 
 // تطهير نصوص المستخدم/المحتوى قبل حقنها في HTML الطباعة — تُكتب عبر doc.write بنفس الأصل
+export function exportBookmarksPrint({ bookmarkedLessons }: { bookmarkedLessons: Lesson[] }): void {
+  const date = new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // تجميع المسائل حسب الكتاب ثم الباب
+  const grouped: Record<string, Record<string, Lesson[]>> = {};
+  bookmarkedLessons.forEach((lesson) => {
+    const book = lesson.bookName || 'مسائل متفرقة';
+    const chapter = lesson.chapterName || 'بدون باب';
+    if (!grouped[book]) grouped[book] = {};
+    if (!grouped[book][chapter]) grouped[book][chapter] = [];
+    grouped[book][chapter].push(lesson);
+  });
+
+  let contentHtml = '';
+  Object.entries(grouped).forEach(([book, chapters]) => {
+    contentHtml += `<div class='book-group-header'><span class='book-title-badge'>📖 ${escapeHtml(book)}</span></div>`;
+    Object.entries(chapters).forEach(([chapter, lessons]) => {
+      contentHtml += `<div class='chapter-group-header'>📑 ${escapeHtml(chapter)} (${lessons.length} مسائل)</div>`;
+      lessons.forEach((l) => {
+        contentHtml += `
+          <div class='bookmark-card-print'>
+            <div class='bookmark-card-title'>
+              <span class='title-text'>${escapeHtml(l.title)}</span>
+              ${l.pageNumber ? `<span class='page-badge'>ص ${escapeHtml(String(l.pageNumber))}</span>` : ''}
+            </div>
+            ${l.mainText ? `<div class='lesson-text'>${formatPrintText(l.mainText)}</div>` : ''}
+            ${l.sheikhExplanation ? `<div class='lesson-explanation'><strong>الشرح:</strong> ${formatPrintText(l.sheikhExplanation)}</div>` : ''}
+            <div class='study-notes-box'>
+              <div class='study-notes-title'>✏️ هامش المراجعة وتدوين الفوائد:</div>
+              <div class='study-notes-line'></div>
+              <div class='study-notes-line'></div>
+              <div class='study-notes-line'></div>
+            </div>
+          </div>
+        `;
+      });
+    });
+  });
+
+  const html = `<!DOCTYPE html><html lang='ar' dir='rtl'><head><meta charset='utf-8'><title>كراسة مراجعة المسائل المفضلة — تطبيق يَسِّر</title><link href='https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap' rel='stylesheet'><style>
+    @page { margin: 1cm; size: A4; }
+    body { font-family: 'Amiri', serif; color: #111; line-height: 1.6; font-size: 11.5pt; text-align: justify; margin: 0; padding: 0.5cm; }
+    .brand-header { text-align: center; margin-bottom: 1.5rem; border-bottom: 2px solid #e6c875; padding-bottom: 1.2rem; }
+    .brand-name { font-size: 22pt; font-weight: bold; color: #8d5b1b; border: 2px solid #c9a54e; padding: 4px 24px; border-radius: 12px; display: inline-block; line-height: 1.5; background: #faf6e8; }
+    .brand-sub { display: block; font-size: 11pt; color: #666; margin-top: 8px; }
+    .booklet-title { text-align: center; font-size: 16pt; font-weight: bold; color: #1b5e20; margin-top: 10px; }
+    .booklet-count { text-align: center; font-size: 11pt; color: #8d5b1b; margin-bottom: 1.5rem; }
+    .book-group-header { margin-top: 1.5rem; margin-bottom: 0.8rem; page-break-after: avoid; }
+    .book-title-badge { font-size: 15pt; font-weight: bold; color: #fff; background: #8d5b1b; padding: 4px 16px; border-radius: 8px; display: inline-block; }
+    .chapter-group-header { font-size: 13pt; font-weight: bold; color: #2e7d32; border-bottom: 1px solid #dcd2ba; margin: 1rem 0 0.8rem; padding-bottom: 4px; page-break-after: avoid; }
+    .bookmark-card-print { margin-bottom: 1.5rem; padding: 12px; border: 1px solid #e0d7c0; border-radius: 8px; background: #fff; page-break-inside: avoid; }
+    .bookmark-card-title { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0e8d4; padding-bottom: 6px; margin-bottom: 8px; }
+    .title-text { font-size: 13pt; font-weight: bold; color: #8d5b1b; }
+    .page-badge { font-size: 9.5pt; color: #666; background: #f5f5f5; border: 1px solid #ddd; padding: 2px 8px; border-radius: 4px; }
+    .lesson-text { margin-bottom: 8px; line-height: 1.7; }
+    .lesson-explanation { margin-top: 6px; padding: 6px 10px; background: #faf8f2; border-right: 3px solid #c9a54e; color: #333; font-size: 10.5pt; border-radius: 4px; }
+    .study-notes-box { margin-top: 12px; padding: 8px 12px; border: 1px dashed #c9a54e; border-radius: 6px; background: #faf9f5; }
+    .study-notes-title { font-size: 9.5pt; color: #8d5b1b; font-weight: bold; margin-bottom: 6px; }
+    .study-notes-line { border-bottom: 1px dotted #dcd2ba; height: 20px; }
+    .islamic-divider-print { text-align: center; color: #c9a54e; font-size: 16pt; margin: 15px 0; line-height: 1; display: block; }
+  </style></head><body>
+    <div class='brand-header'>
+      <div class='brand-name'>تطبيق يَسِّر — للفقه الإسلامي</div>
+      <div class='booklet-title'>كراسة مراجعة المسائل الفقهية المختارة</div>
+      <div class='booklet-count'>إجمالي المسائل المحفوظة: ${bookmarkedLessons.length} مسألة • ${date}</div>
+    </div>
+    ${contentHtml || `<div style='text-align:center;color:#999;padding:2rem;'>لا توجد مسائل في المفضلة للطباعة.</div>`}
+  </body></html>`;
+
+  printViaIframe(html);
+}
+
 function escapeHtml(s: string): string {
   return String(s ?? '')
     .replace(/&/g, '&amp;')

@@ -34,13 +34,22 @@ describe('formatBrackets', () => {
     expect(link).toBeDefined();
   });
 
-  it('يُبرز الآية بكلاس quran-text', () => {
+  it('يُبرز الآية بكلاس quran-text مع أقواس مزهرة', () => {
     const nodes = formatBrackets('قال تعالى {إِنَّمَا الْمُشْرِكُونَ نَجَسٌ} ثم أكمل', '', undefined);
     const arr = Array.isArray(nodes) ? nodes : [nodes];
     const quran = arr.find(
       (n) => isValidElement(n) && (n.props as { className?: string }).className === 'quran-text',
     );
     expect(quran).toBeDefined();
+  });
+
+  it('يُبرز الحديث الشريف بكلاس hadith-text مع أقواس تنصيص تراثية', () => {
+    const nodes = formatBrackets('«قال رسول الله ﷺ: الماء طهور» في الحديث', '', undefined);
+    const arr = Array.isArray(nodes) ? nodes : [nodes];
+    const hadith = arr.find(
+      (n) => isValidElement(n) && (n.props as { className?: string }).className === 'hadith-text',
+    );
+    expect(hadith).toBeDefined();
   });
 });
 

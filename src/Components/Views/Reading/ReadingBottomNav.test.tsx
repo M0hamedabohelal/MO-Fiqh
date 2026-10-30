@@ -71,4 +71,17 @@ describe('ReadingBottomNav Component', () => {
     fireEvent.click(nextBtn);
     expect(onNext).not.toHaveBeenCalled();
   });
+
+  it('يعرض معاينة اسم المسألة السابقة والقادمة عند تمريرهما', () => {
+    render(
+      <ReadingBottomNav
+        {...baseProps}
+        prevLessonTitle="المسألة الخامسة: الماء الطهور"
+        nextLessonTitle="المسألة السابعة: حكم الماء النجس"
+      />,
+    );
+
+    expect(screen.getByText('المسألة الخامسة: الماء الطهور')).toBeTruthy();
+    expect(screen.getByText('المسألة السابعة: حكم الماء النجس')).toBeTruthy();
+  });
 });

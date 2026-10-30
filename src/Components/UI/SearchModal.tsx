@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ReactNode, KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { FiSearch, FiX, FiFileText, FiFilter, FiList } from 'react-icons/fi';
+import { FiSearch, FiX, FiFileText, FiFilter, FiList, FiClock, FiTrash2 } from 'react-icons/fi';
 import Fuse from 'fuse.js';
 import type { FuseSearchOptions } from 'fuse.js';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
@@ -20,6 +20,17 @@ function pushRecent(term: string): string[] {
   const next = [t, ...readRecent().filter((s) => s !== t)].slice(0, MAX_RECENT);
   safeSet(RECENT_KEY, JSON.stringify(next));
   return next;
+}
+
+function removeRecent(term: string): string[] {
+  const next = readRecent().filter((s) => s !== term);
+  safeSet(RECENT_KEY, JSON.stringify(next));
+  return next;
+}
+
+function clearRecent(): string[] {
+  safeSet(RECENT_KEY, JSON.stringify([]));
+  return [];
 }
 
 interface SearchDoc extends Lesson {
@@ -244,6 +255,17 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
   };
 
   const handleInputKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === 'Enter') {
+      if (query.trim().length >= 2) {
+        setRecent(pushRecent(query));
+      }
+      if (visibleResults.length > 0) {
+        e.preventDefault();
+        const lesson = visibleResults[Math.min(safeActiveIndex, visibleResults.length - 1)];
+        if (lesson) handleSelectLesson(lesson);
+      }
+      return;
+    }
     if (visibleResults.length === 0) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -258,11 +280,6 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
         const safe = Math.min(prev, visibleResults.length - 1);
         return (safe - 1 + visibleResults.length) % visibleResults.length;
       });
-    }
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const lesson = visibleResults[Math.min(safeActiveIndex, visibleResults.length - 1)];
-      if (lesson) handleSelectLesson(lesson);
     }
   };
 
@@ -369,22 +386,78 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
         {/* عرض النتائج */}
         <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
           {debouncedQuery.trim() === '' && recent.length > 0 && (
-            <div className="mb-2">
+            <div
+              className="recent-searches-box mb-3 p-3 rounded-3"
+              style={{
+                backgroundColor: 'var(--badge-bg)',
+                border: '1px solid var(--border-color)',
+              }}
+            >
               <div className="d-flex justify-content-between align-items-center mb-2">
-                <small className="text-muted fw-bold">عمليات بحث سابقة (على جهازك فقط)</small>
+                <div className="d-flex align-items-center gap-1 small fw-bold" style={{ color: 'var(--primary-color)' }}>
+                  <FiClock size={15} style={{ color: 'var(--accent-color)' }} />
+                  <span>عمليات البحث الأخيرة</span>
+                </div>
                 <button
                   type="button"
-                  className="btn btn-link btn-sm text-muted p-0"
-                  onClick={() => { safeSet(RECENT_KEY, '[]'); setRecent([]); }}
+                  className="btn btn-sm btn-link text-muted p-0 d-flex align-items-center gap-1 text-decoration-none"
+                  style={{ fontSize: '0.8rem' }}
+                  onClick={() => { setRecent(clearRecent()); }}
+                  title="مسح سجل البحث بالكامل"
+                  aria-label="مسح سجل البحث بالكامل"
                 >
-                  مسح السجل
+                  <FiTrash2 size={13} />
+                  <span>مسح السجل</span>
                 </button>
               </div>
+
               <div className="d-flex gap-2 flex-wrap">
                 {recent.map((term) => (
-                  <button key={term} type="button" className="chip-btn" onClick={() => setQuery(term)}>
-                    🕘 {term}
-                  </button>
+                  <div
+                    key={term}
+                    className="chip-btn d-inline-flex align-items-center gap-1 pe-2"
+                    style={{
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      backgroundColor: 'var(--card-bg)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '999px',
+                      padding: '4px 10px',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="border-0 bg-transparent p-0 d-inline-flex align-items-center gap-1"
+                      style={{ color: 'inherit', font: 'inherit' }}
+                      onClick={() => {
+                        setQuery(term);
+                        setDebouncedQuery(term);
+                      }}
+                      aria-label={`البحث عن "${term}"`}
+                    >
+                      <FiClock size={12} style={{ color: 'var(--accent-color)' }} />
+                      <span>{term}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="border-0 bg-transparent text-muted p-0 ms-1 d-flex align-items-center justify-content-center"
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        fontSize: '12px',
+                        lineHeight: 1,
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRecent(removeRecent(term));
+                      }}
+                      title={`حذف "${term}" من السجل`}
+                      aria-label={`حذف "${term}" من السجل`}
+                    >
+                      ×
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

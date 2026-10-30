@@ -63,10 +63,16 @@ export const formatBrackets = (
   const parts = textChunk.split(/(\{[^}]+\}|﴿[^﴾]+﴾|«[^»]*(?:»|$)|\[[^\]]+\]\(lesson:[\w-]+\)|\([^)]*\)|\*\*[^*]+\*\*|\*[^*]+\*|!![^!]+!!)/g);
   
   return parts.map((part, index) => {
-    // 1. الآيات القرآنية
+    // 1. الآيات القرآنية ({...} أو ﴿...﴾)
     if ((part.startsWith('﴿') && part.endsWith('﴾')) || (part.startsWith('{') && part.endsWith('}'))) {
-      const formattedPart = part.replace(/\{/g, '﴿').replace(/\}/g, '﴾');
-      return <span key={index} className="quran-text">{formattedPart}</span>;
+      const cleanVerse = part.slice(1, -1).trim();
+      return (
+        <span key={index} className="quran-text" title="آية قرآنية كريمة">
+          <span className="quran-bracket">﴿</span>
+          <span className="quran-ayah">{cleanVerse}</span>
+          <span className="quran-bracket">﴾</span>
+        </span>
+      );
     }
     
     // 2. العريض المميز ** **
@@ -101,7 +107,20 @@ export const formatBrackets = (
 
     // 4. الأحاديث النبوية
     if (isHadithText(part)) {
-      return <span key={index} className="hadith-text">{part}</span>;
+      const trimmed = part.trim();
+      let hadithContent = trimmed;
+      if (trimmed.startsWith('«') && trimmed.endsWith('»')) {
+        hadithContent = trimmed.slice(1, -1).trim();
+      } else if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
+        hadithContent = trimmed.slice(1, -1).trim();
+      }
+      return (
+        <span key={index} className="hadith-text" title="حديث نبوي شريف">
+          <span className="hadith-quote">«</span>
+          <span className="hadith-body">{hadithContent}</span>
+          <span className="hadith-quote">»</span>
+        </span>
+      );
     }
     
     // 4. النص العادي أو المصطلحات الفقهية

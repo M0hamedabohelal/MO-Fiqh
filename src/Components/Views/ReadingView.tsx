@@ -78,6 +78,8 @@ const ReadingView = () => {
   const isStopMarked = currentStopMark?.lessonId === lessonId;
   const canGoPrev = currentIndex > 0;
   const canGoNext = currentIndex < lessons.length - 1;
+  const prevLesson = canGoPrev ? lessons[currentIndex - 1] : undefined;
+  const nextLesson = canGoNext ? lessons[currentIndex + 1] : undefined;
   const onToggleRead = (): void => { if (lesson) toggleReadLesson(lesson.id); };
   const onToggleBookmark = (): void => { if (lesson) toggleBookmark(lessonId); };
   const onToggleStopMark = (): void => {
@@ -494,6 +496,8 @@ const ReadingView = () => {
             canGoNext={canGoNext}
             onPrev={onPrev}
             onNext={onNext}
+            prevLessonTitle={prevLesson?.title}
+            nextLessonTitle={nextLesson?.title}
           />
         </motion.div>
       </AnimatePresence>

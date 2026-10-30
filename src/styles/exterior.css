@@ -127,24 +127,73 @@
 
 /* ==================== أنماط النصوص المتقدمة (قرآن، حديث، تظليل) ==================== */
 .quran-text {
-  font-family: 'Amiri Quran', serif;
-  color: #2E7D32; /* أخضر إسلامي */
-  font-size: 1.3em;
+  font-family: 'Amiri Quran', 'Amiri', 'Traditional Arabic', serif;
+  color: #1b5e20; /* أخضر زمردي وقور */
+  font-size: 1.25em;
   line-height: 2.2;
   padding: 0 4px;
+  display: inline;
+}
+
+.quran-bracket {
+  color: #d4af37; /* أقواس مزهرة بلون ذهبي أندلسي */
+  font-weight: bold;
+  padding: 0 3px;
+  font-family: 'Amiri Quran', serif;
+  user-select: none;
+}
+
+[data-theme="dark"] .quran-bracket {
+  color: #f1c40f;
+}
+
+.quran-ayah {
+  color: #2e7d32;
+  letter-spacing: 0.01em;
 }
 
 [data-theme="dark"] .quran-text {
-  color: #81C784;
+  color: #81c784;
+}
+
+[data-theme="dark"] .quran-ayah {
+  color: #a5d6a7;
 }
 
 .hadith-text {
-  color: #A1887F; /* بني أنيق */
-  font-weight: 500;
+  font-family: 'Amiri', 'Traditional Arabic', serif;
+  color: #8d5b1b; /* بني تراثي أصيل */
+  font-weight: 600;
+  font-size: 1.1em;
+  line-height: 1.9;
+  background-color: rgba(212, 175, 55, 0.08);
+  border-right: 3px solid #d4af37;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline;
+  margin: 0 2px;
+}
+
+.hadith-quote {
+  color: #d4af37;
+  font-weight: bold;
+  font-size: 1.2em;
+  padding: 0 2px;
+  user-select: none;
+}
+
+.hadith-body {
+  color: inherit;
 }
 
 [data-theme="dark"] .hadith-text {
-  color: #D7CCC8;
+  color: #e6c875;
+  background-color: rgba(212, 175, 55, 0.12);
+  border-right-color: #e6c875;
+}
+
+[data-theme="dark"] .hadith-quote {
+  color: #f1c40f;
 }
 
 .highlighter-marker {
