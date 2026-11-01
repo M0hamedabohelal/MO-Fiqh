@@ -24,11 +24,15 @@ const CertificateModal = ({ show, bookName, userName, lessonsCount, dateLabel, o
   const [done, setDone] = useState(false);
   const [shareNotice, setShareNotice] = useState('');
 
+  // تعبئة الاسم المخصّص عند وصول userName غير المتزامن (بعد تسجيل الدخول) ما دام الحقل فارغًا.
+  // مربوطة بالمستخدم فقط — لا بـ customName، فلا تُهيّج دورات رندر إضافية.
+  const appliedUserNameRef = useRef(userName);
   useEffect(() => {
-    if (userName && !customName) {
-      setCustomName(userName);
+    if (userName && userName !== appliedUserNameRef.current) {
+      appliedUserNameRef.current = userName;
+      setCustomName((prev) => prev || userName);
     }
-  }, [userName, customName]);
+  }, [userName]);
 
   const displayName = customName.trim() || userName || 'طالب العلم';
 

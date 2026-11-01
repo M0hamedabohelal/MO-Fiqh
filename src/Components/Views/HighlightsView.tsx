@@ -20,7 +20,7 @@ import { exportNotesPrint } from '../../utils/printExport';
 import { buildBackup, downloadBackup, parseBackupFile, backupToText } from '../../utils/libraryBackup';
 import { useApp } from '../Layout/AppContext';
 
-export const HIGHLIGHT_COLORS = [
+const HIGHLIGHT_COLORS = [
   { key: 'gold', label: 'ذهبي (مسألة هامة)', dot: '#d4af37', classSuffix: 'gold' },
   { key: 'green', label: 'أخضر (قاعدة فقهية)', dot: '#27ae60', classSuffix: 'green' },
   { key: 'blue', label: 'أزرق (لطيفة لغوية)', dot: '#2980b9', classSuffix: 'blue' },
