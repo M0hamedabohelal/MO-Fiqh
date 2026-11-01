@@ -1,5 +1,6 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { parseRoute, hashFromCleanPath, canonicalPathFor } from './useHashRoute';
+import { parseRoute, hashFromCleanPath, canonicalPathFor, markSoftNotFound } from './useHashRoute';
 import type { Lesson } from '../types';
 
 const sampleLessons: Lesson[] = [
@@ -99,5 +100,14 @@ describe('canonicalPathFor', () => {
   it('لا يعطي مسارًا لشاشات بلا صفحة ثابتة', () => {
     expect(canonicalPathFor('hero')).toBeNull();
     expect(canonicalPathFor('reading', null)).toBeNull();
+  });
+});
+
+describe('markSoftNotFound', () => {
+  it('يضع وسم noindex, follow لمنع فهرسة الصفحات غير الموجودة (soft-404)', () => {
+    markSoftNotFound();
+    const meta = document.querySelector('meta[name="robots"]');
+    expect(meta).not.toBeNull();
+    expect(meta?.getAttribute('content')).toBe('noindex, follow');
   });
 });

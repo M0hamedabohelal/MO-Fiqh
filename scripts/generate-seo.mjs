@@ -304,6 +304,7 @@ ${next ? `<link rel="next" href="${next}">` : ''}
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(desc)}">
 <meta name="twitter:image" content="${ogImage.url}">
+<link rel="preload" href="/fonts/Amiri-400-normal-arabic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 <link rel="stylesheet" href="/fonts/fonts.css">
 <script type="application/ld+json">${jsonLdString(jsonld)}</script>
 <style>${PAGE_CSS}</style>

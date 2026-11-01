@@ -25,4 +25,5 @@
 - **سياسة أمان المحتوى (CSP):** مشددة ومضبوطة في `firebase.json` بدون أي استدعاء خارجي للخطوط (الخطوط محلية 100%).
 - **حماية الإطارات:** `X-Frame-Options: DENY` لمنع هجمات Clickjacking.
 - **تحديد الصلاحيات:** `Permissions-Policy` مغلقة للكاميرا والميكروفون والموقع الجغرافي.
+- **عزل النوافذ (COOP):** `Cross-Origin-Opener-Policy: same-origin-allow-popups` لعزل بيئة التصفح وسياق المستند مع إبقاء التوافق التام مع نوافذ مصادقة Google Auth المنبثقة.
 - **حماية الأصول:** `X-Content-Type-Options: nosniff`.

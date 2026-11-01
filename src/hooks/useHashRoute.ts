@@ -114,6 +114,7 @@ export function hashFromCleanPath(pathname: string): string | null {
 // فعلًا (مسألة تُضاف من لوحة الإدارة قبل إعادة البناء)، فيكون الرد 200 لا 404. بلا noindex
 // يصير soft-404 قابلًا للفهرسة ويُنافس صفحة الفهرس. noindex يُبقي الحماية ويُنجي الرابط.
 export function markSoftNotFound(): void {
+  if (typeof document === 'undefined') return;
   let el = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
   if (!el) {
     el = document.createElement("meta");
@@ -360,6 +361,17 @@ export function useHashRoute(lessons: Lesson[]) {
       });
     } else if (currentView === "chapters" && selectedBookName) {
       const bookLessons = lessons.filter((l) => (l.bookName || "").trim() === selectedBookName);
+      if (lessons.length > 0 && bookLessons.length === 0) {
+        // كتاب غير متوفر أو لم تُضف مسائله بعد — إن كان الوصول عبر مسار نظيف (/books/{name}/)، فالـ rewrite
+        // جعل الرد 200 OK دون محتوى حقيقي → نعلن noindex فوراً لمنع احتسابه كـ soft-404 في محركات البحث.
+        if (arrivedViaCleanPathRef.current) markSoftNotFound();
+        document.title = "كتاب غير متوفر — يَسِّر";
+        updateSharePreview({
+          title: "كتاب غير متوفر — يَسِّر",
+          description: "هذا الكتاب غير متوفر حالياً أو لم يتم إضافة مسائل فيه بعد.",
+        });
+        return;
+      }
       if (openChapterName) {
         // صفحة باب معيّن — عنوان ووصف خاص بالباب
         const chLessons = bookLessons.filter((l) => (l.chapterName || "").trim() === openChapterName);
