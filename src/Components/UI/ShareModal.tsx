@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FiX, FiShare2, FiDownload, FiCopy, FiCheck } from 'react-icons/fi';
 import { FaWhatsapp, FaTelegram, FaXTwitter } from 'react-icons/fa6';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +23,18 @@ const ShareModal = ({
   onDownloadImage,
 }: ShareModalProps) => {
   const [copiedFull, setCopiedFull] = useState(false);
+
+  // إغلاق النافذة بزر Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleWhatsAppShare = () => {
     const msg = encodeURIComponent(`${shareText}\n\n🔗 ${cleanUrl}`);
@@ -65,18 +78,36 @@ const ShareModal = ({
     }
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          key="share-modal-backdrop"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={title || 'مشاركة المسألة'}
           className="position-fixed top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center p-3"
-          style={{ zIndex: 1060, backgroundColor: 'rgba(0, 0, 0, 0.72)', backdropFilter: 'blur(6px)' }}
+          style={{
+            zIndex: 1070,
+            backgroundColor: 'rgba(0, 0, 0, 0.72)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            margin: 0,
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+          }}
           onClick={onClose}
         >
           <motion.div
+            key="share-modal-dialog"
             initial={{ scale: 0.9, opacity: 0, y: 15 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 15 }}
@@ -85,6 +116,8 @@ const ShareModal = ({
             style={{
               width: '100%',
               maxWidth: '430px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
               borderRadius: '20px',
               border: '1.5px solid var(--accent-color, #c9a84c)',
               boxShadow: '0 12px 40px rgba(0,0,0,0.45)',
@@ -250,7 +283,8 @@ const ShareModal = ({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

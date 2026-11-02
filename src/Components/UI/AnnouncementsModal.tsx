@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiBell, FiX, FiClock } from 'react-icons/fi';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
@@ -13,9 +14,13 @@ const AnnouncementsModal = ({ announcements, onClose }: AnnouncementsModalProps)
   const dialogRef = useRef<HTMLDivElement | null>(null);
   // ملاحظة: onClose مُعلن كـ void في الواجهة — يُستدعى كدالة فعليًا من كل الاستدعاءات
   useFocusTrap(dialogRef, true, onClose as unknown as () => void);
-  return (
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       <motion.div
+        key="announcements-modal-backdrop"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -24,6 +29,7 @@ const AnnouncementsModal = ({ announcements, onClose }: AnnouncementsModalProps)
         onClick={onClose}
       >
         <motion.div
+          key="announcements-modal-dialog"
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
@@ -61,7 +67,8 @@ const AnnouncementsModal = ({ announcements, onClose }: AnnouncementsModalProps)
           )}
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

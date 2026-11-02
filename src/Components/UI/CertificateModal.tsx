@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiDownload, FiX, FiImage, FiCheck, FiShare2, FiEdit2 } from 'react-icons/fi';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
@@ -98,7 +99,9 @@ const CertificateModal = ({ show, bookName, userName, lessonsCount, dateLabel, o
     setTimeout(() => setShareNotice(''), 3000);
   }, [bookName, handleDownload]);
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {show && (
         <motion.div
@@ -329,7 +332,8 @@ const CertificateModal = ({ show, bookName, userName, lessonsCount, dateLabel, o
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 
