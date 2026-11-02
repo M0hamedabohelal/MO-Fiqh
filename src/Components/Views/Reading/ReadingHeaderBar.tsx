@@ -41,12 +41,12 @@ export const ReadingHeaderBar = ({
       aria-label="شريط أدوات القراءة"
     >
       {/* الصف الأول: أزرار التحكم مريحة وواسعة دون أي تزاحم */}
-      <div className="d-flex justify-content-between align-items-center gap-2 w-100">
+      <div className="d-flex justify-content-between align-items-center gap-1 gap-md-2 w-100">
         {/* زر العودة لفهرس المسائل */}
         <div className="d-flex align-items-center flex-shrink-0">
           <button
             type="button"
-            className="btn btn-sm d-flex align-items-center reading-back-btn p-1 px-2 px-md-3 shadow-sm"
+            className="btn btn-sm d-flex align-items-center reading-back-btn p-1 px-2 px-md-2 px-lg-3 shadow-sm"
             aria-label="العودة لفهرس المسائل"
             title="العودة لفهرس المسائل"
             onClick={onBackToIndex}
@@ -61,7 +61,7 @@ export const ReadingHeaderBar = ({
               transition: 'all 0.2s ease',
             }}
           >
-            <FiArrowRight size={18} className="ms-md-2" />
+            <FiArrowRight size={18} className="ms-md-2 flex-shrink-0" />
             <span className="d-none d-md-inline">العودة للمسائل</span>
           </button>
         </div>
@@ -72,7 +72,7 @@ export const ReadingHeaderBar = ({
           {onOpenTOC && (
             <button
               type="button"
-              className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 px-md-3 reading-toolbar-btn"
+              className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 px-md-2 px-lg-3 reading-toolbar-btn"
               style={{
                 borderRadius: '10px',
                 fontWeight: 'bold',
@@ -87,7 +87,7 @@ export const ReadingHeaderBar = ({
               title="شجرة الفقه — مسائل الكتاب"
               aria-label="شجرة الفقه"
             >
-              <FiList size={17} />
+              <FiList size={17} className="flex-shrink-0" />
               <span className="ms-1 d-none d-lg-inline">شجرة الفقه</span>
             </button>
           )}
@@ -95,7 +95,7 @@ export const ReadingHeaderBar = ({
           {/* 2. زر طباعة الباب كاملاً */}
           <button
             type="button"
-            className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 px-md-3 reading-toolbar-btn"
+            className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 px-md-2 px-lg-3 reading-toolbar-btn"
             style={{
               borderRadius: '10px',
               fontWeight: 'bold',
@@ -110,14 +110,14 @@ export const ReadingHeaderBar = ({
             title="طباعة الباب كاملاً"
             aria-label="طباعة الباب كاملاً"
           >
-            <FiPrinter size={17} />
-            <span className="ms-1 d-none d-sm-inline">الباب كامل</span>
+            <FiPrinter size={17} className="flex-shrink-0" />
+            <span className="ms-1 d-none d-md-inline">الباب كامل</span>
           </button>
 
           {/* 3. زر تأكيد إتمام قراءة المسألة */}
           <button
             type="button"
-            className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 px-md-3 reading-toolbar-btn"
+            className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 px-md-2 px-lg-3 reading-toolbar-btn"
             style={{
               borderRadius: '10px',
               fontWeight: 'bold',
@@ -132,13 +132,13 @@ export const ReadingHeaderBar = ({
             title={isRead ? 'أتممت قراءة هذه المسألة (اضغط للإلغاء)' : 'تعليم المسألة كمقروءة'}
             aria-label={isRead ? 'إلغاء التعليم كمقروءة' : 'تعليم المسألة كمقروءة'}
           >
-            <FiCheckCircle size={17} />
-            <span className="ms-1 d-none d-sm-inline">{isRead ? 'أتممتها' : 'خلصتها؟'}</span>
+            <FiCheckCircle size={17} className="flex-shrink-0" />
+            <span className="ms-1 d-none d-md-inline">{isRead ? 'أتممتها' : 'خلصتها؟'}</span>
           </button>
 
           {/* 4. مغير حجم الخط المدمج */}
           <div
-            className="d-flex align-items-center shadow-sm p-1 font-size-ctrl-box"
+            className="d-flex align-items-center shadow-sm p-1 font-size-ctrl-box flex-shrink-0"
             style={{
               backgroundColor: 'var(--badge-bg)',
               borderColor: 'var(--border-color)',
@@ -149,8 +149,8 @@ export const ReadingHeaderBar = ({
           >
             <button
               type="button"
-              className="btn btn-sm fw-bold px-2"
-              style={{ color: 'var(--text-main)', minWidth: '32px' }}
+              className="btn btn-sm fw-bold px-1 px-sm-2"
+              style={{ color: 'var(--text-main)', minWidth: '28px' }}
               onClick={() => setFontSize((p) => Math.max(p - 2, 14))}
               disabled={fontSize <= 14}
               title="تصغير الخط"
@@ -159,11 +159,11 @@ export const ReadingHeaderBar = ({
               A−
             </button>
             <span
-              className="px-1 small fw-bold"
+              className="px-1 small fw-bold font-size-display"
               style={{
                 color: 'var(--primary-color)',
                 fontVariantNumeric: 'tabular-nums',
-                minWidth: '22px',
+                minWidth: '20px',
                 textAlign: 'center',
               }}
               aria-hidden="true"
@@ -172,8 +172,8 @@ export const ReadingHeaderBar = ({
             </span>
             <button
               type="button"
-              className="btn btn-sm fw-bold px-2"
-              style={{ color: 'var(--text-main)', minWidth: '32px' }}
+              className="btn btn-sm fw-bold px-1 px-sm-2"
+              style={{ color: 'var(--text-main)', minWidth: '28px' }}
               onClick={() => setFontSize((p) => Math.min(p + 2, 24))}
               disabled={fontSize >= 24}
               title="تكبير الخط"
@@ -186,13 +186,16 @@ export const ReadingHeaderBar = ({
           {/* 5. زر المفضلة */}
           <button
             type="button"
-            className={`bookmark-btn shadow-sm ${isBookmarked ? 'active' : ''}`}
+            className={`bookmark-btn shadow-sm flex-shrink-0 ${isBookmarked ? 'active' : ''}`}
             onClick={onToggleBookmark}
             title="حفظ في المفضلة"
             aria-label={isBookmarked ? 'إزالة من المفضلة' : 'حفظ في المفضلة'}
             style={{
               minHeight: '38px',
               minWidth: '38px',
+              width: '38px',
+              height: '38px',
+              flexShrink: 0,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -204,7 +207,7 @@ export const ReadingHeaderBar = ({
               transition: 'all 0.25s ease',
             }}
           >
-            <FiBookmark size={20} fill={isBookmarked ? 'currentColor' : 'none'} />
+            <FiBookmark size={19} fill={isBookmarked ? 'currentColor' : 'none'} />
           </button>
         </div>
       </div>

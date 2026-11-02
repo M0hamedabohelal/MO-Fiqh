@@ -353,7 +353,7 @@ const ReadingView = () => {
 
   return (
     <div
-      className="container-fluid reading-container py-2 py-md-4 px-1 px-sm-2 px-md-3 position-relative"
+      className="container-fluid reading-container reading-view py-2 py-md-4 px-1 px-sm-2 px-md-3 position-relative"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       style={{ minHeight: '80vh', maxWidth: '900px' }}
@@ -460,7 +460,7 @@ const ReadingView = () => {
               <FiInfo className="mt-1 flex-shrink-0" size={24} style={{ color: 'var(--accent-color)' }} />
               <div>
                 <h4 className="h6 fw-bold mb-2" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-heading)' }}>ملحوظة هامة:</h4>
-                <div className="mb-0" style={{ lineHeight: '1.9', color: 'var(--text-main)', whiteSpace: 'pre-wrap' }}>{lesson.adminNote}</div>
+                <div className="mb-0" style={{ lineHeight: '1.9', color: 'var(--text-main)', whiteSpace: 'pre-wrap', fontSize: 'var(--base-font-size, 16px)' }}>{lesson.adminNote}</div>
               </div>
             </div>
           )}

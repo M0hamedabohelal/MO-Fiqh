@@ -112,8 +112,8 @@
 
 }
 html {
-  /* هذا السطر يخبر المتصفح أن يربط حجم الخط الأساسي بالزر الذي برمجناه */
-  font-size: var(--base-font-size, 16px) !important;
+  font-size: 16px;
+  overflow-x: clip;
 }
 
 /* تغيير الثيم بسلاسة — الخلفية والنص والحدود فقط (بدون ظلال وأحجام حفاظًا على أداء الفون) */
@@ -141,7 +141,7 @@ body {
   background-color: var(--bg-color) !important;
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   color: var(--text-main) !important;
-  font-size: var(--base-font-size);
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   transition: all 0.3s ease;
@@ -1196,6 +1196,48 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   margin-top: 0.25rem;
   margin-bottom: 1.5rem;
   transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-size: 0.85rem;
+}
+
+.reading-header-toolbar,
+.reading-header-toolbar * {
+  box-sizing: border-box;
+}
+
+.reading-header-toolbar .reading-actions {
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+.reading-header-toolbar .reading-back-btn,
+.reading-header-toolbar .reading-toolbar-btn {
+  font-size: 0.84rem !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem !important;
+}
+
+@media (min-width: 992px) {
+  .reading-header-toolbar .reading-back-btn,
+  .reading-header-toolbar .reading-toolbar-btn {
+    padding: 0.35rem 0.8rem !important;
+  }
+}
+
+.reading-header-toolbar .font-size-ctrl-box {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.reading-header-toolbar .font-size-ctrl-box button {
+  font-size: 0.82rem !important;
+}
+
+.reading-header-toolbar .bookmark-btn {
+  flex-shrink: 0;
 }
 
 .reading-header-toolbar.is-scrolled {
