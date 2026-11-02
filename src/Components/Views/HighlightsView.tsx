@@ -387,8 +387,8 @@ const HighlightsView = () => {
         </EmptyState>
       ) : (
         <>
-          {/* شبكة الفوائد بنمط Masonry الفاخر */}
-          <div className="highlights-masonry">
+          {/* عرض الفوائد المقتبسة بنمط البطاقات العريضة (أفقي) */}
+          <div className="highlights-list d-flex flex-column gap-3">
             {filteredHighlights.slice().reverse().map((highlight) => {
               const sourceLesson = lessons.find((l) => String(l.id) === String(highlight.lessonId));
               const highlightBookName = highlight.bookName || sourceLesson?.bookName || 'كتاب غير محدد';
@@ -399,7 +399,7 @@ const HighlightsView = () => {
               return (
                 <div
                   key={highlight.id}
-                  className={`custom-card p-3 p-md-4 shadow-sm highlight-masonry-card ${colorClass}`}
+                  className={`custom-card p-3 p-md-4 shadow-sm highlight-card highlight-masonry-card ${colorClass}`}
                 >
                   {/* علامة اقتباس أندلسية خلفية */}
                   <span className="highlight-quote-mark" aria-hidden="true">❝</span>
@@ -441,44 +441,43 @@ const HighlightsView = () => {
                   </p>
 
                   {/* صف المشاركة السريعة والنسخ المباشر */}
-                  <div className="d-flex align-items-center justify-content-between gap-2 mb-3 position-relative" style={{ zIndex: 2 }}>
-                    <div className="d-flex align-items-center gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-sm d-inline-flex align-items-center gap-1 shadow-xs"
-                        style={{
-                          backgroundColor: 'var(--badge-bg)',
-                          color: copiedId === highlight.id ? 'var(--primary-color)' : 'var(--text-main)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '8px',
-                          fontWeight: 600,
-                          fontSize: '0.8rem',
-                          padding: '4px 10px',
-                        }}
-                        onClick={() => handleCopySingle(highlight.id, highlight.text)}
-                        title="نسخ نص الفائدة"
-                      >
-                        {copiedId === highlight.id ? <FiCheck size={14} /> : <FiCopy size={13} />}
-                        <span>{copiedId === highlight.id ? 'تم النسخ' : 'نسخ'}</span>
-                      </button>
+                  <div className="d-flex align-items-center gap-2 mb-3 position-relative flex-wrap" style={{ zIndex: 2 }}>
+                    <button
+                      type="button"
+                      className="btn btn-sm d-inline-flex align-items-center gap-1 shadow-xs"
+                      style={{
+                        backgroundColor: 'var(--badge-bg)',
+                        color: copiedId === highlight.id ? 'var(--primary-color)' : 'var(--text-main)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '20px',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                        padding: '4px 12px',
+                        minHeight: '30px',
+                      }}
+                      onClick={() => handleCopySingle(highlight.id, highlight.text)}
+                      title="نسخ نص الفائدة"
+                    >
+                      {copiedId === highlight.id ? <FiCheck size={14} /> : <FiCopy size={13} />}
+                      <span>{copiedId === highlight.id ? 'تم النسخ' : 'نسخ'}</span>
+                    </button>
 
-                      <ShareButton
-                        title="فائدة مقتبسة"
-                        text={highlight.text}
-                        sheikhComment=""
-                        isSmall
-                        lessonId={highlight.lessonId}
-                      />
-                    </div>
+                    <ShareButton
+                      title="فائدة مقتبسة"
+                      text={highlight.text}
+                      sheikhComment=""
+                      isSmall
+                      lessonId={highlight.lessonId}
+                    />
                   </div>
 
-                  <hr style={{ opacity: 0.1, margin: '8px 0' }} />
+                  <hr style={{ opacity: 0.1, margin: '10px 0' }} />
 
                   {/* معلومات المسألة وزر الانتقال */}
                   <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 position-relative" style={{ zIndex: 2 }}>
-                    <span className="badge badge-custom text-muted d-flex flex-column align-items-start py-2 px-2" style={{ maxWidth: '65%' }}>
-                      <span className="text-truncate w-100"><FiBook className="ms-1" /> {highlightTitle}</span>
-                      <small className="mt-1 text-truncate w-100">
+                    <span className="badge badge-custom text-muted d-flex flex-column align-items-start py-2 px-3" style={{ maxWidth: '75%' }}>
+                      <span className="text-truncate w-100 fw-bold"><FiBook className="ms-1" /> {highlightTitle}</span>
+                      <small className="mt-1 text-truncate w-100" style={{ opacity: 0.85 }}>
                         {highlightBookName} &gt; {highlightChapterName}
                       </small>
                     </span>

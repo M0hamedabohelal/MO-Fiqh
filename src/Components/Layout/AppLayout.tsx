@@ -86,8 +86,12 @@ const AppLayout = () => {
 
     {/* المنطقة الرئيسية */}
     <div
-      className="col-lg-10 col-md-9 px-4 pb-5 pb-md-3"
-      style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))' }}
+      className="col-12 col-md-9 col-lg-10 px-2 px-sm-3 px-md-4 pb-5 pb-md-3"
+      style={{
+        paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))',
+        maxWidth: '100%',
+        overflowX: 'clip',
+      }}
     >
       <header role="banner">
         <Topbar

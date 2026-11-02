@@ -122,7 +122,7 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
-      className="custom-card p-4 p-md-5 mb-4 shadow-sm"
+      className="custom-card p-3 p-sm-4 p-md-4 mb-4 shadow-sm"
     >
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h3 className="h5 mb-0 d-flex align-items-center fw-bold" style={{ color: 'var(--primary-color)' }}>

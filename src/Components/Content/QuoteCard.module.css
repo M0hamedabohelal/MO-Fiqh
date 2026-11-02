@@ -2,6 +2,8 @@
   border-right: 5px solid var(--accent-color);
   background-color: var(--card-bg);
   border-radius: 16px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .copyButton {
@@ -19,33 +21,32 @@
   text-align: right;
   direction: rtl;
   word-wrap: break-word;
+  overflow-wrap: break-word;
   font-family: var(--font-quote);
 }
 
-/* محاذاة النص من الجهتين — شكل الكتب المطبوعة */
 .textContent p {
   text-align: right;
 }
 
 .paragraph {
-  line-height: 2.15;
-  font-size: 1.25rem;
+  line-height: 2.1;
+  font-size: calc(var(--base-font-size, 16px) * 1.12);
   font-weight: 500;
   letter-spacing: 0.01em;
-  -webkit-text-stroke: 0.15px currentColor;
   color: var(--text-main);
-  text-align: justify;
-  text-justify: inter-word;
+  text-align: right;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  /* شكل الكتب: مسافة بادئة لأول سطر وتباعد أوسع بين الفقرات */
-  text-indent: 1.5em;
-  margin-bottom: 1.4rem;
+  margin-bottom: 1.15rem;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .titlePart {
   color: var(--primary-color);
   margin-left: 6px;
-  font-weight: 800;
-  font-size: 1.14em;
+  font-weight: 700;
+  font-size: 1.05em;
+  display: inline;
 }

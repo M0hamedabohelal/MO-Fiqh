@@ -40,11 +40,6 @@ type CrossLinkPart = CrossLinkTextPart | CrossLinkAnchorPart;
 const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardProps) => {
   const [copied, setCopied] = useState(false);
   const [tooltipInfo, setTooltipInfo] = useState<TooltipInfo>({ show: false, term: '', definition: '', x: 0, y: 0 });
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  // حساب طول المسألة (عدد الكلمات تقريباً)
-  const wordCount = (text || '').trim().split(/\s+/).length;
-  const isLongIssue = wordCount > 150;
 
   const handleCopy = async (): Promise<void> => {
     const ok = await copyText(text);
@@ -248,34 +243,23 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
       bodyPart = paragraph.substring(colonIndex + 1);
     }
 
-    // التعرف على القوائم الرقمية (مثل 1- أو ٢- أو 1. أو ٢.)
-    const isListItem = /^[0-9١-٩]+[.\-)]\s*/.test(paragraph.trim());
-
-    // إذا كانت المسألة طويلة، نطبق فئة CSS إضافية لتوضيح التنسيق (Typography)
-    const typoClass = isLongIssue ? 'typography-enhanced' : '';
-
     return (
       <motion.p
         key={index}
-        className={`${styles.paragraph} ${typoClass}`}
-        initial={{ opacity: 0, y: 12 }}
+        className={styles.paragraph}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: Math.min(index * 0.05, 0.4), duration: 0.4, ease: 'easeOut' }}
-        style={{
-          paddingRight: isListItem ? '1.5rem' : '0',
-          textIndent: isListItem ? '-1.5rem' : '0',
-          textAlign: 'right'
-        }}
+        transition={{ delay: Math.min(index * 0.04, 0.3), duration: 0.3, ease: 'easeOut' }}
       >
         {titlePart && (
           <strong 
-            className={`${styles.titlePart} ${isLongIssue ? 'highlighted-title' : ''}`}
+            className={styles.titlePart}
             style={{ color: 'var(--primary-color)' }}
           >
             {renderGlossary(titlePart.replace(/:$/, ''), `${index}-title`)}{titlePart.endsWith(':') ? ':' : ''}
           </strong>
         )}
-        <span className={isLongIssue ? 'enhanced-body' : ''} style={{ fontWeight: '500' }}>
+        <span style={{ fontWeight: '500' }}>
           {formatBrackets(bodyPart, searchQuery, renderGlossary)}
         </span>
       </motion.p>
@@ -285,10 +269,10 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         data-selectable="body-text"
-        className={`custom-card p-4 p-md-5 mb-4 position-relative shadow-sm manuscript-frame parchment-texture ${styles.cardContainer}`}
+        className={`custom-card p-3 p-sm-4 p-md-4 mb-4 position-relative shadow-sm manuscript-frame parchment-texture ${styles.cardContainer}`}
       >
         <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom" style={{ borderColor: 'var(--border-color)' }}>
           <span
@@ -314,52 +298,9 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
           </button>
         </div>
 
-        <div 
-          className={`mt-3 ${styles.textContent} ${isLongIssue ? 'is-long-issue' : ''}`}
-          style={{
-            maxHeight: isLongIssue && !isExpanded ? '250px' : 'none',
-            overflow: 'hidden',
-            position: 'relative',
-            transition: 'max-height 0.3s ease'
-          }}
-        >
+        <div className={`mt-3 ${styles.textContent}`}>
           {text.split('\n').map((paragraph, index) => renderParagraph(paragraph, index))}
-          {isLongIssue && !isExpanded && (
-            <div 
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: '100px',
-                background: 'linear-gradient(transparent, var(--card-bg))',
-                pointerEvents: 'none'
-              }}
-            />
-          )}
         </div>
-
-        {isLongIssue && (
-          <div className="text-center mt-2">
-            <button 
-              className="btn btn-sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              style={{ 
-                backgroundColor: 'var(--badge-bg)', 
-                color: 'var(--primary-color)', 
-                border: '1px solid var(--border-color)', 
-                borderRadius: '20px', 
-                padding: '5px 20px', 
-                fontWeight: 'bold', 
-                position: 'relative', 
-                zIndex: 2,
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {isExpanded ? 'عرض أقل' : 'قراءة المزيد'}
-            </button>
-          </div>
-        )}
 
         {/* Glossary Tooltip */}
         {tooltipInfo.show && createPortal(

@@ -3,30 +3,25 @@ import { motion } from 'framer-motion';
 const BismillahHeader = () => {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
-      className="text-center my-2 my-md-4 opacity-75"
-      style={{ pointerEvents: 'none' }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="bismillah-header text-center my-2 my-md-3"
+      style={{ pointerEvents: 'none', userSelect: 'none' }}
+      aria-hidden="true"
     >
-      <svg
-        viewBox="0 0 400 100"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ width: '100%', maxWidth: '200px', height: 'auto', maxHeight: '45px' }}
+      <span
+        style={{
+          fontFamily: "'Amiri Quran', var(--font-heading), 'Amiri', serif",
+          fontSize: 'clamp(1.15rem, 1rem + 0.8vw, 1.45rem)',
+          color: 'var(--primary-color)',
+          letterSpacing: '0.02em',
+          opacity: 0.9,
+          display: 'inline-block',
+        }}
       >
-        <text
-          x="50%"
-          y="50%"
-          dominantBaseline="middle"
-          textAnchor="middle"
-          fill="var(--primary-color)"
-          fontSize="48"
-          fontFamily="Amiri Quran, serif"
-        >
-          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-        </text>
-      </svg>
+        بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+      </span>
     </motion.div>
   );
 };

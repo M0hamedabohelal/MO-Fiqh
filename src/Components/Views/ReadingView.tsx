@@ -353,10 +353,10 @@ const ReadingView = () => {
 
   return (
     <div
-      className="container reading-container py-2 py-md-4 px-2 px-md-3 position-relative"
+      className="container-fluid reading-container py-2 py-md-4 px-1 px-sm-2 px-md-3 position-relative"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      style={{ minHeight: '80vh' }}
+      style={{ minHeight: '80vh', maxWidth: '900px' }}
     >
       <ReadingProgressBar />
 
@@ -419,37 +419,38 @@ const ReadingView = () => {
           </h2>
 
           {/* شارات وبيانات المسألة */}
-          <div className="reading-meta d-flex justify-content-center flex-wrap gap-2 gap-md-3 mb-3 mb-md-4">
+          <div className="reading-meta d-flex justify-content-center align-items-center flex-wrap gap-2 mb-3 mb-md-4">
             {String(lesson.pageNumber ?? '').trim() && (
-              <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
+              <span className="badge badge-custom d-inline-flex align-items-center py-1 px-2 px-md-3 shadow-sm">
                 <FiBook className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> ص {lesson.pageNumber}
               </span>
             )}
             {String(lesson.videoNumber ?? '').trim() && (
-              <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
+              <span className="badge badge-custom d-inline-flex align-items-center py-1 px-2 px-md-3 shadow-sm">
                 <FiVideo className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> {lesson.videoNumber}
               </span>
             )}
             {String(lesson.videoTimestamp ?? '').trim() && (
-              <span className="badge badge-custom d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm">
-                <FiClock className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> يبدأ عند: {lesson.videoTimestamp}
+              <span className="badge badge-custom d-inline-flex align-items-center py-1 px-2 px-md-3 shadow-sm">
+                <FiClock className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} /> يبدأ: {lesson.videoTimestamp}
               </span>
             )}
             <button
               type="button"
-              className="badge d-flex align-items-center py-1 py-md-2 px-2 px-md-3 shadow-sm border-0"
+              className="badge badge-custom d-inline-flex align-items-center py-1 px-2 px-md-3 shadow-sm"
               style={{
                 cursor: 'pointer',
-                transition: 'all 0.3s',
+                transition: 'all 0.25s ease',
                 backgroundColor: isStopMarked ? 'var(--primary-color)' : 'var(--badge-bg)',
                 color: isStopMarked ? 'var(--text-on-primary)' : 'var(--text-main)',
+                borderColor: isStopMarked ? 'var(--primary-color)' : 'var(--border-color)',
               }}
               onClick={onToggleStopMark}
               aria-pressed={isStopMarked}
               title="حفظ أو إزالة علامة الوقوف لهذا الكتاب"
             >
-              <FiFlag className="ms-1 ms-md-2" style={{ color: 'var(--accent-color)' }} />
-              {isStopMarked ? 'علامة الوقوف محفوظة' : 'ضع علامة وقوف'}
+              <FiFlag className="ms-1 ms-md-2" style={{ color: isStopMarked ? 'var(--text-on-primary)' : 'var(--accent-color)' }} />
+              <span>{isStopMarked ? 'علامة الوقوف محفوظة' : 'علامة وقوف'}</span>
             </button>
           </div>
 

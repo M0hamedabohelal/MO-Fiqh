@@ -28,7 +28,7 @@ export const ReadingTopNav = ({
 }: ReadingTopNavProps) => {
   return (
     <nav
-      className="reading-top-nav d-flex justify-content-between align-items-center gap-2"
+      className="reading-top-nav d-flex justify-content-between align-items-center gap-1 gap-sm-2"
       aria-label="التنقل العلوي بين المسائل"
     >
       {/* زر المسألة السابقة */}
@@ -40,9 +40,9 @@ export const ReadingTopNav = ({
         aria-label={prevLessonTitle ? `المسألة السابقة: ${prevLessonTitle}` : 'المسألة السابقة'}
         title={prevLessonTitle || 'المسألة السابقة'}
       >
-        <FiChevronRight size={18} className="flex-shrink-0" />
+        <FiChevronRight size={17} className="flex-shrink-0" />
         <div className="d-flex flex-column text-end overflow-hidden">
-          <span className="nav-top-label">
+          <span className="nav-top-label text-truncate">
             <span className="d-none d-sm-inline">المسألة </span>السابقة
           </span>
           {prevLessonTitle && (
@@ -54,7 +54,7 @@ export const ReadingTopNav = ({
       </button>
 
       {/* مؤشر رقم المسألة في المنتصف */}
-      <div className="reading-top-nav-counter">
+      <div className="reading-top-nav-counter flex-shrink-0">
         <span className="badge-pill-counter">
           المسألة {currentIndex + 1} من {totalLessons}
         </span>
@@ -70,7 +70,7 @@ export const ReadingTopNav = ({
         title={nextLessonTitle || 'المسألة التالية'}
       >
         <div className="d-flex flex-column text-start overflow-hidden">
-          <span className="nav-top-label">
+          <span className="nav-top-label text-truncate">
             <span className="d-none d-sm-inline">المسألة </span>التالية
           </span>
           {nextLessonTitle && (
@@ -79,7 +79,7 @@ export const ReadingTopNav = ({
             </span>
           )}
         </div>
-        <FiChevronLeft size={18} className="flex-shrink-0" />
+        <FiChevronLeft size={17} className="flex-shrink-0" />
       </button>
     </nav>
   );

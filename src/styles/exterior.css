@@ -1096,31 +1096,25 @@
 }
 
 
-/* ==================== شبكة الفوائد المقتبسة بنمط Masonry وتصنيف الألوان ==================== */
-.highlights-masonry {
-  column-count: 1;
-  column-gap: 1.25rem;
-}
-@media (min-width: 768px) {
-  .highlights-masonry {
-    column-count: 2;
-  }
-}
-@media (min-width: 1200px) {
-  .highlights-masonry {
-    column-count: 3;
-  }
+/* ==================== عرض الفوائد المقتبسة بالبطاقات العريضة (أفقي) وتصنيف الألوان ==================== */
+.highlights-masonry,
+.highlights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
 }
 
-.highlight-masonry-card {
-  break-inside: avoid;
-  margin-bottom: 1.25rem;
+.highlight-masonry-card,
+.highlight-card {
+  width: 100%;
   position: relative;
   overflow: hidden;
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
   border-radius: 14px;
 }
-.highlight-masonry-card:hover {
+.highlight-masonry-card:hover,
+.highlight-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
