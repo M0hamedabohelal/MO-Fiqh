@@ -90,7 +90,6 @@ const AppLayout = () => {
       style={{
         paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))',
         maxWidth: '100%',
-        overflowX: 'clip',
       }}
     >
       <header role="banner">

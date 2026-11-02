@@ -386,7 +386,7 @@ function App() {
   ]);
 
   return (
-    <div className="container-fluid p-0 position-relative" style={{ maxWidth: '100vw', overflowX: 'hidden' }}>
+    <div className="container-fluid p-0 position-relative" style={{ maxWidth: '100vw' }}>
       <SplashScreen visible={showSplash} progress={splashProgress} statusText={splashStatus} />
 
       {/* إشعار نشر نسخة جديدة — عبر Service Worker مع استمرار الفحص الاحتياطي */}
