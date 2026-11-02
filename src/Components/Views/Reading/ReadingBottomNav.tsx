@@ -41,19 +41,19 @@ export const ReadingBottomNav = ({
       <div className="reading-bottom-nav-buttons">
         <button
           type="button"
-          className="btn nav-lesson-btn d-flex align-items-center gap-2"
+          className="btn nav-lesson-btn d-flex align-items-center gap-1 gap-sm-2"
           onClick={onPrev}
           disabled={!canGoPrev}
           aria-label={prevLessonTitle ? `الانتقال إلى المسألة السابقة: ${prevLessonTitle}` : 'الانتقال إلى المسألة السابقة'}
           title={prevLessonTitle || 'المسألة السابقة'}
         >
-          <FiChevronRight aria-hidden="true" size={20} className="flex-shrink-0" />
-          <div className="d-flex flex-column text-end flex-grow-1 overflow-hidden">
-            <span className="nav-btn-label">
+          <FiChevronRight aria-hidden="true" size={18} className="flex-shrink-0" />
+          <div className="d-flex flex-column text-end flex-grow-1 overflow-hidden" style={{ minWidth: 0 }}>
+            <span className="nav-btn-label text-truncate">
               <span className="d-none d-sm-inline">المسألة </span>السابقة
             </span>
             {prevLessonTitle && (
-              <span className="nav-lesson-preview text-truncate">
+              <span className="nav-lesson-preview text-truncate d-block w-100">
                 {prevLessonTitle}
               </span>
             )}
@@ -61,23 +61,23 @@ export const ReadingBottomNav = ({
         </button>
         <button
           type="button"
-          className="btn nav-lesson-btn d-flex align-items-center gap-2"
+          className="btn nav-lesson-btn d-flex align-items-center gap-1 gap-sm-2"
           onClick={onNext}
           disabled={!canGoNext}
           aria-label={nextLessonTitle ? `الانتقال إلى المسألة التالية: ${nextLessonTitle}` : 'الانتقال إلى المسألة التالية'}
           title={nextLessonTitle || 'المسألة التالية'}
         >
-          <div className="d-flex flex-column text-start flex-grow-1 overflow-hidden">
-            <span className="nav-btn-label">
+          <div className="d-flex flex-column text-start flex-grow-1 overflow-hidden" style={{ minWidth: 0 }}>
+            <span className="nav-btn-label text-truncate">
               <span className="d-none d-sm-inline">المسألة </span>التالية
             </span>
             {nextLessonTitle && (
-              <span className="nav-lesson-preview text-truncate">
+              <span className="nav-lesson-preview text-truncate d-block w-100">
                 {nextLessonTitle}
               </span>
             )}
           </div>
-          <FiChevronLeft aria-hidden="true" size={20} className="flex-shrink-0" />
+          <FiChevronLeft aria-hidden="true" size={18} className="flex-shrink-0" />
         </button>
       </div>
     </nav>
