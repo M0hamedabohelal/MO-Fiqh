@@ -1133,9 +1133,9 @@
 }
 
 .highlight-text-content {
-  font-family: var(--font-arabic-reading, 'Traditional Arabic', serif);
-  font-size: 1.15rem;
-  line-height: 2.1;
+  font-family: var(--font-quote, var(--font-arabic-reading, 'Amiri', serif));
+  font-size: clamp(1.25rem, 1.15rem + 0.4vw, 1.42rem);
+  line-height: 2.2;
   font-weight: 500;
   color: var(--text-main);
   position: relative;
