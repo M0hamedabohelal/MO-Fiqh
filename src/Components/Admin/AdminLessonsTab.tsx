@@ -1,5 +1,5 @@
 // تبويب إدارة المسائل — إضافة وتعديل وحذف واستيراد بالجملة مباشرة على السحابة
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import {
   FiPlus, FiX, FiBook,
@@ -25,9 +25,18 @@ interface AdminLessonsTabProps {
   cloudBackupReady: boolean;
   onDataChanged: () => Promise<boolean>;
   flash: (type: 'success' | 'error', text: string) => void;
+  initialEditLessonId?: number | string | null;
+  onClearInitialEdit?: () => void;
 }
 
-const AdminLessonsTab = ({ lessons, cloudBackupReady, onDataChanged, flash }: AdminLessonsTabProps) => {
+const AdminLessonsTab = ({
+  lessons,
+  cloudBackupReady,
+  onDataChanged,
+  flash,
+  initialEditLessonId,
+  onClearInitialEdit,
+}: AdminLessonsTabProps) => {
   const [busy, setBusy] = useState(false);
 
   // حالة نموذج المسألة
@@ -162,6 +171,19 @@ const AdminLessonsTab = ({ lessons, cloudBackupReady, onDataChanged, flash }: Ad
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  useEffect(() => {
+    if (initialEditLessonId != null && lessons.length > 0) {
+      const target = lessons.find((l) => String(l.id) === String(initialEditLessonId));
+      if (target) {
+        const timer = setTimeout(() => {
+          openEditForm(target);
+          onClearInitialEdit?.();
+        }, 0);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [initialEditLessonId, lessons, onClearInitialEdit]);
+
   const closeForm = (): void => {
     setFormOpen(false);
     setEditingDocId(null);
@@ -253,7 +275,7 @@ const AdminLessonsTab = ({ lessons, cloudBackupReady, onDataChanged, flash }: Ad
       {/* شريط البحث والتصفية وأزرار العمليات */}
       <div className="d-flex flex-wrap gap-2 mb-3 align-items-center">
         <div className="input-group" style={{ maxWidth: '320px' }}>
-          <span className="input-group-text bg-transparent border-end-0" style={{ borderColor: 'var(--border-color)' }}>
+          <span className="input-group-text bg-transparent border-end-0" style={{ borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}>
             <FiSearch />
           </span>
           <input
@@ -262,7 +284,7 @@ const AdminLessonsTab = ({ lessons, cloudBackupReady, onDataChanged, flash }: Ad
             placeholder="بحث بالرقم أو العنوان أو النص..."
             value={adminSearch}
             onChange={(e) => setAdminSearch(e.target.value)}
-            style={inputStyle}
+            style={{ ...inputStyle, borderStartStartRadius: 0, borderEndStartRadius: 0 }}
           />
         </div>
         <select

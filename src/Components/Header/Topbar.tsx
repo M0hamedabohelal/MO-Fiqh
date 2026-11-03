@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiMoon, FiSun, FiBell, FiWifiOff } from 'react-icons/fi';
+import { FiMoon, FiSun, FiBell, FiWifiOff, FiEdit2 } from 'react-icons/fi';
 import { BsBook } from 'react-icons/bs';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import AnnouncementsModal from '../UI/AnnouncementsModal';
@@ -12,7 +12,7 @@ interface TopbarProps {
 
 const Topbar = ({ theme, toggleTheme }: TopbarProps) => {
   const { announcements, unreadCount, markAsRead, refresh } = useAnnouncements();
-  const { isOffline } = useApp();
+  const { isOffline, isAdminUser, currentView, currentLesson, openAdminEditLesson } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleOpenAnnouncements = () => {
@@ -79,6 +79,31 @@ const Topbar = ({ theme, toggleTheme }: TopbarProps) => {
         >
           <FiWifiOff size={16} /> غير متصل
         </span>
+      )}
+
+      {/* زر تعديل المسألة — يظهر للأدمن فقط عند تصفح مسألة وفي الجانب المقابل للثيم والإشعارات */}
+      {isAdminUser && currentView === 'reading' && currentLesson && (
+        <button
+          type="button"
+          onClick={() => openAdminEditLesson?.(currentLesson.id)}
+          className="btn btn-sm d-inline-flex align-items-center gap-1 ms-auto admin-lesson-quick-edit-btn shadow-sm"
+          style={{
+            backgroundColor: 'var(--badge-bg)',
+            borderColor: 'var(--border-color)',
+            color: 'var(--primary-color)',
+            border: '1px solid',
+            borderRadius: '10px',
+            padding: '4px 10px',
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            transition: 'all 0.2s ease',
+          }}
+          title={`تعديل المسألة #${currentLesson.id} في لوحة الإدارة`}
+          aria-label={`تعديل المسألة رقم ${currentLesson.id} في لوحة الإدارة`}
+        >
+          <FiEdit2 size={14} className="flex-shrink-0" />
+          <span>مسألة #{currentLesson.id}</span>
+        </button>
       )}
 
     </div>

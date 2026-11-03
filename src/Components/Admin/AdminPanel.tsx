@@ -19,10 +19,19 @@ interface StatusMessage {
 }
 
 const AdminPanel = () => {
-  const { lessons, glossary, cloudLessonsLoaded, cloudStatus, isOffline, reloadFromCloud, reloadGlossary } = useApp();
+  const { lessons, glossary, cloudLessonsLoaded, cloudStatus, isOffline, reloadFromCloud, reloadGlossary, adminEditLessonId, setAdminEditLessonId } = useApp();
   const [tab, setTab] = useState<AdminTab>('lessons'); // lessons | glossary | stats | announcements
   const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null); // { type: 'success'|'error', text }
   const [busy, setBusy] = useState(false);
+
+  const activeTab: AdminTab = adminEditLessonId != null ? 'lessons' : tab;
+
+  const handleSelectTab = (nextTab: AdminTab): void => {
+    if (adminEditLessonId != null) {
+      setAdminEditLessonId?.(null);
+    }
+    setTab(nextTab);
+  };
 
   const flash = (type: 'success' | 'error', text: string): void => {
     setStatusMessage({ type, text });
@@ -52,36 +61,36 @@ const AdminPanel = () => {
       <ul className="nav nav-pills mb-4 gap-2">
         <li className="nav-item">
           <button
-            className={`nav-link ${tab === 'lessons' ? 'active' : ''}`}
-            onClick={() => setTab('lessons')}
-            style={tab === 'lessons' ? { backgroundColor: 'var(--primary-color)' } : { color: 'var(--text-main)' }}
+            className={`nav-link ${activeTab === 'lessons' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('lessons')}
+            style={activeTab === 'lessons' ? { backgroundColor: 'var(--primary-color)' } : { color: 'var(--text-main)' }}
           >
             <FiBook className="ms-1" /> المسائل ({lessons.length})
           </button>
         </li>
         <li className="nav-item">
           <button
-            className={`nav-link ${tab === 'glossary' ? 'active' : ''}`}
-            onClick={() => setTab('glossary')}
-            style={tab === 'glossary' ? { backgroundColor: 'var(--primary-color)' } : { color: 'var(--text-main)' }}
+            className={`nav-link ${activeTab === 'glossary' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('glossary')}
+            style={activeTab === 'glossary' ? { backgroundColor: 'var(--primary-color)' } : { color: 'var(--text-main)' }}
           >
             📖 القاموس ({Object.keys(glossary).length})
           </button>
         </li>
         <li className="nav-item">
           <button
-            className={`nav-link d-flex align-items-center gap-1 ${tab === 'stats' ? 'active' : ''}`}
-            onClick={() => setTab('stats')}
-            style={tab === 'stats' ? { backgroundColor: 'var(--primary-color)' } : { color: 'var(--text-main)' }}
+            className={`nav-link d-flex align-items-center gap-1 ${activeTab === 'stats' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('stats')}
+            style={activeTab === 'stats' ? { backgroundColor: 'var(--primary-color)' } : { color: 'var(--text-main)' }}
           >
             <FiBarChart2 /> الإحصائيات
           </button>
         </li>
         <li className="nav-item">
           <button
-            className={`nav-link d-flex align-items-center gap-1 ${tab === 'announcements' ? 'active' : ''}`}
-            onClick={() => setTab('announcements')}
-            style={tab === 'announcements' ? { backgroundColor: 'var(--primary-color)' } : { color: 'var(--text-main)' }}
+            className={`nav-link d-flex align-items-center gap-1 ${activeTab === 'announcements' ? 'active' : ''}`}
+            onClick={() => handleSelectTab('announcements')}
+            style={activeTab === 'announcements' ? { backgroundColor: 'var(--primary-color)' } : { color: 'var(--text-main)' }}
           >
             <FiBell /> التنبيهات
           </button>
@@ -89,16 +98,23 @@ const AdminPanel = () => {
       </ul>
 
       {/* محتوى التبويبات */}
-      {tab === 'lessons' && (
-        <AdminLessonsTab lessons={lessons} cloudBackupReady={cloudLessonsLoaded && !isOffline} onDataChanged={reloadFromCloud} flash={flash} />
+      {activeTab === 'lessons' && (
+        <AdminLessonsTab
+          lessons={lessons}
+          cloudBackupReady={cloudLessonsLoaded && !isOffline}
+          onDataChanged={reloadFromCloud}
+          flash={flash}
+          initialEditLessonId={adminEditLessonId}
+          onClearInitialEdit={() => setAdminEditLessonId?.(null)}
+        />
       )}
-      {tab === 'glossary' && (
+      {activeTab === 'glossary' && (
         <AdminGlossaryTab glossary={glossary} lessons={lessons} onDataChanged={reloadGlossary || reloadFromCloud} flash={flash} />
       )}
-      {tab === 'stats' && (
+      {activeTab === 'stats' && (
         <AdminStatsTab lessons={lessons} cloudLessonsLoaded={cloudLessonsLoaded} cloudStatus={cloudStatus} />
       )}
-      {tab === 'announcements' && (
+      {activeTab === 'announcements' && (
         <AdminAnnouncements />
       )}
 

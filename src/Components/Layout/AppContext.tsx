@@ -71,6 +71,9 @@ export interface AppContextValue {
   currentSearchQuery: string;
   lessonsCount: number;
   appVersion: AppVersionState;
+  adminEditLessonId?: number | string | null;
+  setAdminEditLessonId?: (id: number | string | null) => void;
+  openAdminEditLesson?: (lessonId: number | string) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);

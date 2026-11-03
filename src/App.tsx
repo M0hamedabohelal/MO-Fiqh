@@ -109,6 +109,12 @@ function App() {
   }, [user?.uid]);
   const [isSearchOpen, setIsSearchOpen]   = useState(false);
   const [isLoginOpen, setIsLoginOpen]     = useState(false);
+  const [adminEditLessonId, setAdminEditLessonId] = useState<number | string | null>(null);
+
+  const openAdminEditLesson = useCallback((lessonId: number | string) => {
+    setAdminEditLessonId(lessonId);
+    setCurrentView('admin');
+  }, [setCurrentView]);
 
   // ─── مزامنة المكتبة بين الأجهزة (لا تفعل شيئًا بلا حساب) ───
   // تُستدعى بعد تعريف theme والكتابات المحلية، وقبل أي استخدام للسياق.
@@ -366,6 +372,9 @@ function App() {
     currentSearchQuery,
     lessonsCount: lessons.length,
     appVersion,
+    adminEditLessonId,
+    setAdminEditLessonId,
+    openAdminEditLesson,
   }), [
     currentView, currentIndex, currentLesson, lessons,
     user, isAdminUser,
@@ -384,6 +393,9 @@ function App() {
     onOpenSearch, onOpenLogin, reloadFromCloud, reloadGlossary,
     currentSearchQuery,
     appVersion,
+    adminEditLessonId,
+    setAdminEditLessonId,
+    openAdminEditLesson,
   ]);
 
   return (

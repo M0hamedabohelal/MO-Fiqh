@@ -271,6 +271,17 @@ textarea::placeholder,
   opacity: 0.92 !important;
 }
 
+[data-theme="dark"] input[type="search"]::placeholder,
+[data-theme="dark"] input[type="search"]::-webkit-input-placeholder {
+  color: #9eb0a8 !important;
+  opacity: 0.92 !important;
+}
+
+[data-theme="dark"] .input-group-text {
+  color: #9eb0a8 !important;
+  border-color: var(--border-color) !important;
+}
+
 /* 2. الوضع الصحراوي / سيبيا (Sepia Theme) */
 [data-theme="sepia"] ::placeholder {
   color: #7d6855 !important;

@@ -12,10 +12,16 @@ vi.mock('../../hooks/useAnnouncements', () => ({
   }),
 }));
 
+const mockUseApp = vi.fn(() => ({
+  isOffline: false,
+  isAdminUser: false,
+  currentView: 'books',
+  currentLesson: undefined as unknown,
+  openAdminEditLesson: vi.fn(),
+}));
+
 vi.mock('../Layout/AppContext', () => ({
-  useApp: () => ({
-    isOffline: false,
-  }),
+  useApp: () => mockUseApp(),
 }));
 
 describe('Topbar — Theme Navigation & Accessibility', () => {
@@ -60,5 +66,38 @@ describe('Topbar — Theme Navigation & Accessibility', () => {
 
     fireEvent.click(themeBtn);
     expect(mockToggleTheme).toHaveBeenCalledWith('dark');
+  });
+
+  it('يعرض زر تعديل المسألة برقم ID للأدمن فقط عند تصفح المسألة ويستدعي openAdminEditLesson', () => {
+    const mockOpenEdit = vi.fn();
+    mockUseApp.mockReturnValue({
+      isOffline: false,
+      isAdminUser: true,
+      currentView: 'reading',
+      currentLesson: { id: 7, title: 'المسألة السابعة' } as unknown,
+      openAdminEditLesson: mockOpenEdit,
+    });
+
+    render(<Topbar theme="dark" toggleTheme={vi.fn()} />);
+
+    const editBtn = screen.getByRole('button', { name: /تعديل المسألة رقم 7/i });
+    expect(editBtn).toBeTruthy();
+    expect(screen.getByText('مسألة #7')).toBeTruthy();
+
+    fireEvent.click(editBtn);
+    expect(mockOpenEdit).toHaveBeenCalledWith(7);
+  });
+
+  it('لا يعرض زر تعديل المسألة للمستخدم العادي (غير الأدمن)', () => {
+    mockUseApp.mockReturnValue({
+      isOffline: false,
+      isAdminUser: false,
+      currentView: 'reading',
+      currentLesson: { id: 7, title: 'المسألة السابعة' } as unknown,
+      openAdminEditLesson: vi.fn(),
+    });
+
+    render(<Topbar theme="dark" toggleTheme={vi.fn()} />);
+    expect(screen.queryByText(/مسألة #/)).toBeNull();
   });
 });
