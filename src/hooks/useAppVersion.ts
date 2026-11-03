@@ -246,6 +246,25 @@ export function useAppVersion(): AppVersionState {
   const reloadNow = useCallback((): void => {
     setReloading(true);
 
+    let reloaded = false;
+    const doHardReload = () => {
+      if (reloaded) return;
+      reloaded = true;
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('v', String(Date.now()));
+        // replace لا assign: يمنع زر الرجوع من العودة إلى الحالة القديمة
+        window.location.replace(url.toString());
+      } catch {
+        window.location.reload();
+      }
+
+      // شبكة أمان: فك حالة التحميل بعد 4 ثوانٍ حتى لا يظل الزر عالقًا في "لود" إن تعذر التحميل
+      setTimeout(() => {
+        setReloading(false);
+      }, 4000);
+    };
+
     // 1. تنظيف الكاشات العابرة فقط مع حماية كاش Workbox Precache لوضع عدم الاتصال (Offline Mode)
     if (typeof window !== 'undefined' && 'caches' in window) {
       try {
@@ -259,55 +278,78 @@ export function useAppVersion(): AppVersionState {
       } catch { /* ignore */ }
     }
 
-    // 2. إخطار الـ Service Workers بتفعيل الحزمة الجديدة فورًا وتخطي الانتظار
+    // 2. إذا كان هناك Service Worker، ننتظر تفعيله وتوليه زمام الصفحة (controllerchange) قبل إعادة التحميل
+    // هذا يضمن 100% أن النسخة الجديدة هي التي ستخدم المستند عند عمل Reload ولا تعود النسخة القديمة من الكاش
     if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      let hasWaiting = false;
+
+      // الاستماع لحدث تولي العامل الجديد التحكم بالصفحة (controllerchange)
+      const onControllerChange = () => {
+        try {
+          navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+        } catch { /* ignore */ }
+        doHardReload();
+      };
+
+      try {
+        navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+      } catch { /* ignore */ }
+
+      // شبكة أمان: في حال لم يُطلق المتصفح controllerchange خلال 2.5 ثانية (مثلاً العامل معلق أو أوفلاين)
+      // نُعيد التحميل قسرياً حتى لا يعلق المستخدم
+      const fallbackTimer = setTimeout(() => {
+        try {
+          navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+        } catch { /* ignore */ }
+        doHardReload();
+      }, 2500);
+
       try {
         navigator.serviceWorker.getRegistrations().then((regs) => {
           regs.forEach((reg) => {
             if (reg.waiting) {
+              hasWaiting = true;
               reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            if (reg.installing) {
+              hasWaiting = true;
+              reg.installing.addEventListener('statechange', (e) => {
+                const sw = e.target as ServiceWorker;
+                if (sw.state === 'installed') {
+                  sw.postMessage({ type: 'SKIP_WAITING' });
+                }
+              });
             }
             void reg.update().catch(() => {});
           });
-        });
-      } catch { /* ignore */ }
-    }
 
-    const doHardReload = () => {
-      // إعادة تحميل المستند كاملاً مع وسيط زمني لكسر الكاش
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.set('v', String(Date.now()));
-        // replace لا assign: يمنع زر الرجوع من العودة إلى الحالة القديمة
-        window.location.replace(url.toString());
+          // إذا لم نجد أي عامل ينتظر أو يثبت، ولا يوجد PWA update مسجل:
+          // لا داعي للانتظار، نُعيد التحميل فوراً
+          if (!hasWaiting && !swNeedRefresh) {
+            clearTimeout(fallbackTimer);
+            try {
+              navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+            } catch { /* ignore */ }
+            doHardReload();
+          }
+        }).catch(() => {
+          clearTimeout(fallbackTimer);
+          doHardReload();
+        });
       } catch {
-        window.location.reload();
+        clearTimeout(fallbackTimer);
+        doHardReload();
       }
 
-      // شبكة أمان للفون والمتصفحات التي لا تُعيد تحميل المستند عند تغيّر searchParams في hash-router
-      setTimeout(() => {
-        try {
-          window.location.reload();
-        } catch { /* ignore */ }
-      }, 100);
-
-      // شبكة أمان: فك حالة التحميل بعد 4 ثوانٍ حتى لا يظل الزر عالقًا في "لود" إن تعذر التحميل
-      setTimeout(() => {
-        setReloading(false);
-      }, 4000);
-    };
-
-    if (swNeedRefresh && swUpdater) {
-      void swUpdater(true).catch(() => {
-        doHardReload();
-      });
-      // شبكة أمان: لو لم يُعد العامل التحميل خلال 600ms، نُعيد التحميل قسريًا
-      setTimeout(() => {
-        doHardReload();
-      }, 600);
+      if (swNeedRefresh && swUpdater) {
+        void swUpdater(true).catch(() => {
+          // swUpdater داخلياً يطلق SKIP_WAITING وسيطلق controllerchange
+        });
+      }
       return;
     }
 
+    // للمتصفحات التي لا تدعم Service Worker
     doHardReload();
   }, []);
 
