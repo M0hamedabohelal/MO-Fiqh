@@ -2,7 +2,9 @@
 // يكتب دائمًا في console، ويكتب في Firestore (client_errors) للمستخدم المسجل فقط وبحد أقصى.
 import { safeGet, safeSet } from './safeStorage';
 
-const THROTTLE_KEY = 'logError_lastSent';
+// خنق منفصل لكل scope: كل مصدر خطأ يحتفظ بمؤقته الخاص بدل مؤقت عالمي واحد
+// يأكل آخر خطأ ما قبله — الحد الأقصى: حدث واحد/دقيقة لكل scope.
+const THROTTLE_PREFIX = 'logError_lastSent_';
 const THROTTLE_MS = 60_000;
 const MAX_MSG = 300;
 
@@ -15,11 +17,12 @@ export function logError(scope: string, err: unknown, extra?: Record<string, unk
     /* تجاهل */
   }
 
-  // خنق الكتابة السحابية: حدث واحد كل دقيقة كحد أقصى
+  // خنق الكتابة السحابية: حدث واحد كل دقيقة لكل scope على حدة
   try {
-    const last = Number(safeGet(THROTTLE_KEY) || 0);
+    const key = THROTTLE_PREFIX + scope;
+    const last = Number(safeGet(key) || 0);
     if (Date.now() - last < THROTTLE_MS) return;
-    safeSet(THROTTLE_KEY, String(Date.now()));
+    safeSet(key, String(Date.now()));
   } catch {
     return;
   }
