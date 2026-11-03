@@ -117,22 +117,13 @@ export const ReadingHeaderBar = ({
           {/* 3. زر تأكيد إتمام قراءة المسألة */}
           <button
             type="button"
-            className="btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 px-md-2 px-lg-3 reading-toolbar-btn"
-            style={{
-              borderRadius: '10px',
-              fontWeight: 'bold',
-              transition: 'all 0.2s ease',
-              backgroundColor: isRead ? 'rgba(39, 174, 96, 0.15)' : 'var(--badge-bg)',
-              borderColor: isRead ? 'rgba(39, 174, 96, 0.5)' : 'var(--border-color)',
-              color: isRead ? '#27ae60' : 'var(--primary-color)',
-              border: '1px solid',
-              minHeight: '38px',
-            }}
+            className={`btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 px-md-2 px-lg-3 reading-read-btn ${isRead ? 'is-read' : ''}`}
             onClick={onToggleRead}
+            aria-pressed={isRead}
             title={isRead ? 'أتممت قراءة هذه المسألة (اضغط للإلغاء)' : 'تعليم المسألة كمقروءة'}
             aria-label={isRead ? 'إلغاء التعليم كمقروءة' : 'تعليم المسألة كمقروءة'}
           >
-            <FiCheckCircle size={17} className="flex-shrink-0" />
+            <FiCheckCircle size={17} className="flex-shrink-0" style={{ strokeWidth: isRead ? 2.6 : 2 }} />
             <span className="ms-1 d-none d-md-inline">{isRead ? 'أتممتها' : 'خلصتها؟'}</span>
           </button>
 

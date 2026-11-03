@@ -81,4 +81,39 @@ describe('ReadingHeaderBar Component', () => {
     fireEvent.click(screen.getByLabelText('تعليم المسألة كمقروءة'));
     expect(onToggleRead).toHaveBeenCalled();
   });
+
+  it('يُظهر حالة إتمام المسألة بوضوح عند تفعيل isRead = true', () => {
+    const onToggleRead = vi.fn();
+    render(<ReadingHeaderBar {...defaultProps} isRead={true} onToggleRead={onToggleRead} />);
+
+    const readBtn = screen.getByLabelText('إلغاء التعليم كمقروءة');
+    expect(readBtn).toBeTruthy();
+    expect(readBtn.classList.contains('is-read')).toBe(true);
+    expect(readBtn.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('أتممتها')).toBeTruthy();
+
+    fireEvent.click(readBtn);
+    expect(onToggleRead).toHaveBeenCalled();
+  });
+
+  it('التحكم في حجم الخط (A+ و A-) يستدعي setFontSize مع احترام الحدود', () => {
+    const setFontSize = vi.fn();
+    const { rerender } = render(<ReadingHeaderBar {...defaultProps} fontSize={16} setFontSize={setFontSize} />);
+
+    fireEvent.click(screen.getByLabelText('تكبير الخط'));
+    expect(setFontSize).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByLabelText('تصغير الخط'));
+    expect(setFontSize).toHaveBeenCalled();
+
+    // فحص التعطيل عند الحد الأدنى
+    rerender(<ReadingHeaderBar {...defaultProps} fontSize={14} setFontSize={setFontSize} />);
+    expect((screen.getByLabelText('تصغير الخط') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByLabelText('تكبير الخط') as HTMLButtonElement).disabled).toBe(false);
+
+    // فحص التعطيل عند الحد الأقصى
+    rerender(<ReadingHeaderBar {...defaultProps} fontSize={24} setFontSize={setFontSize} />);
+    expect((screen.getByLabelText('تكبير الخط') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByLabelText('تصغير الخط') as HTMLButtonElement).disabled).toBe(false);
+  });
 });

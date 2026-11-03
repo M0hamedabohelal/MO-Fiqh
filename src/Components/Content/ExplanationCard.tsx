@@ -152,7 +152,7 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
         transition={{ delay: Math.min(index * 0.04, 0.3), duration: 0.3, ease: 'easeOut' }}
         style={{
           lineHeight: '2.1',
-          fontSize: 'calc(var(--base-font-size, 16px) * 1.12)',
+          fontSize: 'calc(var(--base-font-size, 16px) * 1.15)',
           color: 'var(--text-main)',
           textAlign: 'right',
         }}
@@ -213,6 +213,7 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
             textAlign: 'right',
             direction: 'rtl',
             wordWrap: 'break-word',
+            fontSize: 'var(--base-font-size, 16px)',
           }}
         >
           {explanation.split('\n').map((paragraph, index) => renderParagraph(paragraph, index))}

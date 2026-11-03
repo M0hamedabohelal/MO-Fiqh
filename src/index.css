@@ -112,7 +112,7 @@
 
 }
 html {
-  font-size: 16px;
+  font-size: var(--base-font-size, 16px);
   overflow-x: clip;
 }
 
@@ -141,7 +141,7 @@ body {
   background-color: var(--bg-color) !important;
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   color: var(--text-main) !important;
-  font-size: 16px;
+  font-size: var(--base-font-size, 16px);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   transition: all 0.3s ease;
@@ -425,6 +425,83 @@ button:active:not(:disabled),
 }
 [data-theme="dark"] .reading-toolbar-btn:hover {
   background-color: rgba(92, 192, 181, 0.15) !important;
+  color: #ffffff !important;
+}
+
+/* ─── زر إتمام المسألة (خلصتها؟ / أتممتها) عبر الثيمات الثلاثة ─── */
+.reading-read-btn {
+  border-radius: 10px;
+  font-weight: 700;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 38px;
+  border: 1px solid var(--border-color);
+  background-color: var(--badge-bg);
+  color: var(--primary-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reading-read-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-color);
+  color: var(--primary-color);
+}
+
+/* 1. الوضع الافتراضي / الفاتح (Light Theme) */
+.reading-read-btn.is-read {
+  background-color: #2e7d32 !important;
+  border-color: #1b5e20 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.35) !important;
+}
+.reading-read-btn.is-read:hover {
+  background-color: #256628 !important;
+  border-color: #1b5e20 !important;
+  color: #ffffff !important;
+}
+
+/* 2. الوضع الداكن (Dark Theme) */
+[data-theme="dark"] .reading-read-btn {
+  background-color: var(--badge-bg);
+  border-color: var(--border-color);
+  color: var(--primary-color);
+}
+[data-theme="dark"] .reading-read-btn:hover {
+  background-color: rgba(92, 192, 181, 0.15);
+  color: #ffffff;
+}
+[data-theme="dark"] .reading-read-btn.is-read {
+  background-color: #1b4d27 !important;
+  border-color: #4caf50 !important;
+  color: #e8f5e9 !important;
+  box-shadow: 0 2px 10px rgba(76, 175, 80, 0.35) !important;
+}
+[data-theme="dark"] .reading-read-btn.is-read:hover {
+  background-color: #235f31 !important;
+  border-color: #66bb6a !important;
+  color: #ffffff !important;
+}
+
+/* 3. الوضع الصحراوي / سيبيا (Sepia Theme) */
+[data-theme="sepia"] .reading-read-btn {
+  background-color: var(--badge-bg);
+  border-color: var(--border-color);
+  color: var(--primary-color);
+}
+[data-theme="sepia"] .reading-read-btn:hover {
+  background-color: rgba(91, 58, 41, 0.12);
+  color: var(--primary-color);
+}
+[data-theme="sepia"] .reading-read-btn.is-read {
+  background-color: #2e5b32 !important;
+  border-color: #437a3c !important;
+  color: #f1f8e9 !important;
+  box-shadow: 0 2px 8px rgba(46, 91, 50, 0.3) !important;
+}
+[data-theme="sepia"] .reading-read-btn.is-read:hover {
+  background-color: #24491f !important;
+  border-color: #437a3c !important;
   color: #ffffff !important;
 }
 [data-theme="dark"] .floating-toc-btn {
@@ -986,11 +1063,6 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
 /* ─── Mobile Small (480px وما دون) ─── */
 @media (max-width: 480px) {
 
-  /* الجسم العام */
-  body {
-    font-size: 15px;
-  }
-
   /* المنطقة الرئيسية */
   .col-lg-10.col-md-9 {
     padding-left: 0.75rem !important;
@@ -1145,10 +1217,6 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
 
 /* ─── Extra Small (360px وما دون) ─── */
 @media (max-width: 360px) {
-  body {
-    font-size: 14px;
-  }
-
   h3.fw-bold {
     font-size: 1.1rem !important;
   }
@@ -1213,7 +1281,8 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
 }
 
 .reading-header-toolbar .reading-back-btn,
-.reading-header-toolbar .reading-toolbar-btn {
+.reading-header-toolbar .reading-toolbar-btn,
+.reading-header-toolbar .reading-read-btn {
   font-size: 0.84rem !important;
   white-space: nowrap;
   flex-shrink: 0;
@@ -1222,7 +1291,8 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
 
 @media (min-width: 992px) {
   .reading-header-toolbar .reading-back-btn,
-  .reading-header-toolbar .reading-toolbar-btn {
+  .reading-header-toolbar .reading-toolbar-btn,
+  .reading-header-toolbar .reading-read-btn {
     padding: 0.35rem 0.8rem !important;
   }
 }
@@ -1623,6 +1693,7 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   }
 
   .reading-actions .reading-toolbar-btn,
+  .reading-actions .reading-read-btn,
   .reading-actions .bookmark-btn,
   .reading-header-toolbar .reading-back-btn {
     min-width: 32px !important;
