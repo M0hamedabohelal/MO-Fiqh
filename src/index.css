@@ -34,6 +34,7 @@
   --font-quote: "Amiri", serif;
   --font-heading: "Amiri", serif;
   --base-font-size: 16px;
+  --reading-font-size: 16px;
   --card-bg-alpha: rgba(255, 255, 255, 0.85);
 
   /* ── مقاييس ورموز تصميم الجوال (Mobile-First Design Tokens) ── */
@@ -112,7 +113,6 @@
 
 }
 html {
-  font-size: var(--base-font-size, 16px);
   overflow-x: clip;
 }
 
@@ -141,7 +141,7 @@ body {
   background-color: var(--bg-color) !important;
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   color: var(--text-main) !important;
-  font-size: var(--base-font-size, 16px);
+  font-size: 1rem;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   transition: all 0.3s ease;
@@ -449,6 +449,14 @@ button:active:not(:disabled),
   line-height: 2.05;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+.explanation-card .explanation-paragraph {
+  font-size: calc(var(--reading-font-size, var(--base-font-size, 16px)) * 1.15) !important;
+}
+
+.explanation-card .explanation-paragraph span {
+  font-size: inherit !important;
 }
 
 .explanation-title.explanation-title {
@@ -1216,9 +1224,8 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
     padding: 1.5rem !important; /* Must be larger than the 16px inset of the manuscript frame */
   }
 
-  /* حجم خط متن المسألة على الموبايل */
-  .custom-card p,
-  .custom-card span {
+  /* حجم خط بطاقات المحتوى العامة على الموبايل (المتن والشرح يتبعان حجم خط القراءة المخصص) */
+  .custom-card:not(.manuscript-frame):not(.explanation-card) p {
     font-size: 1.05rem;
     line-height: 1.95;
   }
@@ -1272,7 +1279,6 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
 
   /* ─── كارد شرح الشيخ (ExplanationCard) ─── */
   .explanation-card p {
-    font-size: 1rem;
     line-height: 1.85;
   }
 

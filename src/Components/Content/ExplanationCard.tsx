@@ -152,7 +152,7 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
         transition={{ delay: Math.min(index * 0.04, 0.3), duration: 0.3, ease: 'easeOut' }}
         style={{
           lineHeight: '2.1',
-          fontSize: 'calc(var(--base-font-size, 16px) * 1.15)',
+          fontSize: 'calc(var(--reading-font-size, var(--base-font-size, 16px)) * 1.15)',
           color: 'var(--text-main)',
           textAlign: 'right',
         }}
@@ -165,7 +165,7 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
             {renderGlossary(titlePart.replace(/:$/, ''), `${index}-title`)}{titlePart.endsWith(':') ? ':' : ''}
           </strong>
         )}
-        <span style={{ fontWeight: '500' }}>
+        <span style={{ fontWeight: '500', fontSize: 'inherit' }}>
           {formatBrackets(bodyPart, searchQuery, (text: string, key: string | number) => renderGlossary(text, String(key)))}
         </span>
       </motion.p>
@@ -213,7 +213,7 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
             textAlign: 'right',
             direction: 'rtl',
             wordWrap: 'break-word',
-            fontSize: 'var(--base-font-size, 16px)',
+            fontSize: 'var(--reading-font-size, var(--base-font-size, 16px))',
           }}
         >
           {explanation.split('\n').map((paragraph, index) => renderParagraph(paragraph, index))}

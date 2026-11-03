@@ -23,7 +23,7 @@
   word-wrap: break-word;
   overflow-wrap: break-word;
   font-family: var(--font-quote);
-  font-size: var(--base-font-size, 16px);
+  font-size: var(--reading-font-size, var(--base-font-size, 16px));
 }
 
 .textContent p {
@@ -32,7 +32,7 @@
 
 .paragraph {
   line-height: 2.1;
-  font-size: calc(var(--base-font-size, 16px) * 1.15);
+  font-size: calc(var(--reading-font-size, var(--base-font-size, 16px)) * 1.15) !important;
   font-weight: 500;
   letter-spacing: 0.01em;
   color: var(--text-main);
@@ -42,6 +42,10 @@
   margin-bottom: 1.15rem;
   overflow-wrap: break-word;
   word-break: normal;
+}
+
+.paragraph span {
+  font-size: inherit !important;
 }
 
 .titlePart {

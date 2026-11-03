@@ -186,7 +186,8 @@ function App() {
 
   useEffect(() => {
     document.documentElement.style.setProperty('--base-font-size', `${fontSize}px`);
-    document.documentElement.style.fontSize = `${fontSize}px`;
+    document.documentElement.style.setProperty('--reading-font-size', `${fontSize}px`);
+    document.documentElement.style.removeProperty('font-size');
     safeSet('fontSize', String(fontSize));
   }, [fontSize]);
 
