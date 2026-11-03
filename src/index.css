@@ -230,8 +230,76 @@ h3.fw-bold {
 
 /* حقول الإدخال تفضل بخط الواجهة الواضح */
 textarea.form-control,
-input.form-control {
+input.form-control,
+.form-control {
   font-family: var(--font-ui);
+}
+
+/* ─── تنسيق النصوص التوضيحية (Placeholder) لجميع الحقول وعبر الثيمات الثلاثة ─── */
+::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.85 !important;
+}
+
+input::placeholder,
+textarea::placeholder,
+.form-control::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.85 !important;
+}
+
+::-webkit-input-placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.85 !important;
+}
+
+/* 1. الوضع الداكن (Dark Theme): وضوح وتباين عالي للنص التوضيحي */
+[data-theme="dark"] ::placeholder {
+  color: #9eb0a8 !important;
+  opacity: 0.92 !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder,
+[data-theme="dark"] .form-control::placeholder {
+  color: #9eb0a8 !important;
+  opacity: 0.92 !important;
+}
+
+[data-theme="dark"] ::-webkit-input-placeholder {
+  color: #9eb0a8 !important;
+  opacity: 0.92 !important;
+}
+
+/* 2. الوضع الصحراوي / سيبيا (Sepia Theme) */
+[data-theme="sepia"] ::placeholder {
+  color: #7d6855 !important;
+  opacity: 0.88 !important;
+}
+
+[data-theme="sepia"] input::placeholder,
+[data-theme="sepia"] textarea::placeholder,
+[data-theme="sepia"] .form-control::placeholder {
+  color: #7d6855 !important;
+  opacity: 0.88 !important;
+}
+
+[data-theme="sepia"] ::-webkit-input-placeholder {
+  color: #7d6855 !important;
+  opacity: 0.88 !important;
+}
+
+/* دعم حالة التركيز (Focus) المتناغمة مع الثيم */
+.form-control:focus {
+  background-color: var(--badge-bg) !important;
+  color: var(--text-main) !important;
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.2) !important;
+}
+
+[data-theme="dark"] .form-control:focus {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 0.2rem rgba(92, 192, 181, 0.25) !important;
 }
 
 /* ==================== إطار المخطوطة حول متن المسألة ==================== */

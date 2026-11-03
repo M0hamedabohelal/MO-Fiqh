@@ -144,7 +144,7 @@ const NotesCard = ({ lessonId, lessonTitle, bookName, chapterName, note, onSave 
       )}
       
       <textarea 
-        className="form-control mb-3 p-3" 
+        className="form-control mb-3 p-3 notes-textarea" 
         rows={4} 
         placeholder="اكتب فوائدك وملاحظاتك حول هذه المسألة هنا لتحتفظ بها..."
         aria-label="ملاحظاتك حول هذه المسألة"
