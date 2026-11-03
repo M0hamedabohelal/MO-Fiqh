@@ -33,6 +33,19 @@
   --hero-glass-border: rgba(226, 192, 106, 0.22);
 }
 
+[data-theme="sepia"] {
+  --hero-gold-primary: #b37e28;
+  --hero-gold-glow: rgba(179, 126, 40, 0.28);
+  --hero-gold-border: rgba(179, 126, 40, 0.32);
+  --hero-emerald-deep: #4a2810;
+  --hero-emerald-light: #6a3a18;
+  --hero-bg-surface: #f7f1e1;
+  --hero-text-primary: #2b1c10;
+  --hero-text-secondary: #5e4838;
+  --hero-glass-surface: rgba(253, 249, 240, 0.9);
+  --hero-glass-border: rgba(179, 126, 40, 0.28);
+}
+
 /* ── 1. Animations & Choreography ── */
 @keyframes heroFadeIn {
   from {

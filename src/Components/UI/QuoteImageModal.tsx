@@ -14,8 +14,37 @@ export interface QuoteImageModalProps {
   onClose: () => void;
 }
 
-export type QuoteTemplate = 'classic' | 'modern' | 'parchment';
+export type QuoteTemplate = 'classic' | 'modern' | 'parchment' | 'emerald';
 export type QuoteRatio = 'square' | 'story' | 'landscape';
+export type QuoteFont = 'amiri' | 'ruqaa' | 'tajawal';
+
+const renderDecoratedQuoteText = (raw: string, txtCol: string, accCol: string) => {
+  const parts = raw.split(/(\{[^}]+\}|﴿[^﴾]+﴾|«[^»]*(?:»|$))/g);
+  return parts.map((part, idx) => {
+    if ((part.startsWith('﴿') && part.endsWith('﴾')) || (part.startsWith('{') && part.endsWith('}'))) {
+      const clean = part.slice(1, -1).trim();
+      return (
+        <span key={idx} style={{ color: accCol, fontWeight: 700 }}>
+          <span style={{ opacity: 0.9, padding: '0 2px' }}>﴿</span>
+          <span>{clean}</span>
+          <span style={{ opacity: 0.9, padding: '0 2px' }}>﴾</span>
+        </span>
+      );
+    }
+    if (part.startsWith('«')) {
+      const isClosed = part.endsWith('»');
+      const inner = part.slice(1, isClosed ? -1 : undefined);
+      return (
+        <span key={idx} style={{ color: txtCol, fontWeight: 600 }}>
+          <span style={{ color: accCol, fontWeight: 700, padding: '0 2px' }}>«</span>
+          <span>{inner}</span>
+          {isClosed && <span style={{ color: accCol, fontWeight: 700, padding: '0 2px' }}>»</span>}
+        </span>
+      );
+    }
+    return <span key={idx}>{part}</span>;
+  });
+};
 
 const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -26,6 +55,7 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
   const [done, setDone] = useState(false);
   const [template, setTemplate] = useState<QuoteTemplate>('classic');
   const [ratio, setRatio] = useState<QuoteRatio>('square');
+  const [fontChoice, setFontChoice] = useState<QuoteFont>('amiri');
 
   // سعة النص بحسب النسبة
   const maxChars = useMemo(() => {
@@ -42,6 +72,12 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
 
   const rawText = (text || '').trim();
   const cleanText = rawText.length > maxChars ? `${rawText.slice(0, maxChars).trim()}…` : rawText;
+
+  const chosenFontFamily = useMemo(() => {
+    if (fontChoice === 'ruqaa') return "'Aref Ruqaa', serif";
+    if (fontChoice === 'tajawal') return "'Tajawal', sans-serif";
+    return "'Amiri', serif";
+  }, [fontChoice]);
 
   // حجم الخط داخل البطاقة بحسب القالب والنسبة وطول النص
   const quoteFontSize = useMemo(() => {
@@ -60,15 +96,18 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
   const { cardStyles, textColor, accentColor, watermarkColor, dividerBg, bgHex } = useMemo(() => {
     const isParchment = template === 'parchment';
     const isModern = template === 'modern';
+    const isEmerald = template === 'emerald';
 
-    const bgHexColor = isParchment ? '#fbf4e2' : isModern ? '#101414' : '#071419';
-    const txtColor = isParchment ? '#261b0f' : isModern ? '#f0f3f2' : '#f5ead1';
-    const accColor = isParchment ? '#8c6d3b' : isModern ? '#c9a84c' : '#d8b96c';
-    const wmkColor = isParchment ? '#5c4625' : isModern ? '#889895' : '#9aa5b1';
+    const bgHexColor = isParchment ? '#fbf4e2' : isModern ? '#101414' : isEmerald ? '#092120' : '#071419';
+    const txtColor = isParchment ? '#261b0f' : isModern ? '#f0f3f2' : isEmerald ? '#f0faf8' : '#f5ead1';
+    const accColor = isParchment ? '#8c6d3b' : isModern ? '#c9a84c' : isEmerald ? '#e6c875' : '#d8b96c';
+    const wmkColor = isParchment ? '#5c4625' : isModern ? '#889895' : isEmerald ? '#629a93' : '#9aa5b1';
     const divBg = isParchment
       ? 'linear-gradient(90deg, transparent, rgba(140, 109, 59, 0.6), transparent)'
       : isModern
       ? 'linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.5), transparent)'
+      : isEmerald
+      ? 'linear-gradient(90deg, transparent, rgba(230, 200, 117, 0.65), transparent)'
       : 'linear-gradient(90deg, transparent, #d8b96c, transparent)';
 
     const base: CSSProperties = {
@@ -94,6 +133,11 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
     } else if (isModern) {
       base.background = 'linear-gradient(150deg, #1a2222 0%, #101515 55%, #0a0d0d 100%)';
       base.border = '1px solid rgba(201, 168, 76, 0.4)';
+    } else if (isEmerald) {
+      base.background = 'radial-gradient(130% 130% at 50% 0%, #0f3d3e 0%, #0a2928 55%, #051817 100%)';
+      base.border = '5px double #e6c875';
+      base.outline = '1px solid rgba(230, 200, 117, 0.35)';
+      base.outlineOffset = '-9px';
     } else {
       // classic gold
       base.background = 'radial-gradient(120% 120% at 50% 0%, #16343a 0%, #0b1f24 45%, #071419 100%)';
@@ -227,13 +271,14 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
               </button>
             </div>
 
-            {/* اختيار القالب (3 قوالب) */}
+            {/* اختيار القالب (4 قوالب فنية) */}
             <div className="mb-2">
               <label className="form-label small fw-bold mb-1" style={{ color: '#555' }}>القالب الفني:</label>
-              <div className="d-flex gap-2" role="group" aria-label="قالب البطاقة">
+              <div className="d-flex gap-1 gap-sm-2 flex-wrap" role="group" aria-label="قالب البطاقة">
                 {(
                   [
                     { key: 'classic', label: 'كلاسيكي ذهبي' },
+                    { key: 'emerald', label: 'زمردي ملكي' },
                     { key: 'modern', label: 'داكن عصري' },
                     { key: 'parchment', label: 'ورقي تراثي' },
                   ] as const
@@ -251,7 +296,8 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
                         border: '1px solid ' + (active ? '#b8933b' : '#ddd'),
                         borderRadius: '8px',
                         fontWeight: active ? 'bold' : 'normal',
-                        fontSize: '0.82rem',
+                        fontSize: '0.8rem',
+                        padding: '4px 6px',
                       }}
                     >
                       {label}
@@ -261,43 +307,108 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
               </div>
             </div>
 
-            {/* اختيار المقاس والنسبة (3 نسب) */}
-            <div className="mb-3">
-              <label className="form-label small fw-bold mb-1" style={{ color: '#555' }}>المقاس:</label>
-              <div className="d-flex gap-2" role="group" aria-label="مقاس البطاقة">
-                {(
-                  [
-                    { key: 'square', label: 'مربع 1:1' },
-                    { key: 'story', label: 'ستوري 9:16' },
-                    { key: 'landscape', label: 'أفقي 16:9' },
-                  ] as const
-                ).map(({ key, label }) => {
-                  const active = ratio === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setRatio(key)}
-                      className="btn btn-sm flex-fill"
-                      style={{
-                        background: active ? '#2c3e50' : '#f1f3f4',
-                        color: active ? '#fff' : '#444',
-                        border: '1px solid ' + (active ? '#2c3e50' : '#ddd'),
-                        borderRadius: '8px',
-                        fontWeight: active ? 'bold' : 'normal',
-                        fontSize: '0.82rem',
-                      }}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+            {/* اختيار الخط والنسبة في سطرين مريحين */}
+            <div className="row g-2 mb-3">
+              <div className="col-6">
+                <label className="form-label small fw-bold mb-1" style={{ color: '#555' }}>نوع الخط:</label>
+                <div className="d-flex gap-1" role="group" aria-label="نوع خط البطاقة">
+                  {(
+                    [
+                      { key: 'amiri', label: 'أميري' },
+                      { key: 'ruqaa', label: 'رقعة' },
+                      { key: 'tajawal', label: 'حديث' },
+                    ] as const
+                  ).map(({ key, label }) => {
+                    const active = fontChoice === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setFontChoice(key)}
+                        className="btn btn-sm flex-fill"
+                        style={{
+                          background: active ? '#0f3d3e' : '#f1f3f4',
+                          color: active ? '#fff' : '#444',
+                          border: '1px solid ' + (active ? '#0f3d3e' : '#ddd'),
+                          borderRadius: '8px',
+                          fontWeight: active ? 'bold' : 'normal',
+                          fontSize: '0.78rem',
+                          padding: '3px 4px',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="col-6">
+                <label className="form-label small fw-bold mb-1" style={{ color: '#555' }}>المقاس:</label>
+                <div className="d-flex gap-1" role="group" aria-label="مقاس البطاقة">
+                  {(
+                    [
+                      { key: 'square', label: 'مربع 1:1' },
+                      { key: 'story', label: 'ستوري 9:16' },
+                      { key: 'landscape', label: 'أفقي 16:9' },
+                    ] as const
+                  ).map(({ key, label }) => {
+                    const active = ratio === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setRatio(key)}
+                        className="btn btn-sm flex-fill"
+                        style={{
+                          background: active ? '#2c3e50' : '#f1f3f4',
+                          color: active ? '#fff' : '#444',
+                          border: '1px solid ' + (active ? '#2c3e50' : '#ddd'),
+                          borderRadius: '8px',
+                          fontWeight: active ? 'bold' : 'normal',
+                          fontSize: '0.78rem',
+                          padding: '3px 4px',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
             {/* معاينة البطاقة */}
             <div className="d-flex justify-content-center align-items-center p-2 mb-3 bg-light rounded-3 overflow-hidden">
               <div ref={cardRef} style={cardStyles}>
+                {/* زخارف الأركان التراثية */}
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '10px',
+                    color: accentColor,
+                    fontSize: '11px',
+                    opacity: 0.6,
+                    userSelect: 'none',
+                  }}
+                >
+                  ❖
+                </span>
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    left: '10px',
+                    color: accentColor,
+                    fontSize: '11px',
+                    opacity: 0.6,
+                    userSelect: 'none',
+                  }}
+                >
+                  ❖
+                </span>
+
                 {/* علامة التصدير العلوية */}
                 <div style={{ fontFamily: "'Amiri', serif", color: accentColor, fontSize: '20px', textAlign: 'center' }}>
                   ۞
@@ -307,7 +418,7 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
                 <div
                   className="quote-text my-auto"
                   style={{
-                    fontFamily: "'Amiri', serif",
+                    fontFamily: chosenFontFamily,
                     fontSize: `${quoteFontSize}px`,
                     lineHeight: ratio === 'landscape' ? '1.75' : '1.9',
                     color: textColor,
@@ -317,7 +428,7 @@ const QuoteImageModal = ({ show, text, source, onClose }: QuoteImageModalProps) 
                     padding: '6px 4px',
                   }}
                 >
-                  {cleanText}
+                  {renderDecoratedQuoteText(cleanText, textColor, accentColor)}
                 </div>
 
                 {/* الفاصل الزخرفي والعلامة المائية */}

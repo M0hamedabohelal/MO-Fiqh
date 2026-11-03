@@ -483,7 +483,16 @@ const ReadingView = () => {
           )}
           
           <MediaCard key={`media-${lessonId}`} mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} title={lesson.title} />
-          <AudioCard key={`audio-${lessonId}`} audioUrl={lesson.audioUrl} title={lesson.title} startTime={lesson.startTime} endTime={lesson.endTime} />
+          <AudioCard
+            key={`audio-${lessonId}`}
+            audioUrl={lesson.audioUrl}
+            title={lesson.title}
+            startTime={lesson.startTime}
+            endTime={lesson.endTime}
+            lessonId={lesson.id}
+            bookName={lesson.bookName}
+            chapterName={lesson.chapterName}
+          />
           <VideoCard key={`video-${lessonId}`} videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} title={lesson.title} />
 
           {/* الميزات التفاعلية */}

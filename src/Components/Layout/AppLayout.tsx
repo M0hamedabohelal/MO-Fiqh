@@ -5,6 +5,7 @@ import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 
 import Topbar from '../Header/Topbar';
 import Slider from '../Sidebar/Slider';
+import MiniAudioPlayer from '../UI/MiniAudioPlayer';
 import { useApp } from './AppContext';
 import { ErrorBoundary, ViewErrorFallback } from '../../ErrorBoundary';
 
@@ -244,6 +245,8 @@ const AppLayout = () => {
       </main>
     </div>
   </div>
+  {/* المشغل الصوتي العائم المصغر */}
+  <MiniAudioPlayer />
   </MotionConfig>
   );
 };

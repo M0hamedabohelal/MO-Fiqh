@@ -1,4 +1,5 @@
 import { FiHome, FiEdit3, FiList, FiBook, FiSearch } from 'react-icons/fi';
+import { motion } from 'framer-motion';
 import type { User } from 'firebase/auth';
 
 interface MobileBottomNavProps {
@@ -12,7 +13,7 @@ interface MobileBottomNavProps {
 
 /**
  * شريط التنقل السفلي للهاتف — مصمم وفق معايير الجوال الحديثة (Mobile-First)
- * يحتوي على 5 وجهات رئيسية موحدة ذات مساحات لمس مريحة (>= 44px) دون ازدحام
+ * يحتوي على 5 وجهات رئيسية موحدة ذات مساحات لمس مريحة (>= 44px) ومؤشر كبسولي متحرك
  */
 const MobileBottomNav = ({
   currentView,
@@ -20,6 +21,7 @@ const MobileBottomNav = ({
   onNavigate,
   onOpenSearch,
 }: MobileBottomNavProps) => {
+  const isHeroActive = currentView === 'hero';
   const isIndexActive = ['books', 'chapters', 'lessons', 'reading'].includes(currentView);
   const isSavedActive = ['highlights', 'bookmarks'].includes(currentView);
   const isMoreActive = ['settings', 'admin', 'achievements', 'review'].includes(currentView);
@@ -29,11 +31,18 @@ const MobileBottomNav = ({
       {/* 1. الرئيسة */}
       <button
         type="button"
-        className={`nav-item ${currentView === 'hero' ? 'active' : ''}`}
-        aria-current={currentView === 'hero' ? 'page' : undefined}
+        className={`nav-item ${isHeroActive ? 'active' : ''}`}
+        aria-current={isHeroActive ? 'page' : undefined}
         aria-label="الرئيسة"
         onClick={() => onNavigate('hero')}
       >
+        {isHeroActive && (
+          <motion.span
+            layoutId="mobile-nav-pill"
+            className="mobile-nav-active-pill"
+            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+          />
+        )}
         <FiHome size={21} aria-hidden="true" />
         <span>الرئيسة</span>
       </button>
@@ -46,11 +55,18 @@ const MobileBottomNav = ({
         aria-label="فهرس الكتب والمسائل"
         onClick={() => onNavigate('books')}
       >
+        {isIndexActive && (
+          <motion.span
+            layoutId="mobile-nav-pill"
+            className="mobile-nav-active-pill"
+            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+          />
+        )}
         <FiBook size={21} aria-hidden="true" />
         <span>الفهرس</span>
       </button>
 
-      {/* 3. البحث (مدمج في المنتصف بدلاً من الزر العائم الحا Ahora) */}
+      {/* 3. البحث */}
       <button
         type="button"
         className="nav-item nav-item-search"
@@ -69,6 +85,13 @@ const MobileBottomNav = ({
         aria-label="الفوائد والمفضلة"
         onClick={() => onNavigate(currentView === 'bookmarks' ? 'bookmarks' : 'highlights')}
       >
+        {isSavedActive && (
+          <motion.span
+            layoutId="mobile-nav-pill"
+            className="mobile-nav-active-pill"
+            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+          />
+        )}
         <FiEdit3 size={21} aria-hidden="true" />
         <span>الفوائد</span>
       </button>
@@ -81,6 +104,13 @@ const MobileBottomNav = ({
         aria-label="المزيد والإعدادات"
         onClick={() => onNavigate('settings')}
       >
+        {isMoreActive && (
+          <motion.span
+            layoutId="mobile-nav-pill"
+            className="mobile-nav-active-pill"
+            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+          />
+        )}
         <div className="position-relative d-inline-flex align-items-center justify-content-center">
           <FiList size={21} aria-hidden="true" />
           {isAdminUser && (

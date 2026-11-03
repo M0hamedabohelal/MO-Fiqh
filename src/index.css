@@ -636,33 +636,33 @@ button:active:not(:disabled),
 }
 /* ==================== النصوص المقدسة (قرآن وحديث) ==================== */
 
-/* ==================== وضع السيبيا (الورق القديم) ==================== */
+/* ==================== وضع السيبيا (الورق القديم والتراثي الفاخر) ==================== */
 [data-theme="sepia"] {
-  --bg-color: #f4ecd8;
-  --primary-color: #5b3a29;
-  --accent-color: #8c5b20;
-  --text-main: #3e2a1a;
+  --bg-color: #f7f1e1;
+  --primary-color: #4a2810;
+  --accent-color: #8c531b;
+  --text-main: #2b1c10;
   --text-on-accent: #ffffff;
-  --text-on-primary: #f4ecd8;
-  --text-muted: #544335;
-  --nav-active-color: #6d441f;
-  --card-bg: #faf3e3;
-  --card-border: rgba(90, 60, 30, 0.1);
-  --border-color: rgba(90, 60, 30, 0.15);
-  --badge-bg: #f0e6d0;
-  --badge-border: rgba(90, 60, 30, 0.15);
-  --sidebar-bg: #efe5d0;
-  --card-bg-alpha: rgba(250, 243, 227, 0.9);
+  --text-on-primary: #f7f1e1;
+  --text-muted: #66503f;
+  --nav-active-color: #8c531b;
+  --card-bg: #fdf9f0;
+  --card-border: rgba(90, 48, 14, 0.12);
+  --border-color: rgba(90, 48, 14, 0.14);
+  --badge-bg: #f2e7d0;
+  --badge-border: rgba(90, 48, 14, 0.16);
+  --sidebar-bg: #f0e5cd;
+  --card-bg-alpha: rgba(253, 249, 240, 0.94);
 
   /* ── الرموز الدلالية — وضع السيبيا (تراثي) ── */
-  --tone-success: #26542c;
+  --tone-success: #1d5b32;
   --tone-warning: #b0762a;
   --tone-danger: #b23a2e;
-  --tone-info: #4a6fa5;
-  --brand-gold: #c09553;
-  --brand-teal: #7a9e8e;
-  --shadow-soft: rgba(90, 60, 30, 0.10);
-  --shadow-soft-lg: rgba(90, 60, 30, 0.16);
+  --tone-info: #3d6494;
+  --brand-gold: #b37e28;
+  --brand-teal: #4d7c6d;
+  --shadow-soft: rgba(70, 35, 10, 0.08);
+  --shadow-soft-lg: rgba(70, 35, 10, 0.15);
 
   --brand-gold-18: color-mix(in srgb, var(--brand-gold) 18%, transparent);
   --brand-teal-22: color-mix(in srgb, var(--brand-teal) 22%, transparent);
@@ -670,24 +670,12 @@ button:active:not(:disabled),
   --tone-warning-bg: color-mix(in srgb, var(--tone-warning) 14%, transparent);
   --tone-danger-bg: color-mix(in srgb, var(--tone-danger) 14%, transparent);
   --tone-info-bg: color-mix(in srgb, var(--tone-info) 14%, transparent);
-
 }
 
 [data-theme="sepia"] .custom-card {
-  background-color: var(--card-bg-alpha, rgba(250, 243, 227, 0.92));
-  border-color: rgba(90, 60, 30, 0.12);
-  box-shadow: 0 4px 20px rgba(90, 60, 30, 0.06);
-}
-
-[data-theme="sepia"] .quran-text {
-  color: #2d6b3f;
-}
-.quran-text, .hadith-text {
-  line-height: 1.85 !important;
-}
-
-[data-theme="sepia"] .hadith-text {
-  color: #8a5e2c;
+  background-color: var(--card-bg-alpha, rgba(253, 249, 240, 0.95));
+  border: 1px solid var(--card-border);
+  box-shadow: 0 4px 20px var(--shadow-soft), 0 1px 3px rgba(90, 48, 14, 0.05);
 }
 
 /* ==================== القاموس الفقهي (Glossary) ==================== */
@@ -837,6 +825,24 @@ button:active:not(:disabled),
   min-height: var(--tap-min);
   touch-action: manipulation;
   box-sizing: border-box;
+}
+
+.mobile-bottom-nav .nav-item > span,
+.mobile-bottom-nav .nav-item > svg,
+.mobile-bottom-nav .nav-item > div {
+  position: relative;
+  z-index: 2;
+}
+
+.mobile-nav-active-pill {
+  position: absolute;
+  inset: 2px 3px;
+  background-color: var(--tone-success-bg, rgba(200, 169, 126, 0.12));
+  border-radius: 12px;
+  z-index: 1;
+  border: 1px solid var(--brand-gold-18, rgba(200, 169, 126, 0.22));
+  box-shadow: 0 2px 8px var(--shadow-soft);
+  pointer-events: none;
 }
 
 .mobile-bottom-nav .nav-item svg {
@@ -2267,4 +2273,161 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   .update-pop-btn::after {
     display: none !important;
   }
+}
+
+/* ==================== المشغل الصوتي العائم وبطاقة الصوت الإسلامية ==================== */
+.mini-audio-player {
+  position: fixed;
+  z-index: var(--z-fab, 1040);
+  background: var(--card-bg-alpha, rgba(255, 255, 255, 0.94));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 32px var(--shadow-soft-lg), 0 0 0 1px rgba(200, 169, 126, 0.2);
+  transition: box-shadow 0.25s ease, background-color 0.25s ease;
+}
+
+@media (max-width: 767.98px) {
+  .mini-audio-player {
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--nav-h) + 10px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 768px) {
+  .mini-audio-player {
+    left: 24px;
+    width: 380px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.mini-audio-progress-bar {
+  width: 100%;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+[data-theme="dark"] .mini-audio-progress-bar {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="sepia"] .mini-audio-progress-bar {
+  background: rgba(90, 48, 14, 0.12);
+}
+
+.mini-audio-slider {
+  width: 100%;
+  height: 5px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  accent-color: var(--accent-color, #c49746);
+}
+
+.mini-audio-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--brand-gold-18, rgba(200, 169, 126, 0.15));
+  color: var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mini-audio-title {
+  color: var(--text-main);
+  font-family: var(--font-ui);
+}
+
+.mini-audio-meta {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.mini-audio-rate-btn {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--badge-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.mini-audio-play-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: var(--text-on-primary, #ffffff);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+
+.mini-audio-play-btn:active {
+  transform: scale(0.92);
+}
+
+/* تنسيقات بطاقة الصوت داخل صفحة المسألة */
+.audio-card-icon-pill {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--brand-gold-18, rgba(200, 169, 126, 0.16));
+  color: var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.audio-card-player-box {
+  background: var(--badge-bg);
+  border: 1px solid var(--border-color);
+}
+
+.audio-card-main-play-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), color-mix(in srgb, var(--primary-color) 80%, black));
+  color: var(--text-on-primary, #ffffff);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.audio-card-main-play-btn:hover {
+  transform: scale(1.06);
+  color: var(--text-on-primary, #ffffff);
+}
+
+.audio-card-main-play-btn:active {
+  transform: scale(0.94);
+}
+
+.audio-card-seek-slider {
+  height: 6px;
+  border-radius: 3px;
+  accent-color: var(--accent-color, #c49746);
+  cursor: pointer;
 }
