@@ -331,5 +331,31 @@ export function useAppData({ isOffline, deferCloud = false }: { isOffline: boole
     [cloudLessonsLoaded, rawLessons.length],
   );
 
-  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, reloadGlossary, cloudLessonsLoaded, contentReady, contentSource };
+  // تحديث أو إدراج مسألة محلياً فوراً (Optimistic UI) لمنع أي تأخير في العرض بلوحة الإدارة
+  const upsertLessonLocally = useCallback((lesson: Lesson): void => {
+    setRawLessons((prev) => {
+      const idx = prev.findIndex((l) => String(l.id) === String(lesson.id));
+      let next: Lesson[];
+      if (idx >= 0) {
+        next = [...prev];
+        next[idx] = { ...next[idx], ...lesson };
+      } else {
+        next = [...prev, lesson];
+      }
+      rawLessonsRef.current = next;
+      writeCachedLessons(next);
+      return next;
+    });
+  }, []);
+
+  const deleteLessonLocally = useCallback((lessonId: string | number): void => {
+    setRawLessons((prev) => {
+      const next = prev.filter((l) => String(l.id) !== String(lessonId) && String(l._docId) !== String(lessonId));
+      rawLessonsRef.current = next;
+      writeCachedLessons(next);
+      return next;
+    });
+  }, []);
+
+  return { lessons, glossary, cloudStatus, setCloudStatus, reloadFromCloud, reloadGlossary, cloudLessonsLoaded, contentReady, contentSource, upsertLessonLocally, deleteLessonLocally };
 }

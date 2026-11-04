@@ -2,6 +2,7 @@
 // بدون اعتماديات خارجية (صفر زيادة في الحزمة) — نفس قواعد zod المقترحة يدويًا
 import type { Lesson } from '../types';
 import { normalizeChapterName } from './textFormatting';
+import { BOOKS_LIST } from '../data/books';
 
 interface LessonInput {
   bookName?: unknown;
@@ -74,6 +75,19 @@ export function cleanLessonForm<T extends object>(form: T): T {
   }
   if (typeof out['chapterName'] === 'string') {
     out['chapterName'] = normalizeChapterName(out['chapterName'] as string);
+  }
+  if (typeof out['bookName'] === 'string') {
+    const raw = (out['bookName'] as string).trim();
+    // مطابقة ذكية مع قائمة الكتب المعتمدة لتفادي الأخطاء الإملائية الشائعة مثل كتاب الصلاه أو إسقاط كلمة كتاب
+    const norm = (s: string) => s.replace(/[أإآا]/g, 'ا').replace(/[يى]/g, 'ي').replace(/ة/g, 'ه').trim();
+    const targetNorm = norm(raw);
+    const matched = BOOKS_LIST.find((b) => {
+      const bNorm = norm(b);
+      return bNorm === targetNorm || bNorm === norm(`كتاب ${raw}`) || norm(b.replace(/^كتاب\s+/, '')) === targetNorm;
+    });
+    if (matched) {
+      out['bookName'] = matched;
+    }
   }
   return out as T;
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { motion } from 'framer-motion';
 import { FiX, FiTrash2, FiBook, FiInfo } from 'react-icons/fi';
@@ -6,6 +6,8 @@ import QuoteCard from '../../Content/QuoteCard';
 import ExplanationCard from '../../Content/ExplanationCard';
 import { inputStyle } from '../AdminStyles';
 import { CLOUDINARY_UPLOAD_URL, CLOUDINARY_UPLOAD_PRESET, validateUploadFile } from '../../../utils/cloudinary';
+import { BOOKS_LIST } from '../../../data/books';
+import type { Lesson } from '../../../types';
 import type { LessonFormState } from './types';
 
 interface LessonEditFormProps {
@@ -17,6 +19,7 @@ interface LessonEditFormProps {
   closeForm: () => void;
   busy: boolean;
   flash: (type: 'success' | 'error', text: string) => void;
+  lessons?: Lesson[];
 }
 
 export const LessonEditForm = ({
@@ -28,10 +31,20 @@ export const LessonEditForm = ({
   closeForm,
   busy,
   flash,
+  lessons,
 }: LessonEditFormProps) => {
   const [showPreview, setShowPreview] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
+
+  const existingChaptersForBook = useMemo(() => {
+    if (!form.bookName || !lessons) return [];
+    const chs = lessons
+      .filter((l) => (l.bookName || '').trim() === form.bookName.trim())
+      .map((l) => (l.chapterName || '').trim())
+      .filter(Boolean);
+    return [...new Set(chs)];
+  }, [form.bookName, lessons]);
 
   const uploadToCloudinary = async (e: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = e.target.files?.[0];
@@ -126,11 +139,39 @@ export const LessonEditForm = ({
       <div className="row g-3">
         <div className="col-md-6">
           <label className="form-label small fw-bold">اسم الكتاب *</label>
-          <input type="text" className="form-control" dir="rtl" value={form.bookName} onChange={handleFieldChange('bookName')} style={inputStyle} required />
+          <input
+            type="text"
+            list="adminBooksSuggestions"
+            className="form-control"
+            dir="rtl"
+            placeholder="اختر من القائمة أو اكتب اسم الكتاب..."
+            value={form.bookName}
+            onChange={handleFieldChange('bookName')}
+            style={inputStyle}
+            required
+          />
+          <datalist id="adminBooksSuggestions">
+            {BOOKS_LIST.map((b) => (
+              <option key={b} value={b} />
+            ))}
+          </datalist>
         </div>
         <div className="col-md-6">
           <label className="form-label small fw-bold">الباب</label>
-          <input type="text" className="form-control" value={form.chapterName} onChange={handleFieldChange('chapterName')} style={inputStyle} />
+          <input
+            type="text"
+            list="adminChaptersSuggestions"
+            className="form-control"
+            placeholder="اختر من أبواب الكتاب أو اكتب اسم الباب..."
+            value={form.chapterName}
+            onChange={handleFieldChange('chapterName')}
+            style={inputStyle}
+          />
+          <datalist id="adminChaptersSuggestions">
+            {existingChaptersForBook.map((ch) => (
+              <option key={ch} value={ch} />
+            ))}
+          </datalist>
         </div>
         <div className="col-12">
           <label className="form-label small fw-bold">عنوان المسألة *</label>

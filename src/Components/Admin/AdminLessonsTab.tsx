@@ -19,6 +19,7 @@ import { BulkImportSection } from './Lessons/BulkImportSection';
 import { LessonEditForm } from './Lessons/LessonEditForm';
 import { DeletedLessonsSection } from './Lessons/DeletedLessonsSection';
 import { LessonRowCard } from './Lessons/LessonRowCard';
+import { useApp } from '../Layout/AppContext';
 
 interface AdminLessonsTabProps {
   lessons: Lesson[];
@@ -37,6 +38,7 @@ const AdminLessonsTab = ({
   initialEditLessonId,
   onClearInitialEdit,
 }: AdminLessonsTabProps) => {
+  const { upsertLessonLocally, deleteLessonLocally } = useApp();
   const [busy, setBusy] = useState(false);
 
   // حالة نموذج المسألة
@@ -215,14 +217,17 @@ const AdminLessonsTab = ({
           flash('error', 'تعذّر تحديد رقم المسألة الأصلي — أعد المحاولة بالنقر على تعديل.');
           return;
         }
-        await updateLesson(editingDocId, { ...cleanedForm, id: editingLessonId } as Lesson);
+        const updatedPayload = { ...cleanedForm, id: editingLessonId, _docId: editingDocId } as Lesson;
+        await updateLesson(editingDocId, updatedPayload);
+        upsertLessonLocally?.(updatedPayload);
         flash('success', 'تم حفظ التعديلات بنجاح.');
       } else {
-        await createLesson(cleanedForm);
-        flash('success', 'تمت إضافة المسألة بنجاح.');
+        const created = await createLesson(cleanedForm);
+        upsertLessonLocally?.(created);
+        flash('success', `تمت إضافة المسألة بنجاح برقم (${created.id}).`);
       }
       closeForm();
-      await onDataChanged();
+      void onDataChanged();
     } catch (err) {
       flash('error', `حدث خطأ أثناء الحفظ: ${(err as Error).message}`);
     } finally {
@@ -234,9 +239,10 @@ const AdminLessonsTab = ({
     setBusy(true);
     try {
       await deleteLessonById(docId);
+      deleteLessonLocally?.(docId);
       setShowDeleteConfirm(null);
       flash('success', 'تم حذف المسألة ونقلها إلى سلة المحذوفات.');
-      await onDataChanged();
+      void onDataChanged();
     } catch (err) {
       flash('error', `تعذر الحذف: ${(err as Error).message}`);
     } finally {
@@ -351,6 +357,7 @@ const AdminLessonsTab = ({
           closeForm={closeForm}
           busy={busy}
           flash={flash}
+          lessons={lessons}
         />
       )}
 

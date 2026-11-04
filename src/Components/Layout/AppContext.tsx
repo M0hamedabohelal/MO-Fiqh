@@ -68,6 +68,8 @@ export interface AppContextValue {
   onOpenLogin: () => void;
   reloadFromCloud: (manual?: boolean) => Promise<boolean>;
   reloadGlossary?: () => Promise<GlossaryMap | null>;
+  upsertLessonLocally?: (lesson: Lesson) => void;
+  deleteLessonLocally?: (lessonId: string | number) => void;
   currentSearchQuery: string;
   lessonsCount: number;
   appVersion: AppVersionState;

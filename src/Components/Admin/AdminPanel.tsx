@@ -35,7 +35,10 @@ const AdminPanel = () => {
 
   const flash = (type: 'success' | 'error', text: string): void => {
     setStatusMessage({ type, text });
-    setTimeout(() => setStatusMessage(null), 3500);
+    if (type === 'error') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    setTimeout(() => setStatusMessage(null), type === 'error' ? 8000 : 3500);
   };
 
   return (
@@ -49,11 +52,19 @@ const AdminPanel = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`alert d-flex align-items-center gap-2 ${statusMessage.type === 'success' ? 'alert-success' : 'alert-danger'}`}
+          className={`alert d-flex align-items-center justify-content-between ${statusMessage.type === 'success' ? 'alert-success' : 'alert-danger'}`}
           role="alert"
         >
-          {statusMessage.type === 'success' ? <FiCheckCircle /> : <FiAlertTriangle />}
-          {statusMessage.text}
+          <div className="d-flex align-items-center gap-2">
+            {statusMessage.type === 'success' ? <FiCheckCircle /> : <FiAlertTriangle />}
+            <span>{statusMessage.text}</span>
+          </div>
+          <button
+            type="button"
+            className="btn-close ms-2"
+            onClick={() => setStatusMessage(null)}
+            aria-label="إغلاق التنبيه"
+          />
         </motion.div>
       )}
 

@@ -76,7 +76,7 @@ function App() {
   }, [deferCloud]);
 
   // ─── بيانات المحتوى ───
-  const { lessons, glossary, cloudStatus, reloadFromCloud, reloadGlossary, cloudLessonsLoaded, contentReady, contentSource } = useAppData({ isOffline, deferCloud });
+  const { lessons, glossary, cloudStatus, reloadFromCloud, reloadGlossary, cloudLessonsLoaded, contentReady, contentSource, upsertLessonLocally, deleteLessonLocally } = useAppData({ isOffline, deferCloud });
   const appVersion = useAppVersion();
 
   // ─── المكتبة الشخصية ───
@@ -371,6 +371,8 @@ function App() {
     onOpenLogin,
     reloadFromCloud,
     reloadGlossary,
+    upsertLessonLocally,
+    deleteLessonLocally,
     currentSearchQuery,
     lessonsCount: lessons.length,
     appVersion,
@@ -393,6 +395,7 @@ function App() {
     deleteHighlight, updateHighlightColor, createHighlightFromSelection,
     restoreFullLibrary,
     onOpenSearch, onOpenLogin, reloadFromCloud, reloadGlossary,
+    upsertLessonLocally, deleteLessonLocally,
     currentSearchQuery,
     appVersion,
     adminEditLessonId,
