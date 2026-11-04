@@ -15,7 +15,7 @@ const INITIAL_STATE: AudioPlayerState = {
 
 const RATES = [1, 1.25, 1.5, 2];
 
-export const MiniAudioPlayer = memo(() => {
+const MiniAudioPlayer = memo(() => {
   const { openLessonById, currentView, currentLesson } = useApp();
 
   const state = useSyncExternalStore(
