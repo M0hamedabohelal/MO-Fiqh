@@ -31,7 +31,6 @@ import { ReadingBottomNav } from './Reading/ReadingBottomNav';
 
 // تقسيم المكوّنات الإضافية والتحميل المؤجل لتخفيف حزمة شاشة القراءة الأساسية
 const FloatingTOC = lazy(() => import('../UI/FloatingTOC'));
-const QuoteImageModal = lazy(() => import('../UI/QuoteImageModal'));
 
 // البوب-أب (حفظ كفائدة) لا يظهر إلا داخل نص المتن أو تعليق الشيخ
 const BODY_TEXT_SELECTOR = '[data-selectable="body-text"]';
@@ -109,7 +108,6 @@ const ReadingView = () => {
     y: 0,
     below: false,
   });
-  const [quoteModalText, setQuoteModalText] = useState<string | null>(null);
 
   const [highlightNotice, setHighlightNotice] = useState<string | null>(null);
   const [isTOCOpen, setIsTOCOpen] = useState(false);
@@ -282,14 +280,6 @@ const ReadingView = () => {
     setTimeout(() => setHighlightNotice(null), 3000);
   };
 
-  const handleShareSelectionQuote = (): void => {
-    if (!selectionPopup.text) return;
-    setQuoteModalText(selectionPopup.text);
-    setSelectionPopup((prev) => ({ ...prev, show: false }));
-    const sel = typeof window !== 'undefined' ? window.getSelection() : null;
-    if (sel) sel.removeAllRanges();
-  };
-
   const handleTouchStart = (e: ReactTouchEvent<HTMLDivElement>): void => {
     const t = e.touches[0];
     touchStartRef.current = { x: t.clientX, y: t.clientY };
@@ -370,12 +360,11 @@ const ReadingView = () => {
     >
       <ReadingProgressBar />
 
-      {/* بوب-أب حفظ كفائدة أو مشاركة كاقتباس مصور عند تحديد أي نص */}
+      {/* بوب-أب حفظ كفائدة عند تحديد أي نص */}
       <TextSelectionBubble
         selectionPopup={selectionPopup}
         isSmallScreen={isSmallScreen}
         onSaveHighlight={saveSelectionAsHighlight}
-        onShareQuote={handleShareSelectionQuote}
       />
 
       {/* شريط التحكم العلوي المدمج — مثبت أعلى شاشة القراءة */}
@@ -571,18 +560,6 @@ const ReadingView = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* نافذة تصميم بطاقة الاقتباس المصورة الفاخرة */}
-      {quoteModalText !== null && (
-        <Suspense fallback={null}>
-          <QuoteImageModal
-            show={true}
-            text={quoteModalText}
-            source={lesson ? `${lesson.bookName || ''} • ${lesson.title}` : undefined}
-            onClose={() => setQuoteModalText(null)}
-          />
-        </Suspense>
-      )}
     </div>
   );
 };
