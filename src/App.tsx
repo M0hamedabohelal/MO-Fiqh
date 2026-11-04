@@ -12,6 +12,7 @@ import GuestLoginPrompt from './Components/UI/GuestLoginPrompt'
 import { requireLogin, executePendingAction } from './utils/guestPrompt';
 const LoginModal = lazy(() => import('./Components/Auth/LoginModal'));
 import AppLayout      from './Components/Layout/AppLayout';
+import MiniAudioPlayer from './Components/UI/MiniAudioPlayer';
 import { AppProvider } from './Components/Layout/AppContext';
 import type { AppContextValue } from './Components/Layout/AppContext';
 import { shouldShowOnboarding } from './utils/safeStorage';
@@ -427,36 +428,39 @@ function App() {
           <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { executePendingAction(); setCurrentView('hero'); }} />
         </Suspense>
       )}
-      {showShortcutsHelp && (
-        <Suspense fallback={null}>
-          <ShortcutsHelpModal open={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
-        </Suspense>
-      )}
+      <AppProvider value={layoutProps}>
+        {showShortcutsHelp && (
+          <Suspense fallback={null}>
+            <ShortcutsHelpModal open={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} />
+          </Suspense>
+        )}
 
-      {currentView === 'hero' ? (
-        <HeroSection
-          onStartBrowsing={() => setCurrentView('books')}
-          stopLessonTitle={latestStopMark ? lessons.find((lesson) => String(lesson.id) === latestStopMark.lessonId)?.title : undefined}
-          onContinueStopMark={() => { if (latestStopMark?.lessonId) openLessonById(latestStopMark.lessonId); }}
-          onOpenLogin={() => setIsLoginOpen(true)}
-          user={user}
-        />
-      ) : (
-        <AppProvider value={layoutProps}>
+        {currentView === 'hero' ? (
+          <HeroSection
+            onStartBrowsing={() => setCurrentView('books')}
+            stopLessonTitle={latestStopMark ? lessons.find((lesson) => String(lesson.id) === latestStopMark.lessonId)?.title : undefined}
+            onContinueStopMark={() => { if (latestStopMark?.lessonId) openLessonById(latestStopMark.lessonId); }}
+            onOpenLogin={() => setIsLoginOpen(true)}
+            user={user}
+          />
+        ) : (
           <AppLayout />
-        </AppProvider>
-      )}
+        )}
 
-      {currentView !== 'hero' && (
-        <MobileBottomNav
-          currentView={currentView}
-          user={user}
-          isAdminUser={isAdminUser}
-          onNavigate={setCurrentView}
-          onOpenLogin={() => setIsLoginOpen(true)}
-          onOpenSearch={() => setIsSearchOpen(true)}
-        />
-      )}
+        {currentView !== 'hero' && (
+          <MobileBottomNav
+            currentView={currentView}
+            user={user}
+            isAdminUser={isAdminUser}
+            onNavigate={setCurrentView}
+            onOpenLogin={() => setIsLoginOpen(true)}
+            onOpenSearch={() => setIsSearchOpen(true)}
+          />
+        )}
+
+        {/* المشغل الصوتي العائم المدمج: يرافق المستخدم عبر كافة الشاشات بما فيها واجهة البداية */}
+        <MiniAudioPlayer />
+      </AppProvider>
     </div>
   );
 }

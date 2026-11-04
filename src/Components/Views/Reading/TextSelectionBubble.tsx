@@ -1,6 +1,6 @@
 import { useRef, useState, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiEdit3 } from 'react-icons/fi';
+import { FiEdit3, FiImage } from 'react-icons/fi';
 
 export interface SelectionPopupState {
   show: boolean;
@@ -14,12 +14,14 @@ interface TextSelectionBubbleProps {
   selectionPopup: SelectionPopupState;
   isSmallScreen: boolean;
   onSaveHighlight: () => void;
+  onShareQuote?: () => void;
 }
 
 export const TextSelectionBubble = ({
   selectionPopup,
   isSmallScreen,
   onSaveHighlight,
+  onShareQuote,
 }: TextSelectionBubbleProps) => {
   const bubbleRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
@@ -147,6 +149,49 @@ export const TextSelectionBubble = ({
             <FiEdit3 size={17} style={{ color: 'var(--accent-color, #966816)' }} />
             <span>حفظ كفائدة</span>
           </button>
+
+          {onShareQuote && (
+            <>
+              <span
+                style={{
+                  width: '1px',
+                  height: '18px',
+                  backgroundColor: 'var(--border-color, rgba(0,0,0,0.15))',
+                  margin: '0 2px',
+                  opacity: 0.6,
+                }}
+              />
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onShareQuote();
+                }}
+                title="مشاركة كاقتباس مصور"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'inherit',
+                  fontWeight: 'inherit',
+                  fontSize: 'inherit',
+                  fontFamily: 'inherit',
+                  padding: isSmallScreen ? '6px 12px' : '6px 14px',
+                  borderRadius: '50px',
+                  cursor: 'pointer',
+                  minHeight: '36px',
+                }}
+              >
+                <FiImage size={17} style={{ color: 'var(--accent-color, #966816)' }} />
+                <span>مشاركة كاقتباس</span>
+              </button>
+            </>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

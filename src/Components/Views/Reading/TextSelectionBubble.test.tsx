@@ -100,4 +100,21 @@ describe('TextSelectionBubble Component', () => {
     const popup = screen.getByRole('button', { name: /حفظ كفائدة/i }).parentElement;
     expect(popup).toBeTruthy();
   });
+
+  it('يعرض زر مشاركة كاقتباس عند تمرير onShareQuote والضغط عليه يستدعيه', () => {
+    const onShare = vi.fn();
+    render(
+      <TextSelectionBubble
+        selectionPopup={basePopup}
+        isSmallScreen={false}
+        onSaveHighlight={vi.fn()}
+        onShareQuote={onShare}
+      />,
+    );
+
+    const shareBtn = screen.getByRole('button', { name: /مشاركة كاقتباس/i });
+    expect(shareBtn).toBeTruthy();
+    fireEvent.click(shareBtn);
+    expect(onShare).toHaveBeenCalledTimes(1);
+  });
 });

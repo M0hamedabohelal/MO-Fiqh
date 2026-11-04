@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
-import { FiDownload, FiCheck, FiLink, FiShare2 } from 'react-icons/fi';
+import { FiDownload, FiCheck, FiLink, FiShare2, FiImage } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { canonicalPathFor } from '../../hooks/useHashRoute';
 import { copyText } from '../../utils/clipboard';
 import { generateShareCanvas } from '../../utils/shareCardCanvas';
 import ShareModal from './ShareModal';
+import QuoteImageModal from './QuoteImageModal';
 
 export interface ShareButtonProps {
   title: string;
@@ -26,6 +27,7 @@ const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareBut
   const [failed, setFailed] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
 
   // الرابط النظيف للمسألة
   const getCleanUrl = useCallback((): string => {
@@ -163,6 +165,26 @@ const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareBut
           <span>{isSmall ? 'مشاركة' : 'مشاركة المسألة'}</span>
         </button>
 
+        {/* زر تصميم بطاقة اقتباس مصورة فاخرة */}
+        <button
+          type="button"
+          onClick={() => setShowQuoteModal(true)}
+          className={`btn d-flex align-items-center gap-2 shadow-sm ${isSmall ? 'btn-sm px-2 py-1' : 'px-3 py-2'}`}
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--primary-color) 12%, transparent)',
+            color: 'var(--primary-color)',
+            borderRadius: '20px',
+            border: '1.5px solid var(--primary-color)',
+            fontWeight: 700,
+            fontSize: isSmall ? '0.8rem' : '0.9rem',
+            transition: 'all 0.3s ease',
+          }}
+          title="تصميم وتخصيص بطاقة مصورة للمسألة بقوالب إسلامية وخطوط متعددة"
+        >
+          <FiImage size={isSmall ? 14 : 16} />
+          <span>{isSmall ? 'بطاقة' : 'بطاقة اقتباس'}</span>
+        </button>
+
         {/* نسخ الرابط النظيف (/lessons/{id}/) */}
         <button
           type="button"
@@ -198,6 +220,18 @@ const ShareButton = ({ title, text, sheikhComment, isSmall, lessonId }: ShareBut
         cleanUrl={getCleanUrl()}
         shareText={getShareText()}
         onDownloadImage={handleDownload}
+        onOpenQuoteDesigner={() => {
+          setShowShareModal(false);
+          setShowQuoteModal(true);
+        }}
+      />
+
+      {/* مولّد بطاقات الفوائد المصورة الفاخرة */}
+      <QuoteImageModal
+        show={showQuoteModal}
+        text={text}
+        source={title ? `مسألة: ${title}` : undefined}
+        onClose={() => setShowQuoteModal(false)}
       />
     </>
   );

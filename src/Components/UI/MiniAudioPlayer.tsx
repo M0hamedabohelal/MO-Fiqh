@@ -16,7 +16,7 @@ const INITIAL_STATE: AudioPlayerState = {
 const RATES = [1, 1.25, 1.5, 2];
 
 export const MiniAudioPlayer = memo(() => {
-  const { openLessonById } = useApp();
+  const { openLessonById, currentView, currentLesson } = useApp();
 
   const state = useSyncExternalStore(
     audioPlayerStore.subscribe,
@@ -27,6 +27,14 @@ export const MiniAudioPlayer = memo(() => {
   const { track, isPlaying, currentTime, duration, playbackRate } = state;
 
   if (!track) return null;
+
+  // إذا كان المستخدم داخل صفحة القراءة لنفس الدرس حالياً، لا نكرر المشغل العائم لوجود بطاقة الصوت الأصلية
+  const isViewingCurrentTrackLesson =
+    currentView === 'reading' &&
+    currentLesson &&
+    String(currentLesson.id) === String(track.lessonId);
+
+  if (isViewingCurrentTrackLesson) return null;
 
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
 

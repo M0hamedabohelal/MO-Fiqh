@@ -95,7 +95,13 @@ function getAudioElement(): HTMLAudioElement | null {
 
     audioElement.addEventListener('loadedmetadata', () => {
       if (!audioElement) return;
-      state = { ...state, duration: audioElement.duration || 0 };
+      const d = audioElement.duration || 0;
+      state = { ...state, duration: d };
+      // إذا كان وقت البداية المطلوب يتجاوز مدة المقطع الفعلي، نرجع إلى البداية
+      if (state.currentTime > d) {
+        audioElement.currentTime = 0;
+        state = { ...state, currentTime: 0 };
+      }
       notify();
     });
 
@@ -203,6 +209,13 @@ export const audioPlayerStore = {
     if (el) {
       el.pause();
       el.currentTime = 0;
+      if (el.src && el.src.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(el.src);
+        } catch {
+          // ignore
+        }
+      }
       el.removeAttribute('src');
       el.load();
     }

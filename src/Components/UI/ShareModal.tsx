@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FiX, FiShare2, FiDownload, FiCopy, FiCheck } from 'react-icons/fi';
+import { FiX, FiShare2, FiDownload, FiCopy, FiCheck, FiImage } from 'react-icons/fi';
 import { FaWhatsapp, FaTelegram, FaXTwitter } from 'react-icons/fa6';
 import { motion, AnimatePresence } from 'framer-motion';
 import { copyText } from '../../utils/clipboard';
@@ -12,6 +12,7 @@ export interface ShareModalProps {
   cleanUrl: string;
   shareText: string;
   onDownloadImage: () => void;
+  onOpenQuoteDesigner?: () => void;
 }
 
 const ShareModal = ({
@@ -21,6 +22,7 @@ const ShareModal = ({
   cleanUrl,
   shareText,
   onDownloadImage,
+  onOpenQuoteDesigner,
 }: ShareModalProps) => {
   const [copiedFull, setCopiedFull] = useState(false);
 
@@ -259,26 +261,45 @@ const ShareModal = ({
             </div>
 
             {/* حفظ كصورة مصممة */}
-            <div className="pt-2 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
+            <div className="pt-2 border-top border-secondary border-opacity-10 d-flex justify-content-between align-items-center gap-2 flex-wrap">
               <span className="text-muted small">تريد حفظها كبطاقة؟</span>
-              <button
-                type="button"
-                onClick={() => {
-                  onDownloadImage();
-                  onClose();
-                }}
-                className="btn btn-sm d-inline-flex align-items-center gap-1"
-                style={{
-                  borderRadius: '20px',
-                  border: '1.5px solid var(--primary-color)',
-                  color: 'var(--primary-color)',
-                  backgroundColor: 'transparent',
-                  fontWeight: 600,
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <FiDownload size={14} /> حفظ كصورة
-              </button>
+              <div className="d-flex align-items-center gap-1">
+                {onOpenQuoteDesigner && (
+                  <button
+                    type="button"
+                    onClick={onOpenQuoteDesigner}
+                    className="btn btn-sm d-inline-flex align-items-center gap-1"
+                    style={{
+                      borderRadius: '20px',
+                      border: '1.5px solid var(--primary-color)',
+                      color: '#fff',
+                      backgroundColor: 'var(--primary-color)',
+                      fontWeight: 600,
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <FiImage size={14} /> تصميم بطاقة
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDownloadImage();
+                    onClose();
+                  }}
+                  className="btn btn-sm d-inline-flex align-items-center gap-1"
+                  style={{
+                    borderRadius: '20px',
+                    border: '1.5px solid var(--border-color)',
+                    color: 'var(--text-main)',
+                    backgroundColor: 'transparent',
+                    fontWeight: 600,
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <FiDownload size={14} /> حفظ كصورة
+                </button>
+              </div>
             </div>
           </motion.div>
         </motion.div>

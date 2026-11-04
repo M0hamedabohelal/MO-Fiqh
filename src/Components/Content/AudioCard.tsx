@@ -94,7 +94,10 @@ const AudioCard = ({
 
     return () => {
       alive = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      const currentTrackUrl = audioPlayerStore.getState().track?.url;
+      if (objectUrl && objectUrl !== currentTrackUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
     };
   }, [audioUrl]);
 
