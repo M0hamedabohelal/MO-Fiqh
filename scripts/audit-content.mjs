@@ -109,7 +109,7 @@ function loadLatestBackup() {
   const dir = join(root, 'backups');
   if (!existsSync(dir)) return null;
   const files = readdirSync(dir)
-    .filter((name) => /^firestore-backup-.*\.json$/i.test(name))
+    .filter((name) => /^firestore-(?:public-)?backup-.*\.json$/i.test(name))
     .sort((a, b) => {
       const stamp = (name) => name.match(/(\d{4}-\d{2}-\d{2}_\d{2}-\d{2})/)?.[1] ?? '';
       return stamp(b).localeCompare(stamp(a)) || statSync(join(dir, b)).mtimeMs - statSync(join(dir, a)).mtimeMs;
