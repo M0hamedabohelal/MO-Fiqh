@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { ReadingTopNav } from './ReadingTopNav';
+import type { Lesson } from '../../../types';
 
 describe('ReadingTopNav Component', () => {
   afterEach(() => {
@@ -70,5 +71,32 @@ describe('ReadingTopNav Component', () => {
 
     expect(screen.getByText('الشروط')).toBeTruthy();
     expect(screen.getByText('الأركان')).toBeTruthy();
+  });
+
+  it('يعرض نقاط مسائل الباب ويستجيب للنقر عليها للانتقال المباشر للمسألة', () => {
+    const chapterLessons = [
+      { id: 1, title: 'المسألة الأولى' } as unknown as Lesson,
+      { id: 2, title: 'المسألة الثانية' } as unknown as Lesson,
+      { id: 3, title: 'المسألة الثالثة' } as unknown as Lesson,
+    ];
+    const onSelect = vi.fn();
+
+    render(
+      <ReadingTopNav
+        {...defaultProps}
+        chapterLessons={chapterLessons}
+        currentLessonId={2}
+        readLessonIds={['1']}
+        onSelectChapterLesson={onSelect}
+      />
+    );
+
+    const dots = screen.getAllByRole('tab');
+    expect(dots).toHaveLength(3);
+    expect(dots[1].getAttribute('aria-selected')).toBe('true');
+    expect(dots[1].classList.contains('active')).toBe(true);
+
+    fireEvent.click(dots[2]);
+    expect(onSelect).toHaveBeenCalledWith(chapterLessons[2]);
   });
 });

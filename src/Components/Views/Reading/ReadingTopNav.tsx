@@ -1,5 +1,6 @@
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { triggerHaptic } from '../../../utils/haptics';
+import type { Lesson } from '../../../types';
 
 export interface ReadingTopNavProps {
   currentIndex: number;
@@ -10,12 +11,16 @@ export interface ReadingTopNavProps {
   onNext: () => void;
   prevLessonTitle?: string;
   nextLessonTitle?: string;
+  chapterLessons?: Lesson[];
+  currentLessonId?: number | string;
+  readLessonIds?: string[];
+  onSelectChapterLesson?: (lesson: Lesson) => void;
 }
 
 /**
  * شريط التنقل العلوي بين المسائل (ReadingTopNav)
  * يتيح للقارئ الانتقال السريع للمسألة السابقة أو التالية من أعلى الشاشة
- * دون مزاحمة شريط الأدوات الرئيسي، وبتصميم متجاوب وجميل يتناسق مع شريط التنقل السفلي.
+ * دون مزاحمة شريط الأدوات الرئيسي، مع نقاط تفاعلية سريعة لمسائل الباب (Chapter Pager Dots).
  */
 export const ReadingTopNav = ({
   currentIndex,
@@ -26,6 +31,10 @@ export const ReadingTopNav = ({
   onNext,
   prevLessonTitle,
   nextLessonTitle,
+  chapterLessons,
+  currentLessonId,
+  readLessonIds,
+  onSelectChapterLesson,
 }: ReadingTopNavProps) => {
   const handlePrev = () => {
     triggerHaptic('light');
@@ -64,11 +73,38 @@ export const ReadingTopNav = ({
         </div>
       </button>
 
-      {/* مؤشر رقم المسألة في المنتصف */}
-      <div className="reading-top-nav-counter flex-shrink-0">
+      {/* مؤشر رقم المسألة في المنتصف ونقاط مسائل الباب */}
+      <div className="reading-top-nav-counter flex-shrink-0 d-flex flex-column align-items-center gap-1">
         <span className="badge-pill-counter">
           المسألة {currentIndex + 1} من {totalLessons}
         </span>
+        {chapterLessons && chapterLessons.length > 1 && (
+          <div
+            className="chapter-pager-dots"
+            role="tablist"
+            aria-label="مسائل هذا الباب"
+          >
+            {chapterLessons.map((cl, idx) => {
+              const isCurrent = String(cl.id) === String(currentLessonId);
+              const isRead = readLessonIds?.includes(String(cl.id));
+              return (
+                <button
+                  key={cl.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isCurrent}
+                  aria-label={`المسألة ${idx + 1}: ${cl.title}`}
+                  title={`المسألة ${idx + 1}: ${cl.title}`}
+                  onClick={() => {
+                    triggerHaptic('selection');
+                    onSelectChapterLesson?.(cl);
+                  }}
+                  className={`chapter-dot ${isCurrent ? 'active' : ''} ${isRead ? 'is-read' : ''}`}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* زر المسألة التالية */}

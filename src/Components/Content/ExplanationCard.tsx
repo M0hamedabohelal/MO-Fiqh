@@ -1,12 +1,13 @@
 import { useState, useMemo, useRef } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { FiCopy, FiCheck, FiMessageSquare } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiMessageSquare, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { formatBrackets } from '../../utils/textFormatting';
 import { glossaryData as defaultGlossary } from '../../data/glossary';
 import { sortedGlossaryTerms, createGlossaryRenderer } from '../../utils/glossaryUtil';
 import { copyText } from '../../utils/clipboard';
+import { triggerHaptic } from '../../utils/haptics';
 import type { GlossaryMap } from '../../types';
 
 interface ExplanationCardProps {
@@ -25,6 +26,41 @@ interface TooltipInfo {
 
 const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary }: ExplanationCardProps) => {
   const [copied, setCopied] = useState(false);
+
+  // إحصائيات القراءة والتحكم بالطي والتوسيع
+  const readingStats = useMemo(() => {
+    const trimmed = (explanation || '').trim();
+    if (!trimmed) return { isCollapsible: false, estimatedMinutes: 0, wordsCount: 0 };
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    const wordsCount = words.length;
+    // الشرح الطويل (أكثر من 70 كلمة أو أكثر من 360 حرفاً) يكون قابلاً للطي
+    const isCollapsible = wordsCount > 70 || trimmed.length > 360;
+    const estimatedMinutes = Math.max(1, Math.round(wordsCount / 140));
+    return { isCollapsible, estimatedMinutes, wordsCount };
+  }, [explanation]);
+
+  // التحقق إن كان استعلام البحث موجوداً داخل نص الشرح
+  const hasSearchMatch = useMemo(() => {
+    if (!searchQuery || !searchQuery.trim()) return false;
+    return (explanation || '').toLowerCase().includes(searchQuery.trim().toLowerCase());
+  }, [explanation, searchQuery]);
+
+  // تفاعل المستخدم اليدوي مع الطي والتوسيع
+  const [userExpanded, setUserExpanded] = useState<boolean | null>(null);
+
+  // الحالة الفعلية المحسوبة:
+  // 1. اختيار المستخدم اليدوي له الأولوية إذا وُجد
+  // 2. إذا تطابق استعلام البحث مع نص الشرح يفتح تلقائياً
+  // 3. الشروحات القصيرة مفتوحة دائماً
+  // 4. الشروحات الطويلة تبدأ مطوية افتراضياً لتسهيل قراءة المتن
+  const isExpanded = userExpanded !== null
+    ? userExpanded
+    : (hasSearchMatch || !readingStats.isCollapsible);
+
+  const handleToggleExpand = () => {
+    triggerHaptic('selection');
+    setUserExpanded(!isExpanded);
+  };
 
   // نافذة توضيح المصطلح
   const [tooltipInfo, setTooltipInfo] = useState<TooltipInfo>({ show: false, term: '', definition: '', x: 0, y: 0 });
@@ -195,29 +231,113 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
           >
             <FiMessageSquare size={16} /> شرح وتعليق الشيخ
           </span>
-          <button
-            onClick={handleCopy}
-            className="btn btn-sm d-flex align-items-center justify-content-center"
-            title="نسخ النص"
-            aria-label="نسخ شرح الشيخ"
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)' }}
-          >
-            {copied ? <FiCheck color="green" size={20} /> : <FiCopy size={20} />}
-          </button>
+          <div className="d-flex align-items-center gap-1">
+            {readingStats.isCollapsible && (
+              <button
+                type="button"
+                onClick={handleToggleExpand}
+                className="btn btn-sm d-inline-flex align-items-center gap-1 px-2 py-1"
+                title={isExpanded ? 'طي الشرح' : 'توسيع الشرح'}
+                aria-label={isExpanded ? 'طي الشرح (الترويسة)' : 'توسيع الشرح (الترويسة)'}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--primary-color)',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                }}
+              >
+                {isExpanded ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+                <span className="d-none d-sm-inline">{isExpanded ? 'طي' : 'توسيع'}</span>
+              </button>
+            )}
+            <button
+              onClick={handleCopy}
+              className="btn btn-sm d-flex align-items-center justify-content-center"
+              title="نسخ النص"
+              aria-label="نسخ شرح الشيخ"
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)' }}
+            >
+              {copied ? <FiCheck color="green" size={20} /> : <FiCopy size={20} />}
+            </button>
+          </div>
         </div>
 
-        {/* عرض الشرح منسقاً ومن اليمين لليسار */}
+        {/* حاوية الشرح مع دعم الطي والتوسيع لتقليل التمرير */}
         <div
-          className="mt-3"
+          className="position-relative"
           style={{
-            textAlign: 'right',
-            direction: 'rtl',
-            wordWrap: 'break-word',
-            fontSize: 'var(--reading-font-size, var(--base-font-size, 16px))',
+            maxHeight: isExpanded || !readingStats.isCollapsible ? 'none' : '260px',
+            overflow: 'hidden',
+            transition: 'max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
-          {explanation.split('\n').map((paragraph, index) => renderParagraph(paragraph, index))}
+          <div
+            className="mt-3"
+            style={{
+              textAlign: 'right',
+              direction: 'rtl',
+              wordWrap: 'break-word',
+              fontSize: 'var(--reading-font-size, var(--base-font-size, 16px))',
+            }}
+          >
+            {explanation.split('\n').map((paragraph, index) => renderParagraph(paragraph, index))}
+          </div>
+
+          {/* تدرج التلاشي الأنيق عند الطي */}
+          {!isExpanded && readingStats.isCollapsible && (
+            <div
+              className="explanation-fade-overlay"
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: '110px',
+                background: 'linear-gradient(to bottom, transparent, var(--card-bg) 92%)',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
         </div>
+
+        {/* زر التوسيع والطي التفاعلي أسفل الشرح */}
+        {readingStats.isCollapsible && (
+          <div className="d-flex justify-content-center mt-3 pt-1 position-relative" style={{ zIndex: 2 }}>
+            <button
+              type="button"
+              className="btn btn-sm d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm rounded-pill explanation-toggle-btn"
+              onClick={handleToggleExpand}
+              aria-expanded={isExpanded}
+              style={{
+                backgroundColor: 'var(--badge-bg)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--primary-color)',
+                fontWeight: 700,
+                fontSize: '0.86rem',
+                border: '1px solid',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {isExpanded ? (
+                <>
+                  <FiChevronUp size={16} />
+                  <span>طي شرح الشيخ</span>
+                </>
+              ) : (
+                <>
+                  <FiChevronDown size={16} />
+                  <span>
+                    عرض الشرح كاملاً
+                    {readingStats.estimatedMinutes > 1
+                      ? ` (${readingStats.estimatedMinutes === 2 ? 'دقيقتان قراءة' : `${readingStats.estimatedMinutes} دقائق قراءة`})`
+                      : ' (نحو دقيقة قراءة)'}
+                  </span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </motion.div>
 
       {/* Glossary Tooltip — تعريف المصطلح في شرح الشيخ */}

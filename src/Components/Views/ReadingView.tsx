@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import type { TouchEvent as ReactTouchEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -29,6 +29,7 @@ import { ReadingHeaderBar } from './Reading/ReadingHeaderBar';
 import { ReadingTopNav } from './Reading/ReadingTopNav';
 import { ReadingBottomNav } from './Reading/ReadingBottomNav';
 import { triggerHaptic } from '../../utils/haptics';
+import { normalizeWithIndex } from '../../utils/glossaryUtil';
 
 // تقسيم المكوّنات الإضافية والتحميل المؤجل لتخفيف حزمة شاشة القراءة الأساسية
 const FloatingTOC = lazy(() => import('../UI/FloatingTOC'));
@@ -90,6 +91,41 @@ const ReadingView = () => {
   const onSelectLesson = (selected: Lesson): void => {
     openLessonById(selected.id);
   };
+
+  // مسائل الباب الحالي لمؤشر نقاط التصفح السريع
+  const currentChapterName = lesson?.chapterName;
+  const currentChapterLessons = useMemo(() => {
+    if (!currentChapterName) return [];
+    return lessons.filter((l) => (l.chapterName || '') === currentChapterName);
+  }, [lessons, currentChapterName]);
+
+  // تسخين استباقي في خلفية المتصفح (Zero-Latency Background Pre-heat) للمسألة السابقة والتالية
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const preheatLesson = (target?: Lesson) => {
+      if (!target) return;
+      if (target.mainText) {
+        normalizeWithIndex(target.mainText);
+      }
+      if (target.sheikhExplanation) {
+        normalizeWithIndex(target.sheikhExplanation);
+      }
+      if (target.mediaUrl && typeof Image !== 'undefined') {
+        const img = new Image();
+        img.src = target.mediaUrl;
+      }
+    };
+
+    const idleCb = window.requestIdleCallback || ((cb: () => void) => window.setTimeout(cb, 200));
+    const cancelCb = window.cancelIdleCallback || ((id: number) => window.clearTimeout(id));
+
+    const handle = idleCb(() => {
+      preheatLesson(nextLesson);
+      preheatLesson(prevLesson);
+    });
+
+    return () => cancelCb(handle as number);
+  }, [nextLesson, prevLesson]);
 
   const handlePrintChapter = async (): Promise<void> => {
     if (!lesson) return;
@@ -458,7 +494,7 @@ const ReadingView = () => {
             exit={isSmallScreen ? { opacity: 0, scale: 0.985 } : { opacity: 0, y: -12 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
           >
-          {/* شريط التنقل العلوي بين المسائل */}
+          {/* شريط التنقل العلوي بين المسائل ونقاط الباب */}
           <ReadingTopNav
             currentIndex={currentIndex}
             totalLessons={lessons.length}
@@ -468,6 +504,10 @@ const ReadingView = () => {
             onNext={onNext}
             prevLessonTitle={prevLesson?.title}
             nextLessonTitle={nextLesson?.title}
+            chapterLessons={currentChapterLessons}
+            currentLessonId={lesson.id}
+            readLessonIds={readLessons}
+            onSelectChapterLesson={onSelectLesson}
           />
 
           {/* مسار التصفح الفقهي */}
@@ -550,29 +590,33 @@ const ReadingView = () => {
             <ExplanationCard explanation={lesson.sheikhExplanation || ''} searchQuery={searchQuery} glossary={glossary} />
           )}
           
-          <MediaCard key={`media-${lessonId}`} mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} title={lesson.title} />
-          <AudioCard
-            key={`audio-${lessonId}`}
-            audioUrl={lesson.audioUrl}
-            title={lesson.title}
-            startTime={lesson.startTime}
-            endTime={lesson.endTime}
-            lessonId={lesson.id}
-            bookName={lesson.bookName}
-            chapterName={lesson.chapterName}
-          />
-          <VideoCard key={`video-${lessonId}`} videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} title={lesson.title} />
+          <div className="perf-contain-media">
+            <MediaCard key={`media-${lessonId}`} mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} title={lesson.title} />
+            <AudioCard
+              key={`audio-${lessonId}`}
+              audioUrl={lesson.audioUrl}
+              title={lesson.title}
+              startTime={lesson.startTime}
+              endTime={lesson.endTime}
+              lessonId={lesson.id}
+              bookName={lesson.bookName}
+              chapterName={lesson.chapterName}
+            />
+            <VideoCard key={`video-${lessonId}`} videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} title={lesson.title} />
+          </div>
 
           {/* الميزات التفاعلية */}
-          <NotesCard
-            key={`notes-${lessonId}`}
-            lessonId={lesson.id} 
-            lessonTitle={lesson.title} 
-            bookName={lesson.bookName}
-            chapterName={lesson.chapterName}
-            note={noteValue} 
-            onSave={onSaveNote} 
-          />
+          <div className="perf-contain-card">
+            <NotesCard
+              key={`notes-${lessonId}`}
+              lessonId={lesson.id} 
+              lessonTitle={lesson.title} 
+              bookName={lesson.bookName}
+              chapterName={lesson.chapterName}
+              note={noteValue} 
+              onSave={onSaveNote} 
+            />
+          </div>
 
           {/* شريط التنقل السفلي */}
           <ReadingBottomNav

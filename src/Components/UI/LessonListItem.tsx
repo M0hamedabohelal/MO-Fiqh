@@ -96,7 +96,7 @@ const LessonListItem = ({
 
   return (
     <button
-      className="btn w-100 text-end p-3 p-md-4 shadow-sm d-flex justify-content-between align-items-center list-btn mb-2"
+      className="btn w-100 text-end p-3 p-md-4 shadow-sm d-flex justify-content-between align-items-center list-btn mb-2 perf-contain-list-item"
       onClick={handleClick}
     >
       <div className="d-flex align-items-center gap-2 flex-grow-1 min-w-0 me-2">
