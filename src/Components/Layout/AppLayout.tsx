@@ -38,7 +38,7 @@ const ViewSpinner = ({ label = 'جارٍ التحميل...' }: ViewSpinnerProps)
  */
 const AppLayout = () => {
   const {
-    currentView, currentIndex, currentLesson, lessons,
+    currentView, currentLesson, lessons,
     user, isAdminUser,
     theme, setTheme,
     selectedBookName,
@@ -135,11 +135,11 @@ const AppLayout = () => {
         ) : (
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentView === 'reading' ? `reading-${currentIndex}` : currentView}
-            initial={{ opacity: 0, y: 18 }}
+            key={currentView}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.16, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <Suspense fallback={<ViewSpinner />}>
 

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useApp } from '../Layout/AppContext';
 import GuestAccountCard from '../UI/GuestAccountCard';
 import { getStopMarkForBook } from '../../features/stopMarks/model';
+import { triggerHaptic } from '../../utils/haptics';
 
 // شاشة فهرس الكتب — كل كتاب بغلاف بصري + إحصاءات التقدم
 const BooksView = memo(() => {
@@ -24,7 +25,10 @@ const BooksView = memo(() => {
         <div className="col-6 col-md-4 mb-4 px-2" key={bookName}>
           <button
             className="btn w-100 p-0 book-item-btn shadow-sm"
-            onClick={() => onOpenBook(bookName)}
+            onClick={() => {
+              triggerHaptic('light');
+              onOpenBook(bookName);
+            }}
           >            <div className="book-cover-graphic">
               {/* Ribbon at top right */}
               <div className="book-ribbon">
@@ -100,7 +104,10 @@ const BooksView = memo(() => {
               type="button"
               className="btn btn-sm w-100 mt-2 d-flex align-items-center justify-content-center gap-1 shadow-sm"
               style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold', fontSize: '0.8rem' }}
-              onClick={() => openLessonById(stopMark.lessonId!)}
+              onClick={() => {
+                triggerHaptic('light');
+                openLessonById(stopMark.lessonId!);
+              }}
               title={stopLesson.title}
             >
               <FiFlag size={14} /> أكمل: {stopLesson.title.slice(0, 28)}

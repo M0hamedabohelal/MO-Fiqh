@@ -12,6 +12,7 @@ import logo from '../../assets/logo-circle.webp';
 import logo128 from '../../assets/logo-circle-128.webp';
 import logo256 from '../../assets/logo-circle-256.webp';
 import styles from './HeroSection.module.css';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface HeroSectionProps {
   onStartBrowsing: () => void;
@@ -160,7 +161,10 @@ const HeroSection = ({
           <div className={styles['actions-wrapper']}>
             <button
               className={styles['btn-main-cta']}
-              onClick={onStartBrowsing}
+              onClick={() => {
+                triggerHaptic('light');
+                onStartBrowsing();
+              }}
               type="button"
             >
               <FiBookOpen size={22} className={styles['btn-cta-icon']} />
@@ -196,7 +200,10 @@ const HeroSection = ({
           {stopLessonTitle && (
             <button
               className={styles['resume-card']}
-              onClick={onContinueStopMark}
+              onClick={() => {
+                triggerHaptic('light');
+                onContinueStopMark();
+              }}
               type="button"
               aria-label={`متابعة من آخر وقفة: ${stopLessonTitle}`}
             >

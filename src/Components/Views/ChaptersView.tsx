@@ -7,6 +7,7 @@ import LessonListItem from '../UI/LessonListItem';
 import { useApp } from '../Layout/AppContext';
 import type { LessonIssue } from '../../types';
 import { getStopMarkForBook } from '../../features/stopMarks/model';
+import { triggerHaptic } from '../../utils/haptics';
 
 const REDUCE_LIST_ANIM =
   typeof window !== 'undefined' && window.innerWidth < 768;
@@ -62,7 +63,10 @@ const ChaptersView = () => {
         type="button"
         className="btn btn-sm w-100 mb-3 d-flex align-items-center justify-content-center gap-1 shadow-sm"
         style={{ backgroundColor: 'var(--badge-bg)', color: 'var(--primary-color)', border: '1px solid var(--border-color)', borderRadius: '10px', fontWeight: 'bold' }}
-        onClick={() => openLessonById(stopMark.lessonId!)}
+        onClick={() => {
+          triggerHaptic('light');
+          openLessonById(stopMark.lessonId!);
+        }}
         title={stopLesson.title}
       >
         <FiFlag size={14} /> أكمل من هنا: {stopLesson.title.slice(0, 28)}
@@ -99,7 +103,10 @@ const ChaptersView = () => {
             <motion.div key={chapterName} variants={itemVariants} className="book-page" layout>
               <button
                 className="chapter-band"
-                onClick={() => onToggleChapter(chapterName)}
+                onClick={() => {
+                  triggerHaptic('light');
+                  onToggleChapter(chapterName);
+                }}
                 aria-expanded={isOpen}
               >
                 <span className="chapter-band-side">۞</span>

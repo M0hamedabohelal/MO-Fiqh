@@ -8,6 +8,7 @@ import { exportChapterPrint } from '../../utils/printExport';
 import { useApp } from '../Layout/AppContext';
 import type { LessonIssue } from '../../types';
 import { getStopMarkForBook } from '../../features/stopMarks/model';
+import { triggerHaptic } from '../../utils/haptics';
 
 type FilterType = 'all' | 'read' | 'unread' | 'bookmarks';
 
@@ -39,7 +40,10 @@ const LessonsView = memo(() => {
 
   const [filter, setFilter] = useState<FilterType>('all');
 
-  const onSelectLesson = (lesson: LessonIssue): void => openLessonById(lesson.id);
+  const onSelectLesson = (lesson: LessonIssue): void => {
+    triggerHaptic('light');
+    openLessonById(lesson.id);
+  };
   const stopMark = getStopMarkForBook(stopMarks, bookName, lessons);
   const stopLesson = stopMark?.lessonId
     ? lessons.find((lesson) => String(lesson.id) === stopMark.lessonId)
@@ -106,7 +110,10 @@ const LessonsView = memo(() => {
           whiteSpace: 'nowrap',
           transition: 'all 0.2s ease',
         }}
-        onClick={() => setFilter('all')}
+        onClick={() => {
+          triggerHaptic('selection');
+          setFilter('all');
+        }}
         aria-pressed={filter === 'all'}
       >
         <FiLayers size={14} /> الكل ({counts.all})
@@ -124,7 +131,10 @@ const LessonsView = memo(() => {
           whiteSpace: 'nowrap',
           transition: 'all 0.2s ease',
         }}
-        onClick={() => setFilter('read')}
+        onClick={() => {
+          triggerHaptic('selection');
+          setFilter('read');
+        }}
         aria-pressed={filter === 'read'}
       >
         <FiCheckCircle size={14} /> المقروءة ({counts.read})
@@ -142,7 +152,10 @@ const LessonsView = memo(() => {
           whiteSpace: 'nowrap',
           transition: 'all 0.2s ease',
         }}
-        onClick={() => setFilter('unread')}
+        onClick={() => {
+          triggerHaptic('selection');
+          setFilter('unread');
+        }}
         aria-pressed={filter === 'unread'}
       >
         <FiClock size={14} /> المتبقية ({counts.unread})
@@ -160,7 +173,10 @@ const LessonsView = memo(() => {
           whiteSpace: 'nowrap',
           transition: 'all 0.2s ease',
         }}
-        onClick={() => setFilter('bookmarks')}
+        onClick={() => {
+          triggerHaptic('selection');
+          setFilter('bookmarks');
+        }}
         aria-pressed={filter === 'bookmarks'}
       >
         <FiBookmark size={14} /> المفضلة ({counts.bookmarks})

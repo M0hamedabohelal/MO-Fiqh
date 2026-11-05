@@ -28,6 +28,7 @@ import { TextSelectionBubble, type SelectionPopupState } from './Reading/TextSel
 import { ReadingHeaderBar } from './Reading/ReadingHeaderBar';
 import { ReadingTopNav } from './Reading/ReadingTopNav';
 import { ReadingBottomNav } from './Reading/ReadingBottomNav';
+import { triggerHaptic } from '../../utils/haptics';
 
 // تقسيم المكوّنات الإضافية والتحميل المؤجل لتخفيف حزمة شاشة القراءة الأساسية
 const FloatingTOC = lazy(() => import('../UI/FloatingTOC'));
@@ -280,9 +281,56 @@ const ReadingView = () => {
     setTimeout(() => setHighlightNotice(null), 3000);
   };
 
+  const [dragOffset, setDragOffset] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const hasTriggeredThresholdHaptic = useRef<boolean>(false);
+  const isVerticalScroll = useRef<boolean>(false);
+
   const handleTouchStart = (e: ReactTouchEvent<HTMLDivElement>): void => {
     const t = e.touches[0];
     touchStartRef.current = { x: t.clientX, y: t.clientY };
+    hasTriggeredThresholdHaptic.current = false;
+    isVerticalScroll.current = false;
+  };
+
+  const handleTouchMove = (e: ReactTouchEvent<HTMLDivElement>): void => {
+    if (!touchStartRef.current || isVerticalScroll.current) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = t.clientY - touchStartRef.current.y;
+
+    // إذا كان التمرير عمودياً في المقام الأول، نتوقف فوراً ونترك المتصفح يمرر بسلاسة تامة
+    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) {
+      isVerticalScroll.current = true;
+      if (isDragging) {
+        setIsDragging(false);
+        setDragOffset(0);
+      }
+      return;
+    }
+
+    // إذا كان هناك نص محدد (أو جاري تحديده)، نمنع إيماءة السحب فوراً لحماية التحديد
+    const sel = typeof window !== 'undefined' ? window.getSelection() : null;
+    if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
+      return;
+    }
+
+    if (Math.abs(dx) > 12) {
+      setIsDragging(true);
+      // معامل مقاومة مرنة يعطي شعوراً حقيقياً بالسحب
+      const resistance = 0.38;
+      const clamped = Math.max(-85, Math.min(85, dx * resistance));
+      setDragOffset(clamped);
+
+      // نبضة لمسية اهتزازية خفيفة عند بلوغ عتبة التحويل (65px)
+      const reached = Math.abs(dx) >= 65;
+      if (reached && !hasTriggeredThresholdHaptic.current) {
+        hasTriggeredThresholdHaptic.current = true;
+        triggerHaptic('selection');
+      } else if (!reached && hasTriggeredThresholdHaptic.current) {
+        hasTriggeredThresholdHaptic.current = false;
+      }
+    }
   };
 
   const handleTouchEnd = (e: ReactTouchEvent<HTMLDivElement>): void => {
@@ -291,16 +339,27 @@ const ReadingView = () => {
     const dx = t.clientX - touchStartRef.current.x;
     const dy = t.clientY - touchStartRef.current.y;
     touchStartRef.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
 
-    // إذا كان هناك نص محدد (أو جاري تحديده)، نمنع التنقل بالإيماءة فوراً لحماية التحديد
+    if (isVerticalScroll.current) {
+      isVerticalScroll.current = false;
+      return;
+    }
+
     const sel = typeof window !== 'undefined' ? window.getSelection() : null;
     if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
       return;
     }
 
-    if (Math.abs(dx) > 75 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      if (dx > 0 && canGoPrev) onPrev();
-      else if (dx < 0 && canGoNext) onNext();
+    if (Math.abs(dx) >= 65 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+      if (dx > 0 && canGoPrev) {
+        triggerHaptic('light');
+        onPrev();
+      } else if (dx < 0 && canGoNext) {
+        triggerHaptic('light');
+        onNext();
+      }
     }
   };
 
@@ -355,6 +414,7 @@ const ReadingView = () => {
     <div
       className="container-fluid reading-container reading-view py-2 py-md-4 px-1 px-sm-2 px-md-3 position-relative"
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{ minHeight: '80vh', maxWidth: '900px' }}
     >
@@ -382,14 +442,22 @@ const ReadingView = () => {
         isScrolled={isTitleScrolled}
       />
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={lesson.id}
-          initial={isSmallScreen ? { opacity: 0 } : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={isSmallScreen ? { opacity: 0 } : { opacity: 0, y: -12 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-        >
+      {/* حاوية محتوى الدرس مع استجابة فورية لإيماءة السحب اللمسية */}
+      <div
+        style={{
+          transform: dragOffset !== 0 ? `translateX(${dragOffset}px)` : undefined,
+          transition: isDragging ? 'none' : 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          willChange: isDragging ? 'transform' : 'auto',
+        }}
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={lesson.id}
+            initial={isSmallScreen ? { opacity: 0, scale: 0.985 } : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={isSmallScreen ? { opacity: 0, scale: 0.985 } : { opacity: 0, y: -12 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+          >
           {/* شريط التنقل العلوي بين المسائل */}
           <ReadingTopNav
             currentIndex={currentIndex}
@@ -520,6 +588,40 @@ const ReadingView = () => {
           />
         </motion.div>
       </AnimatePresence>
+      </div>
+
+      {/* مؤشر إيماءة السحب التفاعلي للهاتف (Reading Swipe HUD) */}
+      {isDragging && Math.abs(dragOffset) > 12 && (
+        <div
+          className={`reading-swipe-hud ${Math.abs(dragOffset) >= 24 ? 'reached-threshold' : ''}`}
+          role="status"
+          aria-live="polite"
+        >
+          {dragOffset < 0 ? (
+            canGoNext ? (
+              <>
+                <span className="text-truncate" style={{ maxWidth: '65vw' }}>
+                  المسألة التالية: {nextLesson?.title || 'التالي'}
+                </span>
+                <span className="swipe-arrow">←</span>
+              </>
+            ) : (
+              <span>وصلت لنهاية مسائل الكتاب</span>
+            )
+          ) : (
+            canGoPrev ? (
+              <>
+                <span className="swipe-arrow">→</span>
+                <span className="text-truncate" style={{ maxWidth: '65vw' }}>
+                  المسألة السابقة: {prevLesson?.title || 'السابق'}
+                </span>
+              </>
+            ) : (
+              <span>أنت في بداية الكتاب</span>
+            )
+          )}
+        </div>
+      )}
 
       <Suspense fallback={null}>
         <FloatingTOC 

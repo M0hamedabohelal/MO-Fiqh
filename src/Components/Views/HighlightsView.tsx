@@ -19,6 +19,7 @@ import ShareButton from '../UI/ShareButton';
 import { exportNotesPrint } from '../../utils/printExport';
 import { buildBackup, downloadBackup, parseBackupFile, backupToText } from '../../utils/libraryBackup';
 import { useApp } from '../Layout/AppContext';
+import { triggerHaptic } from '../../utils/haptics';
 
 const HIGHLIGHT_COLORS = [
   { key: 'gold', label: 'ذهبي (مسألة هامة)', dot: '#d4af37', classSuffix: 'gold' },
@@ -140,6 +141,7 @@ const HighlightsView = () => {
   const handleCopySingle = async (id: string | number, text: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(text);
+      triggerHaptic('success');
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 1800);
     } catch {
@@ -176,7 +178,10 @@ const HighlightsView = () => {
         <button
           type="button"
           className="btn btn-sm px-3 py-1 rounded-2 text-muted fw-bold border-0"
-          onClick={() => setCurrentView('bookmarks')}
+          onClick={() => {
+            triggerHaptic('selection');
+            setCurrentView('bookmarks');
+          }}
         >
           <FiBookmark className="ms-1" /> المسائل المفضلة ({bookmarks.length})
         </button>

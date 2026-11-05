@@ -9,6 +9,7 @@ import {
   FiBookmark,
   FiEdit3,
 } from 'react-icons/fi';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface LessonListItemProps {
   title: string;
@@ -73,9 +74,14 @@ const LessonListItem = ({
     );
   };
 
+  const handleClick = () => {
+    triggerHaptic('light');
+    onClick();
+  };
+
   if (variant === 'toc') {
     return (
-      <button className="toc-row" onClick={onClick}>
+      <button className="toc-row" onClick={handleClick}>
         <span className="toc-title">
           {isStopMark && <FiFlag size={15} className="lesson-stop-badge flex-shrink-0" aria-label="علامة الوقوف" />}
           {isRead && <FiCheckCircle size={15} className="lesson-read-badge flex-shrink-0" />}
@@ -91,7 +97,7 @@ const LessonListItem = ({
   return (
     <button
       className="btn w-100 text-end p-3 p-md-4 shadow-sm d-flex justify-content-between align-items-center list-btn mb-2"
-      onClick={onClick}
+      onClick={handleClick}
     >
       <div className="d-flex align-items-center gap-2 flex-grow-1 min-w-0 me-2">
         {isStopMark && <FiFlag size={16} className="lesson-stop-badge flex-shrink-0" aria-label="علامة الوقوف" />}

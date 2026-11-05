@@ -6,6 +6,7 @@ import {
   FiBookmark,
   FiList,
 } from 'react-icons/fi';
+import { triggerHaptic } from '../../../utils/haptics';
 
 interface ReadingHeaderBarProps {
   onBackToIndex: () => void;
@@ -34,6 +35,36 @@ export const ReadingHeaderBar = ({
   lessonTitle,
   isScrolled,
 }: ReadingHeaderBarProps) => {
+  const handleBack = () => {
+    triggerHaptic('light');
+    onBackToIndex();
+  };
+
+  const handleToggleRead = () => {
+    triggerHaptic('success');
+    onToggleRead();
+  };
+
+  const handleToggleBookmark = () => {
+    triggerHaptic(isBookmarked ? 'light' : 'success');
+    onToggleBookmark();
+  };
+
+  const handleOpenTOC = () => {
+    triggerHaptic('light');
+    onOpenTOC?.();
+  };
+
+  const handleDecreaseFont = () => {
+    triggerHaptic('selection');
+    setFontSize((p) => Math.max(p - 2, 14));
+  };
+
+  const handleIncreaseFont = () => {
+    triggerHaptic('selection');
+    setFontSize((p) => Math.min(p + 2, 24));
+  };
+
   return (
     <div
       className={`reading-header-toolbar d-flex flex-column gap-1 mb-2 mb-md-3 ${isScrolled ? 'is-scrolled' : ''}`}
@@ -49,7 +80,7 @@ export const ReadingHeaderBar = ({
             className="btn btn-sm d-flex align-items-center reading-back-btn p-1 px-2 px-md-2 px-lg-3 shadow-sm"
             aria-label="العودة لفهرس المسائل"
             title="العودة لفهرس المسائل"
-            onClick={onBackToIndex}
+            onClick={handleBack}
             style={{
               backgroundColor: 'var(--badge-bg)',
               borderColor: 'var(--border-color)',
@@ -83,7 +114,7 @@ export const ReadingHeaderBar = ({
                 minHeight: '38px',
                 transition: 'all 0.2s ease',
               }}
-              onClick={onOpenTOC}
+              onClick={handleOpenTOC}
               title="شجرة الفقه — مسائل الكتاب"
               aria-label="شجرة الفقه"
             >
@@ -118,7 +149,7 @@ export const ReadingHeaderBar = ({
           <button
             type="button"
             className={`btn btn-sm d-flex align-items-center shadow-sm p-1 px-2 px-md-2 px-lg-3 reading-read-btn ${isRead ? 'is-read' : ''}`}
-            onClick={onToggleRead}
+            onClick={handleToggleRead}
             aria-pressed={isRead}
             title={isRead ? 'أتممت قراءة هذه المسألة (اضغط للإلغاء)' : 'تعليم المسألة كمقروءة'}
             aria-label={isRead ? 'إلغاء التعليم كمقروءة' : 'تعليم المسألة كمقروءة'}
@@ -142,7 +173,7 @@ export const ReadingHeaderBar = ({
               type="button"
               className="btn btn-sm fw-bold px-1 px-sm-2"
               style={{ color: 'var(--text-main)', minWidth: '28px' }}
-              onClick={() => setFontSize((p) => Math.max(p - 2, 14))}
+              onClick={handleDecreaseFont}
               disabled={fontSize <= 14}
               title="تصغير الخط"
               aria-label="تصغير الخط"
@@ -165,7 +196,7 @@ export const ReadingHeaderBar = ({
               type="button"
               className="btn btn-sm fw-bold px-1 px-sm-2"
               style={{ color: 'var(--text-main)', minWidth: '28px' }}
-              onClick={() => setFontSize((p) => Math.min(p + 2, 24))}
+              onClick={handleIncreaseFont}
               disabled={fontSize >= 24}
               title="تكبير الخط"
               aria-label="تكبير الخط"
@@ -178,7 +209,7 @@ export const ReadingHeaderBar = ({
           <button
             type="button"
             className={`bookmark-btn shadow-sm flex-shrink-0 ${isBookmarked ? 'active' : ''}`}
-            onClick={onToggleBookmark}
+            onClick={handleToggleBookmark}
             title="حفظ في المفضلة"
             aria-label={isBookmarked ? 'إزالة من المفضلة' : 'حفظ في المفضلة'}
             style={{

@@ -116,12 +116,24 @@ html {
   overflow-x: clip;
 }
 
-/* تغيير الثيم بسلاسة — الخلفية والنص والحدود فقط (بدون ظلال وأحجام حفاظًا على أداء الفون) */
-*, *::before, *::after {
+/* تغيير الثيم بسلاسة — مخصص للحاويات والبطاقات والعناصر الرئيسية بدل المحدد الشامل * لتفادي أي بطء أو تجميد لإطارات الرندرة على الهواتف */
+body,
+.custom-card,
+.topbar,
+.sidebar-container,
+.mobile-bottom-nav,
+.btn,
+.list-btn,
+.reading-header-toolbar,
+.reading-bottom-nav,
+.reading-top-nav,
+.badge,
+.form-control,
+.nav-item {
   transition:
-    background-color 0.3s ease,
-    color 0.3s ease,
-    border-color 0.3s ease;
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease;
 }
 
 /* استثناء: عناصر تحتاج لتحركات فورية دون تأخير */
@@ -144,13 +156,17 @@ body {
   font-size: 1rem;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  transition: all 0.3s ease;
+  transition: background-color 0.25s ease, color 0.25s ease;
   margin: 0;
   padding: 0;
   width: 100%;
   max-width: 100%;
   overflow-x: clip;
   position: relative;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 #root {
@@ -351,19 +367,22 @@ button,
 .sidebar-settings-btn,
 .bookmark-btn,
 .floating-toc-btn,
+.reading-toolbar-btn,
+.reading-back-btn,
+.reading-read-btn,
 .badge {
   transition:
-    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background-color 0.25s ease,
-    border-color 0.25s ease,
-    color 0.25s ease,
-    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
     opacity 0.2s ease !important;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
-/* تأثير ضغطة تفاعلية ارتدادية عند النقر أو اللمس على الهاتف (Tactile Press) */
+/* تأثير ضغطة تفاعلية ارتدادية فورية بدون أي تأخير عند النقر أو اللمس على الهاتف (Tactile Press) */
 button:active:not(:disabled),
 .btn:active:not(:disabled),
 .list-btn:active,
@@ -372,19 +391,26 @@ button:active:not(:disabled),
 .sidebar-btn:active,
 .sidebar-login-btn:active,
 .sidebar-search-btn:active,
-.floating-toc-btn:active {
-  transform: translateY(1px) scale(0.97) !important;
+.floating-toc-btn:active,
+.reading-toolbar-btn:active,
+.reading-back-btn:active,
+.reading-read-btn:active,
+.mobile-bottom-nav .nav-item:active {
+  transform: translateY(1px) scale(0.96) !important;
+  transition: transform 0.05s ease-out !important;
 }
 
-/* التوهج والرفع الخفيف للأزرار العامة عند المرور */
-.btn:not(.btn-link):not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(201, 168, 76, 0.25);
-}
+/* منع تعليق تأثير المرور (Sticky Hover) على شاشات الجوال التي تعمل باللمس */
+@media (hover: hover) and (pointer: fine) {
+  .btn:not(.btn-link):not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(201, 168, 76, 0.25);
+  }
 
-.btn-link:hover {
-  transform: translateY(-1px);
-  opacity: 0.85;
+  .btn-link:hover {
+    transform: translateY(-1px);
+    opacity: 0.85;
+  }
 }
 
 /* بطاقات القوائم (الكتب، الأبواب، المسائل، نتائج البحث)
@@ -850,7 +876,8 @@ button:active:not(:disabled),
 }
 
 .mobile-bottom-nav .nav-item.nav-item:active {
-  transform: scale(0.88);
+  transform: scale(0.90);
+  transition: transform 0.05s ease-out !important;
 }
 
 .mobile-bottom-nav .nav-item.active {
@@ -2431,3 +2458,66 @@ body:has(input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus)
   accent-color: var(--accent-color, #c49746);
   cursor: pointer;
 }
+
+/* ==================== مؤشر إيماءة السحب التفاعلي للهاتف (Reading Swipe HUD) ==================== */
+.reading-swipe-hud {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  z-index: var(--z-modal);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  background-color: var(--card-bg-alpha, var(--card-bg));
+  color: var(--text-main);
+  box-shadow: 0 12px 36px var(--shadow-soft-lg), 0 0 0 1px var(--card-border);
+  border: 1.5px solid var(--border-color);
+  font-weight: 700;
+  font-size: 0.92rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease,
+              box-shadow 0.2s ease;
+  will-change: transform, opacity;
+  max-width: 90vw;
+  text-align: center;
+  animation: fadeInHud 0.15s ease-out;
+}
+
+.reading-swipe-hud.reached-threshold {
+  border-color: var(--accent-color);
+  background-color: var(--primary-color);
+  color: var(--text-on-primary, #ffffff);
+  transform: translate(-50%, -50%) scale(1.06);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--accent-color);
+}
+
+.reading-swipe-hud .swipe-arrow {
+  font-size: 1.25rem;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.reading-swipe-hud.reached-threshold .swipe-arrow {
+  transform: scale(1.2);
+}
+
+@keyframes fadeInHud {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+}
+

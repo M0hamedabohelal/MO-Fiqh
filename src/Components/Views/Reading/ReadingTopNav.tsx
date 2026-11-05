@@ -1,4 +1,5 @@
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { triggerHaptic } from '../../../utils/haptics';
 
 export interface ReadingTopNavProps {
   currentIndex: number;
@@ -26,6 +27,16 @@ export const ReadingTopNav = ({
   prevLessonTitle,
   nextLessonTitle,
 }: ReadingTopNavProps) => {
+  const handlePrev = () => {
+    triggerHaptic('light');
+    onPrev();
+  };
+
+  const handleNext = () => {
+    triggerHaptic('light');
+    onNext();
+  };
+
   return (
     <nav
       className="reading-top-nav d-flex justify-content-between align-items-center gap-1 gap-sm-2"
@@ -35,7 +46,7 @@ export const ReadingTopNav = ({
       <button
         type="button"
         className="btn nav-top-btn prev d-flex align-items-center gap-1 gap-md-2"
-        onClick={onPrev}
+        onClick={handlePrev}
         disabled={!canGoPrev}
         aria-label={prevLessonTitle ? `المسألة السابقة: ${prevLessonTitle}` : 'المسألة السابقة'}
         title={prevLessonTitle || 'المسألة السابقة'}
@@ -64,7 +75,7 @@ export const ReadingTopNav = ({
       <button
         type="button"
         className="btn nav-top-btn next d-flex align-items-center gap-1 gap-md-2"
-        onClick={onNext}
+        onClick={handleNext}
         disabled={!canGoNext}
         aria-label={nextLessonTitle ? `المسألة التالية: ${nextLessonTitle}` : 'المسألة التالية'}
         title={nextLessonTitle || 'المسألة التالية'}

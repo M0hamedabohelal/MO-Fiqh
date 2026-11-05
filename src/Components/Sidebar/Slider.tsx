@@ -4,6 +4,7 @@ import logo from '../../assets/logo-circle.webp';
 import logo128 from '../../assets/logo-circle-128.webp';
 import logo256 from '../../assets/logo-circle-256.webp';
 import './Slider.css';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface SliderProps {
   activeView: string;
@@ -15,13 +16,17 @@ interface SliderProps {
 }
 
 const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, isAdminUser }: SliderProps) => {
+  const handleNav = (view: string) => {
+    triggerHaptic('selection');
+    setActiveView(view);
+  };
 
   return (
     <aside aria-label="الشريط الجانبي للتنقل" className="sidebar-wrapper">
 
       <div className="sidebar-logo-section">
         <button
-          onClick={() => setActiveView('hero')}
+          onClick={() => handleNav('hero')}
           className="sidebar-logo-link"
           title="الرجوع للصفحة الرئيسية"
           aria-label="الرجوع للصفحة الرئيسية"
@@ -46,6 +51,7 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
           <button
             className={`sidebar-btn ${activeView === 'books' ? 'sidebar-btn-active' : ''}`}
             onClick={() => {
+              triggerHaptic('selection');
               window.history.replaceState(null, '', '#/hero');
               window.history.pushState(null, '', '#/books');
               setActiveView('books');
@@ -57,7 +63,7 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
         <li className="sidebar-nav-item">
           <button
             className={`sidebar-btn ${activeView === 'chapters' ? 'sidebar-btn-active' : ''}`}
-            onClick={() => setActiveView('chapters')}
+            onClick={() => handleNav('chapters')}
           >
             <FiList className="sidebar-btn-icon" size={22} /> الفصول
           </button>
@@ -65,7 +71,7 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
         <li className="sidebar-nav-item">
           <button
             className={`sidebar-btn ${activeView === 'lessons' ? 'sidebar-btn-active' : ''}`}
-            onClick={() => setActiveView('lessons')}
+            onClick={() => handleNav('lessons')}
           >
             <FiFileText className="sidebar-btn-icon" size={22} /> المسائل
           </button>
@@ -73,7 +79,7 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
         <li className="sidebar-nav-item">
           <button
             className={`sidebar-btn ${['highlights', 'bookmarks'].includes(activeView) ? 'sidebar-btn-active' : ''}`}
-            onClick={() => setActiveView(activeView === 'bookmarks' ? 'bookmarks' : 'highlights')}
+            onClick={() => handleNav(activeView === 'bookmarks' ? 'bookmarks' : 'highlights')}
           >
             <FiBookmark className="sidebar-btn-icon" size={22} /> الفوائد والمفضلة
           </button>
@@ -81,7 +87,7 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
         <li className="sidebar-nav-item">
           <button
             className={`sidebar-btn ${activeView === 'achievements' ? 'sidebar-btn-active' : ''}`}
-            onClick={() => setActiveView('achievements')}
+            onClick={() => handleNav('achievements')}
           >
             <FiAward className="sidebar-btn-icon" size={22} /> إنجازاتي
           </button>
@@ -90,7 +96,7 @@ const Slider = ({ activeView, setActiveView, onOpenSearch, onOpenLogin, user, is
           <li className="sidebar-nav-item">
             <button
               className={`sidebar-btn ${activeView === 'admin' ? 'sidebar-btn-active' : ''}`}
-              onClick={() => setActiveView('admin')}
+              onClick={() => handleNav('admin')}
             >
               <FiShield className="sidebar-btn-icon" size={22} /> لوحة الإدارة
             </button>

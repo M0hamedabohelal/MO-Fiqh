@@ -4,6 +4,7 @@ import { BsBook } from 'react-icons/bs';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import AnnouncementsModal from '../UI/AnnouncementsModal';
 import { useApp } from '../Layout/AppContext';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface TopbarProps {
   theme: string;
@@ -16,6 +17,7 @@ const Topbar = ({ theme, toggleTheme }: TopbarProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleOpenAnnouncements = () => {
+    triggerHaptic('light');
     refresh();
     setIsModalOpen(true);
     markAsRead();
@@ -23,6 +25,7 @@ const Topbar = ({ theme, toggleTheme }: TopbarProps) => {
 
   // التبديل بين الأوضاع الثلاثة: داكن -> تراثي -> فاتح -> داكن
   const cycleTheme = () => {
+    triggerHaptic('selection');
     if (theme === 'dark') toggleTheme('sepia');
     else if (theme === 'sepia') toggleTheme('light');
     else toggleTheme('dark');

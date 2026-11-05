@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiPlay, FiPause, FiX, FiExternalLink, FiHeadphones } from 'react-icons/fi';
 import { audioPlayerStore, formatAudioTime, type AudioPlayerState } from '../../utils/audioPlayerStore';
 import { useApp } from '../Layout/AppContext';
+import { triggerHaptic } from '../../utils/haptics';
 
 const INITIAL_STATE: AudioPlayerState = {
   track: null,
@@ -39,6 +40,7 @@ const MiniAudioPlayer = memo(() => {
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
 
   const handleNextRate = () => {
+    triggerHaptic('selection');
     const idx = RATES.indexOf(playbackRate);
     const next = RATES[(idx + 1) % RATES.length];
     audioPlayerStore.setRate(next);
@@ -109,7 +111,10 @@ const MiniAudioPlayer = memo(() => {
             <button
               type="button"
               className="btn btn-sm mini-audio-play-btn"
-              onClick={() => audioPlayerStore.toggle()}
+              onClick={() => {
+                triggerHaptic('light');
+                audioPlayerStore.toggle();
+              }}
               title={isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}
               aria-label={isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}
             >

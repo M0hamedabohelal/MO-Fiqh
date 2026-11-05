@@ -1,6 +1,7 @@
 import { FiHome, FiEdit3, FiList, FiBook, FiSearch } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import type { User } from 'firebase/auth';
+import { triggerHaptic } from '../../utils/haptics';
 
 interface MobileBottomNavProps {
   currentView: string;
@@ -26,6 +27,16 @@ const MobileBottomNav = ({
   const isSavedActive = ['highlights', 'bookmarks'].includes(currentView);
   const isMoreActive = ['settings', 'admin', 'achievements', 'review'].includes(currentView);
 
+  const handleNav = (view: string) => {
+    triggerHaptic('selection');
+    onNavigate(view);
+  };
+
+  const handleSearch = () => {
+    triggerHaptic('light');
+    onOpenSearch();
+  };
+
   return (
     <nav aria-label="التنقل الرئيسي" className="mobile-bottom-nav">
       {/* 1. الرئيسة */}
@@ -34,7 +45,7 @@ const MobileBottomNav = ({
         className={`nav-item ${isHeroActive ? 'active' : ''}`}
         aria-current={isHeroActive ? 'page' : undefined}
         aria-label="الرئيسة"
-        onClick={() => onNavigate('hero')}
+        onClick={() => handleNav('hero')}
       >
         {isHeroActive && (
           <motion.span
@@ -53,7 +64,7 @@ const MobileBottomNav = ({
         className={`nav-item ${isIndexActive ? 'active' : ''}`}
         aria-current={isIndexActive ? 'page' : undefined}
         aria-label="فهرس الكتب والمسائل"
-        onClick={() => onNavigate('books')}
+        onClick={() => handleNav('books')}
       >
         {isIndexActive && (
           <motion.span
@@ -71,7 +82,7 @@ const MobileBottomNav = ({
         type="button"
         className="nav-item nav-item-search"
         aria-label="بحث شامل"
-        onClick={onOpenSearch}
+        onClick={handleSearch}
       >
         <FiSearch size={22} aria-hidden="true" />
         <span>بحث</span>
@@ -83,7 +94,7 @@ const MobileBottomNav = ({
         className={`nav-item ${isSavedActive ? 'active' : ''}`}
         aria-current={isSavedActive ? 'page' : undefined}
         aria-label="الفوائد والمفضلة"
-        onClick={() => onNavigate(currentView === 'bookmarks' ? 'bookmarks' : 'highlights')}
+        onClick={() => handleNav(currentView === 'bookmarks' ? 'bookmarks' : 'highlights')}
       >
         {isSavedActive && (
           <motion.span
@@ -102,7 +113,7 @@ const MobileBottomNav = ({
         className={`nav-item ${isMoreActive ? 'active' : ''}`}
         aria-current={isMoreActive ? 'page' : undefined}
         aria-label="المزيد والإعدادات"
-        onClick={() => onNavigate('settings')}
+        onClick={() => handleNav('settings')}
       >
         {isMoreActive && (
           <motion.span

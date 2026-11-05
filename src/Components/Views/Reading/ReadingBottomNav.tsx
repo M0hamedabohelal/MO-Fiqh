@@ -1,4 +1,5 @@
 import { FiChevronLeft, FiChevronRight, FiBookOpen } from 'react-icons/fi';
+import { triggerHaptic } from '../../../utils/haptics';
 
 interface ReadingBottomNavProps {
   currentIndex: number;
@@ -25,6 +26,16 @@ export const ReadingBottomNav = ({
 }: ReadingBottomNavProps) => {
   const hasPage = Boolean(String(pageNumber ?? '').trim());
 
+  const handlePrev = () => {
+    triggerHaptic('light');
+    onPrev();
+  };
+
+  const handleNext = () => {
+    triggerHaptic('light');
+    onNext();
+  };
+
   return (
     <nav className="reading-bottom-nav" aria-label="التنقل للدرس السابق أو التالي">
       <div className="reading-bottom-nav-meta">
@@ -42,7 +53,7 @@ export const ReadingBottomNav = ({
         <button
           type="button"
           className="btn nav-lesson-btn d-flex align-items-center gap-1 gap-sm-2"
-          onClick={onPrev}
+          onClick={handlePrev}
           disabled={!canGoPrev}
           aria-label={prevLessonTitle ? `الانتقال إلى المسألة السابقة: ${prevLessonTitle}` : 'الانتقال إلى المسألة السابقة'}
           title={prevLessonTitle || 'المسألة السابقة'}
@@ -62,7 +73,7 @@ export const ReadingBottomNav = ({
         <button
           type="button"
           className="btn nav-lesson-btn d-flex align-items-center gap-1 gap-sm-2"
-          onClick={onNext}
+          onClick={handleNext}
           disabled={!canGoNext}
           aria-label={nextLessonTitle ? `الانتقال إلى المسألة التالية: ${nextLessonTitle}` : 'الانتقال إلى المسألة التالية'}
           title={nextLessonTitle || 'المسألة التالية'}

@@ -4,6 +4,7 @@ import EmptyState from '../UI/EmptyState';
 import { useApp } from '../Layout/AppContext';
 import { exportBookmarksPrint } from '../../utils/printExport';
 import type { Lesson } from '../../types';
+import { triggerHaptic } from '../../utils/haptics';
 
 // شاشة المسائل المحفوظة في المفضلة
 const BookmarksView = () => {
@@ -71,7 +72,10 @@ const BookmarksView = () => {
         <button
           type="button"
           className="btn btn-sm px-3 py-1 rounded-2 text-muted fw-bold border-0"
-          onClick={() => setCurrentView('highlights')}
+          onClick={() => {
+            triggerHaptic('selection');
+            setCurrentView('highlights');
+          }}
         >
           <FiEdit3 className="ms-1" /> الفوائد والزوائد ({(highlights || []).length})
         </button>
@@ -97,7 +101,10 @@ const BookmarksView = () => {
               <button
                 type="button"
                 className={`btn btn-sm ${viewMode === 'grouped' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                onClick={() => setViewMode('grouped')}
+                onClick={() => {
+                  triggerHaptic('selection');
+                  setViewMode('grouped');
+                }}
                 title="عرض مصنف حسب الكتب والأبواب"
                 aria-label="عرض مصنف"
               >
@@ -106,7 +113,10 @@ const BookmarksView = () => {
               <button
                 type="button"
                 className={`btn btn-sm ${viewMode === 'flat' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                onClick={() => setViewMode('flat')}
+                onClick={() => {
+                  triggerHaptic('selection');
+                  setViewMode('flat');
+                }}
                 title="عرض قائمة مستمرة"
                 aria-label="عرض قائمة مستمرة"
               >
