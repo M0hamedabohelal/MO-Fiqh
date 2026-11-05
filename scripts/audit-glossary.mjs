@@ -9,7 +9,7 @@ const glossaryPath = join(root, 'src', 'data', 'glossary.ts');
 
 export function normalizeTerm(s) {
   return String(s || '')
-    .normalize('NFKC')
+    .normalize('NFC')
     .replace(/[\u064B-\u0652\u0670\u0640]/g, '') // تشكيل + تطويل
     .replace(/[أإآٱ]/g, 'ا')
     .replace(/ة/g, 'ه')

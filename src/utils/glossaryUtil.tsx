@@ -6,9 +6,10 @@ import type { GlossaryMap } from '../types';
 // تُستخدم في متن المسألة (QuoteCard) وشرح الشيخ (ExplanationCard) ولوحة الإدارة
 
 // تطبيع حرفي عربي للتسامح مع التشكيل واختلاف أشكال الحروف (للمطابقة فقط)
+// نعتمد NFC للحفاظ على التراكيب الأحادية والرموز الإسلامية (مثل ﷺ و ﷻ) دون تفكيكها إلى كلمات مستقلة
 export function normalizeGlossaryTerm(s: string): string {
   return String(s || '')
-    .normalize('NFKC')
+    .normalize('NFC')
     .replace(/[\u064B-\u0652\u0670\u0640]/g, '') // تشكيل + تطويل
     .replace(/[أإآٱ]/g, 'ا')
     .replace(/ة/g, 'ه')
@@ -17,15 +18,31 @@ export function normalizeGlossaryTerm(s: string): string {
 }
 
 // تطبيع مع حفظ خريطة موضع (NormIndex → OrigIndex) كي نُبرز النص الأصلي بدقة
+// يضمن التطابق التام دائمًا بين طول الخريطة وطول النص المطبّع (map.length === norm.length)
 export function normalizeWithIndex(s: string): { norm: string; map: number[] } {
   const map: number[] = [];
   let norm = '';
   for (let i = 0; i < s.length; i += 1) {
-    let c = s[i].normalize('NFKC');
+    const code = s.charCodeAt(i);
+    // استيعاب الأزواج البديلة (Surrogate Pairs مثل الإيموجي والرموز الممتدة) لمنع تفكيكها
+    if (code >= 0xd800 && code <= 0xdbff && i + 1 < s.length) {
+      const nextCode = s.charCodeAt(i + 1);
+      if (nextCode >= 0xdc00 && nextCode <= 0xdfff) {
+        map.push(i);
+        map.push(i + 1);
+        norm += s.slice(i, i + 2);
+        i += 1;
+        continue;
+      }
+    }
+
+    let c = s[i].normalize('NFC');
     c = c.replace(/[\u064B-\u0652\u0670\u0640]/g, '');
     if (!c) continue; // حروف التشكيل المحذوفة لا تستهلك موضعًا في الناتج
     c = c.replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
-    map.push(i);
+    for (let j = 0; j < c.length; j += 1) {
+      map.push(i);
+    }
     norm += c;
   }
   return { norm, map };

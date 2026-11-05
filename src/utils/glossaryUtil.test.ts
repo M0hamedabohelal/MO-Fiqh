@@ -51,6 +51,28 @@ describe('normalizeWithIndex', () => {
     expect(map.length).toBe(norm.length);
   });
 
+  it('يحافظ على تساوي طول الخريطة والنص عند وجود الرموز الدينية مثل ﷺ و ﷻ', () => {
+    const text = 'قال النبي ﷺ: إن الطهارة شطر الإيمان وقال الله ﷻ';
+    const { norm, map } = normalizeWithIndex(text);
+    expect(map.length).toBe(norm.length);
+  });
+
+  it('يحافظ على تساوي طول الخريطة عند وجود الرموز التعبيرية (Surrogate Pairs)', () => {
+    const text = '📜 قال الشيخ 🕌: الطهارة واجبة';
+    const { norm, map } = normalizeWithIndex(text);
+    expect(map.length).toBe(norm.length);
+  });
+
+  it('الخريطة تشير لمواضع النص الأصلي بدقة بعد رمز ﷺ', () => {
+    const text = 'كان النبي ﷺ يترك السنن الرواتب في حالة السفر';
+    const { norm, map } = normalizeWithIndex(text);
+    const idx = norm.indexOf('السنن الرواتب');
+    expect(idx).toBeGreaterThanOrEqual(0);
+    const origStart = map[idx];
+    const origEnd = map[idx + 'السنن الرواتب'.length - 1] + 1;
+    expect(text.slice(origStart, origEnd)).toBe('السنن الرواتب');
+  });
+
   it('الخريطة تشير لمواضع النص الأصلي بدقة', () => {
     const text = 'قال: الطهارة';
     const { norm, map } = normalizeWithIndex(text);
@@ -179,6 +201,21 @@ describe('المطابقة الصرفية وحدود الكلمات — متطل
 
     expect(termSpans).toHaveLength(1);
     expect(termSpans[0].props.children).toBe('الطَّهَارَةُ');
+  });
+
+  it('تطابق دقيق لمصطلح "السنن الرواتب" عند وروده بعد رموز متعددة للنبي ﷺ دون أي إزاحة لموضع التحديد', () => {
+    const glossary = { 'السنن الرواتب': 'نوافل تابعة للفرائض' };
+    const sorted = sortedGlossaryTerms(glossary);
+    const renderer = createGlossaryRenderer(sorted, dummyHandlers);
+
+    const text =
+      'المواظبة عليها: تقول عائشة أنه ﷺ لم يكن يدعهما. فقد كان النبي ﷺ يترك السنن الرواتب في حالة السفر، ولا يحافظ ويواظب إلا على صلاتين.';
+    const nodes = renderer(text, 'test-prophet-ligature');
+    const termSpans = getGlossarySpans(nodes);
+
+    expect(termSpans).toHaveLength(1);
+    expect(termSpans[0].props.children).toBe('السنن الرواتب');
+    expect(termSpans[0].props['aria-label']).toBe('تعريف مصطلح: السنن الرواتب');
   });
 });
 
