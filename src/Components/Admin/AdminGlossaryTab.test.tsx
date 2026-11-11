@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
 import AdminGlossaryTab from './AdminGlossaryTab';
+import { ConfirmProvider } from '../../errors/ConfirmProvider';
 import * as services from '../../firebase/services';
 
 vi.mock('../../firebase/services', () => ({
@@ -154,27 +155,51 @@ describe('AdminGlossaryTab Component', () => {
   });
 
   it('حذف مصطلح يطلب تأكيداً ثم يستدعي deleteTerm و onDataChanged', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-
     render(
-      <AdminGlossaryTab
-        glossary={sampleGlossary}
-        lessons={sampleLessons}
-        onDataChanged={mockOnDataChanged}
-        flash={mockFlash}
-      />
+      <ConfirmProvider>
+        <AdminGlossaryTab
+          glossary={sampleGlossary}
+          lessons={sampleLessons}
+          onDataChanged={mockOnDataChanged}
+          flash={mockFlash}
+        />
+      </ConfirmProvider>
     );
 
     const deleteBtn = screen.getByLabelText('حذف مصطلح الطهور');
     fireEvent.click(deleteBtn);
 
-    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('الطهور'));
+    // الحوار الجديد بدل window.confirm: يشرح العملية قبل التأكيد
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog.textContent).toContain('الطهور');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'حذف' }));
 
     await waitFor(() => {
       expect(services.deleteTerm).toHaveBeenCalledWith('الطهور');
       expect(mockFlash).toHaveBeenCalledWith('success', expect.stringContaining('الطهور'));
       expect(mockOnDataChanged).toHaveBeenCalled();
     });
+  });
+
+  it('إلغاء حوار الحذف لا يستدعي deleteTerm', async () => {
+    render(
+      <ConfirmProvider>
+        <AdminGlossaryTab
+          glossary={sampleGlossary}
+          lessons={sampleLessons}
+          onDataChanged={mockOnDataChanged}
+          flash={mockFlash}
+        />
+      </ConfirmProvider>
+    );
+
+    fireEvent.click(screen.getByLabelText('حذف مصطلح الطهور'));
+    const dialog = await screen.findByRole('alertdialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'إلغاء' }));
+
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(services.deleteTerm).not.toHaveBeenCalled();
   });
 
   it('يحسب مطابقات المسائل بالخلفية بشكل غير متزامن ويعيد استخدام الكاش عند إعادة الفتح', async () => {

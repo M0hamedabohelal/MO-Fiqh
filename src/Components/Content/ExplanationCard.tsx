@@ -8,6 +8,7 @@ import { glossaryData as defaultGlossary } from '../../data/glossary';
 import { sortedGlossaryTerms, createGlossaryRenderer } from '../../utils/glossaryUtil';
 import { copyText } from '../../utils/clipboard';
 import { triggerHaptic } from '../../utils/haptics';
+import { useToast } from '../../errors/useToast';
 import type { GlossaryMap } from '../../types';
 
 interface ExplanationCardProps {
@@ -25,6 +26,7 @@ interface TooltipInfo {
 }
 
 const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary }: ExplanationCardProps) => {
+  const toast = useToast();
   const [copied, setCopied] = useState(false);
 
   // إحصائيات القراءة والتحكم بالطي والتوسيع
@@ -120,10 +122,11 @@ const ExplanationCard = ({ explanation, searchQuery, glossary = defaultGlossary 
   const handleCopy = async (): Promise<void> => {
     const ok = await copyText(explanation);
     if (!ok) {
-      alert('تعذّر النسخ التلقائي — حدّد النص يدويًا وانسخه.');
+      toast.error('لم يتم النسخ — حدّد النص يدويًا وانسخه.');
       return;
     }
     setCopied(true);
+    toast.success('تم نسخ شرح الشيخ.');
     setTimeout(() => setCopied(false), 2000);
   };
 

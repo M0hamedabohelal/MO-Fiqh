@@ -7,18 +7,65 @@
   <title>الصفحة غير موجودة (404) | يَسِّر</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="48x48" href="/icons/icon-48.png">
+  <!-- الثيم قبل الرسم: نفس مفاتيح التطبيق (theme في localStorage) + تفضيل النظام -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t !== 'light' && t !== 'dark' && t !== 'sepia') {
+          t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <style>
-    :root {
-      --bg: #0b1219;
-      --card-bg: rgba(26, 37, 48, 0.7);
-      --border: rgba(216, 160, 106, 0.2);
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --primary: #d8a06a;
-      --primary-hover: #e6b382;
+    /* الافتراضي داكن (ليطابق الوضع الداكن الافتراضي في التطبيق)، ويُبدَّل عبر data-theme
+       المكتوب بـJS من localStorage قبل الرسم — نفس توكنات التطبيق حرفيًا. */
+    :root,
+    html[data-theme="dark"] {
+      --bg: #101414;
+      --card-bg: rgba(26, 32, 32, 0.85);
+      --border: rgba(255, 255, 255, 0.09);
+      --text: #e6e8e6;
+      --muted: #a9b1ad;
+      --primary: #5cc0b5;
+      --primary-hover: #74d0c5;
       --btn-secondary-bg: rgba(255, 255, 255, 0.05);
       --btn-secondary-border: rgba(255, 255, 255, 0.15);
+      --accent: #d8a06a;
     }
+    html[data-theme="light"] {
+      --bg: #fafaf7;
+      --card-bg: #ffffff;
+      --border: #eeeeee;
+      --text: #2c2c2c;
+      --muted: #595959;
+      --primary: #0f3d3e;
+      --primary-hover: #0c3834;
+      --btn-secondary-bg: #f8f9fa;
+      --btn-secondary-border: #e9ecef;
+      --accent: #966816;
+    }
+    html[data-theme="sepia"] {
+      --bg: #f5efe3;
+      --card-bg: #fdfaf3;
+      --border: #e3d7c2;
+      --text: #3b332a;
+      --muted: #66503f;
+      --primary: #8a5a1b;
+      --primary-hover: #6f4916;
+      --btn-secondary-bg: #f7f0e4;
+      --btn-secondary-border: #e3d7c2;
+      --accent: #8a5a1b;
+    }
+    html[data-theme="light"] body,
+    html[data-theme="sepia"] body { background-color: var(--bg); }
+    html[data-theme="light"] .btn-secondary:hover { background-color: #eef0f0; }
+    html[data-theme="sepia"] .btn-secondary:hover { background-color: #f0e6d4; }
+    html[data-theme="light"] .container { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06); }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background-color: var(--bg);
@@ -117,6 +164,7 @@
     <div class="actions">
       <a href="/" class="btn btn-primary">الصفحة الرئيسية</a>
       <a href="/#/books" class="btn btn-secondary">فهرس الكتب</a>
+      <a href="/#/lessons" class="btn btn-secondary">كل المسائل</a>
     </div>
   </div>
 </body>

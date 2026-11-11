@@ -1,0 +1,33 @@
+/* ==================== شريط عدم الاتصال ==================== */
+
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: calc(var(--z-nav) + 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--text-main);
+  background: color-mix(in srgb, var(--tone-warning) 16%, var(--card-bg));
+  border-block-end: 1px solid color-mix(in srgb, var(--tone-warning) 34%, transparent);
+}
+
+.offline-banner svg {
+  flex: 0 0 auto;
+  color: var(--tone-warning);
+}
+
+.offline-banner[data-state="back"] {
+  background: color-mix(in srgb, var(--tone-success) 14%, var(--card-bg));
+  border-block-end-color: color-mix(in srgb, var(--tone-success) 30%, transparent);
+}
+
+.offline-banner[data-state="back"] span {
+  color: var(--text-main);
+}

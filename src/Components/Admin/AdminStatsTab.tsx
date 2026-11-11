@@ -6,6 +6,7 @@ import { fetchLessonViews, fetchClientErrors, deleteClientError, pruneOldClientE
 import type { ClientErrorItem } from '../../firebase/services';
 import type { Lesson } from '../../types';
 import { auditLessons } from '../../utils/auditLessons';
+import { useConfirm } from '../../errors/useConfirm';
 
 interface AdminStatsTabProps {
   lessons: Lesson[];
@@ -22,6 +23,7 @@ interface StatsRow {
 }
 
 const AdminStatsTab = ({ lessons, cloudLessonsLoaded, cloudStatus }: AdminStatsTabProps) => {
+  const confirm = useConfirm();
   const [viewStats, setViewStats] = useState<Record<string, number> | null>(null);
   // معرّفات اللقطة المضمّنة في البناء — تُحمَّل هنا فقط (للمشرف) لمقارنة «البناء ↔ السحابة».
   // ليست مصدر عرض للمستخدم: أي انحراف بينها وبين السحابة يظهر كتنبيه هنا بدل عرض محتوى ناقص.
@@ -72,7 +74,13 @@ const AdminStatsTab = ({ lessons, cloudLessonsLoaded, cloudStatus }: AdminStatsT
 
   // حذف كل الأخطاء الأقدم من 30 يومًا ثم تحديث القائمة المعروضة
   const handlePruneOld = async (): Promise<void> => {
-    if (!window.confirm('حذف كل سجل الأخطاء الأقدم من 30 يومًا؟ لا يمكن التراجع.')) return;
+    const ok = await confirm({
+      title: 'حذف سجل الأخطاء القديم',
+      message: 'سيُحذف كل سجل الأخطاء الأقدم من 30 يومًا نهائيًا، ولا يمكن التراجع.',
+      confirmLabel: 'حذف',
+      danger: true,
+    });
+    if (!ok) return;
     setPruning(true);
     setPruneMsg(null);
     try {

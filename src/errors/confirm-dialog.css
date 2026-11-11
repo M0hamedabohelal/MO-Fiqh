@@ -1,0 +1,75 @@
+/* ==================== حوار التأكيد (بديل window.confirm) ==================== */
+
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: confirm-fade 120ms ease-out;
+}
+
+.confirm-dialog {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+  border-radius: 18px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 18px 48px var(--shadow-soft-lg, rgba(0, 0, 0, 0.28));
+  font-family: var(--font-ui);
+  animation: confirm-pop 140ms ease-out;
+}
+
+.confirm-title {
+  margin: 0 0 10px;
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
+.confirm-message {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: var(--text-muted);
+  /* لون ثانوي مقروء في الثلاث ثيمات (--text-muted: #595959 / #a9b1ad / #66503f) */
+  word-break: break-word;
+}
+
+.confirm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-actions .btn {
+  min-height: 40px;
+  padding-inline: 16px;
+  font-weight: 700;
+}
+
+@keyframes confirm-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes confirm-pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm-backdrop,
+  .confirm-dialog {
+    animation: none;
+  }
+}

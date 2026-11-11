@@ -598,4 +598,18 @@ test.describe('توسيع التغطية: الإعدادات، الإنجازا�
 
     expect(errors, errors.join('\n')).toEqual([]);
   });
+
+  test('22) تعذّر تحميل حزمة المدخل لا يُنتج شاشة بيضاء: نص تحميل/خطأ ثابت داخل #root', async ({ page }) => {
+    // السيناريو الواقعي: تبويب قديم أو شبكة تقطع كل شاردات JS قبل تركيب React.
+    // قبل هذا الإصلاح كان #root فارغًا والجسم أبيض بلا أي إشارة للمستخدم.
+    await page.route(/\/assets\/.*\.js(\?.*)?$/, (route) => route.abort());
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    const boot = page.locator('#boot-fallback');
+    await expect(boot).toBeVisible({ timeout: 10_000 });
+    await expect(boot).toContainText(/جارٍ تحميل/);
+    const bg = await boot.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(bg).not.toBe('rgba(0, 0, 0, 0)');
+    expect((await page.locator('body').innerText()).trim().length).toBeGreaterThan(0);
+  });
 });

@@ -1,12 +1,13 @@
 import { lazy, Suspense } from 'react';
-import { FiUser, FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
-import EmptyState from '../UI/EmptyState';
+import { FiUser } from 'react-icons/fi';
+import ErrorState, { RetryButton } from '../UI/ErrorState';
+import { OfflineBanner } from '../UI/OfflineBanner';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 
 import Topbar from '../Header/Topbar';
 import Slider from '../Sidebar/Slider';
 import { useApp } from './AppContext';
-import { ErrorBoundary, ViewErrorFallback } from '../../ErrorBoundary';
+import { ErrorBoundary, ViewErrorFallback } from '../../errors/ErrorBoundary';
 
 // شاشات التطبيق — lazy loaded
 const BooksView      = lazy(() => import('../Views/BooksView'));
@@ -92,6 +93,7 @@ const AppLayout = () => {
         maxWidth: '100%',
       }}
     >
+      <OfflineBanner onReconnected={() => { void reloadFromCloud(false); }} />
       <header role="banner">
         <Topbar
           theme={theme}
@@ -112,26 +114,20 @@ const AppLayout = () => {
         {/* لا يوجد محتوى إطلاقًا (لا سحابة ولا كاش): حالة صريحة مع إعادة محاولة.
             قبل ذلك كانت اللقطة المضمّنة القديمة (16 مسألة) تُعرض صامتة كأنها الكتاب كله. */}
         {contentSource === 'empty' && contentViews.includes(currentView) ? (
-          <div className="custom-card p-5 text-center mt-4" role="alert">
-            <FiAlertCircle size={46} className="mb-3" style={{ color: '#e74c3c', opacity: 0.75 }} />
-            <h4 className="fw-bold mb-2" style={{ color: 'var(--text-main)' }}>تعذّر تحميل المسائل</h4>
-            <p className="text-muted mb-3" style={{ lineHeight: '1.8' }}>
-              {isOffline
-                ? 'لا يوجد اتصال بالإنترنت، ولا توجد نسخة محفوظة على هذا الجهاز بعد.'
-                : 'لم يصل المحتوى من السحابة. تحقّق من الاتصال ثم أعد المحاولة.'}
-            </p>
-            <button
-              type="button"
-              className="btn btn-primary d-inline-flex align-items-center gap-2"
-              onClick={() => { void reloadFromCloud(true); }}
-              disabled={isOffline}
-            >
-              <FiRefreshCw size={16} /> إعادة المحاولة
-            </button>
-            <p className="text-muted small mt-3 mb-0">
-              لن تُعرض نسخة قديمة ناقصة بدل المحتوى الحقيقي.
-            </p>
-          </div>
+          <ErrorState
+            kind={isOffline ? 'offline' : 'network'}
+            title="تعذّر تحميل المسائل"
+            message={isOffline
+              ? 'لا يوجد اتصال بالإنترنت، ولا توجد نسخة محفوظة على هذا الجهاز بعد. أول قراءة تحتاج الاتصال، وبعدها تعمل أوفلاين.'
+              : 'لم يصل المحتوى من السحابة. تحقّق من الاتصال ثم أعد المحاولة.'}
+            primaryAction={(
+              <RetryButton
+                onRetry={() => { void reloadFromCloud(true); }}
+                disabled={isOffline}
+                busy={false}
+              />
+            )}
+          />
         ) : (
         <AnimatePresence initial={false}>
           <motion.div
@@ -185,15 +181,21 @@ const AppLayout = () => {
                 lessons.length === 0 ? (
                   <ViewSpinner label="جارٍ تحميل المسألة..." />
                 ) : (
-                  <EmptyState
-                    icon={FiAlertCircle}
+                  <ErrorState
+                    kind="notfound"
                     title="المسألة غير موجودة"
-                    message="ربما حُذفت هذه المسألة أو الرابط غير صحيح."
-                  >
-                    <button className="btn btn-primary mt-1" onClick={() => setCurrentView('books')}>
-                      العودة إلى الكتب
-                    </button>
-                  </EmptyState>
+                    message="ربما حُذفت هذه المسألة أو أن رابط المشاركة قديم. يمكنك البدء من فهرس الكتب أو البحث في المسائل."
+                    primaryAction={(
+                      <button type="button" className="btn btn-sm btn-primary error-retry-btn" onClick={() => setCurrentView('books')}>
+                        العودة إلى الكتب
+                      </button>
+                    )}
+                    secondaryActions={(
+                      <button type="button" className="btn btn-sm btn-outline-secondary error-screen-btn" onClick={onOpenSearch}>
+                        بحث في المسائل
+                      </button>
+                    )}
+                  />
                 )
               )}
 

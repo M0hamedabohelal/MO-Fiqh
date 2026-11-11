@@ -1,6 +1,7 @@
 // تسجيل مركزي للأخطاء — بديل خفيف لـ Sentry
 // يكتب دائمًا في console، ويكتب في Firestore (client_errors) للمستخدم المسجل فقط وبحد أقصى.
 import { safeGet, safeSet } from './safeStorage';
+import { createIncidentId, isValidIncidentId, readIncidentRing } from '../errors/incident';
 
 // خنق منفصل لكل scope: كل مصدر خطأ يحتفظ بمؤقته الخاص بدل مؤقت عالمي واحد
 // يأكل آخر خطأ ما قبله — الحد الأقصى: حدث واحد/دقيقة لكل scope.
@@ -11,8 +12,10 @@ const MAX_MSG = 300;
 export function logError(scope: string, err: unknown, extra?: Record<string, unknown>): void {
   const message = err instanceof Error ? err.message : String(err ?? 'unknown');
   const short = message.slice(0, MAX_MSG);
+  // الرمز يُمرَّر من الواجهة (حتى يتطابق ما يراه المستخدم مع ما يُسجَّل)، وإلا يُنشأ الآن
+  const incidentId = isValidIncidentId(extra?.incidentId) ? String(extra?.incidentId) : createIncidentId();
   try {
-    console.error(`[${scope}]`, short, extra ?? '');
+    console.error(`[${scope}] ${incidentId}`, short, extra ?? '');
   } catch {
     /* تجاهل */
   }
@@ -35,10 +38,14 @@ export function logError(scope: string, err: unknown, extra?: Record<string, unk
       const { db, fsMod } = await getFirestore();
       await fsMod.addDoc(fsMod.collection(db, 'client_errors'), {
         scope,
+        incidentId,
         message: short,
         extra: extra ?? null,
         url: location.href,
         at: Date.now(),
+        ua: navigator.userAgent.slice(0, 180),
+        // مسار الجلسة قبل الخطأ — سياق كان غائبًا (ماذا كان يحدث قبل الفشل)
+        trail: readIncidentRing().slice(-5).map((e) => `${e.kind}:${e.scope}`),
         // انتهاء تلقائي بعد 30 يومًا عبر سياسة TTL على هذا الحقل (تُفعَّل من الكونسول)
         expireAt: fsMod.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
       });

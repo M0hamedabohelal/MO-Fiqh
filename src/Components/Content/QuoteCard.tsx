@@ -7,6 +7,7 @@ import styles from './QuoteCard.module.css';
 import { glossaryData as defaultGlossary } from '../../data/glossary';
 import { formatBrackets } from '../../utils/textFormatting';
 import { copyText } from '../../utils/clipboard';
+import { useToast } from '../../errors/useToast';
 import { sortedGlossaryTerms, createGlossaryRenderer } from '../../utils/glossaryUtil';
 import type { GlossaryMap } from '../../types';
 
@@ -38,16 +39,18 @@ interface CrossLinkAnchorPart {
 type CrossLinkPart = CrossLinkTextPart | CrossLinkAnchorPart;
 
 const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardProps) => {
+  const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [tooltipInfo, setTooltipInfo] = useState<TooltipInfo>({ show: false, term: '', definition: '', x: 0, y: 0 });
 
   const handleCopy = async (): Promise<void> => {
     const ok = await copyText(text);
     if (!ok) {
-      alert('تعذّر النسخ التلقائي — حدّد النص يدويًا وانسخه.');
+      toast.error('لم يتم النسخ — حدّد النص يدويًا وانسخه.');
       return;
     }
     setCopied(true);
+    toast.success('تم نسخ الاقتباس.');
     setTimeout(() => setCopied(false), 2000);
   };
 

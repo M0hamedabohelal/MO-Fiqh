@@ -1,7 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import { ErrorBoundary } from './ErrorBoundary';
+import { ErrorBoundary } from './errors/ErrorBoundary';
+import { ToastProvider } from './errors/ToastProvider';
+import { ConfirmProvider } from './errors/ConfirmProvider';
 import { AuthProvider } from './Components/Auth/AuthContext';
 import { installFirestoreRecovery } from './utils/firestoreRecovery';
 import { setupDeferredGA } from './utils/analytics';
@@ -36,9 +38,13 @@ if (import.meta.env.VITE_ENABLE_APPCHECK === 'true') {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <ToastProvider>
+        <ConfirmProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </ConfirmProvider>
+      </ToastProvider>
     </ErrorBoundary>
   </StrictMode>,
 );

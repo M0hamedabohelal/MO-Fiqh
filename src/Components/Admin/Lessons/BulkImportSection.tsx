@@ -5,6 +5,7 @@ import { filterValidBulkLessons } from '../../../utils/validateLesson';
 import { bulkCreateLessons } from '../../../firebase/services';
 import { inputStyle } from '../AdminStyles';
 import type { Lesson } from '../../../types';
+import { useConfirm } from '../../../errors/useConfirm';
 
 type BulkLessonInput = Omit<Lesson, 'id' | '_docId'>;
 
@@ -27,6 +28,7 @@ export const BulkImportSection = ({
   onDataChanged,
   flash,
 }: BulkImportSectionProps) => {
+  const confirm = useConfirm();
   const [busy, setBusy] = useState(false);
   const [bulkItems, setBulkItems] = useState<BulkLessonInput[]>([]);
   const [bulkFileName, setBulkFileName] = useState('');
@@ -61,7 +63,12 @@ export const BulkImportSection = ({
 
   const handleBulkImport = async (): Promise<void> => {
     if (bulkItems.length === 0 || busy) return;
-    if (!window.confirm(`هل أنت متأكد من رفع ${bulkItems.length} مسألة دفعة واحدة إلى السحابة؟`)) return;
+    const ok = await confirm({
+      title: 'رفع دفعة إلى السحابة',
+      message: `ستُرفع ${bulkItems.length} مسألة دفعة واحدة وتصير مرئية للزوار فورًا.`,
+      confirmLabel: 'رفع',
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const count = await bulkCreateLessons(bulkItems);

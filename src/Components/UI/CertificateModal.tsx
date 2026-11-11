@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiDownload, FiX, FiImage, FiCheck, FiShare2, FiEdit2 } from 'react-icons/fi';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { useToast } from '../../errors/useToast';
+import { logError } from '../../utils/logError';
 
 // CertificateModal — شهادة إتمام مخطوطة فاخرة بإطار أندلسي واسم مخصص وقابلة للتنزيل والمشاركة
 interface CertificateModalProps {
@@ -16,6 +18,7 @@ interface CertificateModalProps {
 }
 
 const CertificateModal = ({ show, bookName, userName, lessonsCount, dateLabel, onClose }: CertificateModalProps) => {
+  const toast = useToast();
   const cardRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(dialogRef, show, onClose);
@@ -54,12 +57,12 @@ const CertificateModal = ({ show, bookName, userName, lessonsCount, dateLabel, o
       setDone(true);
       setTimeout(() => setDone(false), 2000);
     } catch (err) {
-      console.error('فشل توليد الشهادة:', err);
-      alert('تعذّر توليد الشهادة، حاول مجددًا.');
+      logError('certificate.generate', err);
+      toast.error('تعذّر توليد الشهادة، حاول مجددًا.');
     } finally {
       setGenerating(false);
     }
-  }, [bookName]);
+  }, [bookName, toast]);
 
   const handleShare = useCallback(async () => {
     if (!cardRef.current) return;

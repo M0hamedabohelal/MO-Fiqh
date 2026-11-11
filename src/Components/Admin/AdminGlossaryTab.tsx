@@ -6,6 +6,7 @@ import { saveTerm, deleteTerm } from '../../firebase/services';
 import { inputStyle } from './AdminStyles';
 import { countTermMatches, normalizeGlossaryTerm } from '../../utils/glossaryUtil';
 import type { GlossaryMap, Lesson } from '../../types';
+import { useConfirm } from '../../errors/useConfirm';
 
 interface AdminGlossaryTabProps {
   glossary: GlossaryMap;
@@ -42,6 +43,7 @@ function clearGlossaryMatchesCache(): void {
 }
 
 const AdminGlossaryTab = ({ glossary, lessons, onDataChanged, flash }: AdminGlossaryTabProps) => {
+  const confirm = useConfirm();
   const [busy, setBusy] = useState(false);
   const [newTerm, setNewTerm] = useState('');
   const [newDefinition, setNewDefinition] = useState('');
@@ -202,7 +204,13 @@ const AdminGlossaryTab = ({ glossary, lessons, onDataChanged, flash }: AdminGlos
   };
 
   const handleDeleteTerm = async (term: string): Promise<void> => {
-    if (!window.confirm(`حذف المصطلح "${term}"؟ لا يمكن التراجع.`)) return;
+    const ok = await confirm({
+      title: 'حذف المصطلح',
+      message: `سيُحذف «${term}» نهائيًا من المعجم، ولا يمكن التراجع عن الحذف.`,
+      confirmLabel: 'حذف',
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await deleteTerm(term);

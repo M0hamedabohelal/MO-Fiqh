@@ -145,7 +145,34 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- هيكل تحميل/خطأ ثابت: إن فشل تحميل حزمة المدخل (شارد 404 بعد نشر، شبكة مقطوعة، CSP)
+         لا يبقى الجسم فارغًا أبيض؛ يظهر هذا النص حتى يُركَّب React فوقه.
+         الألوان هنا مستقلة عن index.css لأن الحزمة قد لا تُحمَّل أصلًا. -->
+    <div id="root">
+      <div id="boot-fallback" style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:24px;text-align:center;font-family:'Tajawal',system-ui,sans-serif;direction:rtl;background:#fafaf7;color:#2c2c2c;">
+        <div style="width:34px;height:34px;border-radius:50%;border:3px solid rgba(15,61,62,.18);border-top-color:#0f3d3e;animation:boot-spin .8s linear infinite"></div>
+        <p style="margin:0;font-size:.9rem;line-height:1.8">جارٍ تحميل يَسِّر…</p>
+        <p id="boot-fallback-late" style="margin:0;font-size:.8rem;color:#666;display:none">
+          يبدو أن التحميل تعطّل. <a href="/" style="color:#0f3d3e;font-weight:700">أعد المحاولة</a>
+        </p>
+      </div>
+      <style>
+        @keyframes boot-spin { to { transform: rotate(360deg); } }
+        html[data-theme="dark"] #boot-fallback { background: #101414 !important; color: #e6e8e6 !important; }
+        html[data-theme="dark"] #boot-fallback > div { border-color: rgba(92,192,181,.18) !important; border-top-color: #5cc0b5 !important; }
+        html[data-theme="dark"] #boot-fallback-late { color: #a9b1ad !important; }
+        html[data-theme="dark"] #boot-fallback-late a { color: #5cc0b5 !important; }
+        html[data-theme="sepia"] #boot-fallback { background: #f5efe3 !important; color: #3b332a !important; }
+        @media (prefers-reduced-motion: reduce) { #boot-fallback > div { animation: none !important; } }
+      </style>
+      <script>
+        // إن لم يُركَّب React خلال 8 ثوانٍ نعرض نص الفشل (بلا شاشة بيضاء صامتة)
+        setTimeout(function () {
+          var el = document.getElementById('boot-fallback-late');
+          if (el && document.getElementById('boot-fallback')) el.removeAttribute('style');
+        }, 8000);
+      </script>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

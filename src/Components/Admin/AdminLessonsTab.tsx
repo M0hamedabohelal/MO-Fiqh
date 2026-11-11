@@ -19,6 +19,7 @@ import { BulkImportSection } from './Lessons/BulkImportSection';
 import { LessonEditForm } from './Lessons/LessonEditForm';
 import { DeletedLessonsSection } from './Lessons/DeletedLessonsSection';
 import { LessonRowCard } from './Lessons/LessonRowCard';
+import { useConfirm } from '../../errors/useConfirm';
 import { useApp } from '../Layout/AppContext';
 
 interface AdminLessonsTabProps {
@@ -38,6 +39,7 @@ const AdminLessonsTab = ({
   initialEditLessonId,
   onClearInitialEdit,
 }: AdminLessonsTabProps) => {
+  const confirm = useConfirm();
   const { upsertLessonLocally, deleteLessonLocally } = useApp();
   const [busy, setBusy] = useState(false);
 
@@ -82,7 +84,12 @@ const AdminLessonsTab = ({
   };
 
   const handleRestoreRevision = async (docId: string, revision: LessonRevision): Promise<void> => {
-    if (!window.confirm(`هل أنت متأكد من استعادة النسخة المؤرخة في ${new Date(revision.savedAt).toLocaleString('ar-EG')}؟`)) return;
+    const ok = await confirm({
+      title: 'استعادة نسخة مؤرخة',
+      message: `ستستبدل النسخة الحالية بالنسخة المحفوظة في ${new Date(revision.savedAt).toLocaleString('ar-EG')}.`,
+      confirmLabel: 'استعادة',
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       const cleanRevision = cleanLessonForm(revision.lesson);
@@ -127,7 +134,12 @@ const AdminLessonsTab = ({
   };
 
   const handleRestoreDeletedLesson = async (item: DeletedLessonItem): Promise<void> => {
-    if (!window.confirm(`هل أنت متأكد من استعادة مسألة «${item.lesson.title}»؟`)) return;
+    const ok = await confirm({
+      title: 'استعادة مسألة محذوفة',
+      message: `ستُعاد «${item.lesson.title}» إلى القائمة.`,
+      confirmLabel: 'استعادة',
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await restoreDeletedLesson(item.docId);
