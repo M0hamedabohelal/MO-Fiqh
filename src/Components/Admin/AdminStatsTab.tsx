@@ -291,15 +291,26 @@ const AdminStatsTab = ({ lessons, cloudLessonsLoaded, cloudStatus }: AdminStatsT
         ) : (
           <div className="d-flex flex-column gap-2">
             {clientErrors.map((err) => (
-              <div key={err.id} className="d-flex align-items-start gap-2 p-2 rounded" style={{ backgroundColor: 'var(--badge-bg)' }}>
+              <div
+                key={err.id}
+                className="d-flex align-items-start gap-2 p-2 rounded"
+                style={{ backgroundColor: 'var(--badge-bg)' }}
+                title={[err.incidentId, err.ua, err.trail?.join(' ← ')].filter(Boolean).join(' • ')}
+              >
                 <div className="flex-grow-1" style={{ minWidth: 0 }}>
                   <div className="small fw-bold text-truncate">
                     <span className="badge bg-secondary me-2" style={{ fontSize: '0.65rem' }}>{err.scope}</span>
+                    {err.incidentId && (
+                      <code className="me-2" style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                        {err.incidentId}
+                      </code>
+                    )}
                     {err.message}
                   </div>
                   <small className="text-muted d-block">
                     {err.at ? new Date(err.at).toLocaleString('ar-EG') : '—'}
                     {err.url ? ` • ${String(err.url).slice(0, 60)}` : ''}
+                    {err.trail?.length ? ` • ${err.trail.join(' ← ')}` : ''}
                   </small>
                 </div>
                 <button

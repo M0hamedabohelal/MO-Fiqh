@@ -70,6 +70,18 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
     return id;
   }, [dismiss]);
 
+  // إزاحة إشعار بعد تجاوز MAX_VISIBLE تُزيله من الحالة؛ نظّف مؤقته فورًا
+  // بدل إبقائه في الخريطة حتى ينتهي (كان تسريبًا مؤقتًا صغيرًا).
+  useEffect(() => {
+    const visible = new Set(items.map((item) => item.id));
+    for (const [id, timer] of timers.current) {
+      if (!visible.has(id)) {
+        clearTimeout(timer);
+        timers.current.delete(id);
+      }
+    }
+  }, [items]);
+
   // تنظيف كل المؤقتات عند إلغاء التثبيت
   useEffect(() => {
     const map = timers.current;

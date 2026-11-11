@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
+import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ToastProvider } from './ToastProvider';
 import { useToast } from './useToast';
+import { ConfirmProvider } from './ConfirmProvider';
+import { useConfirm } from './useConfirm';
 
 // شاشة E1: تظهر بلا stack trace، تحمل رمز حادثة، وتُخفي تفاصيل الملفات عن المستخدم.
 // الإشعارات: تحل محل alert، وتحترم حدّ 3 رسائل، وتُعلن لقارئ الشاشة.
@@ -90,5 +93,44 @@ describe('ToastProvider', () => {
 
   it('خارج المزوّد لا يرمي (مكوّن معزول)', () => {
     expect(() => render(<Toaster />)).not.toThrow();
+  });
+});
+
+function ConfirmHarness() {
+  const confirm = useConfirm();
+  const [first, setFirst] = useState('pending');
+  const [second, setSecond] = useState('pending');
+  return (
+    <>
+      <button type="button" onClick={() => { void confirm({ title: 'الأول' }).then((ok) => setFirst(ok ? 'ok' : 'cancelled')); }}>
+        افتح الأول
+      </button>
+      <button type="button" onClick={() => { void confirm({ title: 'الثاني' }).then((ok) => setSecond(ok ? 'ok' : 'cancelled')); }}>
+        افتح الثاني
+      </button>
+      <output data-testid="first">{first}</output>
+      <output data-testid="second">{second}</output>
+    </>
+  );
+}
+
+describe('ConfirmProvider', () => {
+  afterEach(() => cleanup());
+
+  // طلب جديد أثناء حوار مفتوح كان يترك وعد الطلب الأول معلّقًا للأبد.
+  it('طلب جديد يحسم السابق بـ«إلغاء» ويعرض الجديد', async () => {
+    render(<ConfirmProvider><ConfirmHarness /></ConfirmProvider>);
+
+    fireEvent.click(screen.getByText('افتح الأول'));
+    expect(screen.getByRole('alertdialog')).toBeTruthy();
+
+    fireEvent.click(screen.getByText('افتح الثاني'));
+
+    await waitFor(() => expect(screen.getByTestId('first').textContent).toBe('cancelled'));
+    expect(screen.getByRole('heading', { level: 2, name: 'الثاني' })).toBeTruthy();
+    expect(screen.getByTestId('second').textContent).toBe('pending');
+
+    fireEvent.click(screen.getByRole('button', { name: /تأكيد/ }));
+    await waitFor(() => expect(screen.getByTestId('second').textContent).toBe('ok'));
   });
 });

@@ -343,6 +343,13 @@ export interface ClientErrorItem {
   message: string;
   url?: string;
   at: number;
+  /** رمز الحادثة الذي يراه المستخدم (err_xxxxxxxx) — يربط الشكوى بالسجل */
+  incidentId?: string;
+  /** وكيل المستخدم المختصر — لتمييز أخطاء متصفح معين */
+  ua?: string;
+  /** مسار الجلسة قبل الخطأ (kind:scope) — سياق آخر الأحداث */
+  trail?: string[];
+  extra?: Record<string, unknown>;
 }
 
 // أحدث أخطاء العملاء (القواعد: قراءة/حذف للأدمن فقط)

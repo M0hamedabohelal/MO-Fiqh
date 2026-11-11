@@ -6,6 +6,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 
 const logError = vi.fn();
 const setDoc = vi.fn(async () => {});
+const getDoc = vi.fn(async () => ({ exists: () => false, data: () => ({}) }));
 let snapshotCb: ((s: unknown) => void) | null = null;
 let errorCb: ((e: unknown) => void) | null = null;
 const unsubscribe = vi.fn();
@@ -23,6 +24,7 @@ vi.mock('../Components/Auth/AuthContext', () => ({
 vi.mock('../utils/logError', () => ({ logError: (...a: unknown[]) => logError(...a) }));
 vi.mock('firebase/firestore', () => ({
   doc: (_db: unknown, ...path: string[]) => ({ path: path.join('/') }),
+  getDoc: (...a: unknown[]) => getDoc(...(a as [])),
   onSnapshot: (_ref: unknown, onNext: (s: unknown) => void, onErr: (e: unknown) => void) => {
     snapshotCb = onNext;
     errorCb = onErr;
@@ -32,6 +34,8 @@ vi.mock('firebase/firestore', () => ({
 }));
 
 import { useAnnouncements } from './useAnnouncements';
+import { fetchAnnouncements } from '../firebase/services';
+import { setSyncDisabled } from '../utils/librarySync';
 
 const snap = (items: string[] | null) => ({
   exists: () => items !== null,
@@ -107,6 +111,36 @@ describe('useAnnouncements — مزامنة مقروء الإشعارات', () =
     await waitFor(() => expect(errorCb).toBeTruthy());
     await act(async () => { errorCb?.(new Error('unavailable')); });
     expect(logError).toHaveBeenCalledTimes(1);
+  });
+
+  it('markAsRead يكتب سحابيًا عندما تكون المزامنة مفعّلة', async () => {
+    vi.mocked(fetchAnnouncements).mockResolvedValueOnce([
+      { id: 'a', title: 'عنوان', body: 'نص', createdAt: 1 },
+    ]);
+    const { result, unmount } = renderHook(() => useAnnouncements());
+    await waitFor(() => expect(result.current.announcements).toHaveLength(1));
+
+    setDoc.mockClear();
+    act(() => result.current.markAsRead());
+
+    await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1));
+    unmount();
+  });
+
+  it('markAsRead لا يكتب سحابيًا عندما تكون المزامنة موقوفة', async () => {
+    vi.mocked(fetchAnnouncements).mockResolvedValueOnce([
+      { id: 'a', title: 'عنوان', body: 'نص', createdAt: 1 },
+    ]);
+    setSyncDisabled('u1', true);
+    const { result, unmount } = renderHook(() => useAnnouncements());
+    await waitFor(() => expect(result.current.announcements).toHaveLength(1));
+
+    setDoc.mockClear();
+    act(() => result.current.markAsRead());
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    expect(setDoc).not.toHaveBeenCalled();
+    unmount();
   });
 
   it('الكتابة الجارية لا تُسقط التحديث الجديد وتدفعه في طابور', async () => {

@@ -133,12 +133,16 @@ service cloud.firestore {
     }
 
     // ─── سجل أخطاء العميل: إنشاء للمسجلين فقط بصيغة مقيدة، قراءة/حذف للأدمن ───
-    // التقييد يمنع تحويل المجموعة لمخزن بيانات مجاني: حقول ثابتة وأطوال قصوى فقط،
-    // وتتوافق تمامًا مع ما يكتبه logError.ts (scope/message/at/url/extra — والرسالة ≤300 أصلًا)
+    // التقييد يمنع تحويل المجموعة لمخزن بيانات مجاني: حقول ثابتة وأطوال قصوى فقط.
+    // يجب أن يطابق ما يكتبه logError.ts حرفيًا: الحقول الأساسية + incidentId/ua/trail،
+    // وإلا رُفضت كل كتابة بصمت (permission-denied) وضاع أثر الأخطاء.
     match /client_errors/{docId} {
       allow read, delete: if isAdmin();
       allow create: if isSignedIn()
-        && request.resource.data.keys().hasOnly(['scope', 'message', 'extra', 'url', 'at', 'expireAt'])
+        && request.resource.data.keys().hasOnly([
+          'scope', 'message', 'extra', 'url', 'at', 'expireAt',
+          'incidentId', 'ua', 'trail'
+        ])
         && request.resource.data.scope is string
         && request.resource.data.scope.size() <= 100
         && request.resource.data.message is string
@@ -147,6 +151,16 @@ service cloud.firestore {
         && request.resource.data.url.size() <= 500
         && request.resource.data.at is number
         && request.resource.data.expireAt is timestamp
+        // الحقول الجديدة اختيارية للتوافق الخلفي، لكنها مقيّدة عند وجودها
+        && (request.resource.data.get('incidentId', null) == null
+          || (request.resource.data.incidentId is string
+            && request.resource.data.incidentId.matches('^err_[0-9a-f]{8}$')))
+        && (request.resource.data.get('ua', null) == null
+          || (request.resource.data.ua is string
+            && request.resource.data.ua.size() <= 180))
+        && (request.resource.data.get('trail', null) == null
+          || (request.resource.data.trail is list
+            && request.resource.data.trail.size() <= 5))
         && (request.resource.data.extra == null
           || (request.resource.data.extra is map && request.resource.data.extra.size() <= 10));
       allow update: if false;

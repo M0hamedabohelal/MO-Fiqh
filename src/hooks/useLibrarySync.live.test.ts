@@ -32,7 +32,7 @@ vi.mock('../Components/Auth/AuthContext', () => ({
 vi.mock('../utils/logError', () => ({ logError: vi.fn() }));
 
 import { useLibrarySync } from './useLibrarySync';
-import { setSyncDisabled, isSyncDisabled } from '../utils/librarySync';
+import { setSyncDisabled, isSyncDisabled, requestLibraryResync } from '../utils/librarySync';
 import { stopMarkBookKey } from '../features/stopMarks/model';
 import type { StopMarkMap } from '../features/stopMarks/model';
 
@@ -51,6 +51,7 @@ const baseData = (over: Record<string, unknown> = {}) => ({
 describe('useLibrarySync — مزامنة حيّة', () => {
   beforeEach(() => {
     currentUid = 'u1';
+    localStorage.clear();
     setDoc.mockClear();
     getDoc.mockClear();
     snapshotCb = null;
@@ -402,4 +403,44 @@ describe('useLibrarySync — مزامنة حيّة', () => {
 
     unmount();
   }, 15000);
+
+  it('حذف المستند سحابيًا يوقف المزامنة حتى لو لم يسبق الدفع في الجلسة', async () => {
+    localStorage.setItem('library_stamps_v1_u1', JSON.stringify({ 'bm:1': 1 }));
+    const { unmount } = renderHook(() => useLibrarySync({
+      ready: true, data: baseData({ bookmarks: ['1'] }), onMerged: vi.fn(),
+    }));
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+
+    await act(async () => {
+      snapshotCb?.({ exists: () => false, data: () => ({}) });
+    });
+
+    expect(isSyncDisabled('u1')).toBe(true);
+    unmount();
+    setSyncDisabled('u1', false);
+  }, 10000);
+
+  it('طلب استئناف صريح يعيد إنشاء المستند المحذوف بدل تعطيل المزامنة مجددًا', async () => {
+    localStorage.setItem('library_stamps_v1_u1', JSON.stringify({ 'bm:1': 1 }));
+    requestLibraryResync('u1');
+    setDoc.mockClear();
+
+    const { unmount } = renderHook(() => useLibrarySync({
+      ready: true, data: baseData({ bookmarks: ['1'] }), onMerged: vi.fn(),
+    }));
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+
+    await act(async () => {
+      snapshotCb?.({ exists: () => false, data: () => ({}) });
+    });
+
+    await waitFor(() => expect(setDoc).toHaveBeenCalled(), { timeout: 3000 });
+    expect(isSyncDisabled('u1')).toBe(false);
+    expect(localStorage.getItem('library_resync_requested_u1')).toBeNull();
+
+    const lastCall = setDoc.mock.calls[setDoc.mock.calls.length - 1] as unknown[];
+    const written = lastCall?.[1] as { bookmarks: string[] };
+    expect(written.bookmarks).toEqual(['1']);
+    unmount();
+  }, 10000);
 });

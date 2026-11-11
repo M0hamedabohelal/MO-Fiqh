@@ -81,6 +81,8 @@ describe('useStopMarks — حساب', () => {
 
     expect(result.current.stopMarks[TRI].lessonId).toBe('3');
     expect(readMarks(accountKey('user-A'))[TRI].lessonId).toBe('3');
+    // لا تبقى نسخة ضيف تُدمج مجددًا في الدخول التالي
+    expect(localStorage.getItem(GUEST_KEY)).toBeNull();
   });
 
   it('يحفظ تحت مفتاح الحساب لا مفتاح الضيف', async () => {

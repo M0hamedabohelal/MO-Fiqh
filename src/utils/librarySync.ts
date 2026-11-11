@@ -69,6 +69,28 @@ export const setSyncDisabled = (uid: string, disabled: boolean): void => {
   }
 };
 
+export const resyncRequestedKey = (uid: string): string => 'library_resync_requested_' + uid;
+
+/**
+ * طلب صريح من المستخدم بإعادة إنشاء المستند السحابي بعد حذفه (زر «استئناف المزامنة»).
+ * لا تُستهلك العلامة إلا عند رؤية مستند غائب، وتُمسح عند رؤية مستند موجود
+ * حتى لا يتحول طلب قديم إلى تجاوز لحذف لاحق من جهاز آخر.
+ */
+export const requestLibraryResync = (uid: string): void => {
+  if (!uid) return;
+  safeSet(resyncRequestedKey(uid), String(Date.now()));
+};
+
+/** استهلاك طلب إعادة الإنشاء مرة واحدة فقط، وصلاحية الطلب 10 دقائق */
+export const consumeLibraryResync = (uid: string | null | undefined): boolean => {
+  if (!uid) return false;
+  const raw = safeGet(resyncRequestedKey(uid));
+  if (!raw) return false;
+  safeRemove(resyncRequestedKey(uid));
+  const at = Number(raw);
+  return Number.isFinite(at) && Date.now() - at < 10 * 60 * 1000;
+};
+
 /** اشتراك في تغييرات حالة تعطيل المزامنة (للاستخدام مع useSyncExternalStore) */
 export const subscribeSyncDisabled = (callback: () => void): (() => void) => {
   if (typeof window === 'undefined') return () => {};

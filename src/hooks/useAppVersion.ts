@@ -105,19 +105,35 @@ const CHECK_INTERVAL_MS = 2 * 60 * 1000;
 
 // هل التحديث التلقائي آمن الآن؟ القاعدة: لا نُقاطع كتابةً جارية.
 // الملاحظات في هذا التطبيق تُحفظ بزر «حفظ» لا مع كل حرف، فإعادة تحميل مفاجئة أثناء
-// الكتابة تُفقد المسودة. نتحقق من العنصر النشط: حقل بمحتوى = غير آمن، وما عداه آمن.
-export const isSafeToAutoReload = (doc: Document = document): boolean => {
-  const el = doc.activeElement as HTMLElement | null;
-  if (!el) return true;
-  const tag = el.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
-    return String((el as HTMLInputElement).value ?? '').trim() === '';
+// الكتابة تُفقد المسودة. لا يكفي فحص العنصر النشط: المستخدم قد ينقر خارج الحقل
+// ومسودته ما زالت داخله، فيمرّ التحديث ويضيع ما لم يُحفظ. نفحص كل حقول النص.
+const NON_DRAFT_INPUT_TYPES = new Set([
+  'hidden', 'checkbox', 'radio', 'file', 'button', 'submit', 'reset', 'range', 'color', 'search',
+]);
+
+const hasUnsavedText = (el: Element): boolean => {
+  if (el.tagName === 'TEXTAREA') {
+    const field = el as HTMLTextAreaElement;
+    return !field.disabled && !field.readOnly && field.value.trim() !== '';
+  }
+  if (el.tagName === 'INPUT') {
+    const field = el as HTMLInputElement;
+    if (field.disabled || field.readOnly || NON_DRAFT_INPUT_TYPES.has(field.type)) return false;
+    return field.value.trim() !== '';
   }
   // سمة contenteditable لا خاصية isContentEditable: الثانية غير منفَّذة في بيئة الاختبار
   // (jsdom) فتُرجع دائمًا false فيمرّ الاختبار كاذبًا.
-  const editableAttr = el.getAttribute?.('contenteditable');
-  if (el.isContentEditable || editableAttr === '' || editableAttr === 'true') {
-    return String(el.textContent ?? '').trim() === '';
+  const editableAttr = (el.getAttribute('contenteditable') ?? '').toLowerCase();
+  if (editableAttr === '' || editableAttr === 'true' || editableAttr === 'plaintext-only') {
+    return String(el.textContent ?? '').trim() !== '';
+  }
+  return false;
+};
+
+export const isSafeToAutoReload = (doc: Document = document): boolean => {
+  const fields = doc.querySelectorAll('textarea, input, [contenteditable]');
+  for (const field of fields) {
+    if (hasUnsavedText(field)) return false;
   }
   return true;
 };
@@ -174,6 +190,8 @@ export function useAppVersion(): AppVersionState {
   const [reloading, setReloading] = useState(false);
   const [checkStatus, setCheckStatus] = useState<'idle' | 'up-to-date' | 'update-ready' | 'network-error' | 'dev'>('idle');
   const [dismissed, setDismissed] = useState(false);
+  // يزيد عند مغادرة حقل/عودة التبويب لإعادة تقييم أمان التحديث بعد انتهاء المسودة
+  const [safetyTick, setSafetyTick] = useState(0);
   const inFlightRef = useRef(false);
 
   const checkNow = useCallback(async (): Promise<boolean> => {
@@ -364,6 +382,21 @@ export function useAppVersion(): AppVersionState {
 
   const dismiss = useCallback((): void => setDismissed(true), []);
 
+  // إن كان التحديث جاهزًا والوقت غير آمن، أعد التقييم عند مغادرة الحقول أو عودة التبويب.
+  // بدون ذلك كانت المحاولة تعلق حتى جلسة جديدة إن كانت المسودة مفتوحة لحظة وصول التحديث.
+  useEffect(() => {
+    if (!updateReady || dismissed) return undefined;
+    const bump = (): void => setSafetyTick((tick) => tick + 1);
+    document.addEventListener('focusout', bump);
+    document.addEventListener('visibilitychange', bump);
+    window.addEventListener('focus', bump);
+    return () => {
+      document.removeEventListener('focusout', bump);
+      document.removeEventListener('visibilitychange', bump);
+      window.removeEventListener('focus', bump);
+    };
+  }, [updateReady, dismissed]);
+
   // تطبيق التحديث تلقائيًا حين يكون آمنًا.
   // سبب الوجود: بعد كل نشر يظل الـ Service Worker يخدم الهيكل القديم من precache حتى
   // يضغط المستخدم «تحديث الآن». عمليًا: يفتح رابطًا فيرى نسخة قديمة، ولا تظهر الجديدة
@@ -375,13 +408,26 @@ export function useAppVersion(): AppVersionState {
     // محاولة واحدة فقط في الجلسة — يمنع حلقة إعادة تحميل إن لم يستلم العامل النسخة الجديدة
     try {
       if (sessionStorage.getItem(AUTO_APPLY_KEY) === '1') return undefined;
-      sessionStorage.setItem(AUTO_APPLY_KEY, '1');
     } catch {
       return undefined; // بلا تخزين جلسة لا نُخاطر بحلقة
     }
-    const t = setTimeout(() => reloadNow(), AUTO_APPLY_DELAY_MS);
+    const t = setTimeout(() => {
+      // إعادة الفحص قبل التنفيذ: قد يبدأ المستخدم الكتابة خلال مهلة الانتظار
+      if (!isSafeToAutoReload()) {
+        setSafetyTick((tick) => tick + 1);
+        return;
+      }
+      // العلامة تُكتب لحظة التنفيذ فقط؛ لو أُلغيت المحاولة بسبب مسودة
+      // فلا تُحجب المحاولة التالية بعد حفظها/إغلاقها.
+      try {
+        sessionStorage.setItem(AUTO_APPLY_KEY, '1');
+      } catch {
+        return;
+      }
+      reloadNow();
+    }, AUTO_APPLY_DELAY_MS);
     return () => clearTimeout(t);
-  }, [updateReady, dismissed, reloadNow]);
+  }, [updateReady, dismissed, reloadNow, safetyTick]);
 
   // الاستماع لتحديثات الـ Service Worker (PWA)
   useEffect(() => {

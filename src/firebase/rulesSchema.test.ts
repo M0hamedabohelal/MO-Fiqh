@@ -175,3 +175,76 @@ describe('Firestore Rules — فحص تطابق نصي ومحاكاة منطقي
     expect(evaluateAnnouncementReadsRule('u1', 'u1', invalid)).toBe(false);
   });
 });
+
+// ─── عقد client_errors: القواعد يجب أن تسمح بكل ما يكتبه logError ───
+// كان انفصال المخطط سبب عطل حقيقي: logError يكتب incidentId/ua/trail، والقواعد
+// تسمح بستة حقول فقط، فتُرفض كل كتابة بصمت. هذا الاختبار يمنع تكرار الانفصال.
+describe('Firestore Rules — عقد سجل أخطاء العميل', () => {
+  const rulesContent = readFileSync(resolve(process.cwd(), 'firestore.rules'), 'utf8');
+  const clientErrorsBlock = rulesContent.slice(rulesContent.indexOf('match /client_errors'));
+  const parsedAllowedKeys = (() => {
+    const list = clientErrorsBlock.match(/hasOnly\(\[([\s\S]*?)\]\)/)?.[1] ?? '';
+    return (list.match(/'([^']+)'/g) ?? []).map((quoted) => quoted.slice(1, -1));
+  })();
+  const allowedKeys = new Set(parsedAllowedKeys);
+
+  // الحقول التي يكتبها src/utils/logError.ts — أي حقل جديد يجب إضافته للقواعد هنا أيضًا
+  const loggedFields = [
+    'scope', 'incidentId', 'message', 'extra', 'url', 'at', 'ua', 'trail', 'expireAt',
+  ];
+
+  const evaluateClientErrorsRule = (data: Record<string, unknown>): boolean => {
+    if (Object.keys(data).some((key) => !allowedKeys.has(key))) return false;
+    if (typeof data.scope !== 'string' || data.scope.length > 100) return false;
+    if (typeof data.message !== 'string' || data.message.length > 300) return false;
+    if (typeof data.url !== 'string' || data.url.length > 500) return false;
+    if (typeof data.at !== 'number') return false;
+    if (data.expireAt == null) return false;
+    if (data.incidentId != null && !/^err_[0-9a-f]{8}$/.test(String(data.incidentId))) return false;
+    if (data.ua != null && (typeof data.ua !== 'string' || data.ua.length > 180)) return false;
+    if (data.trail != null && (!Array.isArray(data.trail) || data.trail.length > 5)) return false;
+    if (data.extra != null) {
+      if (typeof data.extra !== 'object' || Array.isArray(data.extra)) return false;
+      if (Object.keys(data.extra as Record<string, unknown>).length > 10) return false;
+    }
+    return true;
+  };
+
+  const validPayload = {
+    scope: 'boundary.render',
+    incidentId: 'err_0011aabb',
+    message: 'خطأ تجريبي',
+    extra: { incidentId: 'err_0011aabb' },
+    url: 'https://fqh.me/',
+    at: Date.now(),
+    ua: 'Mozilla/5.0 (Test)',
+    trail: ['render:boundary'],
+    expireAt: { seconds: 1 },
+  };
+
+  it('كل حقل يكتبه logError موجود في قواعد client_errors', () => {
+    expect(parsedAllowedKeys.length).toBeGreaterThan(0);
+    const logErrorSource = readFileSync(resolve(process.cwd(), 'src/utils/logError.ts'), 'utf8');
+    for (const field of loggedFields) {
+      expect(allowedKeys.has(field), `الحقل ${field} غير مسموح في firestore.rules`).toBe(true);
+      expect(logErrorSource).toContain(field);
+    }
+  });
+
+  it('حالة إيجابية: الحمولة الفعلية لـ logError تُقبل', () => {
+    expect(evaluateClientErrorsRule(validPayload)).toBe(true);
+  });
+
+  it('حالة سلبية: رفض حقل غير مصرح به', () => {
+    expect(evaluateClientErrorsRule({ ...validPayload, injected: 'x' })).toBe(false);
+  });
+
+  it('حالة سلبية: رفض incidentId غير مطابق للصيغة', () => {
+    expect(evaluateClientErrorsRule({ ...validPayload, incidentId: 'err_XYZ' })).toBe(false);
+  });
+
+  it('حالة سلبية: رفض مسار جلسة أطول من 5 عناصر أو UA أطول من 180', () => {
+    expect(evaluateClientErrorsRule({ ...validPayload, trail: new Array(6).fill('x') })).toBe(false);
+    expect(evaluateClientErrorsRule({ ...validPayload, ua: 'x'.repeat(181) })).toBe(false);
+  });
+});

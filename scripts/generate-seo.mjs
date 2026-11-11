@@ -2,6 +2,7 @@
 // بمحتوى كامل + ميتا + JSON-LD في مسارات نظيفة، تُنسَخ تلقائيًا مع البناء.
 // الاستخدام: node scripts/generate-seo.mjs  (يُشغَّل تلقائيًا قبل vite build)
 import { mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -998,6 +999,25 @@ for (const name of bookNames) {
   );
 }
 
+// تاريخ محتوى مستقر: «اليوم» ليس lastmod صادقًا — كان يجعل sitemap يتغيّر مع كل بناء
+// بلا تغيير محتوى. نأخذ تاريخ آخر كوميت للقطة المحلية، ثم mtime، ثم اليوم كآخر حل.
+function contentSnapshotDate() {
+  try {
+    const out = execFileSync('git', ['log', '-1', '--format=%cs', '--', 'data/content/lessons.json'], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(out)) return out;
+  } catch { /* git غير متاح في بيئة النشر */ }
+  try {
+    return new Date(statSync(join(root, 'data/content/lessons.json')).mtimeMs).toISOString().slice(0, 10);
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+const contentDate = contentSnapshotDate();
+
 // تاريخ التعديل الحقيقي: أحدث طابع زمني في بيانات ذلك الكتاب (سحابة/نسخة احتياطية)
 const timestampOf = (l) =>
   [l.updatedAt, l.updated_at, l.updatedOn, l.createdAt]
@@ -1029,10 +1049,9 @@ for (const l of lessonsData) {
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'index.html'), lessonPage(l, bookLessons, bookName), 'utf8');
   const t = timestampOf(l);
-  const fallbackDate = new Date().toISOString().slice(0, 10);
   lessonLastmod[String(l.id)] = t
     ? new Date(t).toISOString().slice(0, 10)
-    : (bookLastmod[bookName] || fallbackDate);
+    : (bookLastmod[bookName] || contentDate);
   count += 1;
 }
 
@@ -1093,7 +1112,7 @@ try {
 }
 
 // ── sitemap شامل ──
-const globalLastmod = lastmodOf(lessonsData) || new Date().toISOString().slice(0, 10);
+const globalLastmod = lastmodOf(lessonsData) || contentDate;
 const urlEntry = (loc, lastmod, extra = '') =>
   `  <url><loc>${loc}</loc><lastmod>${lastmod || globalLastmod}</lastmod><changefreq>weekly</changefreq>${extra}</url>`;
 const urls = [

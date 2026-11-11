@@ -15,6 +15,7 @@ import {
   isSyncDisabled,
   setSyncDisabled,
   subscribeSyncDisabled,
+  consumeLibraryResync,
 } from '../utils/librarySync';
 import type { SyncableLibrary } from '../utils/librarySync';
 import type { HighlightItem } from '../types';
@@ -95,6 +96,8 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   const pushingRef = useRef<boolean>(false);
   // عداد محاولات إعادة الدفع عند الفشل (لتطبيق التراجع الأسي والتوقف بعد سقف محدد)
   const retryCountRef = useRef<number>(0);
+  // جيل المزامنة: يتغيّر عند تبديل الحساب، فيمنع دفعًا قديمًا من تلويث مراجع الجلسة الجديدة
+  const generationRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMergedRef = useRef(onMerged);
   const dataRef = useRef(data);
@@ -120,6 +123,7 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   useEffect(() => {
     if (currentUidRef.current !== uid) {
       currentUidRef.current = uid;
+      generationRef.current += 1;
       lastPushedRef.current = '';
       pendingPushSignatureRef.current = '';
       pendingSnapshotRef.current = undefined;
@@ -141,9 +145,17 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
         lastPushedRef.current = '';
         return;
       }
-      // إذا حُذف المستند سحابيًا وكان الحساب متزامنًا بالفعل، فهذا حذف صريح لحق النسيان
-      // نعطل المزامنة لحماية قرار الحذف ومنع إحيائه تلقائيًا
-      if (Object.keys(stampsRef.current).length > 0 && lastPushedRef.current !== '') {
+      // استئناف صريح بعد حذف: المستخدم وافق على إعادة إنشاء المستند، فلا نعطّل المزامنة.
+      // نصفّر السابق حتى تُختم كل العناصر الحالية بطابع جديد عند الرفع.
+      if (consumeLibraryResync(uid)) {
+        previousDataRef.current = emptyLibrary();
+        lastPushedRef.current = '';
+        schedulePushRef.current();
+        return;
+      }
+      // وجود أختام محلية يعني أن المستند كان موجودًا ثم حُذف — حتى لو لم ندفع في هذه الجلسة.
+      // الاعتماد على lastPushedRef وحده كان يسمح لإعادة التشغيل أو جهاز آخر بإحياء المحذوف.
+      if (Object.keys(stampsRef.current).length > 0) {
         if (uid) setSyncDisabled(uid, true);
         lastPushedRef.current = '';
         return;
@@ -152,6 +164,9 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
       lastPushedRef.current = '';
       return;
     }
+
+    // مستند موجود = لا حاجة لعلامة إعادة إنشاء قديمة (استئناف عادي بلا حذف)
+    if (uid) consumeLibraryResync(uid);
 
     // صدى كتابتنا نحن: التوقيع السحابي = آخر ما كتبناه أو ما ندفعه حاليًا → لا شيء نفعله
     const cloud = toSyncable(
@@ -202,8 +217,15 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
         }
       }, APPLYING_WINDOW_MS);
     } else {
-      lastPushedRef.current = mergedSignature;
       applyingRef.current = false;
+      // الدمج لم يغيّر المحلي، لكن السحابة ليست مطابقة له (عناصر محلية فقط).
+      // وسمُها كـ«آخر ما رُفع» كان يُسقط الرفع نهائيًا حتى يطرأ تعديل لاحق.
+      if (cloudSignature !== localSignature) {
+        lastPushedRef.current = '';
+        schedulePushRef.current();
+      } else {
+        lastPushedRef.current = mergedSignature;
+      }
     }
   }, [uid]);
   useEffect(() => { mergeAndApplyRef.current = mergeAndApply; }, [mergeAndApply]);
@@ -253,6 +275,8 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   // 2) الدفع عند تغيّر المحتوى — ذكي ومتكيف (300ms للمهام السريعة، 1000ms للملاحظات)
   const schedulePush = useCallback(() => {
     if (!cloudEnabled(uid)) return;
+    // مؤقت قديم قد ينطلق بعد تبديل الحساب: لا تدفع بيانات الحساب الجديد إلى وثيقة القديم
+    if (currentUidRef.current !== uid) return;
 
     // أثناء تطبيق دمج أو دفع جارٍ لا نُسقط الدفعة بل نُعيد جدولتها سريعًا (200ms)
     if (applyingRef.current || pushingRef.current) {
@@ -267,6 +291,8 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
 
     pushingRef.current = true;
     pendingPushSignatureRef.current = signature;
+    const runUid = uid;
+    const generation = generationRef.current;
 
     void (async () => {
       try {
@@ -353,6 +379,9 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
           },
         );
 
+        // تبديل الحساب أثناء الكتابة: لا تلمس مراجع الجلسة الجديدة ولا تختم نجاحًا لحساب آخر
+        if (generationRef.current !== generation || currentUidRef.current !== runUid) return;
+
         // نجحت الكتابة: الآن فقط نعتمد الحالة السابقة والأختام وآخر توقيع
         previousDataRef.current = payload;
         lastPushedRef.current = signature;
@@ -361,6 +390,8 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
         retryCountRef.current = 0;
         if (uid) safeSet(stampsStorageKey(uid), JSON.stringify(cleanStamps));
       } catch (error) {
+        // فشل دفعة حساب سابق بعد تبديل الحساب: لا تلمس مراجع الحساب الجديد ولا تعِد الجدولة
+        if (generationRef.current !== generation || currentUidRef.current !== runUid) return;
         logError('library.sync.push', error);
         // في حال فشل الكتابة (أوفلاين/حصة): لا نقدّم previousDataRef حتى تظل المحذوفات محفوظة
         lastPushedRef.current = '';
@@ -376,7 +407,11 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
           retryCountRef.current = 0;
         }
       } finally {
-        pushingRef.current = false;
+        // لا تُطفئ علم الدفع إلا إن كانت هذه الدفعة تخص الجيل الحالي؛
+        // وإلا أطفأت علم دفعة الحساب الجديد التي قد تكون جارية.
+        if (generationRef.current === generation && currentUidRef.current === runUid) {
+          pushingRef.current = false;
+        }
       }
     })();
   }, [uid]);

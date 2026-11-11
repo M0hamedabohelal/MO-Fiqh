@@ -47,7 +47,14 @@ export function useAppData({ isOffline, deferCloud = false }: { isOffline: boole
   // إعادة التحميل = إعادة فتح مستمع المسائل. العدّاد يُغيّر هوية الأثر فيُعاد الاشتراك،
   // والوعد المعلّق يُحسم بأول لقطة خادمية مؤكدة (أو بمهلة) بدل قراءة لقطية منفصلة.
   const [listenerRevision, setListenerRevision] = useState(0);
-  const pendingReloadRef = useRef<{ resolve: (ok: boolean) => void; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const pendingReloadRef = useRef<{
+    resolve: (ok: boolean) => void;
+    timer: ReturnType<typeof setTimeout>;
+    promise: Promise<boolean>;
+    manual: boolean;
+    /** أُلغي لصالح طلب يدوي أحدث: لا يُنفّذ آثار فشل عند حسمه */
+    superseded: boolean;
+  } | null>(null);
   const settlePendingReload = (ok: boolean): void => {
     const pending = pendingReloadRef.current;
     if (!pending) return;
@@ -214,19 +221,33 @@ export function useAppData({ isOffline, deferCloud = false }: { isOffline: boole
   // نداء واحد مشروع فقط عند العودة من انقطاع حقيقي، تديره enableFirestoreNetwork نفسها.
   const reloadFromCloud = useCallback(async (manual = false): Promise<boolean> => {
     if (!isFirebaseConfigured) return false;
+    const existing = pendingReloadRef.current;
+    if (existing) {
+      // طلبان من نفس النوع (نقرتان أو إعادة اتصال متزامنة): شارك نفس الوعد
+      // بدل فتح مستمع جديد أو ترك أحد النداءين معلّقًا للأبد.
+      if (!manual || existing.manual) return existing.promise;
+      // طلب يدوي أثناء انتظار تلقائي: ألغِ التلقائي بصمت وابدأ بمعنى يدوي
+      // (مهلة أقصر وحالة فشل صريحة) دون أن تُنفّذ الدعوة الملغاة آثار فشل.
+      existing.superseded = true;
+      settlePendingReload(false);
+    }
     if (manual) {
       cloudRetryRef.current = 0;
       setCloudStatus('syncing');
       setCloudAttemptDone(false);
       void enableFirestoreNetwork();
     }
-    const succeeded = await new Promise<boolean>((resolve) => {
-      const timeoutMs = manual ? MANUAL_LESSONS_TIMEOUT_MS : CLOUD_LESSONS_TIMEOUT_MS;
-      const timer = setTimeout(() => settlePendingReload(false), timeoutMs);
-      pendingReloadRef.current = { resolve, timer };
-      // إعادة فتح المستمع = طلب لقطة خادمية جديدة
-      setListenerRevision((revision) => revision + 1);
-    });
+    let resolvePending!: (ok: boolean) => void;
+    const promise = new Promise<boolean>((resolve) => { resolvePending = resolve; });
+    const timeoutMs = manual ? MANUAL_LESSONS_TIMEOUT_MS : CLOUD_LESSONS_TIMEOUT_MS;
+    const timer = setTimeout(() => settlePendingReload(false), timeoutMs);
+    const request = { resolve: resolvePending, timer, promise, manual, superseded: false };
+    pendingReloadRef.current = request;
+    // إعادة فتح المستمع = طلب لقطة خادمية جديدة
+    setListenerRevision((revision) => revision + 1);
+    const succeeded = await promise;
+    // الطلب الملغى لصالح طلب يدوي أحدث لا يلمس الحالة ولا يعدّل عدّاد الفشل
+    if (request.superseded) return false;
 
     if (manual) {
       void reloadGlossary();

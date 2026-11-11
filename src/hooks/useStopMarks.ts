@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Lesson } from '../types';
 import { useAuth } from '../Components/Auth/AuthContext';
-import { safeGet, safeSet } from '../utils/safeStorage';
+import { safeGet, safeSet, safeRemove } from '../utils/safeStorage';
 import { requireLogin } from '../utils/guestPrompt';
 import {
   createStopMarkChange,
@@ -67,6 +67,9 @@ export function useStopMarks() {
       ? mergeStopMarkMaps(accountMarks, guestMarks)
       : accountMarks;
     persist(merged, currentUid);
+    // بعد الترحيل لا نُبقي نسخة الضيف؛ بقاؤها كان يعيد دمج علامات قديمة
+    // (ومنها علامات حُذفت من الحساب) في كل تسجيل دخول لاحق.
+    if (Object.keys(guestMarks).length > 0) safeRemove(guestStorageKey);
     setLoadedUid(currentUid);
   }, [authLoading, uid, persist]);
   /* eslint-enable react-hooks/set-state-in-effect */

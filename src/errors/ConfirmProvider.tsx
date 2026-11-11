@@ -30,7 +30,13 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   useFocusTrap(dialogRef, Boolean(pending), () => close(false));
 
   const api = useMemo<ConfirmApi>(() => ({
-    confirm: (options) => new Promise<boolean>((resolve) => setPending({ ...options, resolve })),
+    confirm: (options) => new Promise<boolean>((resolve) => {
+      setPending((current) => {
+        // طلب جديد أثناء حوار مفتوح: احسم السابق بـ«إلغاء» بدل تركه معلّقًا للأبد
+        current?.resolve(false);
+        return { ...options, resolve };
+      });
+    }),
   }), []);
 
   return (

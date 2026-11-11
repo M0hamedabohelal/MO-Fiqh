@@ -134,7 +134,8 @@ export function useAnnouncements() {
     const merged = Array.from(new Set([...readLocalIds(key), ...allIds]));
     setReadIds(merged);
     try { localStorage.setItem(key, JSON.stringify(merged)); } catch { /* الحالة داخل الذاكرة تكفي للجلسة */ }
-    if (user && isFirebaseConfigured) {
+    // احترام إيقاف المزامنة (بعد مسح البيانات): الحالة المحلية وحدها، بلا كتابة سحابية.
+    if (user && isFirebaseConfigured && !isSyncDisabled(user.uid)) {
       void (async () => {
         try {
           const [{ getFirestore }, fs] = await Promise.all([

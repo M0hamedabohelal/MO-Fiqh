@@ -105,6 +105,18 @@ describe('isSafeToAutoReload — لا نقاطع كتابة جارية', () => {
     btn.focus();
     expect(isSafeToAutoReload(document)).toBe(true);
   });
+
+  it('غير آمن حين توجد مسودة في حقل غير نشط (نقر المستخدم خارجه)', () => {
+    mount('<div><textarea>مسودة غير محفوظة</textarea><button>حفظ</button></div>');
+    (document.querySelector('button') as HTMLButtonElement).focus();
+    expect(isSafeToAutoReload(document)).toBe(false);
+  });
+
+  it('حقل بحث فيه نص لا يمنع التحديث (ليس مسودة)', () => {
+    mount('<div><input type="search" value="صلاة" /><button>حفظ</button></div>');
+    (document.querySelector('button') as HTMLButtonElement).focus();
+    expect(isSafeToAutoReload(document)).toBe(true);
+  });
 });
 
 describe('useAppVersion', () => {

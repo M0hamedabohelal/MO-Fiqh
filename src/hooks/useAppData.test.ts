@@ -180,4 +180,26 @@ describe('useAppData — إعادة التحميل', () => {
 
     await waitFor(() => expect(resolved).toBe(false));
   });
+
+  it('نداءان متداخلان يتشاركان نفس الانتظار ولا يُترك أحدهما معلّقًا', async () => {
+    const { result } = await mountAndSettle();
+    let first: boolean | null = null;
+    let second: boolean | null = null;
+
+    await act(async () => {
+      void result.current.reloadFromCloud(true).then((ok) => { first = ok; });
+      void result.current.reloadFromCloud(true).then((ok) => { second = ok; });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(mock.listeners.length).toBeGreaterThan(1));
+    await act(async () => {
+      latest().onNext([lesson(1, TRI)], false);
+      await Promise.resolve();
+    });
+
+    // كلاهما يُحسم بنتيجة الانتظار الواحد (لا وعد مفقود ولا مستمع مزدوج)
+    await waitFor(() => expect(first).toBe(true));
+    await waitFor(() => expect(second).toBe(true));
+  });
 });

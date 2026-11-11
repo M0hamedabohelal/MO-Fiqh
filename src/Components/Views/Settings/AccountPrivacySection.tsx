@@ -13,7 +13,7 @@ import styles from '../SettingsView.module.css';
 import { SettingsSection, FeedbackAlert } from './SettingsSection';
 import type { FeedbackMessage } from './types';
 import { safeRemove } from '../../../utils/safeStorage';
-import { setSyncDisabled } from '../../../utils/librarySync';
+import { setSyncDisabled, requestLibraryResync } from '../../../utils/librarySync';
 
 interface AccountPrivacySectionProps {
   isOpen: boolean;
@@ -45,9 +45,10 @@ export const AccountPrivacySection = ({
         import('firebase/firestore'),
       ]);
       const { db } = await getFirestore();
+      // لا نبتلع فشل الحذف: إعلان النجاح مع بقاء البيانات خطر خصوصية مباشر.
       await Promise.all([
-        fs.deleteDoc(fs.doc(db, `users/${user.uid}/data/library`)).catch(() => {}),
-        fs.deleteDoc(fs.doc(db, `users/${user.uid}/data/announcementReads`)).catch(() => {}),
+        fs.deleteDoc(fs.doc(db, `users/${user.uid}/data/library`)),
+        fs.deleteDoc(fs.doc(db, `users/${user.uid}/data/announcementReads`)),
       ]);
       safeRemove(`library_stamps_v1_${user.uid}`);
       setShowClearConfirm(false);
@@ -56,10 +57,10 @@ export const AccountPrivacySection = ({
         text: 'تم مسح بياناتك السحابية بنجاح وإيقاف المزامنة لحسابك. بياناتك على هذا الجهاز لا تزال محفوظة.',
       });
     } catch {
-      setSyncDisabled(user.uid, false);
+      // نُبقي المزامنة متوقفة بعد الفشل حتى لا يعيد الرفع إنشاء ما حُذف جزئيًا.
       setCloudFeedback({
         type: 'error',
-        text: 'تعذر مسح البيانات من السحابة؛ تأكد من اتصال الإنترنت ثم أعد المحاولة.',
+        text: 'تعذّر مسح البيانات من السحابة؛ أبقت المزامنة متوقفة لحماية بياناتك. تحقّق من الاتصال ثم أعد المحاولة، أو استأنف المزامنة يدويًا.',
       });
     } finally {
       setClearingCloud(false);
@@ -68,6 +69,9 @@ export const AccountPrivacySection = ({
 
   const handleResumeSync = useCallback((): void => {
     if (!user) return;
+    // علامة صريحة تسمح بإعادة إنشاء المستند المحذوف؛ بدونها يفسّر المراقب
+    // المستند الغائب كحذف مقصود ويعيد تعطيل المزامنة فورًا.
+    requestLibraryResync(user.uid);
     setSyncDisabled(user.uid, false);
     setCloudFeedback({
       type: 'success',

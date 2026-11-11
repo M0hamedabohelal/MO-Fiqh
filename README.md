@@ -96,7 +96,7 @@ VITE_CLOUDINARY_UPLOAD_PRESET=...
 | `npm run audit:data` | تحليل تغطية المحتوى |
 | `npm run create-admin -- "email" "pass"` | إنشاء/تحديث حساب مشرف عبر Admin SDK (يحتاج مفتاح حساب خدمة) |
 | `npm run upload:pdf` | رفع `public/fiqh-book.pdf` إلى Firebase Storage عبر Admin SDK |
-| `npm run test:e2e` | اختبارات التكامل الشاملة بمقاس الجوال والـ Offline Mode عبر Playwright (10 اختبارات) |
+| `npm run test:e2e` | اختبارات التكامل الشاملة بمقاس الجوال والـ Offline Mode عبر Playwright (22 اختبارًا) |
 | `npm run deploy` | نشر الاستضافة على Firebase Hosting مع البناء وفحص الأنواع |
 | `npm run deploy:hosting` | فحص الأنواع (`typecheck`) ثم بناء ونشر على Firebase Hosting |
 | `npm run deploy:rules` | نشر قواعد أمان Firestore Rules |
@@ -186,7 +186,7 @@ npm run deploy:all       # الاثنان معًا
 
 ## الاختبارات
 
-`npm test` يشغّل Vitest (**58 ملف اختبار** تحوي **407 اختبار وحدة** بنسبة نجاح 100%). الخطافات والمكونات مُغطّاة ببيئة `jsdom` + `@testing-library/react`:
+`npm test` يشغّل Vitest (**62 ملف اختبار** تحوي **451 اختبار وحدة** بنجاح 100%، و5 اختبارات متخطاة). الخطافات والمكونات مُغطّاة ببيئة `jsdom` + `@testing-library/react`:
 
 | الملف | مجال الحماية والتحقق |
 |---|---|
