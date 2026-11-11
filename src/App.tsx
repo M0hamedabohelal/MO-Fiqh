@@ -113,9 +113,10 @@ function App() {
   const [adminEditLessonId, setAdminEditLessonId] = useState<number | string | null>(null);
 
   const openAdminEditLesson = useCallback((lessonId: number | string) => {
+    if (!isAdminUser) return;
     setAdminEditLessonId(lessonId);
     setCurrentView('admin');
-  }, [setCurrentView]);
+  }, [isAdminUser, setCurrentView]);
 
   // ─── مزامنة المكتبة بين الأجهزة (لا تفعل شيئًا بلا حساب) ───
   // تُستدعى بعد تعريف theme والكتابات المحلية، وقبل أي استخدام للسياق.
@@ -428,7 +429,7 @@ function App() {
       )}
       {isLoginOpen && (
         <Suspense fallback={null}>
-          <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { executePendingAction(); setCurrentView('hero'); }} />
+          <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={() => { executePendingAction(); }} />
         </Suspense>
       )}
       <AppProvider value={layoutProps}>

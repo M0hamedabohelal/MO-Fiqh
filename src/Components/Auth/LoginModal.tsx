@@ -1,5 +1,5 @@
 // نافذة تسجيل الدخول / إنشاء حساب
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { CSSProperties, FormEvent } from 'react';
 import { motion } from 'framer-motion';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
@@ -26,6 +26,21 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
 
   const dialogRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(dialogRef, isOpen, onClose);
+
+  // إغلاق تلقائي فوري بمجرد اكتمال تسجيل الدخول (خاصة مع Google Popup/Redirect)
+  const hadUserOnOpenRef = useRef(Boolean(user));
+  useEffect(() => {
+    if (!isOpen) {
+      hadUserOnOpenRef.current = Boolean(user);
+    }
+  }, [isOpen, user]);
+
+  useEffect(() => {
+    if (isOpen && !hadUserOnOpenRef.current && user) {
+      onClose();
+      if (onSuccess) onSuccess();
+    }
+  }, [isOpen, user, onClose, onSuccess]);
 
   if (!isOpen) return null;
 

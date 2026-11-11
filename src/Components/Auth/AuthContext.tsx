@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // رفض من الكاش = محتمل أن يكون قديمًا: جولة خادم واحدة قبل الحسم
           if (result === false && !fromServer) {
             adminAttemptRef.current += 1;
-            adminRetryRef.current = setTimeout(attempt, 1_200);
+            adminRetryRef.current = setTimeout(attempt, 150);
             return;
           }
           clearAdminRetry();
@@ -131,6 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               setUser(result.user);
               currentUidRef.current = result.user.uid;
               setAuthError('');
+              runAdminCheck(result.user.uid);
             }
           })
           .catch((redirectErr: unknown) => {
@@ -197,6 +198,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (result?.user) {
           setUser(result.user);
           currentUidRef.current = result.user.uid;
+          void refreshAdminStatus(result.user.uid);
           return { success: true };
         }
         return { success: true };

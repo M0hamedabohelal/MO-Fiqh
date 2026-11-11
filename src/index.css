@@ -355,7 +355,7 @@ textarea::placeholder,
 
 /* ==================== نظام الأزرار السلس والمتحرك (Smooth Interactive Buttons) ==================== */
 
-/* انتقال أساسي فائق السلاسة لجميع الأزرار والعناصر التفاعلية */
+/* انتقال أساسي هادئ ومتزن لجميع الأزرار دون ارتداد زائد أو رجة */
 button,
 .btn,
 .list-btn,
@@ -372,17 +372,17 @@ button,
 .reading-read-btn,
 .badge {
   transition:
-    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 0.2s ease !important;
+    transform 0.15s ease-out,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
-/* تأثير ضغطة تفاعلية ارتدادية فورية بدون أي تأخير عند النقر أو اللمس على الهاتف (Tactile Press) */
+/* ضغطة لمسية طبيعية وناعمة بدون قفزات مكانية */
 button:active:not(:disabled),
 .btn:active:not(:disabled),
 .list-btn:active,
@@ -396,8 +396,9 @@ button:active:not(:disabled),
 .reading-back-btn:active,
 .reading-read-btn:active,
 .mobile-bottom-nav .nav-item:active {
-  transform: translateY(1px) scale(0.96) !important;
-  transition: transform 0.05s ease-out !important;
+  transform: scale(0.98);
+  opacity: 0.9;
+  transition: transform 0.06s ease-out, opacity 0.06s ease-out;
 }
 
 /* منع تعليق تأثير المرور (Sticky Hover) على شاشات الجوال التي تعمل باللمس */
@@ -872,12 +873,12 @@ button:active:not(:disabled),
 }
 
 .mobile-bottom-nav .nav-item svg {
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.18s ease-out;
 }
 
 .mobile-bottom-nav .nav-item.nav-item:active {
-  transform: scale(0.90);
-  transition: transform 0.05s ease-out !important;
+  transform: scale(0.96);
+  transition: transform 0.06s ease-out;
 }
 
 .mobile-bottom-nav .nav-item.active {

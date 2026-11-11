@@ -321,6 +321,13 @@ const ReadingView = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const hasTriggeredThresholdHaptic = useRef<boolean>(false);
   const isVerticalScroll = useRef<boolean>(false);
+  const touchRafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (touchRafRef.current) cancelAnimationFrame(touchRafRef.current);
+    };
+  }, []);
 
   const handleTouchStart = (e: ReactTouchEvent<HTMLDivElement>): void => {
     const t = e.touches[0];
@@ -339,6 +346,7 @@ const ReadingView = () => {
     if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) {
       isVerticalScroll.current = true;
       if (isDragging) {
+        if (touchRafRef.current) cancelAnimationFrame(touchRafRef.current);
         setIsDragging(false);
         setDragOffset(0);
       }
@@ -352,11 +360,14 @@ const ReadingView = () => {
     }
 
     if (Math.abs(dx) > 12) {
-      setIsDragging(true);
-      // معامل مقاومة مرنة يعطي شعوراً حقيقياً بالسحب
-      const resistance = 0.38;
-      const clamped = Math.max(-85, Math.min(85, dx * resistance));
-      setDragOffset(clamped);
+      if (touchRafRef.current) cancelAnimationFrame(touchRafRef.current);
+      touchRafRef.current = requestAnimationFrame(() => {
+        setIsDragging(true);
+        // معامل مقاومة مرنة يعطي شعوراً حقيقياً بالسحب
+        const resistance = 0.38;
+        const clamped = Math.max(-85, Math.min(85, dx * resistance));
+        setDragOffset(clamped);
+      });
 
       // نبضة لمسية اهتزازية خفيفة عند بلوغ عتبة التحويل (65px)
       const reached = Math.abs(dx) >= 65;
@@ -370,6 +381,10 @@ const ReadingView = () => {
   };
 
   const handleTouchEnd = (e: ReactTouchEvent<HTMLDivElement>): void => {
+    if (touchRafRef.current) {
+      cancelAnimationFrame(touchRafRef.current);
+      touchRafRef.current = null;
+    }
     if (!touchStartRef.current) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - touchStartRef.current.x;
@@ -400,7 +415,7 @@ const ReadingView = () => {
   };
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0 });
   }, [lessonId]);
 
   // تتبع تمرير الصفحة لتثبيت اسم المسألة في الشريط العلوي عند التمرير
