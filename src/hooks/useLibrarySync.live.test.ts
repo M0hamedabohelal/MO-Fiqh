@@ -4,9 +4,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 
+interface MockSnapshot {
+  exists: () => boolean;
+  metadata?: { fromCache: boolean };
+  data: () => Record<string, unknown>;
+}
+
 const setDoc = vi.fn(async () => {});
 const deleteDoc = vi.fn(async () => {});
-const getDoc = vi.fn(async () => ({ exists: () => true, data: () => ({}) }));
+const getDoc = vi.fn<(...args: unknown[]) => Promise<MockSnapshot>>(async () => ({ exists: () => true, data: () => ({}) }));
 let snapshotCb: ((s: unknown) => void) | null = null;
 // عدد الاشتراكات: يسمح بالانتظار الحتمي لإعادة الاشتراك بعد تبديل الحساب
 let listenerCount = 0;
@@ -521,8 +527,8 @@ describe('useLibrarySync — مزامنة حيّة', () => {
 
   it('getDoc عند focus لا يطبّق نتيجة حساب سابق بعد تبديل الحساب', async () => {
     Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true });
-    let resolveGet!: (value: { exists: () => boolean; data: () => Record<string, unknown> }) => void;
-    getDoc.mockImplementationOnce(() => new Promise((resolve) => { resolveGet = resolve; }));
+    let resolveGet!: (value: MockSnapshot | PromiseLike<MockSnapshot>) => void;
+    getDoc.mockImplementationOnce(() => new Promise<MockSnapshot>((resolve) => { resolveGet = resolve; }));
 
     const onMerged = vi.fn();
     const { rerender, unmount } = renderHook(

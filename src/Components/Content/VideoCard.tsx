@@ -290,12 +290,19 @@ const VideoCard = ({ videoUrl, startTime, endTime, videoTimestamp, title }: Vide
                 <div className="spinner-border text-light" style={{ width: '2rem', height: '2rem' }} role="status" />
               </div>
             )}
-            <div
+            <iframe
               id={playerId}
               title={title ? `فيديو شرح: ${title}` : 'فيديو شرح الدرس'}
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&start=${startSeconds}${
+                hasEnd ? `&end=${endSeconds}` : ''
+              }${typeof window !== 'undefined' ? `&origin=${encodeURIComponent(window.location.origin)}` : ''}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              onLoad={() => setIframeLoaded(true)}
               style={{
                 width: '100%',
                 height: '100%',
+                border: 'none',
                 position: 'absolute',
                 inset: 0,
                 opacity: iframeLoaded ? 1 : 0,
