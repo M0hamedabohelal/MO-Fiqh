@@ -112,7 +112,12 @@ export function useAppData({ isOffline, deferCloud = false }: { isOffline: boole
       const issueA = getOrdinalVal(a.title);
       const issueB = getOrdinalVal(b.title);
       if (issueA !== issueB) return issueA - issueB;
-      return Number(a.id) - Number(b.id);
+      const numA = Number(a.id);
+      const numB = Number(b.id);
+      if (Number.isFinite(numA) && Number.isFinite(numB)) {
+        return numA - numB;
+      }
+      return String(a.id ?? '').localeCompare(String(b.id ?? ''), undefined, { numeric: true });
     });
   }, [rawLessons]);
 

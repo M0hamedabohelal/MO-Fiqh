@@ -84,12 +84,10 @@
   0%, 100% {
     transform: scale(1);
     opacity: 0.55;
-    box-shadow: 0 0 28px var(--hero-gold-glow);
   }
   50% {
     transform: scale(1.06);
     opacity: 0.95;
-    box-shadow: 0 0 48px var(--hero-gold-glow), 0 0 16px rgba(22, 86, 79, 0.35);
   }
 }
 
@@ -715,8 +713,10 @@
   inset: -10px;
   border-radius: 50%;
   border: 2px dashed rgba(201, 168, 76, 0.45);
+  box-shadow: 0 0 32px var(--hero-gold-glow);
   animation: ringBreathing 4s ease-in-out infinite;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 [data-theme="dark"] .emblem-ring {

@@ -138,10 +138,21 @@ body,
 
 /* استثناء: عناصر تحتاج لتحركات فورية دون تأخير */
 
-/* إزالة المربع الأزرق واللون الخلفي عند الضغط على الأزرار */
-button:focus, .btn:focus, .btn-link:focus {
+/* إزالة المربع الأزرق عند النقر بالفأرة/اللمس مع دعم مؤشر التركيز الواضح للوحة المفاتيح (a11y) */
+button:focus:not(:focus-visible),
+.btn:focus:not(:focus-visible),
+.btn-link:focus:not(:focus-visible) {
   outline: none !important;
   box-shadow: none !important;
+}
+
+button:focus-visible,
+.btn:focus-visible,
+.btn-link:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent-color) !important;
+  outline-offset: 2px;
 }
 
 html {

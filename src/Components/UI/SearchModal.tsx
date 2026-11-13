@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import type { ReactNode, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { FiSearch, FiX, FiFileText, FiFilter, FiList, FiClock, FiTrash2 } from 'react-icons/fi';
 import Fuse from 'fuse.js';
-import type { FuseSearchOptions } from 'fuse.js';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { safeGet, safeSet, safeParse } from '../../utils/safeStorage';
 import type { Lesson } from '../../types';
@@ -146,26 +145,35 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
   );
 
   // إعدادات خوارزمية البحث الذكي (Fuse.js) — بحقول مطبّعة + تسامح تلقائي
+  const fuseOptions = useMemo(
+    () => ({
+      keys: [
+        { name: 'nTitle', weight: 0.46 }, // العنوان المطبَّع هو الأقوى
+        { name: 'title', weight: 0.22 }, // مع الحفاظ على النص الأصلي
+        { name: 'nText', weight: 0.12 }, // متن الكتاب مطبَّع
+        { name: 'nExpl', weight: 0.06 },
+        { name: 'nId', weight: 0.06 },
+        { name: 'nPage', weight: 0.04 },
+        { name: 'nVideo', weight: 0.02 },
+        { name: 'nBook', weight: 0.01 },
+        { name: 'nChapter', weight: 0.01 },
+      ],
+      ignoreLocation: true, // المطابقة في أي موضع وليس بالبداية فقط
+      ignoreFieldNorm: true,
+      minMatchCharLength: 2, // تجاهل النتائج العشوائية بحرف واحد
+    }),
+    []
+  );
+
   const fuse = useMemo(
-    () =>
-      new Fuse(searchDocs, {
-        keys: [
-          { name: 'nTitle', weight: 0.46 }, // العنوان المطبَّع هو الأقوى
-          { name: 'title', weight: 0.22 }, // مع الحفاظ على النص الأصلي
-          { name: 'nText', weight: 0.12 }, // متن الكتاب مطبَّع
-          { name: 'nExpl', weight: 0.06 },
-          { name: 'nId', weight: 0.06 },
-          { name: 'nPage', weight: 0.04 },
-          { name: 'nVideo', weight: 0.02 },
-          { name: 'nBook', weight: 0.01 },
-          { name: 'nChapter', weight: 0.01 },
-        ],
-        threshold: 0.35, // تسامح معقول مع الأخطاء الإملائية
-        ignoreLocation: true, // المطابقة في أي موضع وليس بالبداية فقط
-        ignoreFieldNorm: true,
-        minMatchCharLength: 2, // تجاهل النتائج العشوائية بحرف واحد
-      }),
-    [searchDocs]
+    () => new Fuse(searchDocs, { ...fuseOptions, threshold: 0.35 }),
+    [searchDocs, fuseOptions]
+  );
+
+  // فهرس متسامح للأخطاء الإملائية الشديدة يُستدعى كبديل عند غياب نتائج البحث الدقيق
+  const fuzzyFuse = useMemo(
+    () => new Fuse(searchDocs, { ...fuseOptions, threshold: 0.58 }),
+    [searchDocs, fuseOptions]
   );
 
   // نتائج البحث + علم "نتائج تقريبية" عند تحمّل الأخطاء الإملائية
@@ -177,14 +185,13 @@ const SearchModal = ({ isOpen, onClose, data, onSelect }: SearchModalProps) => {
     // إدخال رقم الصفحة أو المسألة مع وصف عربي مثل "ص 62" يبحث أيضًا بالرقم نفسه.
     const numericTerm = q.match(/\d+/)?.[0];
     if (found.length === 0 && numericTerm) found = fuse.search(numericTerm);
-    // ارتقاء التسامح عند عدم وجود نتائج حتى يستوعب الأخطاء الإملائية في العربية
+    // ارتقاء التسامح عبر الفهرس المتسامح عند عدم وجود نتائج حتى يستوعب الأخطاء الإملائية في العربية
     if (found.length === 0) {
-      found = fuse.search(q, { threshold: 0.6 } as FuseSearchOptions);
-      if (found.length === 0) found = fuse.search(q, { threshold: 0.75 } as FuseSearchOptions);
+      found = fuzzyFuse.search(q);
       fuzzy = found.length > 0;
     }
     return { results: found.slice(0, 100).map((r) => r.item), isFuzzy: fuzzy };
-  }, [debouncedQuery, fuse]);
+  }, [debouncedQuery, fuse, fuzzyFuse]);
 
   // تصفير الفلاتر عند تغيير كلمة البحث
   useEffect(() => {

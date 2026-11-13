@@ -61,6 +61,56 @@ function notify() {
 
 // عنصر الصوت العام
 let audioElement: HTMLAudioElement | null = null;
+let mediaSessionConfigured = false;
+
+function updateMediaSession(track: ActiveAudioTrack | null, isPlaying: boolean): void {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+  try {
+    if (!track) {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = 'none';
+      return;
+    }
+
+    if (typeof MediaMetadata !== 'undefined') {
+      const album = track.chapterName
+        ? `${track.bookName ? `${track.bookName} — ` : ''}${track.chapterName}`
+        : (track.bookName || 'الفقه الإسلامي');
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: track.title || 'مسألة فقهية',
+        artist: 'يَسِّر — منصة الفقه الإسلامي',
+        album,
+        artwork: [
+          { src: '/logo-circle-128.webp', sizes: '128x128', type: 'image/webp' },
+          { src: '/logo-circle-256.webp', sizes: '256x256', type: 'image/webp' },
+        ],
+      });
+    }
+    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+  } catch {
+    // تجاهل البيئات التي لا تدعم MediaMetadata
+  }
+}
+
+function setupMediaSessionActions(): void {
+  if (mediaSessionConfigured || typeof window === 'undefined' || typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+  mediaSessionConfigured = true;
+  try {
+    navigator.mediaSession.setActionHandler('play', () => { audioPlayerStore.toggle(); });
+    navigator.mediaSession.setActionHandler('pause', () => { audioPlayerStore.pause(); });
+    navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+      const el = getAudioElement();
+      if (el) audioPlayerStore.seek(el.currentTime - (details.seekOffset || 10));
+    });
+    navigator.mediaSession.setActionHandler('seekforward', (details) => {
+      const el = getAudioElement();
+      if (el) audioPlayerStore.seek(el.currentTime + (details.seekOffset || 10));
+    });
+    navigator.mediaSession.setActionHandler('stop', () => { audioPlayerStore.stop(); });
+  } catch {
+    // تجاهل
+  }
+}
 
 function getAudioElement(): HTMLAudioElement | null {
   if (typeof window === 'undefined') return null;
@@ -68,13 +118,17 @@ function getAudioElement(): HTMLAudioElement | null {
     audioElement = new Audio();
     audioElement.preload = 'metadata';
 
+    setupMediaSessionActions();
+
     audioElement.addEventListener('play', () => {
       state = { ...state, isPlaying: true };
+      updateMediaSession(state.track, true);
       notify();
     });
 
     audioElement.addEventListener('pause', () => {
       state = { ...state, isPlaying: false };
+      updateMediaSession(state.track, false);
       notify();
     });
 
@@ -226,6 +280,7 @@ export const audioPlayerStore = {
       duration: 0,
       playbackRate: 1,
     };
+    updateMediaSession(null, false);
     notify();
   },
 };
