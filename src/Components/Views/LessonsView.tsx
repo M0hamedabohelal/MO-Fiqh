@@ -36,6 +36,8 @@ const LessonsView = memo(() => {
     stopMarks,
     bookmarks = [],
     notes = {},
+    toggleReadLesson,
+    toggleBookmark,
   } = useApp();
 
   const [filter, setFilter] = useState<FilterType>('all');
@@ -252,6 +254,8 @@ const LessonsView = memo(() => {
                   hasBookmark={bookmarkSet.has(String(lesson.id))}
                   hasNotes={Boolean(notes[String(lesson.id)]?.trim())}
                   onClick={() => onSelectLesson(lesson)}
+                  onToggleRead={() => toggleReadLesson(lesson.id)}
+                  onToggleBookmark={() => toggleBookmark(lesson.id)}
                 />
               </motion.div>
             ))}

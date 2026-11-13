@@ -18,6 +18,7 @@ import {
   consumeLibraryResync,
   stampsStorageKey,
 } from '../utils/librarySync';
+import { registerBackgroundSync, onConnectivityRestored } from '../utils/backgroundSync';
 import type { SyncableLibrary } from '../utils/librarySync';
 import type { HighlightItem } from '../types';
 import type { StopMarkMap } from '../features/stopMarks/model';
@@ -457,6 +458,9 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
         lastPushedRef.current = '';
         pendingPushSignatureRef.current = '';
 
+        // تسجيل طلب مزامنة خلفية عند انقطاع الاتصال (Background Sync API)
+        void registerBackgroundSync('sync-library');
+
         // تراجع أسي بسقف محدد (4s -> 8s -> 16s -> 32s -> 60s) مع توقف بعد 5 محاولات
         // (ولا إعادة محاولة بعد مسح البيانات: المطلوب أن يبقى المستند محذوفًا)
         if (retryCountRef.current < 5 && !isSyncDisabled(runUid)) {
@@ -477,6 +481,15 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
     })();
   }, [uid]);
   useEffect(() => { schedulePushRef.current = schedulePush; }, [schedulePush]);
+
+  // استعادة الاتصال: إعادة محاولة الدفع فور عودة الشبكة دون انتظار انقضاء مدة التراجع الأسي
+  useEffect(() => {
+    return onConnectivityRestored(() => {
+      if (serverStateKnownRef.current && !cacheMissingRef.current) {
+        schedulePushRef.current();
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (!ready || !cloudEnabled(uid) || syncDisabled || !isFirebaseConfigured) return undefined;

@@ -13,6 +13,7 @@ describe('Firestore Rules — فحص تطابق نصي ومحاكاة منطقي
   it('ملف firestore.rules موجود ويحتوي على النسخة 2 ومسارات المزامنة', () => {
     expect(rulesContent).toContain("rules_version = '2'");
     expect(rulesContent).toContain('match /users/{uid}/data/library');
+    expect(rulesContent).toContain('match /users/{uid}/notes/{lessonId}');
     expect(rulesContent).toContain('match /users/{uid}/data/announcementReads');
     expect(rulesContent).toContain('match /client_errors/{docId}');
     expect(rulesContent).toContain('match /lessons/{docId}');

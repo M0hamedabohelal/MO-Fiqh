@@ -269,7 +269,7 @@ const BookmarksView = () => {
                             {ch.lessons.map((lesson) => (
                               <button
                                 key={lesson.id}
-                                className="btn w-100 text-end p-3 shadow-sm d-flex justify-content-between align-items-center list-btn mb-2"
+                                className="btn w-100 text-end p-3 shadow-sm d-flex justify-content-between align-items-center list-btn mb-2 cv-auto-list-item"
                                 onClick={() => onOpenLessonById(lesson.id)}
                               >
                                 <div className="d-flex flex-column align-items-start text-start gap-1 pe-1 overflow-hidden">
@@ -297,7 +297,7 @@ const BookmarksView = () => {
             visibleLessons.map((lesson) => (
               <button
                 key={lesson.id}
-                className="btn w-100 text-end p-4 shadow-sm d-flex justify-content-between align-items-center list-btn mb-3"
+                className="btn w-100 text-end p-4 shadow-sm d-flex justify-content-between align-items-center list-btn mb-3 cv-auto-list-item"
                 onClick={() => onOpenLessonById(lesson.id)}
               >
                 <div className="d-flex flex-column align-items-start text-start gap-2 pe-1">

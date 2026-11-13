@@ -114,6 +114,18 @@ service cloud.firestore {
       allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
+    // ─── الملاحظات الموسعة للمستخدم (Subcollection لتفادي حد 1MB للمستند الفردي) ───
+    match /users/{uid}/notes/{lessonId} {
+      allow read, delete: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['lessonId', 'text', 'updatedAt'])
+        && (request.resource.data.lessonId is int || request.resource.data.lessonId is string)
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 20000
+        && request.resource.data.updatedAt is number;
+    }
+
     // ─── إحصائيات المشاهدات: قراءة للجميع، وتحديث تراكمي للجميع (تتبع مجهول من trackLessonView) ───
     // القيد يمنع العبث الواسع: الإنشاء بمفتاح واحد فقط، وكل تحديث يمس مفتاحًا واحدًا
     // بالضبط (بلا حذف، ونمو مفتاح واحد كحد أقصى لكل كتابة). العميل الشرعي يكتب مفتاحًا

@@ -404,7 +404,7 @@ const HighlightsView = () => {
               return (
                 <div
                   key={highlight.id}
-                  className={`custom-card p-3 p-md-4 shadow-sm highlight-card highlight-masonry-card ${colorClass}`}
+                  className={`custom-card p-3 p-md-4 shadow-sm highlight-card highlight-masonry-card cv-auto-card ${colorClass}`}
                 >
                   {/* علامة اقتباس أندلسية خلفية */}
                   <span className="highlight-quote-mark" aria-hidden="true">❝</span>
