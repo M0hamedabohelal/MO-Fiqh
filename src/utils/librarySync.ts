@@ -1,7 +1,7 @@
 import type { HighlightItem } from '../types';
 import { mergeStopMarkMaps } from '../features/stopMarks/model';
 import type { StopMarkMap } from '../features/stopMarks/model';
-import { safeGet, safeSet, safeRemove } from './safeStorage';
+import { safeGet, safeSet, safeRemove, safeParse } from './safeStorage';
 
 // ─── مزامنة مكتبة المستخدم بين الأجهزة ───
 //
@@ -116,6 +116,37 @@ export const ts = (lib: SyncableLibrary, key: string): number => {
 };
 
 export const byId = (h: HighlightItem): string => String(h?.id ?? h?.text ?? '');
+
+/** مفتاح أختام الحساب المحلية — مصدر واحد يمنع انفصال المزامنة عن الترحيل */
+export const stampsStorageKey = (uid: string): string => `library_stamps_v1_${uid}`;
+
+/**
+ * يختم عناصر مستوردة (بيانات ضيف أو نسخة احتياطية) بطابع «الآن».
+ * بدون الختم يكون طابعها صفرًا، فيفوز عليها شاهد حذف سحابي قديم وتبتلع العنصر
+ * عند أول دمج — وهو فقدان صامت لبيانات أضافها المستخدم قبل تسجيل الدخول.
+ */
+export const stampImportedItems = (
+  uid: string | null | undefined,
+  lib: {
+    bookmarks?: Array<string | number>;
+    readLessons?: Array<string | number>;
+    notes?: Record<string, string>;
+    highlights?: HighlightItem[];
+  },
+  at = Date.now(),
+): void => {
+  if (!uid) return;
+  const stamps = safeParse<Record<string, number>>(safeGet(stampsStorageKey(uid)), {});
+  const bump = (key: string): void => {
+    const prev = stamps[key];
+    stamps[key] = Math.max(typeof prev === 'number' && Number.isFinite(prev) ? prev : 0, at);
+  };
+  (lib.bookmarks ?? []).forEach((id) => bump(KEYS.bookmark(String(id))));
+  (lib.readLessons ?? []).forEach((id) => bump(KEYS.read(String(id))));
+  Object.keys(lib.notes ?? {}).forEach((id) => bump(KEYS.note(id)));
+  (lib.highlights ?? []).forEach((h) => bump(KEYS.highlight(byId(h))));
+  safeSet(stampsStorageKey(uid), JSON.stringify(stamps));
+};
 
 export const TOMBSTONE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 export const MAX_TOMBSTONES = 500;

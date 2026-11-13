@@ -91,6 +91,22 @@ describe('firestoreFatalRecovery — مسار التصيير', () => {
     await Promise.all([firestoreFatalRecovery(fatal()), firestoreFatalRecovery(fatal())]);
     expect(reload).toHaveBeenCalledTimes(1);
   });
+
+  // بلا سقف، كاش تالف يجعل كل إقلاع يمسح ويعيد التحميل: حلقة لا نهائية.
+  it('يتوقف عن مسح الكاش وإعادة التحميل بعد سقف المحاولات', async () => {
+    sessionStorage.setItem('firestore_assertion_reload_at', String(Date.now()));
+
+    await firestoreFatalRecovery(fatal());
+    expect(reload).toHaveBeenCalledTimes(1);
+
+    __resetRecoveryForTests();
+    await firestoreFatalRecovery(fatal());
+    expect(reload).toHaveBeenCalledTimes(2);
+
+    __resetRecoveryForTests();
+    await firestoreFatalRecovery(fatal());
+    expect(reload).toHaveBeenCalledTimes(2); // توقف بدل الحلقة
+  });
 });
 
 describe('recoverFromFatalFirestoreError — مسار window', () => {
@@ -116,6 +132,24 @@ describe('recoverFromFatalFirestoreError — مسار window', () => {
   it('لا يعيد التحميل للخطأ غير القاتل', () => {
     expect(recoverFromFatalFirestoreError(new Error('network-request-failed'))).toBe(false);
     expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('يتوقف عن إعادة التحميل بعد سقف المحاولات ويهضم الخطأ', async () => {
+    sessionStorage.setItem('firestore_assertion_reload_at', String(Date.now()));
+
+    // المسار المتكرر يمرّ عبر clearFirestoreCache (غير متزامن) قبل reload
+    expect(recoverFromFatalFirestoreError(fatal())).toBe(true);
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+
+    __resetRecoveryForTests();
+    expect(recoverFromFatalFirestoreError(fatal())).toBe(true);
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(2));
+
+    __resetRecoveryForTests();
+    expect(recoverFromFatalFirestoreError(fatal())).toBe(true);
+    // بعد MAX_HARD_RESETS لا يعيد التحميل — يبتلع الخطأ بصمت
+    await new Promise((r) => setTimeout(r, 50));
+    expect(reload).toHaveBeenCalledTimes(2); // يهضم الخطأ بلا حلقة
   });
 });
 

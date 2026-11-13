@@ -1,77 +1,294 @@
-// كارد الفيديو — لا يحمّل المشغّل قبل طلب المستخدم لتقليل استهلاك البيانات.
-import { useState, useRef } from 'react';
-import { FiHeadphones, FiPlay, FiExternalLink, FiClock } from 'react-icons/fi';
+// كارد الفيديو — لا يحمّل المشغّل قبل طلب المستخدم لتقليل استهلاك البيانات، مع حراسة وقت صارمة (Strict Time Guard).
+import { useState, useRef, useEffect } from 'react';
+import {
+  FiHeadphones,
+  FiPlay,
+  FiExternalLink,
+  FiClock,
+  FiCheckCircle,
+  FiRotateCcw,
+} from 'react-icons/fi';
 
-interface VideoCardProps {
+export interface YTPlayerInstance {
+  getCurrentTime: () => number;
+  getPlayerState: () => number;
+  pauseVideo: () => void;
+  playVideo: () => void;
+  seekTo: (seconds: number, allowSeekAhead?: boolean) => void;
+  destroy: () => void;
+  getIframe: () => HTMLIFrameElement;
+}
+
+declare global {
+  interface Window {
+    YT?: {
+      Player: new (
+        element: HTMLElement | string,
+        options: {
+          videoId?: string;
+          playerVars?: Record<string, unknown>;
+          events?: {
+            onReady?: (event: { target: YTPlayerInstance }) => void;
+            onStateChange?: (event: { data: number; target: YTPlayerInstance }) => void;
+            onError?: (event: unknown) => void;
+          };
+        }
+      ) => YTPlayerInstance;
+      PlayerState?: {
+        UNSTARTED: number;
+        ENDED: number;
+        PLAYING: number;
+        PAUSED: number;
+        BUFFERING: number;
+        CUED: number;
+      };
+    };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+let ytApiPromise: Promise<void> | null = null;
+
+export function loadYouTubeApi(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (window.YT && window.YT.Player) return Promise.resolve();
+  if (ytApiPromise) return ytApiPromise;
+
+  ytApiPromise = new Promise<void>((resolve) => {
+    const existingTag = document.getElementById('youtube-iframe-api');
+    if (!existingTag) {
+      const tag = document.createElement('script');
+      tag.id = 'youtube-iframe-api';
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.body.appendChild(tag);
+    }
+
+    const originalCallback = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      if (typeof originalCallback === 'function') {
+        try {
+          originalCallback();
+        } catch {
+          // ignore
+        }
+      }
+      resolve();
+    };
+
+    const interval = setInterval(() => {
+      if (window.YT && window.YT.Player) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 100);
+
+    setTimeout(() => {
+      clearInterval(interval);
+      resolve();
+    }, 8000);
+  });
+
+  return ytApiPromise;
+}
+
+export interface VideoCardProps {
   videoUrl?: string;
   startTime?: string;
   endTime?: string;
+  videoTimestamp?: string;
   title?: string;
 }
 
-const VideoCard = ({ videoUrl, startTime, endTime, title }: VideoCardProps) => {
-  // حالة التشغيل المباشر — لما المستخدم يدوس "اسمع من هنا" نشغّل الصوت تلقائيًا
+// Convert time (mm:ss or seconds) to total seconds
+export const parseTime = (time: string | undefined): number => {
+  if (!time) return 0;
+  const timeStr = time.toString().trim();
+  if (!timeStr) return 0;
+  let total = NaN;
+  if (timeStr.includes(':')) {
+    const parts = timeStr.split(':').map(Number);
+    if (parts.length === 2) {
+      total = parts[0] * 60 + parts[1]; // mm:ss
+    } else if (parts.length === 3) {
+      total = parts[0] * 3600 + parts[1] * 60 + parts[2]; // hh:mm:ss
+    }
+  } else {
+    total = parseInt(timeStr, 10);
+  }
+  return Number.isFinite(total) && total >= 0 ? Math.floor(total) : 0;
+};
+
+// Extract the videoId from the YouTube URL
+export const extractVideoId = (url: string | undefined): string | null => {
+  if (!url) return null;
+  const regExp = /(?:youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([a-zA-Z0-9_-]{11})/;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
+};
+
+const VideoCard = ({ videoUrl, startTime, endTime, videoTimestamp, title }: VideoCardProps) => {
   const [autoPlay, setAutoPlay] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [isEnded, setIsEnded] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-
-  // Extract the videoId from the YouTube URL
-  const extractVideoId = (url: string | undefined): string | null => {
-    if (!url) return null;
-    const regExp = /(?:youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([a-zA-Z0-9_-]{11})/;
-    const match = url.match(regExp);
-    return match ? match[1] : null;
-  };
-
-  // Convert time (mm:ss or seconds) to total seconds
-  // أي قيمة غير صالحة (مثل "ab:cd") تُعطي NaN الذي كان يكسر رابط المشاهدة — نعيد 0 بدلًا منه
-  const parseTime = (time: string | undefined): number => {
-    if (!time) return 0;
-    const timeStr = time.toString().trim();
-    if (!timeStr) return 0;
-    let total = NaN;
-    if (timeStr.includes(':')) {
-      const parts = timeStr.split(':').map(Number);
-      if (parts.length === 2) {
-        total = parts[0] * 60 + parts[1]; // mm:ss
-      } else if (parts.length === 3) {
-        total = parts[0] * 3600 + parts[1] * 60 + parts[2]; // hh:mm:ss
-      }
-    } else {
-      total = parseInt(timeStr, 10);
-    }
-    return Number.isFinite(total) && total >= 0 ? Math.floor(total) : 0;
-  };
+  const playerRef = useRef<YTPlayerInstance | null>(null);
 
   const videoId = extractVideoId(videoUrl);
-  const startSeconds = parseTime(startTime);
+  const effectiveStart = startTime || videoTimestamp;
+  const startSeconds = parseTime(effectiveStart);
   const endSeconds = parseTime(endTime);
-  // نصوص العرض الأصلية (تُعرض كما أدخلها المشرف) — بشرط صلاحيتها رقميًا
-  const startLabel = (startTime || '').trim();
+
+  const startLabel = (effectiveStart || '').trim();
   const endLabel = (endTime || '').trim();
   const hasStart = startLabel !== '' && startSeconds > 0;
   const hasEnd = endLabel !== '' && endSeconds > startSeconds;
 
+  const playerId = `yt-player-${videoId || 'unknown'}`;
+
+  // 1. حراسة الوقت الصارمة (Strict Time Guard)
+  useEffect(() => {
+    if (!autoPlay || !videoId) return;
+
+    let isMounted = true;
+    let guardTimer: ReturnType<typeof setInterval> | null = null;
+
+    const clearGuard = () => {
+      if (guardTimer) {
+        clearInterval(guardTimer);
+        guardTimer = null;
+      }
+    };
+
+    const checkBoundaries = (p: YTPlayerInstance) => {
+      try {
+        if (typeof p.getCurrentTime !== 'function') return;
+        const cur = p.getCurrentTime();
+        if (typeof cur !== 'number' || Number.isNaN(cur)) return;
+
+        // 1. عند وقت النهاية بالضبط أو تجاوزه: إيقاف فوري وتثبيت المؤشر عند النهاية
+        if (hasEnd && cur >= endSeconds) {
+          if (typeof p.pauseVideo === 'function') p.pauseVideo();
+          if (typeof p.seekTo === 'function') p.seekTo(endSeconds, true);
+          setIsEnded(true);
+          clearGuard();
+          return;
+        }
+
+        // 2. إذا سحب المستمع بيده لما قبل البداية: إرجاعه فوراً إلى وقت البداية
+        if (hasStart && cur < startSeconds - 0.5) {
+          if (typeof p.seekTo === 'function') p.seekTo(startSeconds, true);
+          return;
+        }
+
+        if (hasEnd && cur < endSeconds) {
+          setIsEnded(false);
+        }
+      } catch {
+        // حماية عند انفصال الاتصال بالمشغّل
+      }
+    };
+
+    const startGuard = (p: YTPlayerInstance) => {
+      clearGuard();
+      // مراقب لحظي يعمل كل 200 مللي ثانية أثناء التشغيل
+      guardTimer = setInterval(() => {
+        checkBoundaries(p);
+      }, 200);
+    };
+
+    void loadYouTubeApi().then(() => {
+      if (!isMounted) return;
+      const iframeEl = document.getElementById(playerId) as HTMLIFrameElement | null;
+      if (!iframeEl || !window.YT || !window.YT.Player) return;
+
+      try {
+        const player = new window.YT.Player(iframeEl, {
+          events: {
+            onReady: () => {
+              if (!isMounted) return;
+              checkBoundaries(player);
+            },
+            onStateChange: (event) => {
+              if (!isMounted) return;
+              // 1 = PLAYING
+              if (event.data === 1) {
+                startGuard(player);
+              } else {
+                // فحص فوري عند التوقف المؤقت لمنع السحب اليدوي خارج النطاق أثناء الإيقاف
+                checkBoundaries(player);
+                clearGuard();
+              }
+            },
+          },
+        });
+        playerRef.current = player;
+      } catch (err) {
+        console.warn('[VideoCard] تعذر ربط حارس الوقت بمشغل يوتيوب:', err);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      clearGuard();
+      if (playerRef.current) {
+        try {
+          if (typeof playerRef.current.destroy === 'function') {
+            playerRef.current.destroy();
+          }
+        } catch {
+          // ignore
+        }
+        playerRef.current = null;
+      }
+    };
+  }, [autoPlay, videoId, playerId, hasStart, hasEnd, startSeconds, endSeconds]);
+
   if (!videoId) return null;
 
-  // رابط المشاهدة المباشرة على YouTube (مع الوقت المحدد)
+  // رابط المشاهدة المباشرة على YouTube
   const youtubeDirectUrl = `https://youtu.be/${videoId}?t=${startSeconds}`;
 
-  // رابط الـ embed
-  let embedUrl = `https://www.youtube.com/embed/${videoId}?start=${startSeconds}&rel=0&modestbranding=1`;
-  // النهاية تُقبل فقط لو بعد البداية — وإلا يتجمد المشغّل على شاشة فارغة
-  if (endSeconds > startSeconds) embedUrl += `&end=${endSeconds}`;
-  if (autoPlay) embedUrl += `&autoplay=1`;
+  // رابط الـ embed مع تفعيل JS API لحراسة الوقت
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  let embedUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&start=${startSeconds}&rel=0&modestbranding=1`;
+  if (origin) {
+    embedUrl += `&origin=${encodeURIComponent(origin)}`;
+  }
+  if (hasEnd) {
+    embedUrl += `&end=${endSeconds}`;
+  }
+  if (autoPlay) {
+    embedUrl += `&autoplay=1`;
+  }
 
-  // صورة معاينة الحلقة من YouTube — تُحمّل بتكاسل، ولا تحمّل مشغّل الفيديو.
+  // صورة معاينة الحلقة من YouTube
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
   const handlePlay = () => {
     setAutoPlay(true);
     setIframeLoaded(false);
+    setIsEnded(false);
     setTimeout(() => {
-      wrapperRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (typeof wrapperRef.current?.scrollIntoView === 'function') {
+        wrapperRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }, 100);
+  };
+
+  const handleReplay = () => {
+    setIsEnded(false);
+    if (playerRef.current) {
+      try {
+        if (typeof playerRef.current.seekTo === 'function') {
+          playerRef.current.seekTo(startSeconds, true);
+        }
+        if (typeof playerRef.current.playVideo === 'function') {
+          playerRef.current.playVideo();
+        }
+      } catch {
+        // ignore
+      }
+    }
   };
 
   return (
@@ -82,6 +299,7 @@ const VideoCard = ({ videoUrl, startTime, endTime, title }: VideoCardProps) => {
       {/* ✅ زر "اسمع من هنا" */}
       {!autoPlay && startSeconds > 0 && (
         <button
+          type="button"
           className="btn w-100 py-2 mb-3 d-flex align-items-center justify-content-center gap-2"
           onClick={handlePlay}
           style={{
@@ -124,24 +342,31 @@ const VideoCard = ({ videoUrl, startTime, endTime, title }: VideoCardProps) => {
         </div>
       )}
 
-      {/* ✅ Video Player — Thumbnail + Lazy iframe لتجنب مشكلة الأيقونة الكسيرة على الموبايل */}
+      {/* ✅ Video Player — Thumbnail + Lazy iframe */}
       <div
         ref={wrapperRef}
         className="video-ratio-wrapper"
         style={{ borderRadius: '10px', overflow: 'hidden', position: 'relative', aspectRatio: '16/9', backgroundColor: '#000' }}
       >
         {autoPlay ? (
-          // بعد الضغط نحمّل iframe
           <>
             {!iframeLoaded && (
-              <div style={{
-                position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', backgroundColor: '#000', zIndex: 1,
-              }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#000',
+                  zIndex: 1,
+                }}
+              >
                 <div className="spinner-border text-light" style={{ width: '2rem', height: '2rem' }} role="status" />
               </div>
             )}
             <iframe
+              id={playerId}
               key="playing"
               src={embedUrl}
               title={title ? `فيديو شرح: ${title}` : 'فيديو شرح الدرس'}
@@ -161,7 +386,6 @@ const VideoCard = ({ videoUrl, startTime, endTime, title }: VideoCardProps) => {
             />
           </>
         ) : (
-          // قبل الضغط: Thumbnail مع زر تشغيل جميل
           <div
             role="button"
             tabIndex={0}
@@ -195,30 +419,51 @@ const VideoCard = ({ videoUrl, startTime, endTime, title }: VideoCardProps) => {
               }}
             />
             {/* Overlay داكن */}
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)',
-            }} />
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.5) 100%)',
+              }}
+            />
             {/* زر تشغيل وسط */}
-            <div style={{
-              position: 'absolute', inset: 0,
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: '10px',
-            }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                backgroundColor: 'rgba(255,0,0,0.9)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-                transition: 'transform 0.2s',
-              }}>
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+              }}
+            >
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255,0,0,0.9)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                  transition: 'transform 0.2s',
+                }}
+              >
                 <FiPlay size={28} color="#fff" style={{ marginLeft: '4px' }} />
               </div>
-              <span style={{
-                color: '#fff', fontSize: '0.82rem', fontWeight: 600,
-                textShadow: '0 1px 4px rgba(0,0,0,0.8)',
-                background: 'rgba(0,0,0,0.4)', padding: '4px 12px', borderRadius: '20px',
-              }}>
+              <span
+                style={{
+                  color: '#fff',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                  background: 'rgba(0,0,0,0.4)',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                }}
+              >
                 اضغط للتشغيل
               </span>
             </div>
@@ -226,7 +471,29 @@ const VideoCard = ({ videoUrl, startTime, endTime, title }: VideoCardProps) => {
         )}
       </div>
 
-      {/* ✅ رابط فتح في YouTube مباشرةً — مهم للموبايل */}
+      {/* ✅ إشعار انتهاء المسألة مع زر إعادة الاستماع */}
+      {isEnded && hasEnd && (
+        <div
+          className="alert alert-success d-flex align-items-center justify-content-between p-2 mt-2 mb-0 shadow-sm"
+          style={{ borderRadius: '8px', fontSize: '0.84rem' }}
+        >
+          <span className="d-flex align-items-center gap-2">
+            <FiCheckCircle size={16} className="text-success flex-shrink-0" />
+            <span>انتهى شرح هذه المسألة (عند {endLabel})</span>
+          </span>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-success fw-bold d-flex align-items-center gap-1"
+            onClick={handleReplay}
+            style={{ borderRadius: '6px', fontSize: '0.78rem' }}
+          >
+            <FiRotateCcw size={13} />
+            <span>إعادة المسألة</span>
+          </button>
+        </div>
+      )}
+
+      {/* ✅ رابط فتح في YouTube مباشرةً */}
       <div className="text-center mt-2">
         <a
           href={youtubeDirectUrl}

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, cleanup } from '@testing-library/react';
 import QuoteCard from './QuoteCard';
 import * as clipboard from '../../utils/clipboard';
+import * as haptics from '../../utils/haptics';
 
 describe('QuoteCard Component', () => {
   beforeEach(() => {
@@ -83,5 +84,47 @@ describe('QuoteCard Component', () => {
 
     const term = screen.getByRole('button', { name: /تعريف مصطلح: الطهور/i });
     expect(term).toBeTruthy();
+  });
+
+  it('يعرض المتن القصير كاملاً دون ظهور زر الطي والتوسيع', () => {
+    render(<QuoteCard text="هذا متن فقهي موجز جداً." searchQuery="" />);
+
+    expect(screen.getByText('متن المسألة')).toBeTruthy();
+    expect(screen.getByText(/هذا متن فقهي موجز/)).toBeTruthy();
+    expect(screen.queryByText(/عرض المتن كاملاً/)).toBeNull();
+  });
+
+  it('يطوي المتن الطويل افتراضياً ويُظهر زر عرض المتن كاملاً مع تقدير وقت القراءة', () => {
+    const longText =
+      'هذا متن طويل ومفصل يتناول المسائل الفقهية بعمق وبحث مستفيض في الأحكام الشرعية. ' +
+      'يتفرع عنه العديد من الفروع المتعلقة بشروط الصلاة وأركانها وسننها القبلية والبعدية. ' +
+      'وقد بين الفقهاء شروط صحة الوضوء وفروضه وسننه وآدابه ومكروهاته ونواقضه بالتفصيل، ' +
+      'وما يجب على المسلم معرفته في أداء العبادات على الوجه الصحيح الموافق لسنة النبي ﷺ، ' +
+      'وهذا المتن يتطلب وقتاً كافياً للقراءة والاستيعاب والتأمل في أحكام الفقه الإسلامي.';
+
+    render(<QuoteCard text={longText} searchQuery="" />);
+
+    const expandBtn = screen.getByRole('button', { name: /عرض المتن كاملاً/i });
+    expect(expandBtn).toBeTruthy();
+    expect(expandBtn.getAttribute('aria-expanded')).toBe('false');
+
+    const hapticSpy = vi.spyOn(haptics, 'triggerHaptic');
+    fireEvent.click(expandBtn);
+
+    expect(hapticSpy).toHaveBeenCalledWith('selection');
+    expect(screen.getByRole('button', { name: /طي متن المسألة/i })).toBeTruthy();
+  });
+
+  it('يفتح المتن الطويل تلقائياً إذا كان هناك استعلام بحث يطابق جزءاً من المتن', () => {
+    const longText =
+      'هذا متن طويل يحتوي على كلمة مفتاحية خاصة مثل الاستنشاق في مسائل الطهارة. ' +
+      'ويتكرر هذا الحكم في عدة كتب فقهية قديمة وحديثة مما يجعله طويلاً جداً ومستفيضاً.'.repeat(4);
+
+    render(<QuoteCard text={longText} searchQuery="الاستنشاق" />);
+
+    // يجب أن يكون مفتوحاً تلقائياً
+    const collapseBtn = screen.getByRole('button', { name: /طي متن المسألة/i });
+    expect(collapseBtn).toBeTruthy();
+    expect(collapseBtn.getAttribute('aria-expanded')).toBe('true');
   });
 });

@@ -2,11 +2,12 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { FiCopy, FiCheck, FiBookOpen, FiLink } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiBookOpen, FiLink, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import styles from './QuoteCard.module.css';
 import { glossaryData as defaultGlossary } from '../../data/glossary';
 import { formatBrackets } from '../../utils/textFormatting';
 import { copyText } from '../../utils/clipboard';
+import { triggerHaptic } from '../../utils/haptics';
 import { useToast } from '../../errors/useToast';
 import { sortedGlossaryTerms, createGlossaryRenderer } from '../../utils/glossaryUtil';
 import type { GlossaryMap } from '../../types';
@@ -42,6 +43,46 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
   const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [tooltipInfo, setTooltipInfo] = useState<TooltipInfo>({ show: false, term: '', definition: '', x: 0, y: 0 });
+
+  // إحصائيات القراءة والتحكم بالطي والتوسيع
+  const readingStats = useMemo(() => {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return { isCollapsible: false, estimatedMinutes: 0, wordsCount: 0 };
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    const wordsCount = words.length;
+    // المتن الطويل (أكثر من 70 كلمة أو أكثر من 360 حرفاً) يكون قابلاً للطي
+    const isCollapsible = wordsCount > 70 || trimmed.length > 360;
+    const estimatedMinutes = Math.max(1, Math.round(wordsCount / 140));
+    return { isCollapsible, estimatedMinutes, wordsCount };
+  }, [text]);
+
+  // التحقق إن كان استعلام البحث موجوداً داخل نص المتن
+  const hasSearchMatch = useMemo(() => {
+    if (!searchQuery || !searchQuery.trim()) return false;
+    return (text || '').toLowerCase().includes(searchQuery.trim().toLowerCase());
+  }, [text, searchQuery]);
+
+  // تفاعل المستخدم اليدوي مع الطي والتوسيع
+  const [userExpanded, setUserExpanded] = useState<boolean | null>(null);
+
+  // إعادة تعيين حالة التوسيع عند تغيير نص المسألة
+  useEffect(() => {
+    setUserExpanded(null);
+  }, [text]);
+
+  // الحالة الفعلية المحسوبة:
+  // 1. اختيار المستخدم اليدوي له الأولوية إذا وُجد
+  // 2. إذا تطابق استعلام البحث مع نص المتن يفتح تلقائياً
+  // 3. المتون القصيرة مفتوحة دائماً
+  // 4. المتون الطويلة تبدأ مطوية افتراضياً لتسهيل التصفح وتقليل التمرير
+  const isExpanded = userExpanded !== null
+    ? userExpanded
+    : (hasSearchMatch || !readingStats.isCollapsible);
+
+  const handleToggleExpand = () => {
+    triggerHaptic('selection');
+    setUserExpanded(!isExpanded);
+  };
 
   const handleCopy = async (): Promise<void> => {
     const ok = await copyText(text);
@@ -291,19 +332,103 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
           >
             <FiBookOpen size={16} /> متن المسألة
           </span>
-          <button
-            onClick={handleCopy}
-            className={`btn btn-sm d-flex align-items-center justify-content-center ${styles.copyButton}`}
-            title="نسخ النص"
-            aria-label="نسخ نص المسألة"
-          >
-            {copied ? <FiCheck color="green" size={20} /> : <FiCopy size={20} />}
-          </button>
+          <div className="d-flex align-items-center gap-1">
+            {readingStats.isCollapsible && (
+              <button
+                type="button"
+                onClick={handleToggleExpand}
+                className="btn btn-sm d-inline-flex align-items-center gap-1 px-2 py-1"
+                title={isExpanded ? 'طي المتن' : 'توسيع المتن'}
+                aria-label={isExpanded ? 'طي المتن (الترويسة)' : 'توسيع المتن (الترويسة)'}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--accent-color)',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                }}
+              >
+                {isExpanded ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+                <span className="d-none d-sm-inline">{isExpanded ? 'طي' : 'توسيع'}</span>
+              </button>
+            )}
+            <button
+              onClick={handleCopy}
+              className={`btn btn-sm d-flex align-items-center justify-content-center ${styles.copyButton}`}
+              title="نسخ النص"
+              aria-label="نسخ نص المسألة"
+            >
+              {copied ? <FiCheck color="green" size={20} /> : <FiCopy size={20} />}
+            </button>
+          </div>
         </div>
 
-        <div className={`mt-3 ${styles.textContent}`}>
-          {text.split('\n').map((paragraph, index) => renderParagraph(paragraph, index))}
+        {/* حاوية المتن مع دعم الطي والتوسيع لتقليل التمرير */}
+        <div
+          className="position-relative"
+          style={{
+            maxHeight: isExpanded || !readingStats.isCollapsible ? 'none' : '260px',
+            overflow: 'hidden',
+            transition: 'max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
+          <div className={`mt-3 ${styles.textContent}`}>
+            {text.split('\n').map((paragraph, index) => renderParagraph(paragraph, index))}
+          </div>
+
+          {/* تدرج التلاشي الأنيق عند الطي */}
+          {!isExpanded && readingStats.isCollapsible && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: '110px',
+                background: 'linear-gradient(to bottom, transparent, var(--card-bg) 92%)',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
         </div>
+
+        {/* زر التوسيع والطي التفاعلي أسفل المتن */}
+        {readingStats.isCollapsible && (
+          <div className="d-flex justify-content-center mt-3 pt-1 position-relative" style={{ zIndex: 2 }}>
+            <button
+              type="button"
+              className="btn btn-sm d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm rounded-pill"
+              onClick={handleToggleExpand}
+              aria-expanded={isExpanded}
+              style={{
+                backgroundColor: 'var(--badge-bg)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--accent-color)',
+                fontWeight: 700,
+                fontSize: '0.86rem',
+                border: '1px solid',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {isExpanded ? (
+                <>
+                  <FiChevronUp size={16} />
+                  <span>طي متن المسألة</span>
+                </>
+              ) : (
+                <>
+                  <FiChevronDown size={16} />
+                  <span>
+                    عرض المتن كاملاً
+                    {readingStats.estimatedMinutes > 1
+                      ? ` (${readingStats.estimatedMinutes === 2 ? 'دقيقتان قراءة' : `${readingStats.estimatedMinutes} دقائق قراءة`})`
+                      : ' (نحو دقيقة قراءة)'}
+                  </span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Glossary Tooltip */}
         {tooltipInfo.show && createPortal(

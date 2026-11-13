@@ -16,6 +16,7 @@ import {
   setSyncDisabled,
   subscribeSyncDisabled,
   consumeLibraryResync,
+  stampsStorageKey,
 } from '../utils/librarySync';
 import type { SyncableLibrary } from '../utils/librarySync';
 import type { HighlightItem } from '../types';
@@ -65,7 +66,6 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   const { user } = useAuth();
   const uid = user?.uid ?? null;
 
-  const stampsStorageKey = (u: string) => `library_stamps_v1_${u}`;
   const stampsRef = useRef<Record<string, number>>({});
   const currentUidRef = useRef<string | null>(uid);
 
@@ -89,7 +89,15 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   // توقيع الدفعة الجاري رفعها حاليًا — لابتلاع الصدى اللحظي قبل اكتمال تأكيد الخادم
   const pendingPushSignatureRef = useRef<string>('');
   // لقطة سحابية وردت أثناء تطبيق دمج محلي — تُحفظ لتُطبّق فور انتهاء نافذة التطبيق بدلاً من إسقاطها
-  const pendingSnapshotRef = useRef<Partial<SyncableLibrary> | null | undefined>(undefined);
+  // (مع علم الكاش: لقطة كاش «لا مستند» ليست دليل حذف، فلا بد من نقله مع اللقطة)
+  const pendingSnapshotRef = useRef<{ raw: Partial<SyncableLibrary> | null; fromCache: boolean } | undefined>(undefined);
+  // هل عرفنا الحالة السحابية الحقيقية؟ لقطة الكاش قد تقول «لا مستند» وهي ليست دليلًا.
+  // الدفع استبدال كامل للمستند، فالدفع قبل معرفة الحالة يمحو مكتبة السحابة بالكامل.
+  const serverStateKnownRef = useRef<boolean>(false);
+  // آخر ما رأيناه في الكاش كان «لا مستند» ولم يؤكده الخادم بعد
+  const cacheMissingRef = useRef<boolean>(false);
+  // جيل مسح البيانات: يزيد عند إيقاف المزامنة فتُلغى أي دفعة بدأت قبل المسح
+  const clearEpochRef = useRef<number>(0);
   // هل نطبّق دمجًا الآن؟ (منع إطلاق دفعة أثناء التطبيق)
   const applyingRef = useRef<boolean>(false);
   // هل توجد عملية دفع جارية الآن؟
@@ -101,7 +109,7 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onMergedRef = useRef(onMerged);
   const dataRef = useRef(data);
-  const mergeAndApplyRef = useRef<(raw: Partial<SyncableLibrary> | null) => void>(() => {});
+  const mergeAndApplyRef = useRef<(raw: Partial<SyncableLibrary> | null, fromCache?: boolean) => void>(() => {});
   const schedulePushRef = useRef<() => void>(() => {});
   // إبقاء المراجع محدثة بدون إعادة تشغيل الآثار
   useEffect(() => { onMergedRef.current = onMerged; }, [onMerged]);
@@ -131,6 +139,8 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
       retryCountRef.current = 0;
       pushingRef.current = false;
       applyingRef.current = false;
+      serverStateKnownRef.current = false;
+      cacheMissingRef.current = false;
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
@@ -138,7 +148,30 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
     }
   }, [uid]);
 
-  const mergeAndApply = useCallback((cloudRaw: Partial<SyncableLibrary> | null): void => {
+  // إيقاف المزامنة (مسح البيانات السحابية) يُبطل كل دفعة بدأت قبله: بدون ذلك تكتمل
+  // الكتابة بعد الحذف فتُعيد إنشاء المستند الذي طلب المستخدم مسحه.
+  useEffect(() => {
+    if (syncDisabled) clearEpochRef.current += 1;
+  }, [syncDisabled]);
+
+  const mergeAndApply = useCallback((cloudRaw: Partial<SyncableLibrary> | null, fromCache = false): void => {
+    // نتيجة قادمة من حساب سابق بعد تبديل الحساب: لا تلمس الحالة الحالية
+    if (currentUidRef.current !== uid) return;
+    // لقطة كاش تقول «لا مستند» ليست حذفًا: قد يكون المستند موجودًا ولم يُقرأ بعد.
+    // اعتبارها حذفًا كان يعطّل المزامنة أو يستبدل السحابة بمكتبة محلية ناقصة.
+    if (cloudRaw === null && fromCache) return;
+
+    // أختام كتبها مسار آخر (ترحيل الضيف/الاستعادة) بعد تحميل هذا الخطاف:
+    // ندمجها قبل الحسم حتى لا يبتلع شاهد حذف سحابي عنصرًا مستوردًا.
+    if (uid) {
+      const stored = safeParse<Record<string, number>>(safeGet(stampsStorageKey(uid)), {});
+      for (const [key, stamp] of Object.entries(stored)) {
+        if (typeof stamp === 'number' && stamp > (stampsRef.current[key] ?? 0)) {
+          stampsRef.current[key] = stamp;
+        }
+      }
+    }
+
     const local = toSyncable(dataRef.current, stampsRef.current);
     if (!cloudRaw) {
       if (isSyncDisabled(uid)) {
@@ -160,8 +193,10 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
         lastPushedRef.current = '';
         return;
       }
-      // لا شيء سحابيًا بعد (حساب جديد لم يسبق له المزامنة): ارفع المحلي كأساس أول
+      // لا شيء سحابيًا بعد (حساب جديد لم يسبق له المزامنة): ارفع المحلي كأساس أول.
+      // ندعو الدفع صراحةً لأن مؤقت التغيّر الأولي سبق معرفة الحالة السحابية وتوقّف.
       lastPushedRef.current = '';
+      schedulePushRef.current();
       return;
     }
 
@@ -213,7 +248,7 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
         if (pendingSnapshotRef.current !== undefined) {
           const queued = pendingSnapshotRef.current;
           pendingSnapshotRef.current = undefined;
-          mergeAndApplyRef.current(queued);
+          mergeAndApplyRef.current(queued.raw, queued.fromCache);
         }
       }, APPLYING_WINDOW_MS);
     } else {
@@ -249,12 +284,21 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
           ref,
           (snap) => {
             if (cancelled) return;
-            const raw = snap.exists() ? (snap.data() as Partial<SyncableLibrary>) : null;
+            const fromCache = snap.metadata?.fromCache === true;
+            const exists = snap.exists();
+            // الخادم هو المرجع الوحيد لحالة المستند. الكاش يفيد بالبيانات، لا بالغياب.
+            if (!fromCache) {
+              serverStateKnownRef.current = true;
+              cacheMissingRef.current = false;
+            } else if (!exists) {
+              cacheMissingRef.current = true;
+            }
+            const raw = exists ? (snap.data() as Partial<SyncableLibrary>) : null;
             if (applyingRef.current) {
-              pendingSnapshotRef.current = raw;
+              pendingSnapshotRef.current = { raw, fromCache };
               return;
             }
-            mergeAndApply(raw);
+            mergeAndApply(raw, fromCache);
           },
           (error) => {
             // رفض الصلاحيات ليس عطلًا: التطبيق يعمل محليًا بالكامل
@@ -277,6 +321,9 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
     if (!cloudEnabled(uid)) return;
     // مؤقت قديم قد ينطلق بعد تبديل الحساب: لا تدفع بيانات الحساب الجديد إلى وثيقة القديم
     if (currentUidRef.current !== uid) return;
+    // لا دفع قبل معرفة الحالة السحابية (لقطة خادمية): الكتابة استبدال كامل، والدفع
+    // بلا معرفة يمحو مكتبة السحابة على جهاز جديد أو بعد فقد كاش المتصفح.
+    if (!serverStateKnownRef.current || cacheMissingRef.current) return;
 
     // أثناء تطبيق دمج أو دفع جارٍ لا نُسقط الدفعة بل نُعيد جدولتها سريعًا (200ms)
     if (applyingRef.current || pushingRef.current) {
@@ -293,6 +340,7 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
     pendingPushSignatureRef.current = signature;
     const runUid = uid;
     const generation = generationRef.current;
+    const clearEpoch = clearEpochRef.current;
 
     void (async () => {
       try {
@@ -366,8 +414,16 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
 
         const cleanStamps = pruneTombstones(stamps, payload, now);
 
+        // كتابة الشواهد قبل الدفع (write-ahead): لو فشل الدفع أو أُغلق التطبيق فقدنا
+        // شاهد الحذف وعاد العنصر المحذوف من السحابة. الشاهد يُحفظ أولًا ويُصحّح بعد النجاح.
+        stampsRef.current = cleanStamps;
+        if (uid) safeSet(stampsStorageKey(uid), JSON.stringify(cleanStamps));
+
+        // مسح البيانات بدأ أثناء تجهيز الدفعة: لا تكتب شيئًا أصلًا
+        if (clearEpochRef.current !== clearEpoch || isSyncDisabled(runUid)) return;
+
         await fs.setDoc(
-          fs.doc(db, libraryDocPath(uid)),
+          fs.doc(db, libraryDocPath(runUid)),
           {
             bookmarks: payload.bookmarks,
             highlights: payload.highlights,
@@ -379,16 +435,20 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
           },
         );
 
+        // مسح البيانات اكتمل والكتابة وصلت بعده: احذف ما كتبناه بدل إحياء المستند
+        if (clearEpochRef.current !== clearEpoch || isSyncDisabled(runUid)) {
+          try { await fs.deleteDoc(fs.doc(db, libraryDocPath(runUid))); } catch { /* الحذف القادم سيكرره */ }
+          return;
+        }
+
         // تبديل الحساب أثناء الكتابة: لا تلمس مراجع الجلسة الجديدة ولا تختم نجاحًا لحساب آخر
         if (generationRef.current !== generation || currentUidRef.current !== runUid) return;
 
-        // نجحت الكتابة: الآن فقط نعتمد الحالة السابقة والأختام وآخر توقيع
+        // نجحت الكتابة: الآن فقط نعتمد الحالة السابقة وآخر توقيع
         previousDataRef.current = payload;
         lastPushedRef.current = signature;
         pendingPushSignatureRef.current = '';
-        stampsRef.current = cleanStamps;
         retryCountRef.current = 0;
-        if (uid) safeSet(stampsStorageKey(uid), JSON.stringify(cleanStamps));
       } catch (error) {
         // فشل دفعة حساب سابق بعد تبديل الحساب: لا تلمس مراجع الحساب الجديد ولا تعِد الجدولة
         if (generationRef.current !== generation || currentUidRef.current !== runUid) return;
@@ -398,7 +458,8 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
         pendingPushSignatureRef.current = '';
 
         // تراجع أسي بسقف محدد (4s -> 8s -> 16s -> 32s -> 60s) مع توقف بعد 5 محاولات
-        if (retryCountRef.current < 5) {
+        // (ولا إعادة محاولة بعد مسح البيانات: المطلوب أن يبقى المستند محذوفًا)
+        if (retryCountRef.current < 5 && !isSyncDisabled(runUid)) {
           const delay = Math.min(4000 * Math.pow(2, retryCountRef.current), 60000);
           retryCountRef.current += 1;
           timerRef.current = setTimeout(() => schedulePushRef.current(), delay);
@@ -461,6 +522,8 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
   // 4) سحب فوري عند عودة التبويب للمقدمة — يُغطّي حالة «سِبت اللابتوب وشغّلت الفون»
   useEffect(() => {
     if (!ready || !cloudEnabled(uid) || syncDisabled || !isFirebaseConfigured) return undefined;
+    const generation = generationRef.current;
+    let cancelled = false;
     const onVisible = (): void => {
       if (document.visibilityState !== 'visible') return;
       if (applyingRef.current) return;
@@ -472,13 +535,24 @@ export function useLibrarySync({ ready, data, onMerged }: UseLibrarySyncArgs): v
           ]);
           const { db } = await getFirestore();
           const snap = await fs.getDoc(fs.doc(db, libraryDocPath(uid)));
-          mergeAndApply(snap.exists() ? (snap.data() as Partial<SyncableLibrary>) : null);
+          // طلب بدأ لحساب سابق ثم تبدّل الحساب/أُغلق الأثر: نتيجته تخص حسابًا آخر،
+          // وتطبيقها هنا يسرب مكتبة المستخدم السابق إلى الحساب الحالي.
+          if (cancelled || generationRef.current !== generation || currentUidRef.current !== uid) return;
+          const fromCache = snap.metadata?.fromCache === true;
+          if (!fromCache) {
+            serverStateKnownRef.current = true;
+            cacheMissingRef.current = false;
+          } else if (!snap.exists()) {
+            cacheMissingRef.current = true;
+          }
+          mergeAndApply(snap.exists() ? (snap.data() as Partial<SyncableLibrary>) : null, fromCache);
         } catch { /* المستمع الحيّ سيغطي عند وصول اتصال */ }
       })();
     };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onVisible);
     return () => {
+      cancelled = true;
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onVisible);
     };

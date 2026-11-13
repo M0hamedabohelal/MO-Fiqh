@@ -5,7 +5,6 @@ import type { ReactNode } from 'react';
 import type { User } from 'firebase/auth';
 import { getAuthModule, isFirebaseConfigured } from '../../firebase/config';
 import { isAdmin as checkAdmin } from '../../firebase/services';
-import { safeRemove } from '../../utils/safeStorage';
 
 interface AuthResult {
   success: boolean;
@@ -246,12 +245,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // تسجيل خروج — لا يرمي أبدًا حتى لا يعلق المتصل به (النافذة تُغلق دائمًا)
   const logout = useCallback(async () => {
     try {
-      const currentUid = currentUidRef.current;
       const { auth, authMod } = await getAuthModule();
       await authMod.signOut(auth);
-      if (currentUid) {
-        safeRemove(`library_stamps_v1_${currentUid}`);
-      }
+      // لا نمسح أختام المكتبة هنا: هي حارس «المستند حُذف عمدًا». مسحها كان يجعل
+      // أول دخول لاحق يعيد إنشاء مستند حذفه المستخدم (أو حُذف من جهاز آخر).
+      // الأختام مفاتيحها مقيّدة بالـuid فلا تتسرب بين الحسابات.
     } catch (err) {
       console.error('فشل تسجيل الخروج:', err);
     }

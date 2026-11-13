@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../Components/Auth/AuthContext';
 import { safeGet, safeSet, safeRemove } from '../utils/safeStorage';
+import { stampImportedItems } from '../utils/librarySync';
 import { requireLogin } from '../utils/guestPrompt';
 import type { HighlightItem } from '../types';
 
@@ -147,10 +148,15 @@ export function useUserLibrary() {
 
     let next = account;
     if (hasGuest) {
-      // دمج محلي مرة واحدة ثم مسح بيانات الضيف حتى لا تتسرّب لحساب آخر
+      // دمج محلي مرة واحدة ثم مسح بيانات الضيف حتى لا تتسرّب لحساب آخر.
+      // لا نحذف نسخة الضيف إلا بعد نجاح كتابة الحساب: فشل التخزين (مساحة ممتلئة/
+      // وضع خاص) كان يعني حذف بيانات الضيف نهائيًا مع فشل حفظها في الحساب.
       next = unionLibrary(account, guest);
-      safeSet(accountKey(uid), JSON.stringify(next));
-      Object.values(GUEST_KEYS).forEach(safeRemove);
+      if (safeSet(accountKey(uid), JSON.stringify(next))) {
+        // ختم العناصر المستوردة الآن حتى لا يبتلعها شاهد حذف سحابي أقدم
+        stampImportedItems(uid, guest);
+        Object.values(GUEST_KEYS).forEach(safeRemove);
+      }
     }
     loadedUidRef.current = uid;
     setLoadedUid(uid);
@@ -269,8 +275,11 @@ export function useUserLibrary() {
     notes?: Record<string, string>;
     readLessons?: string[];
   }) => {
-    update((current) => unionLibrary(current, normalize(data)));
-  }, [update]);
+    const incoming = normalize(data);
+    update((current) => unionLibrary(current, incoming));
+    // العنصر المستعاد «أحدث» من أي شاهد حذف سحابي سابق، وإلا اختفى عند أول دمج
+    stampImportedItems(user?.uid, incoming);
+  }, [update, user?.uid]);
 
   // تطبيق مباشر لمكتبة مدمجة سحابيًا بدفعة ذرية واحدة تمنع الرجات وتضمن التحديث الفوري
   const applyMergedLibrary = useCallback((merged: {

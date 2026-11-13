@@ -232,7 +232,9 @@ describe('AuthContext & AuthProvider', () => {
     expect(mockSignInWithRedirect).toHaveBeenCalled();
   });
 
-  it('تسجيل الخروج يمسح أختام التزامن الخاصة بالحساب', async () => {
+  // الأختام هي حارس «المستند حُذف عمدًا». مسحها عند الخروج كان يجعل أول دخول
+  // لاحق يعيد إنشاء مستند حذفه المستخدم (أو حُذف من جهاز آخر).
+  it('تسجيل الخروج يُبقي أختام التزامن الخاصة بالحساب', async () => {
     mockSignOut.mockResolvedValueOnce(undefined);
     localStorage.setItem('library_stamps_v1_user-X', JSON.stringify({ 'bm:1': 100 }));
 
@@ -247,7 +249,7 @@ describe('AuthContext & AuthProvider', () => {
     });
 
     expect(mockSignOut).toHaveBeenCalled();
-    expect(localStorage.getItem('library_stamps_v1_user-X')).toBeNull();
+    expect(localStorage.getItem('library_stamps_v1_user-X')).toBe('{"bm:1":100}');
   });
 
   it('refreshAdminStatus يُحدّث حالة المشرف', async () => {

@@ -43,10 +43,10 @@ export function useStopMarks() {
   const marksRef = useRef<StopMarkMap>({});
   const deviceIdRef = useRef('');
 
-  const persist = useCallback((next: StopMarkMap, currentUid: string | null) => {
+  const persist = useCallback((next: StopMarkMap, currentUid: string | null): boolean => {
     marksRef.current = next;
     setMarks(next);
-    safeSet(currentUid ? accountStorageKey(currentUid) : guestStorageKey, JSON.stringify(next));
+    return safeSet(currentUid ? accountStorageKey(currentUid) : guestStorageKey, JSON.stringify(next));
   }, []);
 
   // تحميل علامات الحساب/الضيف من localStorage عند استقرار المصادقة
@@ -66,10 +66,11 @@ export function useStopMarks() {
     const merged = Object.keys(guestMarks).length > 0
       ? mergeStopMarkMaps(accountMarks, guestMarks)
       : accountMarks;
-    persist(merged, currentUid);
+    const saved = persist(merged, currentUid);
     // بعد الترحيل لا نُبقي نسخة الضيف؛ بقاؤها كان يعيد دمج علامات قديمة
     // (ومنها علامات حُذفت من الحساب) في كل تسجيل دخول لاحق.
-    if (Object.keys(guestMarks).length > 0) safeRemove(guestStorageKey);
+    // لكن الحذف مشروط بنجاح حفظ نسخة الحساب: فشل التخزين كان يعني ضياع علامات الضيف.
+    if (saved && Object.keys(guestMarks).length > 0) safeRemove(guestStorageKey);
     setLoadedUid(currentUid);
   }, [authLoading, uid, persist]);
   /* eslint-enable react-hooks/set-state-in-effect */

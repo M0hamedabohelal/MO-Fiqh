@@ -5,8 +5,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 
 const setDoc = vi.fn(async () => {});
+const deleteDoc = vi.fn(async () => {});
 const getDoc = vi.fn(async () => ({ exists: () => true, data: () => ({}) }));
 let snapshotCb: ((s: unknown) => void) | null = null;
+// عدد الاشتراكات: يسمح بالانتظار الحتمي لإعادة الاشتراك بعد تبديل الحساب
+let listenerCount = 0;
 
 const unsubscribe = vi.fn();
 
@@ -14,8 +17,10 @@ vi.mock('firebase/firestore', () => ({
   doc: (_db: unknown, ...p: string[]) => ({ path: p.join('/') }),
   getDoc: (...a: unknown[]) => getDoc(...(a as [])),
   setDoc: (...a: unknown[]) => setDoc(...(a as [])),
+  deleteDoc: (...a: unknown[]) => deleteDoc(...(a as [])),
   onSnapshot: (_ref: unknown, onNext: (s: unknown) => void) => {
     snapshotCb = onNext;
+    listenerCount += 1;
 
     return unsubscribe;
   },
@@ -36,12 +41,20 @@ import { setSyncDisabled, isSyncDisabled, requestLibraryResync } from '../utils/
 import { stopMarkBookKey } from '../features/stopMarks/model';
 import type { StopMarkMap } from '../features/stopMarks/model';
 
-const snap = (over: Record<string, unknown> = {}) => ({
+const snap = (over: Record<string, unknown> = {}, fromCache = false) => ({
   exists: () => true,
+  metadata: { fromCache },
   data: () => ({
     bookmarks: [], highlights: [], notes: {}, readLessons: [], stopMarks: {}, theme: 'dark', updatedAt: {},
     ...over,
   }),
+});
+
+// لقطة «لا مستند» — الكاش ليس دليل حذف، والخادم هو المرجع
+const missing = (fromCache = false) => ({
+  exists: () => false,
+  metadata: { fromCache },
+  data: () => ({}),
 });
 
 const baseData = (over: Record<string, unknown> = {}) => ({
@@ -53,11 +66,19 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     currentUid = 'u1';
     localStorage.clear();
     setDoc.mockClear();
+    deleteDoc.mockClear();
     getDoc.mockClear();
     snapshotCb = null;
+    listenerCount = 0;
   });
 
   afterEach(() => { vi.clearAllMocks(); });
+
+  // لا يدفع الخطاف قبل لقطة خادمية (حتى لا يمحو مكتبة السحابة)؛
+  // كل اختبار يتوقع دفعًا يُعلن الحالة السحابية أولًا.
+  const announceServer = async (over: Record<string, unknown> = {}) => {
+    await act(async () => { snapshotCb?.(snap(over)); });
+  };
 
   it('يفتح مستمعًا حيًّا (لا قراءة واحدة فقط)', async () => {
     const { unmount } = renderHook(() => useLibrarySync({
@@ -99,6 +120,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     );
 
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    await announceServer();
 
     // تغيير محلي → دفعة واحدة
     rerender({ bm: ['7'] });
@@ -165,6 +187,8 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     );
 
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    // الحالة السحابية مطابقة للمحلي: لا دفع أولي، فنقيس دفع الحذف وحده
+    await announceServer({ bookmarks: ['10'] });
 
     // حذف المفضلة 10 محليًا
     rerender({ bm: [] });
@@ -192,11 +216,16 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     );
 
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    await announceServer();
     await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 6000 });
 
     // تبديل المستخدم إلى userB في نفس التبويب، ومعه مكتبة تخص userB فقط (مثلاً مفضلة 9)
     currentUid = 'userB';
     rerender({ d: baseData({ bookmarks: ['9'] }) });
+
+    // الحساب الجديد يعيد الاشتراك؛ الحالة السحابية تُعلن من جديد قبل الدفع
+    await waitFor(() => expect(listenerCount).toBeGreaterThanOrEqual(2), { timeout: 4000 });
+    await announceServer();
 
     await waitFor(() => expect(setDoc.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 6000 });
 
@@ -222,6 +251,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     );
 
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    await announceServer();
     await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 4000 });
 
     // تبديل الحساب: إطار انتقالي تكون فيه البيانات لم تُحمّل بعد لحساب Beta
@@ -230,6 +260,9 @@ describe('useLibrarySync — مزامنة حيّة', () => {
 
     // بعد لحظات: اكتمل تحميل بيانات Beta المحلية (مفضلة 99 فقط)
     rerender({ r: true, d: baseData({ bookmarks: ['99'] }) });
+
+    await waitFor(() => expect(listenerCount).toBeGreaterThanOrEqual(2), { timeout: 4000 });
+    await announceServer();
 
     await waitFor(() => expect(setDoc.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 6000 });
 
@@ -273,6 +306,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     );
 
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    await announceServer();
 
     // تغيير محلي سريع (إضافة مفضلة)
     rerender({ bm: ['101'] });
@@ -295,6 +329,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     );
 
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    await announceServer();
     await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 2000 });
 
     // جهاز آخر أضاف مفضلة 99 فورًا بعد كتابتنا (ضمن أقل من ثانية)
@@ -322,6 +357,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     );
 
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    await announceServer();
 
     // تغيير محلي
     rerender({ bm: ['202'] });
@@ -361,6 +397,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     );
 
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    await announceServer();
     // الدفعة الأولى ترفع علامة book1
     await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 2000 });
     const firstCall = setDoc.mock.calls[0] as unknown[];
@@ -411,14 +448,34 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     }));
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
 
-    await act(async () => {
-      snapshotCb?.({ exists: () => false, data: () => ({}) });
-    });
+    await act(async () => { snapshotCb?.(missing(false)); });
 
     expect(isSyncDisabled('u1')).toBe(true);
     unmount();
     setSyncDisabled('u1', false);
   }, 10000);
+
+  // العطل الأخطر: جهاز جديد (كاش فارغ) يدفع قبل وصول لقطة الخادم فيمحو المكتبة كاملة
+  it('لا يدفع قبل لقطة خادمية مؤكدة حتى مع وجود بيانات محلية', async () => {
+    const { unmount } = renderHook(() => useLibrarySync({
+      ready: true, data: baseData({ bookmarks: ['1', '2'] }), onMerged: vi.fn(),
+    }));
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+
+    // كاش فارغ يقول «لا مستند» — ليس دليلًا على الحذف ولا على حساب جديد
+    await act(async () => { snapshotCb?.(missing(true)); });
+    await new Promise((r) => setTimeout(r, 800));
+    expect(setDoc).not.toHaveBeenCalled();
+    expect(isSyncDisabled('u1')).toBe(false);
+
+    // لقطة الخادم (لا مستند) تفتح الباب لرفع الأساس الأول
+    await act(async () => { snapshotCb?.(missing(false)); });
+    await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    const written = (setDoc.mock.calls[0] as unknown[])[1] as { bookmarks: string[] };
+    expect(written.bookmarks).toEqual(['1', '2']);
+
+    unmount();
+  }, 15000);
 
   it('طلب استئناف صريح يعيد إنشاء المستند المحذوف بدل تعطيل المزامنة مجددًا', async () => {
     localStorage.setItem('library_stamps_v1_u1', JSON.stringify({ 'bm:1': 1 }));
@@ -430,9 +487,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     }));
     await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
 
-    await act(async () => {
-      snapshotCb?.({ exists: () => false, data: () => ({}) });
-    });
+    await act(async () => { snapshotCb?.(missing(false)); });
 
     await waitFor(() => expect(setDoc).toHaveBeenCalled(), { timeout: 3000 });
     expect(isSyncDisabled('u1')).toBe(false);
@@ -443,4 +498,60 @@ describe('useLibrarySync — مزامنة حيّة', () => {
     expect(written.bookmarks).toEqual(['1']);
     unmount();
   }, 10000);
+
+  it('مسح البيانات أثناء دفعة جارية يحذف ما كتبته الدفعة بدل إحياء المستند', async () => {
+    let resolveWrite!: () => void;
+    setDoc.mockImplementationOnce(() => new Promise<void>((resolve) => { resolveWrite = resolve; }));
+
+    const { unmount } = renderHook(() => useLibrarySync({
+      ready: true, data: baseData({ bookmarks: ['1'] }), onMerged: vi.fn(),
+    }));
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+    await announceServer();
+    await waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1), { timeout: 3000 });
+
+    // المستخدم يمسح بياناته بينما الكتابة على الشبكة
+    await act(async () => { setSyncDisabled('u1', true); });
+    await act(async () => { resolveWrite(); await Promise.resolve(); });
+
+    await waitFor(() => expect(deleteDoc).toHaveBeenCalled(), { timeout: 3000 });
+    unmount();
+    setSyncDisabled('u1', false);
+  }, 15000);
+
+  it('getDoc عند focus لا يطبّق نتيجة حساب سابق بعد تبديل الحساب', async () => {
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true });
+    let resolveGet!: (value: any) => void;
+    getDoc.mockImplementationOnce(() => new Promise((resolve) => { resolveGet = resolve; }));
+
+    const onMerged = vi.fn();
+    const { rerender, unmount } = renderHook(
+      () => useLibrarySync({ ready: true, data: baseData(), onMerged }),
+    );
+    await waitFor(() => expect(snapshotCb).toBeTruthy(), { timeout: 3000 });
+
+    // بدء قراءة لحساب u1
+    act(() => { window.dispatchEvent(new Event('focus')); });
+    await waitFor(() => expect(getDoc).toHaveBeenCalledTimes(1), { timeout: 3000 });
+
+    // تبديل الحساب قبل أن تُحسم القراءة
+    currentUid = 'u2';
+    rerender();
+    await waitFor(() => expect(listenerCount).toBeGreaterThanOrEqual(2), { timeout: 4000 });
+
+    await act(async () => {
+      resolveGet({
+        exists: () => true,
+        metadata: { fromCache: false },
+        data: () => ({ bookmarks: ['A'], highlights: [], notes: {}, readLessons: [], updatedAt: {} }),
+      });
+      await Promise.resolve();
+    });
+    await new Promise((r) => setTimeout(r, 200));
+
+    // نتيجة مكتبة الحساب السابق يجب ألا تُطبّق على الحساب الجديد
+    expect(onMerged).not.toHaveBeenCalled();
+    unmount();
+    currentUid = 'u1';
+  }, 15000);
 });

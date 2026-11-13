@@ -16,6 +16,10 @@ const MIN_INTERVAL_MS = 5 * 60_000;
 // إن تكرر العطل رغم إعادة التحميل فإن الكاش المحلي هو المشتبه الأول: قد يُعيد إنتاج
 // نفس العدّاد المكسور (-1) عند كل إقلاع. نمسحه ثم نُعيد التحميل مرة أخرى.
 const HARD_RESET_KEY = 'firestore_hard_reset_at';
+// عدد مرات «مسح الكاش + إعادة التحميل» في النافذة. بلا سقف كان كاش تالف يُنتج
+// حلقة إعادة تحميل لا نهائية: كل إقلاع يرى عطلًا مسبقًا داخل النافذة فيمسح ويعيد.
+const HARD_RESET_COUNT_KEY = 'firestore_hard_reset_count';
+const MAX_HARD_RESETS = 2;
 // سقف انتظار مسح الكاش: التعافي أهم من نظافة الكاش.
 const CACHE_CLEAR_TIMEOUT_MS = 1500;
 
@@ -47,6 +51,30 @@ function writeTimestamp(key: string): void {
   } catch {
     // بلا sessionStorage: نكتفي بحماية المتغير داخل الصفحة
   }
+}
+
+/**
+ * يسجّل محاولة «مسح + إعادة تحميل» ويعيد رقمها داخل النافذة الحالية.
+ * يُصفّر العدّاد إذا لم تعد المحاولة السابقة ضمن النافذة (جلسة جديدة/عطل منفصل).
+ */
+function registerHardReset(): number {
+  let previous = 0;
+  try {
+    const last = readTimestamp(HARD_RESET_KEY);
+    const recent = last > 0 && Date.now() - last < MIN_INTERVAL_MS;
+    const stored = Number(sessionStorage.getItem(HARD_RESET_COUNT_KEY) || 0);
+    previous = recent && Number.isFinite(stored) ? stored : 0;
+  } catch {
+    previous = 0;
+  }
+  const count = previous + 1;
+  writeTimestamp(HARD_RESET_KEY);
+  try {
+    sessionStorage.setItem(HARD_RESET_COUNT_KEY, String(count));
+  } catch {
+    // بلا تخزين لا سقف بين الجلسات، لكن حارس hardResetting يمنع التكرار داخل الصفحة
+  }
+  return count;
 }
 
 // يمسح كاش Firestore (IndexedDB + المفاتيح المحلية) ليعود العميل على حالة نظيفة.
@@ -90,7 +118,9 @@ export async function firestoreFatalRecovery(reason: unknown): Promise<void> {
   const repeated = lastAttempt > 0 && Date.now() - lastAttempt < MIN_INTERVAL_MS;
   writeTimestamp(RECOVERY_KEY);
   if (repeated) {
-    writeTimestamp(HARD_RESET_KEY);
+    // سقف المحاولات: الاستمرار في المسح وإعادة التحميل بلا نهاية يترك المستخدم في
+    // حلقة لا تُنتج شيئًا. بعد السقف نترك شاشة الخطأ (بها إعادة محاولة يدوية).
+    if (registerHardReset() > MAX_HARD_RESETS) return;
     await clearFirestoreCache();
   }
   window.location.reload();
@@ -106,7 +136,7 @@ export function recoverFromFatalFirestoreError(reason: unknown): boolean {
   const repeated = last > 0 && Date.now() - last < MIN_INTERVAL_MS;
   writeTimestamp(RECOVERY_KEY);
   if (repeated) {
-    writeTimestamp(HARD_RESET_KEY);
+    if (registerHardReset() > MAX_HARD_RESETS) return true; // ابتلاع الخطأ بلا حلقة
     void clearFirestoreCache().finally(() => window.location.reload());
     return true;
   }

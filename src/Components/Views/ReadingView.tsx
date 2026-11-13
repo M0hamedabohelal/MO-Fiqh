@@ -617,7 +617,7 @@ const ReadingView = () => {
               bookName={lesson.bookName}
               chapterName={lesson.chapterName}
             />
-            <VideoCard key={`video-${lessonId}`} videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} title={lesson.title} />
+            <VideoCard key={`video-${lessonId}`} videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} videoTimestamp={lesson.videoTimestamp} title={lesson.title} />
           </div>
 
           {/* الميزات التفاعلية */}
