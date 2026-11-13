@@ -58,7 +58,7 @@ function writeTimestamp(key: string): void {
  * يُصفّر العدّاد إذا لم تعد المحاولة السابقة ضمن النافذة (جلسة جديدة/عطل منفصل).
  */
 function registerHardReset(): number {
-  let previous = 0;
+  let previous: number;
   try {
     const last = readTimestamp(HARD_RESET_KEY);
     const recent = last > 0 && Date.now() - last < MIN_INTERVAL_MS;

@@ -64,11 +64,13 @@ const QuoteCard = ({ text, searchQuery, glossary = defaultGlossary }: QuoteCardP
 
   // تفاعل المستخدم اليدوي مع الطي والتوسيع
   const [userExpanded, setUserExpanded] = useState<boolean | null>(null);
+  const [prevText, setPrevText] = useState(text);
 
-  // إعادة تعيين حالة التوسيع عند تغيير نص المسألة
-  useEffect(() => {
+  // إعادة تعيين حالة التوسيع عند تغيير نص المسألة بدون أثر جانبي
+  if (text !== prevText) {
+    setPrevText(text);
     setUserExpanded(null);
-  }, [text]);
+  }
 
   // الحالة الفعلية المحسوبة:
   // 1. اختيار المستخدم اليدوي له الأولوية إذا وُجد

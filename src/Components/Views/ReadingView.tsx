@@ -13,7 +13,8 @@ import {
 import Breadcrumb from '../Header/Breadcrumb';
 import QuoteCard from '../Content/QuoteCard';
 import ExplanationCard from '../Content/ExplanationCard';
-import VideoCard, { parseTime } from '../Content/VideoCard';
+import VideoCard from '../Content/VideoCard';
+import { parseTime } from '../../utils/videoUtils';
 import AudioCard from '../Content/AudioCard';
 import NotesCard from '../Content/NotesCard';
 import MediaCard from '../Content/MediaCard';

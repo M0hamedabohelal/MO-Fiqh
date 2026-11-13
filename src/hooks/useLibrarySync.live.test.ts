@@ -521,7 +521,7 @@ describe('useLibrarySync — مزامنة حيّة', () => {
 
   it('getDoc عند focus لا يطبّق نتيجة حساب سابق بعد تبديل الحساب', async () => {
     Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true });
-    let resolveGet!: (value: any) => void;
+    let resolveGet!: (value: { exists: () => boolean; data: () => Record<string, unknown> }) => void;
     getDoc.mockImplementationOnce(() => new Promise((resolve) => { resolveGet = resolve; }));
 
     const onMerged = vi.fn();

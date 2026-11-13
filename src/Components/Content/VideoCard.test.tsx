@@ -1,7 +1,17 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, cleanup } from '@testing-library/react';
-import VideoCard, { parseTime, extractVideoId } from './VideoCard';
+import VideoCard from './VideoCard';
+import { parseTime, extractVideoId, type YTPlayerInstance } from '../../utils/videoUtils';
+
+interface MockPlayerOptions {
+  videoId?: string;
+  playerVars?: Record<string, unknown>;
+  events?: {
+    onReady?: (event?: { target?: YTPlayerInstance }) => void;
+    onStateChange?: (event?: { data?: number; target?: YTPlayerInstance }) => void;
+  };
+}
 
 describe('VideoCard — أدوات تحليل الوقت وروابط يوتيوب', () => {
   it('extractVideoId يستخرج المعرف من مختلف صيغ روابط يوتيوب', () => {
@@ -33,7 +43,7 @@ describe('VideoCard — العرض والتشغيل وحراسة الوقت ال
     destroy: ReturnType<typeof vi.fn>;
     getIframe: ReturnType<typeof vi.fn>;
   };
-  let playerOptions: any = null;
+  let playerOptions: MockPlayerOptions | null = null;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -48,13 +58,13 @@ describe('VideoCard — العرض والتشغيل وحراسة الوقت ال
       getIframe: vi.fn(),
     };
 
-    function MockYTPlayer(this: any, _el: any, options: any) {
-      playerOptions = options;
+    function MockYTPlayer(this: YTPlayerInstance, _el: unknown, options?: MockPlayerOptions) {
+      playerOptions = options || null;
       Object.assign(this, mockPlayerInstance);
       return mockPlayerInstance;
     }
 
-    (window as any).YT = {
+    (window as unknown as { YT: unknown }).YT = {
       Player: MockYTPlayer,
       PlayerState: {
         PLAYING: 1,
@@ -69,7 +79,7 @@ describe('VideoCard — العرض والتشغيل وحراسة الوقت ال
     vi.clearAllTimers();
     vi.useRealTimers();
     playerOptions = null;
-    delete (window as any).YT;
+    delete (window as unknown as { YT?: unknown }).YT;
   });
 
   it('لا يعرض شيئاً إذا كان رابط الفيديو مفقوداً أو غير صالح', () => {
@@ -109,10 +119,10 @@ describe('VideoCard — العرض والتشغيل وحراسة الوقت ال
     });
 
     expect(playerOptions).toBeTruthy();
-    expect(playerOptions.videoId).toBe('dQw4w9WgXcQ');
-    expect(playerOptions.playerVars.enablejsapi).toBe(1);
-    expect(playerOptions.playerVars.start).toBe(90);
-    expect(playerOptions.playerVars.end).toBe(180);
+    expect(playerOptions?.videoId).toBe('dQw4w9WgXcQ');
+    expect(playerOptions?.playerVars?.enablejsapi).toBe(1);
+    expect(playerOptions?.playerVars?.start).toBe(90);
+    expect(playerOptions?.playerVars?.end).toBe(180);
   });
 
   it('حراسة الوقت عند النهاية: توقف فوري وتثبيت المؤشر عند وقت النهاية إذا بلغه أو تجاوزه', async () => {
@@ -133,8 +143,8 @@ describe('VideoCard — العرض والتشغيل وحراسة الوقت ال
     // استدعاء أحداث المشغّل بعد الربط
     expect(playerOptions).toBeTruthy();
     act(() => {
-      playerOptions.events.onReady?.();
-      playerOptions.events.onStateChange?.({ data: 1 });
+      playerOptions?.events?.onReady?.();
+      playerOptions?.events?.onStateChange?.({ data: 1 });
     });
 
     // المشغل حالياً عند 100 ثانية (أقل من النهاية) -> لا توقف
@@ -174,7 +184,7 @@ describe('VideoCard — العرض والتشغيل وحراسة الوقت ال
 
     expect(playerOptions).toBeTruthy();
     act(() => {
-      playerOptions.events.onStateChange?.({ data: 1 });
+      playerOptions?.events?.onStateChange?.({ data: 1 });
     });
 
     // سحب المستخدم بيده إلى الدقيقة 10 (600 ثانية)
@@ -204,7 +214,7 @@ describe('VideoCard — العرض والتشغيل وحراسة الوقت ال
 
     expect(playerOptions).toBeTruthy();
     act(() => {
-      playerOptions.events.onStateChange?.({ data: 1 });
+      playerOptions?.events?.onStateChange?.({ data: 1 });
     });
 
     // سحب المستخدم إلى 10 ثوانٍ (قبل البداية التي هي 60)
@@ -233,7 +243,7 @@ describe('VideoCard — العرض والتشغيل وحراسة الوقت ال
 
     expect(playerOptions).toBeTruthy();
     act(() => {
-      playerOptions.events.onStateChange?.({ data: 1 });
+      playerOptions?.events?.onStateChange?.({ data: 1 });
     });
 
     // بلوغ النهاية
