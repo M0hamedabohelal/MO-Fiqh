@@ -13,7 +13,7 @@ import {
 import Breadcrumb from '../Header/Breadcrumb';
 import QuoteCard from '../Content/QuoteCard';
 import ExplanationCard from '../Content/ExplanationCard';
-import VideoCard from '../Content/VideoCard';
+import VideoCard, { parseTime } from '../Content/VideoCard';
 import AudioCard from '../Content/AudioCard';
 import NotesCard from '../Content/NotesCard';
 import MediaCard from '../Content/MediaCard';
@@ -605,20 +605,42 @@ const ReadingView = () => {
             <ExplanationCard explanation={lesson.sheikhExplanation || ''} searchQuery={searchQuery} glossary={glossary} />
           )}
           
-          <div className="perf-contain-media">
-            <MediaCard key={`media-${lessonId}`} mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} title={lesson.title} />
-            <AudioCard
-              key={`audio-${lessonId}`}
-              audioUrl={lesson.audioUrl}
-              title={lesson.title}
-              startTime={lesson.startTime}
-              endTime={lesson.endTime}
-              lessonId={lesson.id}
-              bookName={lesson.bookName}
-              chapterName={lesson.chapterName}
-            />
-            <VideoCard key={`video-${lessonId}`} videoUrl={lesson.videoUrl} startTime={lesson.startTime} endTime={lesson.endTime} videoTimestamp={lesson.videoTimestamp} title={lesson.title} />
-          </div>
+          {(() => {
+            const nextLesson = lessons[currentIndex + 1];
+            const hasExplicitEnd = Boolean(lesson.endTime && lesson.endTime.trim());
+            const curStart = parseTime(lesson.startTime || lesson.videoTimestamp);
+            const nextStart = nextLesson ? parseTime(nextLesson.startTime || nextLesson.videoTimestamp) : 0;
+            const sameVideo = Boolean(nextLesson && nextLesson.videoUrl && nextLesson.videoUrl === lesson.videoUrl);
+            const effectiveEndTime = hasExplicitEnd
+              ? lesson.endTime
+              : sameVideo && nextStart > curStart
+              ? (nextLesson?.startTime || nextLesson?.videoTimestamp)
+              : undefined;
+
+            return (
+              <div className="perf-contain-media">
+                <MediaCard key={`media-${lessonId}`} mediaUrl={lesson.mediaUrl} mediaType={lesson.mediaType} title={lesson.title} />
+                <AudioCard
+                  key={`audio-${lessonId}`}
+                  audioUrl={lesson.audioUrl}
+                  title={lesson.title}
+                  startTime={lesson.startTime}
+                  endTime={effectiveEndTime}
+                  lessonId={lesson.id}
+                  bookName={lesson.bookName}
+                  chapterName={lesson.chapterName}
+                />
+                <VideoCard
+                  key={`video-${lessonId}`}
+                  videoUrl={lesson.videoUrl}
+                  startTime={lesson.startTime}
+                  endTime={effectiveEndTime}
+                  videoTimestamp={lesson.videoTimestamp}
+                  title={lesson.title}
+                />
+              </div>
+            );
+          })()}
 
           {/* الميزات التفاعلية */}
           <div className="perf-contain-card">

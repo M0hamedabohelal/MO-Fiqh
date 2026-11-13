@@ -108,11 +108,11 @@ describe('VideoCard — العرض والتشغيل وحراسة الوقت ال
       await Promise.resolve();
     });
 
-    const iframe = screen.getByTitle(/فيديو شرح الدرس/i) as HTMLIFrameElement;
-    expect(iframe).toBeTruthy();
-    expect(iframe.src).toContain('enablejsapi=1');
-    expect(iframe.src).toContain('start=90');
-    expect(iframe.src).toContain('end=180');
+    expect(playerOptions).toBeTruthy();
+    expect(playerOptions.videoId).toBe('dQw4w9WgXcQ');
+    expect(playerOptions.playerVars.enablejsapi).toBe(1);
+    expect(playerOptions.playerVars.start).toBe(90);
+    expect(playerOptions.playerVars.end).toBe(180);
   });
 
   it('حراسة الوقت عند النهاية: توقف فوري وتثبيت المؤشر عند وقت النهاية إذا بلغه أو تجاوزه', async () => {

@@ -26,6 +26,8 @@ declare global {
         element: HTMLElement | string,
         options: {
           videoId?: string;
+          width?: string | number;
+          height?: string | number;
           playerVars?: Record<string, unknown>;
           events?: {
             onReady?: (event: { target: YTPlayerInstance }) => void;
@@ -170,7 +172,6 @@ const VideoCard = ({ videoUrl, startTime, endTime, videoTimestamp, title }: Vide
           if (typeof p.pauseVideo === 'function') p.pauseVideo();
           if (typeof p.seekTo === 'function') p.seekTo(endSeconds, true);
           setIsEnded(true);
-          clearGuard();
           return;
         }
 
@@ -190,33 +191,74 @@ const VideoCard = ({ videoUrl, startTime, endTime, videoTimestamp, title }: Vide
 
     const startGuard = (p: YTPlayerInstance) => {
       clearGuard();
-      // مراقب لحظي يعمل كل 200 مللي ثانية أثناء التشغيل
+      // مراقب لحظي يعمل كل 100 مللي ثانية باستمرار
       guardTimer = setInterval(() => {
         checkBoundaries(p);
-      }, 200);
+      }, 100);
     };
+
+    // مستمع رسائل postMessage المباشر من يوتيوب كحارس إضافي لحظي فائق السرعة
+    const handleMessage = (e: MessageEvent) => {
+      if (!isMounted || !playerRef.current) return;
+      if (typeof e.data !== 'string') return;
+      try {
+        const parsed = JSON.parse(e.data);
+        if (parsed.event === 'infoDelivery' && parsed.info) {
+          if (typeof parsed.info.currentTime === 'number') {
+            const cur = parsed.info.currentTime;
+            if (hasEnd && cur >= endSeconds) {
+              playerRef.current.pauseVideo();
+              playerRef.current.seekTo(endSeconds, true);
+              setIsEnded(true);
+            } else if (hasStart && cur < startSeconds - 0.5) {
+              playerRef.current.seekTo(startSeconds, true);
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
 
     void loadYouTubeApi().then(() => {
       if (!isMounted) return;
-      const iframeEl = document.getElementById(playerId) as HTMLIFrameElement | null;
-      if (!iframeEl || !window.YT || !window.YT.Player) return;
+      const targetEl = document.getElementById(playerId);
+      if (!targetEl || !window.YT || !window.YT.Player) return;
 
       try {
-        const player = new window.YT.Player(iframeEl, {
+        const player = new window.YT.Player(targetEl, {
+          videoId,
+          width: '100%',
+          height: '100%',
+          playerVars: {
+            autoplay: 1,
+            enablejsapi: 1,
+            start: startSeconds,
+            end: hasEnd ? endSeconds : undefined,
+            rel: 0,
+            modestbranding: 1,
+            origin: typeof window !== 'undefined' ? window.location.origin : undefined,
+          },
           events: {
-            onReady: () => {
+            onReady: (event: any) => {
               if (!isMounted) return;
-              checkBoundaries(player);
+              setIframeLoaded(true);
+              const p = event?.target || player;
+              playerRef.current = p;
+              checkBoundaries(p);
+              startGuard(p);
             },
-            onStateChange: (event) => {
+            onStateChange: (event: any) => {
               if (!isMounted) return;
+              const p = event?.target || player;
+              checkBoundaries(p);
               // 1 = PLAYING
-              if (event.data === 1) {
-                startGuard(player);
+              if (event?.data === 1) {
+                startGuard(p);
               } else {
-                // فحص فوري عند التوقف المؤقت لمنع السحب اليدوي خارج النطاق أثناء الإيقاف
-                checkBoundaries(player);
-                clearGuard();
+                checkBoundaries(p);
               }
             },
           },
@@ -230,6 +272,7 @@ const VideoCard = ({ videoUrl, startTime, endTime, videoTimestamp, title }: Vide
     return () => {
       isMounted = false;
       clearGuard();
+      window.removeEventListener('message', handleMessage);
       if (playerRef.current) {
         try {
           if (typeof playerRef.current.destroy === 'function') {
@@ -247,19 +290,6 @@ const VideoCard = ({ videoUrl, startTime, endTime, videoTimestamp, title }: Vide
 
   // رابط المشاهدة المباشرة على YouTube
   const youtubeDirectUrl = `https://youtu.be/${videoId}?t=${startSeconds}`;
-
-  // رابط الـ embed مع تفعيل JS API لحراسة الوقت
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  let embedUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&start=${startSeconds}&rel=0&modestbranding=1`;
-  if (origin) {
-    embedUrl += `&origin=${encodeURIComponent(origin)}`;
-  }
-  if (hasEnd) {
-    embedUrl += `&end=${endSeconds}`;
-  }
-  if (autoPlay) {
-    embedUrl += `&autoplay=1`;
-  }
 
   // صورة معاينة الحلقة من YouTube
   const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
@@ -342,7 +372,7 @@ const VideoCard = ({ videoUrl, startTime, endTime, videoTimestamp, title }: Vide
         </div>
       )}
 
-      {/* ✅ Video Player — Thumbnail + Lazy iframe */}
+      {/* ✅ Video Player — Thumbnail + Dynamic Player */}
       <div
         ref={wrapperRef}
         className="video-ratio-wrapper"
@@ -365,21 +395,14 @@ const VideoCard = ({ videoUrl, startTime, endTime, videoTimestamp, title }: Vide
                 <div className="spinner-border text-light" style={{ width: '2rem', height: '2rem' }} role="status" />
               </div>
             )}
-            <iframe
+            <div
               id={playerId}
-              key="playing"
-              src={embedUrl}
               title={title ? `فيديو شرح: ${title}` : 'فيديو شرح الدرس'}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              onLoad={() => setIframeLoaded(true)}
               style={{
                 width: '100%',
                 height: '100%',
                 position: 'absolute',
                 inset: 0,
-                border: 'none',
                 opacity: iframeLoaded ? 1 : 0,
                 transition: 'opacity 0.3s ease',
               }}
